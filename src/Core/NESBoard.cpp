@@ -51,7 +51,7 @@ namespace R2NES::Core
         std::shared_ptr<Cartridge> newCart = std::make_shared<Cartridge>(path);
         if (newCart->isValid())
         { // Usando o método público isValid()
-            bus.insertCartridge(newCart);
+            bus.setCartridge(newCart);
             std::cout << "Cartridge '" << path << "' loaded successfully." << std::endl;
         }
         else
