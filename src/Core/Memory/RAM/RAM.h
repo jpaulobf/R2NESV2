@@ -2,8 +2,10 @@
 #include <cstdint>
 #include <vector>
 
-namespace R2NES::Core {
-    class RAM {
+namespace R2NES::Core
+{
+    class RAM
+    {
     public:
         RAM(size_t size = 2048);
         ~RAM();
