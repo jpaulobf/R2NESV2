@@ -8,3 +8,4 @@ roms/*
 target/*
 .vscode/*
 bin/*
+build/*
