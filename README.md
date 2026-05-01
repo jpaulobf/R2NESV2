@@ -10,13 +10,13 @@ Após uma primeira implementação bem-sucedida em Java, a versão 2 nasce do de
  * **Aprendizado:** Documentar o processo de transição de uma linguagem de alto nível (Java) para o "bare metal" da emulação.
 
 ## 🏗️ Arquitetura Proposta
-O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma MainBoard que gerencia a sincronização dos componentes:
+O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma **NesBoard** que gerencia a sincronização dos componentes:
  * **CPU:** Emulação completa do conjunto de instruções 6502 (sem o modo decimal).
  * **PPU:** Processamento de imagem baseado em scanlines e ciclos.
  * **BUS:** Barramento unificado para mapeamento de memória e espelhamento (mirroring).
  * **Mappers:** Suporte extensível para diferentes cartuchos através de uma interface modular.
 
 ## 🛠️ Tecnologias
- * **Linguagem:** [C ou C++]
- * **Gráficos/Input/Áudio:** [Ex: SDL2]
- * **Build System:** [Ex: CMake ou Makefile]
+ * **Linguagem:** C++17
+ * **Build System:** CMake
+ * **Gráficos/Input/Áudio:** SDL2 (Planejado)
