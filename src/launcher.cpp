@@ -8,7 +8,7 @@ int main()
     R2NES::Core::NesBoard nes; // Instancia a NesBoard
 
     // Caminho para a ROM que você deseja testar
-    const std::string romPath = "D:\\Desenvolvimento\\Games\\R2NESV2\\roms\\smb.nes";
+    const std::string romPath = "..\\roms\\smb3.nes";
     nes.insertCartridge(romPath); // Insere o cartucho
 
     // O reset() já é chamado no construtor da NesBoard, mas chamá-lo novamente aqui
