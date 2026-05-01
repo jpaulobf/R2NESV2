@@ -6,3 +6,5 @@
 roms/*
 .github/*
 target/*
+.vscode/*
+bin/*
