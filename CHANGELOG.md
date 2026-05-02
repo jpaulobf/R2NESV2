@@ -20,9 +20,13 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Integração da biblioteca SDL2 para suporte a janelas, renderização e gerenciamento de eventos.
 - Início da implementação da PPU: suporte aos registradores `$2006` (PPUADDR) e `$2007` (PPUDATA) com lógica de escrita dupla.
 - Lógica de espelhamento de memória para Paletas e mascaramento de endereços de registradores ($2000-$3FFF).
+- Implementação de Menu nativo do Windows (Win32 API) integrado ao loop de eventos do SDL2.
+- Sistema de diálogo de abertura de arquivos (`GetOpenFileName`) para seleção dinâmica de ROMs.
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
 - Adição de FrameBuffer interno na PPU para armazenamento de pixels em formato ARGB.
 - Incompatibilidade do sistema de build (CMake) com `ccache` e Response Files em ambiente Windows/w64devkit.
 - Ajuste no roteamento de endereços da CPU para a PPU para garantir o espelhamento correto dos registradores.
+- Erro de linkagem `undefined reference to WinMain` através da inclusão correta do alvo `SDL2::SDL2main` no CMake.
+- Warning de redefinição da macro `NOMINMAX` no arquivo `Window.cpp`.
