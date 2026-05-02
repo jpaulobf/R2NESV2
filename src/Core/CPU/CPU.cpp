@@ -517,13 +517,91 @@ namespace R2NES::Core
         return 0; 
     }
 
-    uint8_t CPU::ADC() { return 0; }
-    uint8_t CPU::AND() { return 0; }
-    uint8_t CPU::ASL() { return 0; }
-    uint8_t CPU::BCC() { return 0; }
-    uint8_t CPU::BCS() { return 0; }
-    uint8_t CPU::BEQ() { return 0; }
-    uint8_t CPU::BIT() { return 0; }
+    uint8_t CPU::ADC()
+    {
+        fetch();
+        // Soma em 16 bits: A + M + C
+        uint16_t temp = static_cast<uint16_t>(a) + static_cast<uint16_t>(fetched) + static_cast<uint16_t>(GetFlag(C));
+
+        // Carry: setado se o resultado ultrapassar 255
+        SetFlag(C, temp > 255);
+        // Overflow: setado se os sinais dos inputs eram iguais, mas o sinal do resultado é diferente
+        SetFlag(V, (~(static_cast<uint16_t>(a) ^ static_cast<uint16_t>(fetched)) & (static_cast<uint16_t>(a) ^ temp)) & 0x0080);
+
+        a = static_cast<uint8_t>(temp & 0x00FF);
+        updateNZFlags(a);
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::AND()
+    {
+        fetch();
+        a &= fetched;
+        updateNZFlags(a);
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::ASL()
+    {
+        fetch();
+        SetFlag(C, fetched & 0x80); // Bit 7 vai para o Carry
+        uint8_t temp = fetched << 1;
+        updateNZFlags(temp);
+        if (lookup[opcode].addrmode == &CPU::IMP)
+            a = temp;
+        else
+            bus->cpuWrite(addr_abs, temp);
+        return 0; // ASL (RMW) nunca tem penalidade de ciclo extra
+    }
+    
+    uint8_t CPU::BCC()
+    {
+        if (GetFlag(C) == 0)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BCS()
+    {
+        if (GetFlag(C) == 1)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BEQ()
+    {
+        if (GetFlag(Z) == 1)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BIT()
+    {
+        fetch();
+        SetFlag(Z, (a & fetched) == 0x00);
+        SetFlag(N, fetched & 0x80);
+        SetFlag(V, fetched & 0x40);
+        return 0;
+    }
+    
     uint8_t CPU::BMI() { return 0; }
     uint8_t CPU::BNE() { return 0; }
     uint8_t CPU::BPL() { return 0; }
@@ -534,9 +612,33 @@ namespace R2NES::Core
     uint8_t CPU::CLD() { return 0; }
     uint8_t CPU::CLI() { return 0; }
     uint8_t CPU::CLV() { return 0; }
-    uint8_t CPU::CMP() { return 0; }
-    uint8_t CPU::CPX() { return 0; }
-    uint8_t CPU::CPY() { return 0; }
+    
+    uint8_t CPU::CMP()
+    {
+        fetch();
+        uint16_t temp = static_cast<uint16_t>(a) - static_cast<uint16_t>(fetched);
+        SetFlag(C, a >= fetched);
+        updateNZFlags(static_cast<uint8_t>(temp & 0x00FF));
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::CPX()
+    {
+        fetch();
+        uint16_t temp = static_cast<uint16_t>(x) - static_cast<uint16_t>(fetched);
+        SetFlag(C, x >= fetched);
+        updateNZFlags(static_cast<uint8_t>(temp & 0x00FF));
+        return 0;
+    }
+
+    uint8_t CPU::CPY()
+    {
+        fetch();
+        uint16_t temp = static_cast<uint16_t>(y) - static_cast<uint16_t>(fetched);
+        SetFlag(C, y >= fetched);
+        updateNZFlags(static_cast<uint8_t>(temp & 0x00FF));
+        return 0;
+    }
 
     uint8_t CPU::DEC()
     {
