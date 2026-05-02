@@ -20,12 +20,14 @@ namespace R2NES::Core
 
     uint8_t PPU::cpuRead(uint16_t addr)
     {
+        addr &= 0x0007; // Mapeia o intervalo $2000-$3FFF para os 8 registradores básicos
         // TODO: Implementar leitura de registradores como PPUSTATUS ($2002)
         return 0x00;
     }
 
     void PPU::cpuWrite(uint16_t addr, uint8_t data)
     {
+        addr &= 0x0007; // Mapeia o intervalo $2000-$3FFF para os 8 registradores básicos
         switch (addr)
         {
         case 0x0006: // PPUADDR ($2006)
@@ -63,15 +65,9 @@ namespace R2NES::Core
         if (addr >= 0x3F00 && addr <= 0x3FFF)
         {
             addr &= 0x001F;
-            // Espelhamento de paleta: 0x3F10, 0x3F14... são espelhos de 0x3F00, 0x3F04...
-            if (addr == 0x0010)
-                addr = 0x0000;
-            if (addr == 0x0014)
-                addr = 0x0004;
-            if (addr == 0x0018)
-                addr = 0x0008;
-            if (addr == 0x001C)
-                addr = 0x000C;
+            // No NES, os endereços $3F10, $3F14, $3F18 e $3F1C são espelhos de 
+            // $3F00, $3F04, $3F08 e $3F0C respectivamente (cores de fundo).
+            if ((addr & 0x0013) == 0x0010) addr &= 0x000F;
             paletteTable[addr] = data;
         }
     }

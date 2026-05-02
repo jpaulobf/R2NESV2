@@ -1,3 +1,5 @@
+#pragma once
+
 namespace R2NES::Core
 {
     enum class MirrorMode

@@ -16,3 +16,4 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Sistema de carregamento de arquivos `.nes` (iNES Format) com validação de cabeçalho.
 - Evolução da CPU: Implementação real do ciclo de `Reset` buscando o vetor em `0xFFFC`.
 - Primeira leitura bem-sucedida de dados de uma ROM real (SMB).
+- Integração da biblioteca SDL2 para suporte a janelas, renderização e gerenciamento de eventos.
