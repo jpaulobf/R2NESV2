@@ -15,6 +15,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação do suporte inicial a Mappers com o `Mapper 000` (NROM).
 - Sistema de carregamento de arquivos `.nes` (iNES Format) com validação de cabeçalho.
 - Evolução da CPU: Implementação real do ciclo de `Reset` buscando o vetor em `0xFFFC`.
+- Configuração de Janela e Renderer via SDL2 com suporte a Texturas para saída da PPU.
 - Primeira leitura bem-sucedida de dados de uma ROM real (SMB).
 - Integração da biblioteca SDL2 para suporte a janelas, renderização e gerenciamento de eventos.
 - Início da implementação da PPU: suporte aos registradores `$2006` (PPUADDR) e `$2007` (PPUDATA) com lógica de escrita dupla.
@@ -22,5 +23,6 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
+- Adição de FrameBuffer interno na PPU para armazenamento de pixels em formato ARGB.
 - Incompatibilidade do sistema de build (CMake) com `ccache` e Response Files em ambiente Windows/w64devkit.
 - Ajuste no roteamento de endereços da CPU para a PPU para garantir o espelhamento correto dos registradores.

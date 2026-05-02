@@ -28,6 +28,9 @@ namespace R2NES::Core
         void reset();
         void connectCartridge(const std::shared_ptr<Cartridge> &cartridge);
 
+        // Retorna o ponteiro para o buffer de pixels (256x240)
+        const uint32_t* getFrameBuffer() const { return frameBuffer.data(); }
+
     private:
         std::shared_ptr<Cartridge> cart;
         VRAM vram; // Name Tables gerenciadas pela classe que você criou
@@ -36,6 +39,9 @@ namespace R2NES::Core
         // 0x3F00-0x3F0F: Paletas de fundo
         // 0x3F10-0x3F1F: Paletas de sprites
         std::array<uint8_t, 32> paletteTable;
+
+        // Buffer de saída de imagem (RGBA8888)
+        std::array<uint32_t, 256 * 240> frameBuffer;
 
         // Registradores e buffers internos
         uint8_t addressLatch = 0x00;

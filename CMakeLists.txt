@@ -48,4 +48,4 @@ add_executable(R2NESV2 ${SOURCES})
 target_include_directories(R2NESV2 PRIVATE src)
 
 # Linka o SDL2 ao executável e inclui seus diretórios de cabeçalho
-target_link_libraries(R2NESV2 PRIVATE SDL2::SDL2-static)
+target_link_libraries(R2NESV2 PRIVATE SDL2::SDL2main SDL2::SDL2-static)

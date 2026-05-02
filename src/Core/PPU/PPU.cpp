@@ -7,6 +7,7 @@ namespace R2NES::Core
     PPU::PPU()
     {
         std::fill(paletteTable.begin(), paletteTable.end(), 0x00);
+        std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000); // Inicializa com preto opaco
     }
 
     PPU::~PPU()
