@@ -537,45 +537,313 @@ namespace R2NES::Core
     uint8_t CPU::CMP() { return 0; }
     uint8_t CPU::CPX() { return 0; }
     uint8_t CPU::CPY() { return 0; }
+
     uint8_t CPU::DEC() { return 0; }
     uint8_t CPU::DEX() { return 0; }
     uint8_t CPU::DEY() { return 0; }
-    uint8_t CPU::EOR() { return 0; }
-    uint8_t CPU::INC() { return 0; }
-    uint8_t CPU::INX() { return 0; }
-    uint8_t CPU::INY() { return 0; }
-    uint8_t CPU::JMP() { return 0; }
-    uint8_t CPU::JSR() { return 0; }
-    uint8_t CPU::LDA() { return 0; }
-    uint8_t CPU::LDX() { return 0; }
-    uint8_t CPU::LDY() { return 0; }
-    uint8_t CPU::LSR() { return 0; }
-    uint8_t CPU::ORA() { return 0; }
-    uint8_t CPU::PHA() { return 0; }
-    uint8_t CPU::PHP() { return 0; }
-    uint8_t CPU::PLA() { return 0; }
-    uint8_t CPU::PLP() { return 0; }
-    uint8_t CPU::ROL() { return 0; }
-    uint8_t CPU::ROR() { return 0; }
-    uint8_t CPU::RTI() { return 0; }
-    uint8_t CPU::RTS() { return 0; }
-    uint8_t CPU::SBC() { return 0; }
-    uint8_t CPU::SEC() { return 0; }
-    uint8_t CPU::SED() { return 0; }
-    uint8_t CPU::STA() { return 0; }
-    uint8_t CPU::STX() { return 0; }
-    uint8_t CPU::STY() { return 0; }
-    uint8_t CPU::TAX() { return 0; }
-    uint8_t CPU::TAY() { return 0; }
-    uint8_t CPU::TSX() { return 0; }
-    uint8_t CPU::TXA() { return 0; }
-    uint8_t CPU::TXS() { return 0; }
-    uint8_t CPU::TYA() { return 0; }
-    uint8_t CPU::XXX() { return 0; }
+
+    uint8_t CPU::EOR()
+    {
+        fetch();
+        a ^= fetched;
+        updateNZFlags(a);
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::INC()
+    {
+        fetch();
+        uint8_t temp = fetched + 1;
+        bus->cpuWrite(addr_abs, temp);
+        updateNZFlags(temp);
+        return 0;
+    }
+
+    uint8_t CPU::INX()
+    {
+        x++;
+        updateNZFlags(x);
+        return 0;
+    }
+
+    uint8_t CPU::INY()
+    {
+        y++;
+        updateNZFlags(y);
+        return 0;
+    }
+    
+    uint8_t CPU::JMP()
+    {
+        // JMP apenas define o PC para o endereço calculado pelo modo de endereçamento
+        pc = addr_abs;
+        return 0;
+    }
+
+    uint8_t CPU::JSR()
+    {
+        // JSR empilha o endereço do último byte da instrução (PC - 1).
+        // O modo ABS() já leu os 2 bytes do operando, então pc aponta para a próxima instrução.
+        pc--;
+
+        // Empilha o MSB primeiro, depois o LSB
+        push((pc >> 8) & 0x00FF);
+        push(pc & 0x00FF);
+
+        pc = addr_abs;
+        return 0;
+    }
+
+    uint8_t CPU::RTS()
+    {
+        // Recupera o endereço de retorno da pilha (LSB depois MSB)
+        uint16_t lo = static_cast<uint16_t>(pop());
+        uint16_t hi = static_cast<uint16_t>(pop());
+
+        // Como o JSR empilhou o endereço - 1, somamos 1 ao retornar
+        pc = (hi << 8) | lo;
+        pc++;
+        return 0;
+    }
+
+    uint8_t CPU::LDA()
+    {
+        fetch();
+        a = fetched;
+        updateNZFlags(a);
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::LDX()
+    {
+        fetch();
+        x = fetched;
+        updateNZFlags(x);
+        return 1;
+    }
+
+    uint8_t CPU::LDY()
+    {
+        fetch();
+        y = fetched;
+        updateNZFlags(y);
+        return 1;
+    }
+
+    uint8_t CPU::LSR()
+    {
+        fetch();
+        SetFlag(C, fetched & 0x01); // Bit 0 vai para o Carry
+        uint8_t temp = fetched >> 1;
+        updateNZFlags(temp);
+        if (lookup[opcode].addrmode == &CPU::IMP)
+            a = temp;
+        else
+            bus->cpuWrite(addr_abs, temp);
+        return 0; // LSR nunca tem penalidade de ciclo extra
+    }
+
+    uint8_t CPU::ORA()
+    {
+        fetch();
+        a |= fetched;
+        updateNZFlags(a);
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::PHA()
+    {
+        push(a);
+        return 0;
+    }
+
+    uint8_t CPU::PHP()
+    {
+        // No hardware real, PHP e BRK sempre setam os bits 4 e 5 ao empurrar o status para a pilha
+        push(status | B | U);
+        return 0;
+    }
+
+    uint8_t CPU::PLA()
+    {
+        a = pop();
+        updateNZFlags(a);
+        return 0;
+    }
+
+    uint8_t CPU::PLP()
+    {
+        status = pop();
+        // Garante que a flag U seja sempre 1 e limpa a flag B (ela só existe na pilha)
+        SetFlag(U, true);
+        SetFlag(B, false);
+        return 0;
+    }
+
+    uint8_t CPU::ROL()
+    {
+        fetch();
+        // O novo bit 0 será o Carry atual. O novo Carry será o bit 7 original.
+        uint16_t temp = (static_cast<uint16_t>(fetched) << 1) | GetFlag(C);
+        
+        SetFlag(C, temp & 0x0100);
+        uint8_t result = static_cast<uint8_t>(temp & 0x00FF);
+        updateNZFlags(result);
+
+        if (lookup[opcode].addrmode == &CPU::IMP)
+            a = result;
+        else
+            bus->cpuWrite(addr_abs, result);
+        return 0;
+    }
+
+    uint8_t CPU::ROR()
+    {
+        fetch();
+        // O novo bit 7 será o Carry atual. O novo Carry será o bit 0 original.
+        uint8_t old_carry = GetFlag(C);
+        SetFlag(C, fetched & 0x01);
+        uint8_t result = (fetched >> 1) | (old_carry << 7);
+        updateNZFlags(result);
+
+        if (lookup[opcode].addrmode == &CPU::IMP)
+            a = result;
+        else
+            bus->cpuWrite(addr_abs, result);
+        return 0;
+    }
+
+    uint8_t CPU::RTI()
+    {
+        // Restaura o registrador de status da pilha
+        status = pop();
+        
+        // Garante que a flag B seja limpa e a flag U (Unused) seja sempre 1
+        SetFlag(B, false);
+        SetFlag(U, true);
+
+        // Restaura o Program Counter (LSB depois MSB)
+        uint16_t lo = static_cast<uint16_t>(pop());
+        uint16_t hi = static_cast<uint16_t>(pop());
+        
+        pc = (hi << 8) | lo;
+        return 0;
+    }
+    
+    uint8_t CPU::SBC()
+    {
+        fetch();
+
+        // No 6502, a subtração é feita usando a lógica de adição:
+        // A - M - (1 - C)  é o mesmo que  A + (~M) + C
+        // Invertemos os bits do valor buscado (complemento de 1)
+        uint16_t value = static_cast<uint16_t>(fetched) ^ 0x00FF;
+
+        // Realizamos a soma em 16 bits para capturar o Carry e o Overflow
+        uint16_t temp = static_cast<uint16_t>(a) + value + static_cast<uint16_t>(GetFlag(C));
+
+        // Flag de Carry (C): Na subtração, funciona como "Not Borrow"
+        SetFlag(C, temp & 0xFF00);
+
+        // Flag de Overflow (V): Setada se o sinal do resultado for impossível
+        // (a ^ temp) & (value ^ temp) & 0x0080
+        SetFlag(V, (temp ^ static_cast<uint16_t>(a)) & (temp ^ value) & 0x0080);
+
+        a = static_cast<uint8_t>(temp & 0x00FF);
+        updateNZFlags(a);
+
+        return 1; // Permite ciclo extra em cruzamento de página
+    }
+
+    uint8_t CPU::SEC()
+    {
+        SetFlag(C, true);
+        return 0;
+    }
+
+    uint8_t CPU::SED()
+    {
+        SetFlag(D, true);
+        return 0;
+    }
+    
+    uint8_t CPU::STA()
+    {
+        bus->cpuWrite(addr_abs, a);
+        return 0;
+    }
+
+    uint8_t CPU::STX()
+    {
+        bus->cpuWrite(addr_abs, x);
+        return 0;
+    }
+
+    uint8_t CPU::STY()
+    {
+        bus->cpuWrite(addr_abs, y);
+        return 0;
+    }
+
+    uint8_t CPU::TAX()
+    {
+        x = a;
+        updateNZFlags(x);
+        return 0;
+    }
+
+    uint8_t CPU::TAY()
+    {
+        y = a;
+        updateNZFlags(y);
+        return 0;
+    }
+
+    uint8_t CPU::TSX()
+    {
+        x = stkp;
+        updateNZFlags(x);
+        return 0;
+    }
+
+    uint8_t CPU::TXA()
+    {
+        a = x;
+        updateNZFlags(a);
+        return 0;
+    }
+
+    uint8_t CPU::TXS()
+    {
+        // TXS é uma das únicas transferências que NÃO altera flags
+        stkp = x;
+        return 0;
+    }
+
+    uint8_t CPU::TYA()
+    {
+        a = y;
+        updateNZFlags(a);
+        return 0;
+    }
+
+    uint8_t CPU::XXX() 
+    { 
+        // Placeholder para opcodes ilegais. 
+        // Retornar 1 permite que versões ilegais de instruções aproveitem o cross-page.
+        return 1; 
+    }
+
     uint8_t CPU::SEI()
     {
         SetFlag(I, true);
         return 0;
     }
-    uint8_t CPU::NOP() { return 0; }
+    
+    uint8_t CPU::NOP() 
+    { 
+        // O NOP oficial não tem cross-page, mas NOPs ilegais (como $1C) têm.
+        // Como o modo IMP retorna 0, retornar 1 aqui é seguro e preciso.
+        return 1; 
+    }
 }
