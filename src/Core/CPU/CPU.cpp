@@ -538,9 +538,28 @@ namespace R2NES::Core
     uint8_t CPU::CPX() { return 0; }
     uint8_t CPU::CPY() { return 0; }
 
-    uint8_t CPU::DEC() { return 0; }
-    uint8_t CPU::DEX() { return 0; }
-    uint8_t CPU::DEY() { return 0; }
+    uint8_t CPU::DEC()
+    {
+        fetch();
+        uint8_t temp = fetched - 1;
+        bus->cpuWrite(addr_abs, temp);
+        updateNZFlags(temp);
+        return 0;
+    }
+
+    uint8_t CPU::DEX()
+    {
+        x--;
+        updateNZFlags(x);
+        return 0;
+    }
+
+    uint8_t CPU::DEY()
+    {
+        y--;
+        updateNZFlags(y);
+        return 0;
+    }
 
     uint8_t CPU::EOR()
     {
