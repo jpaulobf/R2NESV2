@@ -659,13 +659,56 @@ namespace R2NES::Core
         pc = (hi << 8) | lo;
         return 0;
     }
+
+    uint8_t CPU::BVC()
+    {
+        if (GetFlag(V) == 0)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BVS()
+    {
+        if (GetFlag(V) == 1)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
     
-    uint8_t CPU::BVC() { return 0; }
-    uint8_t CPU::BVS() { return 0; }
-    uint8_t CPU::CLC() { return 0; }
-    uint8_t CPU::CLD() { return 0; }
-    uint8_t CPU::CLI() { return 0; }
-    uint8_t CPU::CLV() { return 0; }
+    uint8_t CPU::CLC()
+    {
+        SetFlag(C, false);
+        return 0;
+    }
+
+    uint8_t CPU::CLD()
+    {
+        SetFlag(D, false);
+        return 0;
+    }
+
+    uint8_t CPU::CLI()
+    {
+        SetFlag(I, false);
+        return 0;
+    }
+
+    uint8_t CPU::CLV()
+    {
+        SetFlag(V, false);
+        return 0;
+    }
     
     uint8_t CPU::CMP()
     {
