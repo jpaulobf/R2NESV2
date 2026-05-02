@@ -85,10 +85,38 @@ namespace R2NES::Core
             ss << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << addr;
             if (inst.name != "JMP" && inst.name != "JSR") ss << " = " << std::setw(2) << (int)nes.cpuRead(addr);
             opStr = ss.str();
-        } else if (inst.addrmode == &CPU::ZPX || inst.addrmode == &CPU::ZPY) outBytes = 2;
-        else if (inst.addrmode == &CPU::ABX || inst.addrmode == &CPU::ABY || 
-                 inst.addrmode == &CPU::IND || inst.addrmode == &CPU::IZX || 
-                 inst.addrmode == &CPU::IZY) outBytes = 3;
+        } else if (inst.addrmode == &CPU::ZPX) {
+            outBytes = 2;
+            ss << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (int)nes.cpuRead(pc + 1) << ",X";
+            opStr = ss.str();
+        } else if (inst.addrmode == &CPU::ZPY) {
+            outBytes = 2;
+            ss << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (int)nes.cpuRead(pc + 1) << ",Y";
+            opStr = ss.str();
+        } else if (inst.addrmode == &CPU::IZX) {
+            outBytes = 2;
+            ss << "($" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (int)nes.cpuRead(pc + 1) << ",X)";
+            opStr = ss.str();
+        } else if (inst.addrmode == &CPU::IZY) {
+            outBytes = 2;
+            ss << "($" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (int)nes.cpuRead(pc + 1) << "),Y";
+            opStr = ss.str();
+        } else if (inst.addrmode == &CPU::ABX) {
+            outBytes = 3;
+            uint16_t addr = (uint16_t)nes.cpuRead(pc + 1) | ((uint16_t)nes.cpuRead(pc + 2) << 8);
+            ss << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << addr << ",X";
+            opStr = ss.str();
+        } else if (inst.addrmode == &CPU::ABY) {
+            outBytes = 3;
+            uint16_t addr = (uint16_t)nes.cpuRead(pc + 1) | ((uint16_t)nes.cpuRead(pc + 2) << 8);
+            ss << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << addr << ",Y";
+            opStr = ss.str();
+        } else if (inst.addrmode == &CPU::IND) {
+            outBytes = 3;
+            uint16_t addr = (uint16_t)nes.cpuRead(pc + 1) | ((uint16_t)nes.cpuRead(pc + 2) << 8);
+            ss << "($" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << addr << ")";
+            opStr = ss.str();
+        }
 
         return inst.name + " " + opStr;
     }

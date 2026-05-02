@@ -12,7 +12,7 @@ namespace R2NES::Core
         lookup = {
             {"BRK", &CPU::BRK, &CPU::IMM, 7},
             {"ORA", &CPU::ORA, &CPU::IZX, 6},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"SLO", &CPU::SLO, &CPU::IZX, 8},
             {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"ORA", &CPU::ORA, &CPU::ZP0, 3},
@@ -21,14 +21,14 @@ namespace R2NES::Core
             {"PHP", &CPU::PHP, &CPU::IMP, 3},
             {"ORA", &CPU::ORA, &CPU::IMM, 2},
             {"ASL", &CPU::ASL, &CPU::IMP, 2},
-            {"ANC", &CPU::XXX, &CPU::IMM, 2},
+            {"ANC", &CPU::ANC, &CPU::IMM, 2},
             {"NOP", &CPU::NOP, &CPU::ABS, 4},
             {"ORA", &CPU::ORA, &CPU::ABS, 4},
             {"ASL", &CPU::ASL, &CPU::ABS, 6},
             {"SLO", &CPU::SLO, &CPU::ABS, 6},
             {"BPL", &CPU::BPL, &CPU::REL, 2},
             {"ORA", &CPU::ORA, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"SLO", &CPU::SLO, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"ORA", &CPU::ORA, &CPU::ZPX, 4},
@@ -44,44 +44,44 @@ namespace R2NES::Core
             {"SLO", &CPU::SLO, &CPU::ABX, 7},
             {"JSR", &CPU::JSR, &CPU::ABS, 6},
             {"AND", &CPU::AND, &CPU::IZX, 6},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
-            {"RLA", &CPU::XXX, &CPU::IZX, 8},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
+            {"RLA", &CPU::RLA, &CPU::IZX, 8},
             {"BIT", &CPU::BIT, &CPU::ZP0, 3},
             {"AND", &CPU::AND, &CPU::ZP0, 3},
             {"ROL", &CPU::ROL, &CPU::ZP0, 5},
-            {"RLA", &CPU::XXX, &CPU::ZP0, 5},
+            {"RLA", &CPU::RLA, &CPU::ZP0, 5},
             {"PLP", &CPU::PLP, &CPU::IMP, 4},
             {"AND", &CPU::AND, &CPU::IMM, 2},
             {"ROL", &CPU::ROL, &CPU::IMP, 2},
-            {"ANC", &CPU::XXX, &CPU::IMM, 2},
+            {"ANC", &CPU::ANC, &CPU::IMM, 2},
             {"BIT", &CPU::BIT, &CPU::ABS, 4},
             {"AND", &CPU::AND, &CPU::ABS, 4},
             {"ROL", &CPU::ROL, &CPU::ABS, 6},
-            {"RLA", &CPU::XXX, &CPU::ABS, 6},
+            {"RLA", &CPU::RLA, &CPU::ABS, 6},
             {"BMI", &CPU::BMI, &CPU::REL, 2},
             {"AND", &CPU::AND, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
-            {"RLA", &CPU::XXX, &CPU::IZY, 8},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
+            {"RLA", &CPU::RLA, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"AND", &CPU::AND, &CPU::ZPX, 4},
             {"ROL", &CPU::ROL, &CPU::ZPX, 6},
-            {"RLA", &CPU::XXX, &CPU::ZPX, 6},
+            {"RLA", &CPU::RLA, &CPU::ZPX, 6},
             {"SEC", &CPU::SEC, &CPU::IMP, 2},
             {"AND", &CPU::AND, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"RLA", &CPU::XXX, &CPU::ABY, 7},
+            {"RLA", &CPU::RLA, &CPU::ABY, 7},
             {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"AND", &CPU::AND, &CPU::ABX, 4},
             {"ROL", &CPU::ROL, &CPU::ABX, 7},
-            {"RLA", &CPU::XXX, &CPU::ABX, 7},
+            {"RLA", &CPU::RLA, &CPU::ABX, 7},
             {"RTI", &CPU::RTI, &CPU::IMP, 6},
             {"EOR", &CPU::EOR, &CPU::IZX, 6},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
-            {"SRE", &CPU::XXX, &CPU::IZX, 8},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
+            {"SRE", &CPU::SRE, &CPU::IZX, 8},
             {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"EOR", &CPU::EOR, &CPU::ZP0, 3},
             {"LSR", &CPU::LSR, &CPU::ZP0, 5},
-            {"SRE", &CPU::XXX, &CPU::ZP0, 5},
+            {"SRE", &CPU::SRE, &CPU::ZP0, 5},
             {"PHA", &CPU::PHA, &CPU::IMP, 3},
             {"EOR", &CPU::EOR, &CPU::IMM, 2},
             {"LSR", &CPU::LSR, &CPU::IMP, 2},
@@ -89,26 +89,26 @@ namespace R2NES::Core
             {"JMP", &CPU::JMP, &CPU::ABS, 3},
             {"EOR", &CPU::EOR, &CPU::ABS, 4},
             {"LSR", &CPU::LSR, &CPU::ABS, 6},
-            {"SRE", &CPU::XXX, &CPU::ABS, 6},
+            {"SRE", &CPU::SRE, &CPU::ABS, 6},
             {"BVC", &CPU::BVC, &CPU::REL, 2},
             {"EOR", &CPU::EOR, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
-            {"SRE", &CPU::XXX, &CPU::IZY, 8},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
+            {"SRE", &CPU::SRE, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"EOR", &CPU::EOR, &CPU::ZPX, 4},
             {"LSR", &CPU::LSR, &CPU::ZPX, 6},
-            {"SRE", &CPU::XXX, &CPU::ZPX, 6},
+            {"SRE", &CPU::SRE, &CPU::ZPX, 6},
             {"CLI", &CPU::CLI, &CPU::IMP, 2},
             {"EOR", &CPU::EOR, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"SRE", &CPU::XXX, &CPU::ABY, 7},
+            {"SRE", &CPU::SRE, &CPU::ABY, 7},
             {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"EOR", &CPU::EOR, &CPU::ABX, 4},
             {"LSR", &CPU::LSR, &CPU::ABX, 7},
-            {"SRE", &CPU::XXX, &CPU::ABX, 7},
+            {"SRE", &CPU::SRE, &CPU::ABX, 7},
             {"RTS", &CPU::RTS, &CPU::IMP, 6},
             {"ADC", &CPU::ADC, &CPU::IZX, 6},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"RRA", &CPU::XXX, &CPU::IZX, 8},
             {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"ADC", &CPU::ADC, &CPU::ZP0, 3},
@@ -124,7 +124,7 @@ namespace R2NES::Core
             {"RRA", &CPU::XXX, &CPU::ABS, 6},
             {"BVS", &CPU::BVS, &CPU::REL, 2},
             {"ADC", &CPU::ADC, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"RRA", &CPU::XXX, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"ADC", &CPU::ADC, &CPU::ZPX, 4},
@@ -156,7 +156,7 @@ namespace R2NES::Core
             {"SAX", &CPU::SAX, &CPU::ABS, 4},
             {"BCC", &CPU::BCC, &CPU::REL, 2},
             {"STA", &CPU::STA, &CPU::IZY, 6},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"SHA", &CPU::XXX, &CPU::IZY, 6},
             {"STY", &CPU::STY, &CPU::ZPX, 4},
             {"STA", &CPU::STA, &CPU::ZPX, 4},
@@ -188,7 +188,7 @@ namespace R2NES::Core
             {"LAX", &CPU::LAX, &CPU::ABS, 4},
             {"BCS", &CPU::BCS, &CPU::REL, 2},
             {"LDA", &CPU::LDA, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"LAX", &CPU::LAX, &CPU::IZY, 5},
             {"LDY", &CPU::LDY, &CPU::ZPX, 4},
             {"LDA", &CPU::LDA, &CPU::ZPX, 4},
@@ -220,7 +220,7 @@ namespace R2NES::Core
             {"DCP", &CPU::DCP, &CPU::ABS, 6},
             {"BNE", &CPU::BNE, &CPU::REL, 2},
             {"CMP", &CPU::CMP, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"DCP", &CPU::DCP, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"CMP", &CPU::CMP, &CPU::ZPX, 4},
@@ -252,7 +252,7 @@ namespace R2NES::Core
             {"ISC", &CPU::XXX, &CPU::ABS, 6},
             {"BEQ", &CPU::BEQ, &CPU::REL, 2},
             {"SBC", &CPU::SBC, &CPU::IZY, 5},
-            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"STP", &CPU::STP, &CPU::IMP, 2},
             {"ISC", &CPU::XXX, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"SBC", &CPU::SBC, &CPU::ZPX, 4},
@@ -1116,6 +1116,70 @@ namespace R2NES::Core
             SetFlag(C, false);
         updateNZFlags(a - fetched);
         return 0;
+    }
+
+    uint8_t CPU::STP()
+    {
+        // Trava a CPU: o Program Counter retrocede um byte para apontar novamente para o opcode STP.
+        // Isso cria um loop efetivo onde a CPU continuará lendo e executando a mesma instrução.
+        // No hardware real, apenas um sinal de RESET pode tirar a CPU deste estado.
+        pc--;
+        return 0;
+    }
+
+    uint8_t CPU::ANC()
+    {
+        fetch();
+        a &= fetched;
+        updateNZFlags(a);
+        // O Carry é definido como o valor do bit 7 do Acumulador (igual ao Negative flag)
+        SetFlag(C, a & 0x80);
+        
+        return 0; // ANC utiliza apenas o modo IMM, que não possui penalidade de ciclo
+    }
+
+    uint8_t CPU::RLA()
+    {
+        // 1. Busca o valor da memória (conforme o modo de endereçamento calculado)
+        fetch();
+
+        // 2. Operação ROL (Rotate Left)
+        // O bit 7 original vai para o Carry, e o Carry antigo vai para o bit 0.
+        uint16_t temp = (static_cast<uint16_t>(fetched) << 1) | GetFlag(C);
+        SetFlag(C, temp & 0x0100);
+        uint8_t rotated = static_cast<uint8_t>(temp & 0x00FF);
+
+        // 3. Escreve o valor rotacionado de volta na memória
+        bus->cpuWrite(addr_abs, rotated);
+
+        // 4. Executa o AND entre o Acumulador e o resultado da rotação
+        a &= rotated;
+
+        // 5. Atualiza flags baseadas no Acumulador
+        updateNZFlags(a);
+
+        // RLA é uma instrução RMW; não costuma ter penalidade de ciclo por cruzamento de página.
+        return 0;
+    }
+
+    uint8_t CPU::SRE()
+    {
+        // 1. Busca o valor da memória
+        fetch();
+
+        // 2. Operação LSR (Logical Shift Right)
+        // O bit 0 original vai para o Carry
+        SetFlag(C, fetched & 0x01);
+        fetched >>= 1;
+
+        // 3. Escreve o valor modificado de volta na memória
+        bus->cpuWrite(addr_abs, fetched);
+
+        // 4. Operação EOR (Exclusive OR) entre Acumulador e o valor deslocado
+        a ^= fetched;
+        updateNZFlags(a);
+
+        return 0; // Instruções RMW não possuem penalidade de ciclo extra por cruzamento de página
     }
 
 }

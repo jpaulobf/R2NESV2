@@ -163,6 +163,10 @@ namespace R2NES::Core
         uint8_t LAX();
         uint8_t SAX();
         uint8_t DCP();
+        uint8_t STP();
+        uint8_t ANC();
+        uint8_t RLA();
+        uint8_t SRE();
 
         // Instrução para lidar com Opcodes ilegais
         uint8_t XXX();
