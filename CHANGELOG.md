@@ -22,10 +22,13 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Lógica de espelhamento de memória para Paletas e mascaramento de endereços de registradores ($2000-$3FFF).
 - Implementação de Menu nativo do Windows (Win32 API) integrado ao loop de eventos do SDL2.
 - Implementação funcional do Tile Viewer para visualização de CHR-ROM (Pattern Tables 0 e 1).
+- Funcionalidade de "ímã" (magnet) para a janela Tile Viewer, fazendo-a seguir o movimento da janela principal automaticamente.
 - Sistema de renderização secundário para janelas de debug com suporte a texturas independentes.
 - Sistema de diálogo de abertura de arquivos (`GetOpenFileName`) para seleção dinâmica de ROMs.
 - Arquitetura de Game Loop (`Engine`) com Fixed Timestep para sincronização de frames (60 FPS).
 - Implementação da classe `VRAM` com suporte inicial a modos de Mirroring (Horizontal, Vertical, Four-Screen).
+- Refatoração da arquitetura de barramento: PPU agora utiliza o `Bus` para acessar dados do cartucho, removendo o acoplamento direto com a classe `Cartridge`.
+- Implementação inicial da lógica de `clock()` na PPU com suporte a flag de VBlank e contagem de scanlines/ciclos.
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
@@ -36,3 +39,5 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Warning de redefinição da macro `NOMINMAX` no arquivo `Window.cpp`.
 - Correção no processamento de eventos do SDL que impedia o fechamento da janela principal após o uso do Tile Viewer.
 - Inicialização dos Renderers com cor preta para evitar artefatos visuais ("fundo branco") na criação das janelas.
+- Garantia de `const`-correctness nos métodos de leitura de memória (PPU, Bus, Cartridge e VRAM).
+- Bloqueio de carregamento para ROMs com Mappers ainda não suportados para evitar comportamento indefinido.

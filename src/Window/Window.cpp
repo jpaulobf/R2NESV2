@@ -115,6 +115,20 @@ namespace R2NES::Core
                         tileViewerOpen = false;
                     }
                 }
+                else if (e.window.event == SDL_WINDOWEVENT_MOVED)
+                {
+                    // Se a janela principal for movida, reposiciona a Tile Viewer
+                    if (e.window.windowID == SDL_GetWindowID(window))
+                    {
+                        if (tileWindow)
+                        {
+                            int x, y, w, h;
+                            SDL_GetWindowPosition(window, &x, &y);
+                            SDL_GetWindowSize(window, &w, &h);
+                            SDL_SetWindowPosition(tileWindow, x + w, y);
+                        }
+                    }
+                }
             }
         }
     }
@@ -179,11 +193,16 @@ namespace R2NES::Core
             return;
         }
 
+        // Pega a posição e tamanho da janela principal para colar ao lado
+        int x, y, w, h;
+        SDL_GetWindowPosition(window, &x, &y);
+        SDL_GetWindowSize(window, &w, &h);
+
         // Uma Pattern Table é 128x128. Exibiremos as duas lado a lado (256x128).
         // Aplicamos uma escala de 2x para facilitar a visualização (512x256).
         tileWindow = SDL_CreateWindow(
             "R2NES v2 - Pattern Table Viewer",
-            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+            x + w, y,
             512, 256,
             SDL_WINDOW_SHOWN);
 
