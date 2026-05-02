@@ -17,3 +17,10 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Evolução da CPU: Implementação real do ciclo de `Reset` buscando o vetor em `0xFFFC`.
 - Primeira leitura bem-sucedida de dados de uma ROM real (SMB).
 - Integração da biblioteca SDL2 para suporte a janelas, renderização e gerenciamento de eventos.
+- Início da implementação da PPU: suporte aos registradores `$2006` (PPUADDR) e `$2007` (PPUDATA) com lógica de escrita dupla.
+- Lógica de espelhamento de memória para Paletas e mascaramento de endereços de registradores ($2000-$3FFF).
+
+### Corrigido
+- Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
+- Incompatibilidade do sistema de build (CMake) com `ccache` e Response Files em ambiente Windows/w64devkit.
+- Ajuste no roteamento de endereços da CPU para a PPU para garantir o espelhamento correto dos registradores.
