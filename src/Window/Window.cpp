@@ -11,6 +11,8 @@
 #endif
 
 #define IDM_FILE_OPEN 1001
+#define IDM_FILE_EXIT 1002
+#define IDM_FILE_TILE_VIEWER 1003
 
 namespace R2NES::Core
 {
@@ -52,6 +54,13 @@ namespace R2NES::Core
 
     Window::~Window()
     {
+        if (tileWindow)
+        {
+            SDL_DestroyTexture(tileTexture[0]);
+            SDL_DestroyTexture(tileTexture[1]);
+            SDL_DestroyRenderer(tileRenderer);
+            SDL_DestroyWindow(tileWindow);
+        }
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -69,22 +78,47 @@ namespace R2NES::Core
             // Trata mensagens do Menu do Windows
             if (e.type == SDL_SYSWMEVENT)
             {
-                #ifdef _WIN32
+#ifdef _WIN32
                 if (e.syswm.msg->msg.win.msg == WM_COMMAND)
                 {
                     if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_OPEN)
                     {
                         openFileDialog();
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_EXIT)
+                    {
+                        closed = true;
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_TILE_VIEWER)
+                    {
+                        openTileViewer();
+                    }
                 }
-                #endif
+#endif
+            }
+
+            // Trata o fechamento de janelas individuais
+            if (e.type == SDL_WINDOWEVENT)
+            {
+                if (e.window.event == SDL_WINDOWEVENT_CLOSE)
+                {
+                    if (e.window.windowID == SDL_GetWindowID(window))
+                    {
+                        closed = true;
+                    }
+                    else if (tileWindow && e.window.windowID == SDL_GetWindowID(tileWindow))
+                    {
+                        SDL_HideWindow(tileWindow);
+                        tileViewerOpen = false;
+                    }
+                }
             }
         }
     }
 
     void Window::createMenu()
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         SDL_SysWMinfo wmInfo;
         SDL_VERSION(&wmInfo.version);
         if (SDL_GetWindowWMInfo(window, &wmInfo))
@@ -92,22 +126,27 @@ namespace R2NES::Core
             HWND hwnd = wmInfo.info.win.window;
             HMENU hMenuBar = CreateMenu();
             HMENU hFileMenu = CreateMenu();
+            HMENU hDebugMenu = CreateMenu();
 
             // Adiciona a opção Open ao menu File
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
+            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
+
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
+            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDebugMenu, L"&Debug");
 
             SetMenu(hwnd, hMenuBar);
         }
-        #endif
+#endif
     }
 
     void Window::openFileDialog()
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         OPENFILENAMEA ofn;
-        char szFile[260] = { 0 };
+        char szFile[260] = {0};
 
         ZeroMemory(&ofn, sizeof(ofn));
         ofn.lStructSize = sizeof(ofn);
@@ -125,7 +164,55 @@ namespace R2NES::Core
         {
             selectedPath = szFile;
         }
-        #endif
+#endif
+    }
+
+    void Window::openTileViewer()
+    {
+        if (tileWindow)
+        {
+            SDL_ShowWindow(tileWindow);
+            tileViewerOpen = true;
+            return;
+        }
+
+        // Uma Pattern Table é 128x128. Exibiremos as duas lado a lado (256x128).
+        // Aplicamos uma escala de 2x para facilitar a visualização (512x256).
+        tileWindow = SDL_CreateWindow(
+            "R2NES v2 - Pattern Table Viewer",
+            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+            512, 256,
+            SDL_WINDOW_SHOWN);
+
+        if (tileWindow)
+        {
+            tileRenderer = SDL_CreateRenderer(tileWindow, -1, SDL_RENDERER_ACCELERATED);
+
+            // Criamos duas texturas (uma para cada Pattern Table de 128x128)
+            tileTexture[0] = SDL_CreateTexture(tileRenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
+            tileTexture[1] = SDL_CreateTexture(tileRenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
+
+            tileViewerOpen = true;
+        }
+    }
+
+    void Window::updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1)
+    {
+        if (!tileViewerOpen || !tileRenderer)
+            return;
+
+        SDL_UpdateTexture(tileTexture[0], nullptr, pixels0, 128 * sizeof(uint32_t));
+        SDL_UpdateTexture(tileTexture[1], nullptr, pixels1, 128 * sizeof(uint32_t));
+
+        SDL_RenderClear(tileRenderer);
+
+        SDL_Rect dest0 = {0, 0, 256, 256};
+        SDL_Rect dest1 = {256, 0, 256, 256};
+
+        SDL_RenderCopy(tileRenderer, tileTexture[0], nullptr, &dest0);
+        SDL_RenderCopy(tileRenderer, tileTexture[1], nullptr, &dest1);
+
+        SDL_RenderPresent(tileRenderer);
     }
 
     void Window::render(const uint32_t *pixels)

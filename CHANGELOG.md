@@ -21,6 +21,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Início da implementação da PPU: suporte aos registradores `$2006` (PPUADDR) e `$2007` (PPUDATA) com lógica de escrita dupla.
 - Lógica de espelhamento de memória para Paletas e mascaramento de endereços de registradores ($2000-$3FFF).
 - Implementação de Menu nativo do Windows (Win32 API) integrado ao loop de eventos do SDL2.
+- Preparação para Tile Viewer (CHR ROM) com método `getPatternTablePixels` na PPU.
 - Sistema de diálogo de abertura de arquivos (`GetOpenFileName`) para seleção dinâmica de ROMs.
 
 ### Corrigido

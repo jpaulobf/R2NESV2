@@ -24,7 +24,7 @@ namespace R2NES::Core
             float deltaTime = (currentTime - lastTime) / 1000.0f;
             lastTime = currentTime;
 
-            processInput();
+            processEmulatorInput();
 
             // Só processa o timing e a atualização se houver um cartucho carregado no NesBoard
             if (nes->isCartridgeLoaded())
@@ -43,7 +43,7 @@ namespace R2NES::Core
         }
     }
 
-    void Engine::processInput()
+    void Engine::processEmulatorInput()
     {
         window->pollEvents();
 
@@ -74,5 +74,13 @@ namespace R2NES::Core
     {
         // Pega o buffer de pixels da PPU e manda para a Window
         window->render(nes->getPpu().getFrameBuffer());
+
+        // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
+        if (window->isTileViewerOpen() && nes->isCartridgeLoaded())
+        {
+            auto p0 = nes->getPpu().getPatternTablePixels(0, 0);
+            auto p1 = nes->getPpu().getPatternTablePixels(1, 0);
+            window->updateTileViewer(p0.data(), p1.data());
+        }
     }
 }

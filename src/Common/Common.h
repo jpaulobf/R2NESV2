@@ -7,6 +7,7 @@ namespace R2NES::Core
         HORIZONTAL,
         VERTICAL,
         ONESCREEN_LO,
-        ONESCREEN_HI
+        ONESCREEN_HI,
+        FOUR_SCREEN
     };
 }

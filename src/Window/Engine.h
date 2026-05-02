@@ -16,7 +16,7 @@ namespace R2NES::Core
         void run();
 
     private:
-        void processInput();
+        void processEmulatorInput();
         void update();
         void render();
 

@@ -1,6 +1,8 @@
 #include "Core/Cartridge/Cartridge.h"
 #include "Core/Cartridge/Mappers/Mapper000.h"
 #include <fstream>
+#include <cstring>
+#include <iostream>
 
 namespace R2NES::Core
 {
@@ -27,11 +29,23 @@ namespace R2NES::Core
         {
             ifs.read((char *)&header, sizeof(Header));
 
+            // Valida a assinatura "NES" seguido do byte 0x1A
+            if (std::memcmp(header.name, "NES\x1a", 4) != 0)
+            {
+                return;
+            }
+
             // Se houver um "Trainer" (512 bytes antes da PRG ROM), ignoramos por enquanto
             if (header.mapper1 & 0x04)
             {
                 ifs.seekg(512, std::ios_base::cur);
             }
+
+            // Identifica o modo de espelhamento inicial do cabeçalho
+            if (header.mapper1 & 0x08)
+                mirror = MirrorMode::FOUR_SCREEN;
+            else
+                mirror = (header.mapper1 & 0x01) ? MirrorMode::VERTICAL : MirrorMode::HORIZONTAL;
 
             // Identifica o ID do Mapper
             mapperID = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
@@ -63,7 +77,8 @@ namespace R2NES::Core
                 pMapper = std::make_shared<Mapper000>(prgBanks, chrBanks);
                 break;
             default:
-                break; // TODO: Implementar outros mappers
+                std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet. Only Mapper 0 (NROM) is available." << std::endl;
+                return;
             }
 
             imageValid = true;

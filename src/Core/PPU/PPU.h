@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <memory>
+#include <vector>
 #include "Common/Common.h"
 #include "Core/Memory/VRAM/VRAM.h"
 
@@ -29,6 +30,10 @@ namespace R2NES::Core
         void connectCartridge(const std::shared_ptr<Cartridge> &cartridge);
         bool isFrameComplete() const { return frameComplete; }
         void clearFrameComplete() { frameComplete = false; }
+
+        // Retorna um buffer de pixels ARGB para um Pattern Table específico
+        // patternTableIndex: 0 para Pattern Table 0 ($0000-$0FFF), 1 para Pattern Table 1 ($1000-$1FFF)
+        std::vector<uint32_t> getPatternTablePixels(uint8_t patternTableIndex, uint8_t paletteIndex = 0) const;
 
         // Retorna o ponteiro para o buffer de pixels (256x240)
         const uint32_t* getFrameBuffer() const { return frameBuffer.data(); }
