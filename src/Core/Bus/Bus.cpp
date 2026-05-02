@@ -1,6 +1,7 @@
 #include "Core/Bus/Bus.h"
 #include "Core/Memory/RAM/RAM.h"
 #include "Core/Cartridge/Cartridge.h"
+#include "Core/PPU/PPU.h"
 #include <algorithm>
 
 namespace R2NES::Core {
@@ -19,12 +20,19 @@ namespace R2NES::Core {
         this->cart = cartridge;
     }
 
+    void Bus::connectPPU(PPU* pPpu) {
+        this->ppu = pPpu;
+    }
+
     void Bus::cpuWrite(uint16_t addr, uint8_t data) {
         if (cart && cart->cpuWrite(addr, data)) {
             // Cartucho tratou a escrita (Mappers podem interceptar isso)
         }
         else if (addr >= 0x0000 && addr <= 0x1FFF) {
             if (ram) ram->write(addr & 0x07FF, data);
+        }
+        else if (addr >= 0x2000 && addr <= 0x3FFF) {
+            if (ppu) ppu->cpuWrite(addr, data);
         }
     }
 
@@ -36,7 +44,24 @@ namespace R2NES::Core {
         else if (addr >= 0x0000 && addr <= 0x1FFF) {
             return ram ? ram->read(addr & 0x07FF) : 0x00;
         }
+        else if (addr >= 0x2000 && addr <= 0x3FFF) {
+            return ppu ? ppu->cpuRead(addr) : 0x00;
+        }
         return data;
     }
 
+    bool Bus::ppuRead(uint16_t addr, uint8_t &data) const {
+        if (cart) return cart->ppuRead(addr, data);
+        return false;
+    }
+
+    bool Bus::ppuWrite(uint16_t addr, uint8_t data) {
+        if (cart) return cart->ppuWrite(addr, data);
+        return false;
+    }
+
+    MirrorMode Bus::getMirrorMode() const {
+        if (cart) return cart->getMirrorMode();
+        return MirrorMode::HORIZONTAL;
+    }
 }

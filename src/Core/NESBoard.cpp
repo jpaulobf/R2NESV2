@@ -11,6 +11,10 @@ namespace R2NES::Core
         // Conecta a CPU ao Bus
         cpu.connectBus(&bus);
 
+        bus.connectPPU(&ppu);
+
+        ppu.connectBus(&bus);
+
         reset(); // Reseta o sistema para um estado inicial
     }
 
@@ -64,7 +68,6 @@ namespace R2NES::Core
         if (newCart->isValid())
         { // Usando o método público isValid()
             bus.setCartridge(newCart);
-            ppu.setCartridge(newCart);
             cartridgeLoaded = true;
             std::cout << "Cartridge '" << path << "' loaded successfully." << std::endl;
         }

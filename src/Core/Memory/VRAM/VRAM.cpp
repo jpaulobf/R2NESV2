@@ -51,6 +51,9 @@ namespace R2NES::Core
         case MirrorMode::ONESCREEN_HI:
             return (maskedAddr & 0x03FF) + 0x0400;
 
+        case MirrorMode::FOUR_SCREEN:
+            return maskedAddr & 0x0FFF; // Requeriria 4KB, mas por enquanto limitamos aos 2KB internos
+
         default:
             // Fallback para Vertical (comum em muitos jogos)
             return maskedAddr & 0x07FF;

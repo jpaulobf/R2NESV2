@@ -9,7 +9,7 @@
 
 namespace R2NES::Core
 {
-    class Cartridge;
+    class Bus;
 
     class PPU
     {
@@ -27,7 +27,7 @@ namespace R2NES::Core
 
         void clock();
         void reset();
-        void setCartridge(const std::shared_ptr<Cartridge> &cartridge);
+        void connectBus(Bus* bus);
         bool isFrameComplete() const { return frameComplete; }
         void clearFrameComplete() { frameComplete = false; }
 
@@ -39,7 +39,7 @@ namespace R2NES::Core
         const uint32_t* getFrameBuffer() const { return frameBuffer.data(); }
 
     private:
-        std::shared_ptr<Cartridge> cart;
+        Bus* bus = nullptr;
         VRAM vram; // Name Tables gerenciadas pela classe que você criou
 
         // Paletas internas (32 bytes)

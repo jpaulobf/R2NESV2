@@ -1,4 +1,5 @@
 #include "Core/PPU/PPU.h"
+#include "Core/Bus/Bus.h"
 #include "Core/Cartridge/Cartridge.h"
 #include "Common/Common.h"
 #include <algorithm>
@@ -30,9 +31,9 @@ namespace R2NES::Core
     {
     }
 
-    void PPU::setCartridge(const std::shared_ptr<Cartridge> &cartridge)
+    void PPU::connectBus(Bus* bus)
     {
-        this->cart = cartridge;
+        this->bus = bus;
     }
 
     uint8_t PPU::cpuRead(uint16_t addr)
@@ -91,18 +92,15 @@ namespace R2NES::Core
         uint8_t data = 0x00;
         addr &= 0x3FFF;
 
-        if (cart && cart->ppuRead(addr, data))
+        if (bus && bus->ppuRead(addr, data))
         {
-            // Mapper cuidou da leitura (Pattern Tables / CHR-ROM)
             return data;
         }
 
         // Se o Mapper não respondeu e o endereço está no range de Name Tables
         if (addr >= 0x2000 && addr <= 0x3EFF)
         {
-            MirrorMode mode = MirrorMode::HORIZONTAL;
-            if (cart) mode = cart->getMirrorMode();
-            return vram.read(addr, mode);
+            return vram.read(addr, bus ? bus->getMirrorMode() : MirrorMode::HORIZONTAL);
         }
         
         // Se não for do cartucho, verifica paletas
@@ -120,15 +118,14 @@ namespace R2NES::Core
     {
         addr &= 0x3FFF;
 
-        if (cart && cart->ppuWrite(addr, data))
+        if (bus && bus->ppuWrite(addr, data))
         {
-            // CHR-RAM ou escritas específicas de Mapper
             return;
         }
 
         if (addr >= 0x2000 && addr <= 0x3EFF)
         {
-            vram.write(addr, data, cart ? cart->getMirrorMode() : MirrorMode::HORIZONTAL);
+            vram.write(addr, data, bus ? bus->getMirrorMode() : MirrorMode::HORIZONTAL);
             return;
         }
 
@@ -161,9 +158,9 @@ namespace R2NES::Core
                     uint8_t tileLSB = 0;
                     uint8_t tileMSB = 0;
                     
-                    if (cart) {
-                        cart->ppuRead(offset + row, tileLSB);
-                        cart->ppuRead(offset + row + 8, tileMSB);
+                    if (bus) {
+                        bus->ppuRead(offset + row, tileLSB);
+                        bus->ppuRead(offset + row + 8, tileMSB);
                     }
 
                     for (uint16_t col = 0; col < 8; col++)

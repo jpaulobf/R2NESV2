@@ -1,10 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include "Common/Common.h"
 
 namespace R2NES::Core {
     class RAM;
     class Cartridge;
+    class PPU;
 
     class Bus {
     public:
@@ -30,11 +32,18 @@ namespace R2NES::Core {
         void cpuWrite(uint16_t addr, uint8_t data);
         uint8_t cpuRead(uint16_t addr, bool readOnly = false);
 
+        // Comunicação do barramento de vídeo (PPU)
+        bool ppuRead(uint16_t addr, uint8_t &data) const;
+        bool ppuWrite(uint16_t addr, uint8_t data);
+        MirrorMode getMirrorMode() const;
+
         // Conecta o cartucho inserido
         void setCartridge(const std::shared_ptr<Cartridge>& cartridge);
+        void connectPPU(PPU* pPpu);
 
     public:
         RAM* ram = nullptr;
+        PPU* ppu = nullptr;
         std::shared_ptr<Cartridge> cart;
     };
 }
