@@ -29,7 +29,7 @@ namespace R2NES::Core
         void reset();
         void setCartridge(const std::shared_ptr<Cartridge> &cartridge);
         bool isFrameComplete() const { return frameComplete; }
-        void clearFrameComplete() { frameComplete = false; }
+        void clearFrameComplete() { frameComplete = true; }
 
         // Retorna um buffer de pixels ARGB para um Pattern Table específico
         // patternTableIndex: 0 para Pattern Table 0 ($0000-$0FFF), 1 para Pattern Table 1 ($1000-$1FFF)

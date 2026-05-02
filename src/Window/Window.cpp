@@ -41,6 +41,9 @@ namespace R2NES::Core
 
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
+        // Garante que o fundo da janela principal também comece preto
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+
         // Criamos a textura no formato ARGB8888 para bater com o frameBuffer da PPU
         texture = SDL_CreateTexture(
             renderer,
@@ -187,6 +190,11 @@ namespace R2NES::Core
         if (tileWindow)
         {
             tileRenderer = SDL_CreateRenderer(tileWindow, -1, SDL_RENDERER_ACCELERATED);
+
+            // Define a cor de fundo como preto e limpa a janela imediatamente
+            SDL_SetRenderDrawColor(tileRenderer, 0x00, 0x00, 0x00, 0xFF);
+            SDL_RenderClear(tileRenderer);
+            SDL_RenderPresent(tileRenderer);
 
             // Criamos duas texturas (uma para cada Pattern Table de 128x128)
             tileTexture[0] = SDL_CreateTexture(tileRenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
