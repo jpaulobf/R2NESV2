@@ -602,10 +602,64 @@ namespace R2NES::Core
         return 0;
     }
     
-    uint8_t CPU::BMI() { return 0; }
-    uint8_t CPU::BNE() { return 0; }
-    uint8_t CPU::BPL() { return 0; }
-    uint8_t CPU::BRK() { return 0; }
+    uint8_t CPU::BMI()
+    {
+        if (GetFlag(N) == 1)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BNE()
+    {
+        if (GetFlag(Z) == 0)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BPL()
+    {
+        if (GetFlag(N) == 0)
+        {
+            cycles++;
+            addr_abs = pc + addr_rel;
+            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+                cycles++;
+            pc = addr_abs;
+        }
+        return 0;
+    }
+
+    uint8_t CPU::BRK()
+    {
+        pc++; // BRK pula o byte seguinte (padding)
+
+        SetFlag(I, true);
+        push((pc >> 8) & 0x00FF);
+        push(pc & 0x00FF);
+
+        // BRK empilha o status com o bit B (Break) e U (Unused) setados
+        SetFlag(B, true);
+        push(status);
+        SetFlag(B, false); // O bit B não existe fisicamente no registrador status
+
+        uint16_t lo = bus->cpuRead(0xFFFE);
+        uint16_t hi = bus->cpuRead(0xFFFF);
+        pc = (hi << 8) | lo;
+        return 0;
+    }
+    
     uint8_t CPU::BVC() { return 0; }
     uint8_t CPU::BVS() { return 0; }
     uint8_t CPU::CLC() { return 0; }
