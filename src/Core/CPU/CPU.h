@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <map>
 
 namespace R2NES::Core
 {
@@ -34,6 +35,9 @@ namespace R2NES::Core
         // Executa um ciclo de clock da CPU
         void clock();
 
+        // Retorna verdadeiro se a instrução atual terminou
+        bool complete() const;
+
         // Reseta a CPU para um estado inicial conhecido
         void reset();
 
@@ -47,6 +51,9 @@ namespace R2NES::Core
 
         // Define ou limpa uma flag específica
         void SetFlag(FLAGS6502 f, bool v);
+
+        // Retorna um mapa de strings representando a desmontagem do código (Disassembler)
+        std::map<uint16_t, std::string> disassemble(uint16_t nStart, uint16_t nStop);
 
         void push(uint8_t data);
         uint8_t pop();

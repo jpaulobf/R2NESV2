@@ -1,5 +1,7 @@
 #include "Core/CPU/CPU.h"
 #include "Core/Bus/Bus.h"
+#include <iomanip>
+#include <sstream>
 
 namespace R2NES::Core
 {
@@ -398,6 +400,11 @@ namespace R2NES::Core
 
         // Decrementa o contador de ciclos
         cycles--;
+    }
+
+    bool CPU::complete() const
+    {
+        return cycles == 0;
     }
 
     // Busca o dado atual com base no modo de endereçamento calculado
