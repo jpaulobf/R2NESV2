@@ -13,11 +13,12 @@
 #define IDM_FILE_OPEN 1001
 #define IDM_FILE_EXIT 1002
 #define IDM_FILE_TILE_VIEWER 1003
+#define IDM_FILE_DISASSEMBLER 1004
 
 namespace R2NES::Core
 {
-    Window::Window(const std::string &title, int w, int h, int scale)
-        : width(w), height(h)
+    Window::Window(const std::string &title, int w, int h, int s)
+        : width(w), height(h), scale(s)
     {
         if (SDL_Init(SDL_INIT_VIDEO) < 0)
         {
@@ -64,6 +65,11 @@ namespace R2NES::Core
             SDL_DestroyRenderer(tileRenderer);
             SDL_DestroyWindow(tileWindow);
         }
+        if (disasmWindow)
+        {
+            SDL_DestroyRenderer(disasmRenderer);
+            SDL_DestroyWindow(disasmWindow);
+        }
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -96,6 +102,10 @@ namespace R2NES::Core
                     {
                         openTileViewer();
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_DISASSEMBLER)
+                    {
+                        openDisassembler();
+                    }
                 }
 #endif
             }
@@ -114,19 +124,23 @@ namespace R2NES::Core
                         SDL_HideWindow(tileWindow);
                         tileViewerOpen = false;
                     }
+                    else if (disasmWindow && e.window.windowID == SDL_GetWindowID(disasmWindow))
+                    {
+                        SDL_HideWindow(disasmWindow);
+                        disasmOpen = false;
+                    }
                 }
                 else if (e.window.event == SDL_WINDOWEVENT_MOVED)
                 {
                     // Se a janela principal for movida, reposiciona a Tile Viewer
                     if (e.window.windowID == SDL_GetWindowID(window))
                     {
+                        int x, y, w_main, h_main;
+                        SDL_GetWindowPosition(window, &x, &y);
+                        SDL_GetWindowSize(window, &w_main, &h_main);
+
                         if (tileWindow)
-                        {
-                            int x, y, w, h;
-                            SDL_GetWindowPosition(window, &x, &y);
-                            SDL_GetWindowSize(window, &w, &h);
-                            SDL_SetWindowPosition(tileWindow, x + w, y);
-                        }
+                            SDL_SetWindowPosition(tileWindow, x + w_main, y);
                     }
                 }
             }
@@ -149,6 +163,7 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
 
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
@@ -182,6 +197,39 @@ namespace R2NES::Core
             selectedPath = szFile;
         }
 #endif
+    }
+
+    void Window::openDisassembler()
+    {
+        if (disasmWindow)
+        {
+            SDL_ShowWindow(disasmWindow);
+            disasmOpen = true;
+            return;
+        }
+
+        int x, y, w_main, h_main;
+        SDL_GetWindowPosition(window, &x, &y);
+        SDL_GetWindowSize(window, &h_main, &h_main); // Usamos o tamanho atual escalado
+
+        // Criamos a janela do Disassembler logo abaixo da principal
+        // Largura igual à da principal, altura arbitrária de 300px
+        disasmWindow = SDL_CreateWindow(
+            "R2NES v2 - Disassembler",
+            x + (width * scale), y,
+            500, 300,
+            SDL_WINDOW_SHOWN);
+
+        if (disasmWindow)
+        {
+            disasmRenderer = SDL_CreateRenderer(disasmWindow, -1, SDL_RENDERER_ACCELERATED);
+
+            SDL_SetRenderDrawColor(disasmRenderer, 0x1E, 0x1E, 0x1E, 0xFF); // Fundo cinza escuro
+            SDL_RenderClear(disasmRenderer);
+            SDL_RenderPresent(disasmRenderer);
+
+            disasmOpen = true;
+        }
     }
 
     void Window::openTileViewer()

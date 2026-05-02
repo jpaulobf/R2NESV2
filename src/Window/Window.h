@@ -25,7 +25,7 @@ namespace R2NES::Core
         void createMenu();
 
         std::string getSelectedPath() const { return selectedPath; }
-        
+
         bool isTileViewerOpen() const { return tileViewerOpen; }
 
         void clearSelectedPath() { selectedPath = ""; }
@@ -35,6 +35,7 @@ namespace R2NES::Core
     private:
         void openFileDialog();
         void openTileViewer();
+        void openDisassembler();
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
@@ -46,7 +47,12 @@ namespace R2NES::Core
         SDL_Texture *tileTexture[2] = {nullptr, nullptr};
         bool tileViewerOpen = false;
 
+        // Recursos para a janela do Disassembler
+        SDL_Window *disasmWindow = nullptr;
+        SDL_Renderer *disasmRenderer = nullptr;
+        bool disasmOpen = false;
+
         bool closed = false;
-        int width, height;
+        int width, height, scale;
     };
 }
