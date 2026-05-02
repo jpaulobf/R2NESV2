@@ -21,8 +21,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Início da implementação da PPU: suporte aos registradores `$2006` (PPUADDR) e `$2007` (PPUDATA) com lógica de escrita dupla.
 - Lógica de espelhamento de memória para Paletas e mascaramento de endereços de registradores ($2000-$3FFF).
 - Implementação de Menu nativo do Windows (Win32 API) integrado ao loop de eventos do SDL2.
-- Preparação para Tile Viewer (CHR ROM) com método `getPatternTablePixels` na PPU.
+- Implementação funcional do Tile Viewer para visualização de CHR-ROM (Pattern Tables 0 e 1).
+- Sistema de renderização secundário para janelas de debug com suporte a texturas independentes.
 - Sistema de diálogo de abertura de arquivos (`GetOpenFileName`) para seleção dinâmica de ROMs.
+- Arquitetura de Game Loop (`Engine`) com Fixed Timestep para sincronização de frames (60 FPS).
+- Implementação da classe `VRAM` com suporte inicial a modos de Mirroring (Horizontal, Vertical, Four-Screen).
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
@@ -31,3 +34,5 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Ajuste no roteamento de endereços da CPU para a PPU para garantir o espelhamento correto dos registradores.
 - Erro de linkagem `undefined reference to WinMain` através da inclusão correta do alvo `SDL2::SDL2main` no CMake.
 - Warning de redefinição da macro `NOMINMAX` no arquivo `Window.cpp`.
+- Correção no processamento de eventos do SDL que impedia o fechamento da janela principal após o uso do Tile Viewer.
+- Inicialização dos Renderers com cor preta para evitar artefatos visuais ("fundo branco") na criação das janelas.
