@@ -27,7 +27,7 @@ namespace R2NES::Core
 
         void clock();
         void reset();
-        void connectCartridge(const std::shared_ptr<Cartridge> &cartridge);
+        void setCartridge(const std::shared_ptr<Cartridge> &cartridge);
         bool isFrameComplete() const { return frameComplete; }
         void clearFrameComplete() { frameComplete = false; }
 

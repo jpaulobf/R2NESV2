@@ -29,7 +29,7 @@ namespace R2NES::Core
     {
     }
 
-    void PPU::connectCartridge(const std::shared_ptr<Cartridge> &cartridge)
+    void PPU::setCartridge(const std::shared_ptr<Cartridge> &cartridge)
     {
         this->cart = cartridge;
     }

@@ -64,10 +64,13 @@ namespace R2NES::Core
         if (newCart->isValid())
         { // Usando o método público isValid()
             bus.setCartridge(newCart);
+            ppu.setCartridge(newCart);
+            cartridgeLoaded = true;
             std::cout << "Cartridge '" << path << "' loaded successfully." << std::endl;
         }
         else
         {
+            cartridgeLoaded = false;
             std::cerr << "Failed to load cartridge '" << path << "'." << std::endl;
         }
     }

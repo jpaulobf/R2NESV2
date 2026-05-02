@@ -31,12 +31,12 @@ namespace R2NES::Core
             {
                 // O NES precisa de um timing preciso.
                 // Um frame de NES dura aproximadamente 1/60 segundos.
-                residualTime += deltaTime;
-                while (residualTime >= 1.0f / 60.0f)
-                {
-                    update();
-                    residualTime -= 1.0f / 60.0f;
-                }
+                // residualTime += deltaTime;
+                // while (residualTime >= 1.0f / 60.0f)
+                // {
+                //     update();
+                //     residualTime -= 1.0f / 60.0f;
+                // }
             }
 
             render();
