@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include "Core/NESBoard.h" // Inclui o cabeçalho da NesBoard
 
 int main()
@@ -45,14 +46,34 @@ int main()
         uint8_t opcode = nes.cpuRead(currentPC);
         auto& inst = nes.getCpu().lookup[opcode];
 
-        // Determina quantos bytes a instrução tem para imprimir no log
+        // Determina bytes e formata o operando para o log (Disassembly básico)
         int bytes = 1;
-        if (inst.addrmode == &R2NES::Core::CPU::IMM || inst.addrmode == &R2NES::Core::CPU::ZP0 ||
-            inst.addrmode == &R2NES::Core::CPU::ZPX || inst.addrmode == &R2NES::Core::CPU::ZPY ||
-            inst.addrmode == &R2NES::Core::CPU::REL) bytes = 2;
-        else if (inst.addrmode == &R2NES::Core::CPU::ABS || inst.addrmode == &R2NES::Core::CPU::ABX ||
-                 inst.addrmode == &R2NES::Core::CPU::ABY || inst.addrmode == &R2NES::Core::CPU::IND ||
-                 inst.addrmode == &R2NES::Core::CPU::IZX || inst.addrmode == &R2NES::Core::CPU::IZY) bytes = 3;
+        std::string opStr = "";
+        if (inst.addrmode == &R2NES::Core::CPU::IMM) {
+            bytes = 2;
+            std::stringstream s; s << "#$" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (int)nes.cpuRead(currentPC + 1);
+            opStr = s.str();
+        } else if (inst.addrmode == &R2NES::Core::CPU::ZP0) {
+            bytes = 2;
+            uint8_t addr = nes.cpuRead(currentPC + 1);
+            std::stringstream s; s << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << (int)addr << " = " << std::setw(2) << (int)nes.cpuRead(addr);
+            opStr = s.str();
+        } else if (inst.addrmode == &R2NES::Core::CPU::REL) {
+            bytes = 2;
+            int8_t rel = (int8_t)nes.cpuRead(currentPC + 1);
+            std::stringstream s; s << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (currentPC + 2 + rel);
+            opStr = s.str();
+        } else if (inst.addrmode == &R2NES::Core::CPU::ABS) {
+            bytes = 3;
+            uint16_t addr = (uint16_t)nes.cpuRead(currentPC + 1) | ((uint16_t)nes.cpuRead(currentPC + 2) << 8);
+            std::stringstream s; s << "$" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << addr;
+            // JMP e JSR geralmente não mostram o valor no endereço no log do nestest
+            if (inst.name != "JMP" && inst.name != "JSR") s << " = " << std::setw(2) << (int)nes.cpuRead(addr);
+            opStr = s.str();
+        } else if (inst.addrmode == &R2NES::Core::CPU::ZPX || inst.addrmode == &R2NES::Core::CPU::ZPY) bytes = 2;
+        else if (inst.addrmode == &R2NES::Core::CPU::ABX || inst.addrmode == &R2NES::Core::CPU::ABY || 
+                 inst.addrmode == &R2NES::Core::CPU::IND || inst.addrmode == &R2NES::Core::CPU::IZX || 
+                 inst.addrmode == &R2NES::Core::CPU::IZY) bytes = 3;
 
         // 1. PC e Bytes Brutos (Hex)
         logFile << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << currentPC << "  ";
@@ -62,8 +83,9 @@ int main()
             else logFile << "   ";
         }
 
-        // 2. Nome da Instrução e Espaçamento (Resetamos o preenchimento para espaço aqui)
-        logFile << " " << std::setfill(' ') << std::left << std::setw(31) << inst.name;
+        // 2. Nome da Instrução + Operando e Espaçamento
+        std::string fullInst = inst.name + " " + opStr;
+        logFile << " " << std::setfill(' ') << std::left << std::setw(32) << fullInst;
 
         // 3. Registradores e Estado
         logFile << std::right << "A:" << std::setfill('0') << std::setw(2) << (int)nes.getCpu().a << " "
@@ -72,9 +94,9 @@ int main()
                   << "P:" << std::setw(2) << (int)nes.getCpu().status << " "
                   << "SP:" << std::setw(2) << (int)nes.getCpu().stkp << " ";
         
-        // 4. PPU e Ciclos (CYC usa decimal)
+        // 4. PPU (calculado: 3 dots por CPU cycle, 341 dots por scanline) e Ciclos
         logFile << std::dec << std::setfill(' ') 
-                  << "PPU:" << std::setw(3) << 0 << "," << std::setw(3) << 21 << " " 
+                  << "PPU:" << std::setw(3) << ((totalCycles * 3) / 341) << "," << std::setw(3) << ((totalCycles * 3) % 341) << " " 
                   << "CYC:" << totalCycles << "\n";
 
         uint32_t cyclesBefore = nes.getSystemClockCounter();

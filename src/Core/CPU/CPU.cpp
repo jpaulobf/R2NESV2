@@ -12,236 +12,236 @@ namespace R2NES::Core
         lookup = {
             {"BRK", &CPU::BRK, &CPU::IMM, 7},
             {"ORA", &CPU::ORA, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 3},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"SLO", &CPU::SLO, &CPU::IZX, 8},
+            {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"ORA", &CPU::ORA, &CPU::ZP0, 3},
             {"ASL", &CPU::ASL, &CPU::ZP0, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"SLO", &CPU::SLO, &CPU::ZP0, 5},
             {"PHP", &CPU::PHP, &CPU::IMP, 3},
             {"ORA", &CPU::ORA, &CPU::IMM, 2},
             {"ASL", &CPU::ASL, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"ANC", &CPU::XXX, &CPU::IMM, 2},
+            {"NOP", &CPU::NOP, &CPU::ABS, 4},
             {"ORA", &CPU::ORA, &CPU::ABS, 4},
             {"ASL", &CPU::ASL, &CPU::ABS, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"SLO", &CPU::SLO, &CPU::ABS, 6},
             {"BPL", &CPU::BPL, &CPU::REL, 2},
             {"ORA", &CPU::ORA, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"SLO", &CPU::SLO, &CPU::IZY, 8},
+            {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"ORA", &CPU::ORA, &CPU::ZPX, 4},
             {"ASL", &CPU::ASL, &CPU::ZPX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"SLO", &CPU::SLO, &CPU::ZPX, 6},
             {"CLC", &CPU::CLC, &CPU::IMP, 2},
             {"ORA", &CPU::ORA, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"SLO", &CPU::SLO, &CPU::ABY, 7},
+            {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"ORA", &CPU::ORA, &CPU::ABX, 4},
             {"ASL", &CPU::ASL, &CPU::ABX, 7},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
+            {"SLO", &CPU::SLO, &CPU::ABX, 7},
             {"JSR", &CPU::JSR, &CPU::ABS, 6},
             {"AND", &CPU::AND, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"RLA", &CPU::XXX, &CPU::IZX, 8},
             {"BIT", &CPU::BIT, &CPU::ZP0, 3},
             {"AND", &CPU::AND, &CPU::ZP0, 3},
             {"ROL", &CPU::ROL, &CPU::ZP0, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"RLA", &CPU::XXX, &CPU::ZP0, 5},
             {"PLP", &CPU::PLP, &CPU::IMP, 4},
             {"AND", &CPU::AND, &CPU::IMM, 2},
             {"ROL", &CPU::ROL, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
+            {"ANC", &CPU::XXX, &CPU::IMM, 2},
             {"BIT", &CPU::BIT, &CPU::ABS, 4},
             {"AND", &CPU::AND, &CPU::ABS, 4},
             {"ROL", &CPU::ROL, &CPU::ABS, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"RLA", &CPU::XXX, &CPU::ABS, 6},
             {"BMI", &CPU::BMI, &CPU::REL, 2},
             {"AND", &CPU::AND, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"RLA", &CPU::XXX, &CPU::IZY, 8},
+            {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"AND", &CPU::AND, &CPU::ZPX, 4},
             {"ROL", &CPU::ROL, &CPU::ZPX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"RLA", &CPU::XXX, &CPU::ZPX, 6},
             {"SEC", &CPU::SEC, &CPU::IMP, 2},
             {"AND", &CPU::AND, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"RLA", &CPU::XXX, &CPU::ABY, 7},
+            {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"AND", &CPU::AND, &CPU::ABX, 4},
             {"ROL", &CPU::ROL, &CPU::ABX, 7},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
+            {"RLA", &CPU::XXX, &CPU::ABX, 7},
             {"RTI", &CPU::RTI, &CPU::IMP, 6},
             {"EOR", &CPU::EOR, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 3},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"SRE", &CPU::XXX, &CPU::IZX, 8},
+            {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"EOR", &CPU::EOR, &CPU::ZP0, 3},
             {"LSR", &CPU::LSR, &CPU::ZP0, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"SRE", &CPU::XXX, &CPU::ZP0, 5},
             {"PHA", &CPU::PHA, &CPU::IMP, 3},
             {"EOR", &CPU::EOR, &CPU::IMM, 2},
             {"LSR", &CPU::LSR, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
+            {"ALR", &CPU::XXX, &CPU::IMM, 2},
             {"JMP", &CPU::JMP, &CPU::ABS, 3},
             {"EOR", &CPU::EOR, &CPU::ABS, 4},
             {"LSR", &CPU::LSR, &CPU::ABS, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"SRE", &CPU::XXX, &CPU::ABS, 6},
             {"BVC", &CPU::BVC, &CPU::REL, 2},
             {"EOR", &CPU::EOR, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"SRE", &CPU::XXX, &CPU::IZY, 8},
+            {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"EOR", &CPU::EOR, &CPU::ZPX, 4},
             {"LSR", &CPU::LSR, &CPU::ZPX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"SRE", &CPU::XXX, &CPU::ZPX, 6},
             {"CLI", &CPU::CLI, &CPU::IMP, 2},
             {"EOR", &CPU::EOR, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"SRE", &CPU::XXX, &CPU::ABY, 7},
+            {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"EOR", &CPU::EOR, &CPU::ABX, 4},
             {"LSR", &CPU::LSR, &CPU::ABX, 7},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
+            {"SRE", &CPU::XXX, &CPU::ABX, 7},
             {"RTS", &CPU::RTS, &CPU::IMP, 6},
             {"ADC", &CPU::ADC, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 3},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"RRA", &CPU::XXX, &CPU::IZX, 8},
+            {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"ADC", &CPU::ADC, &CPU::ZP0, 3},
             {"ROR", &CPU::ROR, &CPU::ZP0, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"RRA", &CPU::XXX, &CPU::ZP0, 5},
             {"PLA", &CPU::PLA, &CPU::IMP, 4},
             {"ADC", &CPU::ADC, &CPU::IMM, 2},
             {"ROR", &CPU::ROR, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
+            {"ARR", &CPU::XXX, &CPU::IMM, 2},
             {"JMP", &CPU::JMP, &CPU::IND, 5},
             {"ADC", &CPU::ADC, &CPU::ABS, 4},
             {"ROR", &CPU::ROR, &CPU::ABS, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"RRA", &CPU::XXX, &CPU::ABS, 6},
             {"BVS", &CPU::BVS, &CPU::REL, 2},
             {"ADC", &CPU::ADC, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"RRA", &CPU::XXX, &CPU::IZY, 8},
+            {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"ADC", &CPU::ADC, &CPU::ZPX, 4},
             {"ROR", &CPU::ROR, &CPU::ZPX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"RRA", &CPU::XXX, &CPU::ZPX, 6},
             {"SEI", &CPU::SEI, &CPU::IMP, 2},
             {"ADC", &CPU::ADC, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"RRA", &CPU::XXX, &CPU::ABY, 7},
+            {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"ADC", &CPU::ADC, &CPU::ABX, 4},
             {"ROR", &CPU::ROR, &CPU::ABX, 7},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 2},
+            {"RRA", &CPU::XXX, &CPU::ABX, 7},
+            {"NOP", &CPU::NOP, &CPU::IMM, 2},
             {"STA", &CPU::STA, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"NOP", &CPU::NOP, &CPU::IMM, 2},
+            {"SAX", &CPU::SAX, &CPU::IZX, 6},
             {"STY", &CPU::STY, &CPU::ZP0, 3},
             {"STA", &CPU::STA, &CPU::ZP0, 3},
             {"STX", &CPU::STX, &CPU::ZP0, 3},
-            {"XXX", &CPU::XXX, &CPU::IMP, 3},
+            {"SAX", &CPU::SAX, &CPU::ZP0, 3},
             {"DEY", &CPU::DEY, &CPU::IMP, 2},
-            {"NOP", &CPU::NOP, &CPU::IMP, 2},
+            {"NOP", &CPU::NOP, &CPU::IMM, 2},
             {"TXA", &CPU::TXA, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
+            {"XAA", &CPU::XXX, &CPU::IMM, 2},
             {"STY", &CPU::STY, &CPU::ABS, 4},
             {"STA", &CPU::STA, &CPU::ABS, 4},
             {"STX", &CPU::STX, &CPU::ABS, 4},
-            {"XXX", &CPU::XXX, &CPU::IMP, 4},
+            {"SAX", &CPU::SAX, &CPU::ABS, 4},
             {"BCC", &CPU::BCC, &CPU::REL, 2},
             {"STA", &CPU::STA, &CPU::IZY, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"SHA", &CPU::XXX, &CPU::IZY, 6},
             {"STY", &CPU::STY, &CPU::ZPX, 4},
             {"STA", &CPU::STA, &CPU::ZPX, 4},
             {"STX", &CPU::STX, &CPU::ZPY, 4},
-            {"XXX", &CPU::XXX, &CPU::IMP, 4},
+            {"SAX", &CPU::SAX, &CPU::ZPY, 4},
             {"TYA", &CPU::TYA, &CPU::IMP, 2},
             {"STA", &CPU::STA, &CPU::ABY, 5},
             {"TXS", &CPU::TXS, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"TAS", &CPU::XXX, &CPU::ABY, 5},
+            {"SHY", &CPU::XXX, &CPU::ABX, 5},
             {"STA", &CPU::STA, &CPU::ABX, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"SHX", &CPU::XXX, &CPU::ABY, 5},
+            {"SHA", &CPU::XXX, &CPU::ABY, 5},
             {"LDY", &CPU::LDY, &CPU::IMM, 2},
             {"LDA", &CPU::LDA, &CPU::IZX, 6},
             {"LDX", &CPU::LDX, &CPU::IMM, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"LAX", &CPU::LAX, &CPU::IZX, 6},
             {"LDY", &CPU::LDY, &CPU::ZP0, 3},
             {"LDA", &CPU::LDA, &CPU::ZP0, 3},
             {"LDX", &CPU::LDX, &CPU::ZP0, 3},
-            {"XXX", &CPU::XXX, &CPU::IMP, 3},
+            {"LAX", &CPU::LAX, &CPU::ZP0, 3},
             {"TAY", &CPU::TAY, &CPU::IMP, 2},
             {"LDA", &CPU::LDA, &CPU::IMM, 2},
             {"TAX", &CPU::TAX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
+            {"LAX", &CPU::XXX, &CPU::IMM, 2},
             {"LDY", &CPU::LDY, &CPU::ABS, 4},
             {"LDA", &CPU::LDA, &CPU::ABS, 4},
             {"LDX", &CPU::LDX, &CPU::ABS, 4},
-            {"XXX", &CPU::XXX, &CPU::IMP, 4},
+            {"LAX", &CPU::LAX, &CPU::ABS, 4},
             {"BCS", &CPU::BCS, &CPU::REL, 2},
             {"LDA", &CPU::LDA, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"LAX", &CPU::LAX, &CPU::IZY, 5},
             {"LDY", &CPU::LDY, &CPU::ZPX, 4},
             {"LDA", &CPU::LDA, &CPU::ZPX, 4},
             {"LDX", &CPU::LDX, &CPU::ZPY, 4},
-            {"XXX", &CPU::XXX, &CPU::IMP, 4},
+            {"LAX", &CPU::LAX, &CPU::ZPY, 4},
             {"CLV", &CPU::CLV, &CPU::IMP, 2},
             {"LDA", &CPU::LDA, &CPU::ABY, 4},
             {"TSX", &CPU::TSX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 4},
+            {"LAS", &CPU::XXX, &CPU::ABY, 4},
             {"LDY", &CPU::LDY, &CPU::ABX, 4},
             {"LDA", &CPU::LDA, &CPU::ABX, 4},
             {"LDX", &CPU::LDX, &CPU::ABY, 4},
-            {"XXX", &CPU::XXX, &CPU::IMP, 4},
+            {"LAX", &CPU::LAX, &CPU::ABY, 4},
             {"CPY", &CPU::CPY, &CPU::IMM, 2},
             {"CMP", &CPU::CMP, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
+            {"NOP", &CPU::NOP, &CPU::IMM, 2},
+            {"DCP", &CPU::DCP, &CPU::IZX, 8},
             {"CPY", &CPU::CPY, &CPU::ZP0, 3},
             {"CMP", &CPU::CMP, &CPU::ZP0, 3},
             {"DEC", &CPU::DEC, &CPU::ZP0, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"DCP", &CPU::DCP, &CPU::ZP0, 5},
             {"INY", &CPU::INY, &CPU::IMP, 2},
             {"CMP", &CPU::CMP, &CPU::IMM, 2},
             {"DEX", &CPU::DEX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
+            {"SBX", &CPU::XXX, &CPU::IMM, 2},
             {"CPY", &CPU::CPY, &CPU::ABS, 4},
             {"CMP", &CPU::CMP, &CPU::ABS, 4},
             {"DEC", &CPU::DEC, &CPU::ABS, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"DCP", &CPU::DCP, &CPU::ABS, 6},
             {"BNE", &CPU::BNE, &CPU::REL, 2},
             {"CMP", &CPU::CMP, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"DCP", &CPU::DCP, &CPU::IZY, 8},
+            {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"CMP", &CPU::CMP, &CPU::ZPX, 4},
             {"DEC", &CPU::DEC, &CPU::ZPX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"DCP", &CPU::DCP, &CPU::ZPX, 6},
             {"CLD", &CPU::CLD, &CPU::IMP, 2},
             {"CMP", &CPU::CMP, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"DCP", &CPU::DCP, &CPU::ABY, 7},
+            {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"CMP", &CPU::CMP, &CPU::ABX, 4},
             {"DEC", &CPU::DEC, &CPU::ABX, 7},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
+            {"DCP", &CPU::DCP, &CPU::ABX, 7},
             {"CPX", &CPU::CPX, &CPU::IMM, 2},
             {"SBC", &CPU::SBC, &CPU::IZX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
+            {"NOP", &CPU::NOP, &CPU::IMM, 2},
+            {"ISC", &CPU::XXX, &CPU::IZX, 8},
             {"CPX", &CPU::CPX, &CPU::ZP0, 3},
             {"SBC", &CPU::SBC, &CPU::ZP0, 3},
             {"INC", &CPU::INC, &CPU::ZP0, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 5},
+            {"ISC", &CPU::XXX, &CPU::ZP0, 5},
             {"INX", &CPU::INX, &CPU::IMP, 2},
             {"SBC", &CPU::SBC, &CPU::IMM, 2},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
@@ -249,23 +249,23 @@ namespace R2NES::Core
             {"CPX", &CPU::CPX, &CPU::ABS, 4},
             {"SBC", &CPU::SBC, &CPU::ABS, 4},
             {"INC", &CPU::INC, &CPU::ABS, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"ISC", &CPU::XXX, &CPU::ABS, 6},
             {"BEQ", &CPU::BEQ, &CPU::REL, 2},
             {"SBC", &CPU::SBC, &CPU::IZY, 5},
-            {"XXX", &CPU::XXX, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 8},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"STP", &CPU::XXX, &CPU::IMP, 2},
+            {"ISC", &CPU::XXX, &CPU::IZY, 8},
+            {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"SBC", &CPU::SBC, &CPU::ZPX, 4},
             {"INC", &CPU::INC, &CPU::ZPX, 6},
-            {"XXX", &CPU::XXX, &CPU::IMP, 6},
+            {"ISC", &CPU::XXX, &CPU::ZPX, 6},
             {"SED", &CPU::SED, &CPU::IMP, 2},
             {"SBC", &CPU::SBC, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
-            {"NOP", &CPU::NOP, &CPU::IMP, 4},
+            {"ISC", &CPU::XXX, &CPU::ABY, 7},
+            {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"SBC", &CPU::SBC, &CPU::ABX, 4},
             {"INC", &CPU::INC, &CPU::ABX, 7},
-            {"XXX", &CPU::XXX, &CPU::IMP, 7},
+            {"ISC", &CPU::XXX, &CPU::ABX, 7},
         };
     }
 
@@ -416,57 +416,57 @@ namespace R2NES::Core
     }
 
     // --- Implementações das Instruções de Modo de Endereçamento ---//
-    uint8_t CPU::IMP() 
-    { 
+    uint8_t CPU::IMP()
+    {
         fetched = a;
         addr_abs = 0x0000;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::IMM() 
-    { 
+    uint8_t CPU::IMM()
+    {
         addr_abs = pc++;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::ZP0() 
-    { 
+    uint8_t CPU::ZP0()
+    {
         addr_abs = bus->cpuRead(pc++);
         addr_abs &= 0x00FF;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::ZPX() 
-    { 
+    uint8_t CPU::ZPX()
+    {
         addr_abs = (bus->cpuRead(pc++) + x);
         addr_abs &= 0x00FF;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::ZPY() 
-    { 
+    uint8_t CPU::ZPY()
+    {
         addr_abs = (bus->cpuRead(pc++) + y);
         addr_abs &= 0x00FF;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::REL() 
-    { 
+    uint8_t CPU::REL()
+    {
         // Lê como uint8_t, converte para int8_t para preservar o sinal, e então para uint16_t
         addr_rel = (uint16_t)(int8_t)bus->cpuRead(pc++);
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::ABS() 
-    { 
+    uint8_t CPU::ABS()
+    {
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         addr_abs = (static_cast<uint16_t>(hi) << 8) | lo;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::ABX() 
-    { 
+    uint8_t CPU::ABX()
+    {
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         addr_abs = (static_cast<uint16_t>(hi) << 8) | lo;
@@ -474,11 +474,11 @@ namespace R2NES::Core
 
         if ((addr_abs & 0xFF00) != (static_cast<uint16_t>(hi) << 8))
             return 1; // Cruzou a página!
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::ABY() 
-    { 
+    uint8_t CPU::ABY()
+    {
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         addr_abs = (static_cast<uint16_t>(hi) << 8) | lo;
@@ -486,33 +486,35 @@ namespace R2NES::Core
 
         if ((addr_abs & 0xFF00) != (static_cast<uint16_t>(hi) << 8))
             return 1; // Cruzou a página!
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::IND() 
-    { 
+    uint8_t CPU::IND()
+    {
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         uint16_t ptr = (static_cast<uint16_t>(hi) << 8) | lo;
 
         // Simula o bug do hardware original do 6502 no JMP indireto
-        if (lo == 0xFF) addr_abs = (static_cast<uint16_t>(bus->cpuRead(ptr & 0xFF00)) << 8) | bus->cpuRead(ptr);
-        else addr_abs = (static_cast<uint16_t>(bus->cpuRead(ptr + 1)) << 8) | bus->cpuRead(ptr);
+        if (lo == 0xFF)
+            addr_abs = (static_cast<uint16_t>(bus->cpuRead(ptr & 0xFF00)) << 8) | bus->cpuRead(ptr);
+        else
+            addr_abs = (static_cast<uint16_t>(bus->cpuRead(ptr + 1)) << 8) | bus->cpuRead(ptr);
 
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::IZX() 
-    { 
+    uint8_t CPU::IZX()
+    {
         uint8_t t = bus->cpuRead(pc++);
         uint8_t lo = bus->cpuRead(static_cast<uint8_t>(t + x));
         uint8_t hi = bus->cpuRead(static_cast<uint8_t>(t + x + 1));
         addr_abs = (static_cast<uint16_t>(hi) << 8) | lo;
-        return 0; 
+        return 0;
     }
 
-    uint8_t CPU::IZY() 
-    { 
+    uint8_t CPU::IZY()
+    {
         uint8_t t = bus->cpuRead(pc++);
         uint8_t lo = bus->cpuRead(t);
         uint8_t hi = bus->cpuRead(static_cast<uint8_t>(t + 1));
@@ -521,7 +523,7 @@ namespace R2NES::Core
 
         if ((addr_abs & 0xFF00) != (static_cast<uint16_t>(hi) << 8))
             return 1; // Cruzou a página!
-        return 0; 
+        return 0;
     }
 
     uint8_t CPU::ADC()
@@ -560,7 +562,7 @@ namespace R2NES::Core
             bus->cpuWrite(addr_abs, temp);
         return 0; // ASL (RMW) nunca tem penalidade de ciclo extra
     }
-    
+
     uint8_t CPU::BCC()
     {
         if (GetFlag(C) == 0)
@@ -608,7 +610,7 @@ namespace R2NES::Core
         SetFlag(V, fetched & 0x40);
         return 0;
     }
-    
+
     uint8_t CPU::BMI()
     {
         if (GetFlag(N) == 1)
@@ -692,7 +694,7 @@ namespace R2NES::Core
         }
         return 0;
     }
-    
+
     uint8_t CPU::CLC()
     {
         SetFlag(C, false);
@@ -716,7 +718,7 @@ namespace R2NES::Core
         SetFlag(V, false);
         return 0;
     }
-    
+
     uint8_t CPU::CMP()
     {
         fetch();
@@ -797,7 +799,7 @@ namespace R2NES::Core
         updateNZFlags(y);
         return 0;
     }
-    
+
     uint8_t CPU::JMP()
     {
         // JMP apenas define o PC para o endereço calculado pelo modo de endereçamento
@@ -910,7 +912,7 @@ namespace R2NES::Core
         fetch();
         // O novo bit 0 será o Carry atual. O novo Carry será o bit 7 original.
         uint16_t temp = (static_cast<uint16_t>(fetched) << 1) | GetFlag(C);
-        
+
         SetFlag(C, temp & 0x0100);
         uint8_t result = static_cast<uint8_t>(temp & 0x00FF);
         updateNZFlags(result);
@@ -942,7 +944,7 @@ namespace R2NES::Core
     {
         // Restaura o registrador de status da pilha
         status = pop();
-        
+
         // Garante que a flag B seja limpa e a flag U (Unused) seja sempre 1
         SetFlag(B, false);
         SetFlag(U, true);
@@ -950,11 +952,11 @@ namespace R2NES::Core
         // Restaura o Program Counter (LSB depois MSB)
         uint16_t lo = static_cast<uint16_t>(pop());
         uint16_t hi = static_cast<uint16_t>(pop());
-        
+
         pc = (hi << 8) | lo;
         return 0;
     }
-    
+
     uint8_t CPU::SBC()
     {
         fetch();
@@ -991,11 +993,25 @@ namespace R2NES::Core
         SetFlag(D, true);
         return 0;
     }
-    
+
     uint8_t CPU::STA()
     {
         bus->cpuWrite(addr_abs, a);
         return 0;
+    }
+
+    uint8_t CPU::SLO()
+    {
+        fetch();
+        // Parte ASL: Shift no valor lido e define o Carry com o bit 7 original
+        SetFlag(C, fetched & 0x80);
+        fetched <<= 1;
+        // Escreve o valor modificado de volta na memória
+        bus->cpuWrite(addr_abs, fetched);
+        // Parte ORA: OR entre Acumulador e o valor deslocado
+        a |= fetched;
+        updateNZFlags(a);
+        return 0; // SLO é uma instrução RMW e não possui penalidade de ciclo extra por página
     }
 
     uint8_t CPU::STX()
@@ -1052,11 +1068,11 @@ namespace R2NES::Core
         return 0;
     }
 
-    uint8_t CPU::XXX() 
-    { 
-        // Placeholder para opcodes ilegais. 
+    uint8_t CPU::XXX()
+    {
+        // Placeholder para opcodes ilegais.
         // Retornar 1 permite que versões ilegais de instruções aproveitem o cross-page.
-        return 1; 
+        return 1;
     }
 
     uint8_t CPU::SEI()
@@ -1064,11 +1080,42 @@ namespace R2NES::Core
         SetFlag(I, true);
         return 0;
     }
-    
-    uint8_t CPU::NOP() 
-    { 
+
+    uint8_t CPU::NOP()
+    {
         // O NOP oficial não tem cross-page, mas NOPs ilegais (como $1C) têm.
         // Como o modo IMP retorna 0, retornar 1 aqui é seguro e preciso.
-        return 1; 
+        return 1;
     }
+
+    uint8_t CPU::LAX()
+    {
+        fetch();
+        a = fetched;
+        x = fetched;
+        updateNZFlags(a);
+        return 1; // Pode ter ciclo extra se o modo de endereçamento permitir
+    }
+
+    uint8_t CPU::SAX()
+    {
+        // Armazena (A AND X) na memória
+        bus->cpuWrite(addr_abs, a & x);
+        return 0;
+    }
+
+    uint8_t CPU::DCP()
+    {
+        // Decrementa memória e depois compara com A
+        fetch();
+        fetched--;
+        bus->cpuWrite(addr_abs, fetched);
+        if (a >= fetched)
+            SetFlag(C, true);
+        else
+            SetFlag(C, false);
+        updateNZFlags(a - fetched);
+        return 0;
+    }
+
 }

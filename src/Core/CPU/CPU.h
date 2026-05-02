@@ -150,6 +150,7 @@ namespace R2NES::Core
         uint8_t SED();
         uint8_t SEI();
         uint8_t STA();
+        uint8_t SLO();
         uint8_t STX();
         uint8_t STY();
         uint8_t TAX();
@@ -158,6 +159,10 @@ namespace R2NES::Core
         uint8_t TXA();
         uint8_t TXS();
         uint8_t TYA();
+
+        uint8_t LAX();
+        uint8_t SAX();
+        uint8_t DCP();
 
         // Instrução para lidar com Opcodes ilegais
         uint8_t XXX();
