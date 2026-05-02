@@ -169,6 +169,9 @@ namespace R2NES::Core
         uint8_t SRE();
         uint8_t RRA();
         uint8_t ISC();
+        uint8_t ALR();
+        uint8_t ARR();
+        uint8_t XAA();
 
         // Instrução para lidar com Opcodes ilegais
         uint8_t XXX();

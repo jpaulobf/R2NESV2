@@ -85,7 +85,7 @@ namespace R2NES::Core
             {"PHA", &CPU::PHA, &CPU::IMP, 3},
             {"EOR", &CPU::EOR, &CPU::IMM, 2},
             {"LSR", &CPU::LSR, &CPU::IMP, 2},
-            {"ALR", &CPU::XXX, &CPU::IMM, 2},
+            {"ALR", &CPU::ALR, &CPU::IMM, 2},
             {"JMP", &CPU::JMP, &CPU::ABS, 3},
             {"EOR", &CPU::EOR, &CPU::ABS, 4},
             {"LSR", &CPU::LSR, &CPU::ABS, 6},
@@ -117,7 +117,7 @@ namespace R2NES::Core
             {"PLA", &CPU::PLA, &CPU::IMP, 4},
             {"ADC", &CPU::ADC, &CPU::IMM, 2},
             {"ROR", &CPU::ROR, &CPU::IMP, 2},
-            {"ARR", &CPU::XXX, &CPU::IMM, 2},
+            {"ARR", &CPU::ARR, &CPU::IMM, 2},
             {"JMP", &CPU::JMP, &CPU::IND, 5},
             {"ADC", &CPU::ADC, &CPU::ABS, 4},
             {"ROR", &CPU::ROR, &CPU::ABS, 6},
@@ -149,7 +149,7 @@ namespace R2NES::Core
             {"DEY", &CPU::DEY, &CPU::IMP, 2},
             {"NOP", &CPU::NOP, &CPU::IMM, 2},
             {"TXA", &CPU::TXA, &CPU::IMP, 2},
-            {"XAA", &CPU::XXX, &CPU::IMM, 2},
+            {"XAA", &CPU::XAA, &CPU::IMM, 2},
             {"STY", &CPU::STY, &CPU::ABS, 4},
             {"STA", &CPU::STA, &CPU::ABS, 4},
             {"STX", &CPU::STX, &CPU::ABS, 4},
@@ -1224,4 +1224,44 @@ namespace R2NES::Core
         return 0; // Instrução RMW não tem penalidade de ciclo extra por cruzamento de página
     }
 
+    uint8_t CPU::ALR()
+    {
+        fetch();
+        a &= fetched;
+        // O bit 0 do resultado do AND vai para o Carry antes do shift
+        SetFlag(C, a & 0x01);
+        a >>= 1;
+        updateNZFlags(a);
+        return 0;
+    }
+
+    uint8_t CPU::ARR()
+    {
+        fetch();
+        a &= fetched;
+        
+        uint8_t old_carry = GetFlag(C);
+        // Executa a rotação para a direita
+        a = (a >> 1) | (old_carry << 7);
+        
+        // Atualiza flags Negative e Zero baseadas no resultado final
+        updateNZFlags(a);
+        
+        // Flags específicas da instrução ARR no modo não-decimal:
+        // Carry é definido como o bit 6 do resultado
+        SetFlag(C, (a >> 6) & 0x01);
+        // Overflow é o bit 6 XOR bit 5 do resultado
+        SetFlag(V, ((a >> 6) ^ (a >> 5)) & 0x01);
+        
+        return 0;
+    }
+    
+    uint8_t CPU::XAA()
+    {
+        fetch();
+        // Implementação estável: A = X AND imediato
+        a = x & fetched;
+        updateNZFlags(a);
+        return 0;
+    }
 }
