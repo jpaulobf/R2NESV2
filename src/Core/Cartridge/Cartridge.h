@@ -17,11 +17,11 @@ namespace R2NES::Core
         virtual ~Cartridge() = default;
 
         // Leitura/Escrita do lado da CPU
-        bool cpuRead(uint16_t addr, uint8_t &data);
+        bool cpuRead(uint16_t addr, uint8_t &data) const;
         bool cpuWrite(uint16_t addr, uint8_t data);
 
         // Leitura/Escrita do lado da PPU (Gráficos)
-        bool ppuRead(uint16_t addr, uint8_t &data);
+        bool ppuRead(uint16_t addr, uint8_t &data) const;
         bool ppuWrite(uint16_t addr, uint8_t data);
 
         // Retorna se o cartucho foi carregado com sucesso

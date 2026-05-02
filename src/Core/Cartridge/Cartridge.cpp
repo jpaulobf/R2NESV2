@@ -86,7 +86,7 @@ namespace R2NES::Core
         }
     }
 
-    bool Cartridge::cpuRead(uint16_t addr, uint8_t &data)
+    bool Cartridge::cpuRead(uint16_t addr, uint8_t &data) const
     {
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->cpuMapRead(addr, mapped_addr))
@@ -108,7 +108,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::ppuRead(uint16_t addr, uint8_t &data)
+    bool Cartridge::ppuRead(uint16_t addr, uint8_t &data) const
     {
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->ppuMapRead(addr, mapped_addr))

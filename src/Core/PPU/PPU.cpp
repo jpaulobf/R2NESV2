@@ -1,5 +1,6 @@
 #include "Core/PPU/PPU.h"
 #include "Core/Cartridge/Cartridge.h"
+#include "Common/Common.h"
 #include <algorithm>
 
 namespace R2NES::Core
@@ -60,6 +61,10 @@ namespace R2NES::Core
         addr &= 0x0007; // Mapeia o intervalo $2000-$3FFF para os 8 registradores básicos
         switch (addr)
         {
+        case 0x0000: // PPUCTRL ($2000)
+            ppuCtrl = data;
+            break;
+
         case 0x0006: // PPUADDR ($2006)
             // Escrita dupla: primeiro MSB, depois LSB
             if (addressLatch == 0)
@@ -76,13 +81,12 @@ namespace R2NES::Core
 
         case 0x0007: // PPUDATA ($2007)
             ppuWrite(ppuAddress, data);
-            // Incremento automático de endereço (TODO: verificar bit no PPUCTRL)
-            ppuAddress += 1;
+            ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
             break;
         }
     }
 
-    uint8_t PPU::ppuRead(uint16_t addr)
+    uint8_t PPU::ppuRead(uint16_t addr) const
     {
         uint8_t data = 0x00;
         addr &= 0x3FFF;
@@ -96,8 +100,9 @@ namespace R2NES::Core
         // Se o Mapper não respondeu e o endereço está no range de Name Tables
         if (addr >= 0x2000 && addr <= 0x3EFF)
         {
-            // TODO: Implementar lógica de espelhamento (Horizontal/Vertical) aqui
-            return vram.read(addr, cart ? cart->getMirrorMode() : MirrorMode::HORIZONTAL);
+            MirrorMode mode = MirrorMode::HORIZONTAL;
+            if (cart) mode = cart->getMirrorMode();
+            return vram.read(addr, mode);
         }
         
         // Se não for do cartucho, verifica paletas
@@ -153,12 +158,13 @@ namespace R2NES::Core
                 for (uint16_t row = 0; row < 8; row++)
                 {
                     // Cada linha do tile é composta por 2 bytes (2 planes)
-                    // Precisamos ler os dados brutos da PPU (ppuRead não const, usamos o cart diretamente ou cast)
                     uint8_t tileLSB = 0;
                     uint8_t tileMSB = 0;
                     
-                    const_cast<PPU*>(this)->cart->ppuRead(offset + row, tileLSB);
-                    const_cast<PPU*>(this)->cart->ppuRead(offset + row + 8, tileMSB);
+                    if (cart) {
+                        cart->ppuRead(offset + row, tileLSB);
+                        cart->ppuRead(offset + row + 8, tileMSB);
+                    }
 
                     for (uint16_t col = 0; col < 8; col++)
                     {
@@ -169,7 +175,7 @@ namespace R2NES::Core
                         // Resolve a cor final usando a paleta selecionada
                         // Endereço na Palette RAM: $3F00 + (paletteIndex * 4) + pixelColorValue
                         uint16_t paletteAddr = 0x3F00 + (paletteIndex * 4) + pixelColorValue;
-                        uint8_t systemPaletteIndex = const_cast<PPU*>(this)->ppuRead(paletteAddr) & 0x3F;
+                        uint8_t systemPaletteIndex = ppuRead(paletteAddr) & 0x3F;
                         
                         // Escreve no buffer de pixels na posição correta da imagem 128x128
                         uint32_t pixelX = tileX * 8 + col;
@@ -183,9 +189,35 @@ namespace R2NES::Core
         return pixels;
     }
 
-    void PPU::clock() { /* Lógica de scanline */ }
+    void PPU::clock() 
+    {
+        // Lógica de temporização simplificada para permitir que o jogo rode
+        cycle++;
+        if (cycle >= 341)
+        {
+            cycle = 0;
+            scanline++;
+            if (scanline == 241)
+            {
+                // Início do Vertical Blank
+                ppuStatus |= 0x80; // Seta flag de VBlank
+                frameComplete = true;
+                
+                // Se o bit 7 do PPUCTRL estiver setado, a PPU deve disparar um NMI na CPU
+                // Você precisará implementar uma forma de avisar a CPU/Bus aqui.
+            }
+            else if (scanline >= 261)
+            {
+                scanline = -1;
+                ppuStatus &= ~0x80; // Limpa flag de VBlank no fim do pre-render
+            }
+        }
+    }
+
     void PPU::reset()
     {
+        ppuCtrl = 0x00;
+        ppuStatus = 0x00;
         addressLatch = 0;
         ppuAddress = 0;
     }

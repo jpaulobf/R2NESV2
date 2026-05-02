@@ -22,14 +22,14 @@ namespace R2NES::Core
         void cpuWrite(uint16_t addr, uint8_t data);
 
         // Comunicação com o barramento interno da PPU ($0000 - $3FFF)
-        uint8_t ppuRead(uint16_t addr);
+        uint8_t ppuRead(uint16_t addr) const;
         void ppuWrite(uint16_t addr, uint8_t data);
 
         void clock();
         void reset();
         void setCartridge(const std::shared_ptr<Cartridge> &cartridge);
         bool isFrameComplete() const { return frameComplete; }
-        void clearFrameComplete() { frameComplete = true; }
+        void clearFrameComplete() { frameComplete = false; }
 
         // Retorna um buffer de pixels ARGB para um Pattern Table específico
         // patternTableIndex: 0 para Pattern Table 0 ($0000-$0FFF), 1 para Pattern Table 1 ($1000-$1FFF)
@@ -51,6 +51,8 @@ namespace R2NES::Core
         std::array<uint32_t, 256 * 240> frameBuffer;
 
         // Registradores e buffers internos
+        uint8_t ppuCtrl = 0x00;
+        uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;
         uint16_t ppuAddress = 0x0000;
@@ -59,6 +61,6 @@ namespace R2NES::Core
         int16_t scanline = 0;
         int16_t cycle = 0;
 
-        bool frameComplete = true;
+        bool frameComplete = false;
     };
 }

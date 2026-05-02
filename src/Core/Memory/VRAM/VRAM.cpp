@@ -14,7 +14,7 @@ namespace R2NES::Core
     {
     }
 
-    uint8_t VRAM::read(uint16_t addr, MirrorMode mode)
+    uint8_t VRAM::read(uint16_t addr, MirrorMode mode) const
     {
         return vram[getMirroredAddress(addr, mode)];
     }
@@ -24,7 +24,7 @@ namespace R2NES::Core
         vram[getMirroredAddress(addr, mode)] = data;
     }
 
-    uint16_t VRAM::getMirroredAddress(uint16_t addr, MirrorMode mode)
+    uint16_t VRAM::getMirroredAddress(uint16_t addr, MirrorMode mode) const
     {
         // O espaço de Name Tables na PPU vai de 0x2000 a 0x2FFF (com espelhos até 0x3EFF).
         // Normalizamos para 0x0000 - 0x0FFF (os 4KB lógicos das 4 Name Tables).
