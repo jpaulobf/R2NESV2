@@ -109,11 +109,11 @@ namespace R2NES::Core
             {"RTS", &CPU::RTS, &CPU::IMP, 6},
             {"ADC", &CPU::ADC, &CPU::IZX, 6},
             {"STP", &CPU::STP, &CPU::IMP, 2},
-            {"RRA", &CPU::XXX, &CPU::IZX, 8},
+            {"RRA", &CPU::RRA, &CPU::IZX, 8},
             {"NOP", &CPU::NOP, &CPU::ZP0, 3},
             {"ADC", &CPU::ADC, &CPU::ZP0, 3},
             {"ROR", &CPU::ROR, &CPU::ZP0, 5},
-            {"RRA", &CPU::XXX, &CPU::ZP0, 5},
+            {"RRA", &CPU::RRA, &CPU::ZP0, 5},
             {"PLA", &CPU::PLA, &CPU::IMP, 4},
             {"ADC", &CPU::ADC, &CPU::IMM, 2},
             {"ROR", &CPU::ROR, &CPU::IMP, 2},
@@ -121,23 +121,23 @@ namespace R2NES::Core
             {"JMP", &CPU::JMP, &CPU::IND, 5},
             {"ADC", &CPU::ADC, &CPU::ABS, 4},
             {"ROR", &CPU::ROR, &CPU::ABS, 6},
-            {"RRA", &CPU::XXX, &CPU::ABS, 6},
+            {"RRA", &CPU::RRA, &CPU::ABS, 6},
             {"BVS", &CPU::BVS, &CPU::REL, 2},
             {"ADC", &CPU::ADC, &CPU::IZY, 5},
             {"STP", &CPU::STP, &CPU::IMP, 2},
-            {"RRA", &CPU::XXX, &CPU::IZY, 8},
+            {"RRA", &CPU::RRA, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"ADC", &CPU::ADC, &CPU::ZPX, 4},
             {"ROR", &CPU::ROR, &CPU::ZPX, 6},
-            {"RRA", &CPU::XXX, &CPU::ZPX, 6},
+            {"RRA", &CPU::RRA, &CPU::ZPX, 6},
             {"SEI", &CPU::SEI, &CPU::IMP, 2},
             {"ADC", &CPU::ADC, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"RRA", &CPU::XXX, &CPU::ABY, 7},
+            {"RRA", &CPU::RRA, &CPU::ABY, 7},
             {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"ADC", &CPU::ADC, &CPU::ABX, 4},
             {"ROR", &CPU::ROR, &CPU::ABX, 7},
-            {"RRA", &CPU::XXX, &CPU::ABX, 7},
+            {"RRA", &CPU::RRA, &CPU::ABX, 7},
             {"NOP", &CPU::NOP, &CPU::IMM, 2},
             {"STA", &CPU::STA, &CPU::IZX, 6},
             {"NOP", &CPU::NOP, &CPU::IMM, 2},
@@ -181,7 +181,7 @@ namespace R2NES::Core
             {"TAY", &CPU::TAY, &CPU::IMP, 2},
             {"LDA", &CPU::LDA, &CPU::IMM, 2},
             {"TAX", &CPU::TAX, &CPU::IMP, 2},
-            {"LAX", &CPU::XXX, &CPU::IMM, 2},
+            {"LAX", &CPU::LAX, &CPU::IMM, 2},
             {"LDY", &CPU::LDY, &CPU::ABS, 4},
             {"LDA", &CPU::LDA, &CPU::ABS, 4},
             {"LDX", &CPU::LDX, &CPU::ABS, 4},
@@ -237,11 +237,11 @@ namespace R2NES::Core
             {"CPX", &CPU::CPX, &CPU::IMM, 2},
             {"SBC", &CPU::SBC, &CPU::IZX, 6},
             {"NOP", &CPU::NOP, &CPU::IMM, 2},
-            {"ISC", &CPU::XXX, &CPU::IZX, 8},
+            {"ISC", &CPU::ISC, &CPU::IZX, 8},
             {"CPX", &CPU::CPX, &CPU::ZP0, 3},
             {"SBC", &CPU::SBC, &CPU::ZP0, 3},
             {"INC", &CPU::INC, &CPU::ZP0, 5},
-            {"ISC", &CPU::XXX, &CPU::ZP0, 5},
+            {"ISC", &CPU::ISC, &CPU::ZP0, 5},
             {"INX", &CPU::INX, &CPU::IMP, 2},
             {"SBC", &CPU::SBC, &CPU::IMM, 2},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
@@ -249,23 +249,23 @@ namespace R2NES::Core
             {"CPX", &CPU::CPX, &CPU::ABS, 4},
             {"SBC", &CPU::SBC, &CPU::ABS, 4},
             {"INC", &CPU::INC, &CPU::ABS, 6},
-            {"ISC", &CPU::XXX, &CPU::ABS, 6},
+            {"ISC", &CPU::ISC, &CPU::ABS, 6},
             {"BEQ", &CPU::BEQ, &CPU::REL, 2},
             {"SBC", &CPU::SBC, &CPU::IZY, 5},
             {"STP", &CPU::STP, &CPU::IMP, 2},
-            {"ISC", &CPU::XXX, &CPU::IZY, 8},
+            {"ISC", &CPU::ISC, &CPU::IZY, 8},
             {"NOP", &CPU::NOP, &CPU::ZPX, 4},
             {"SBC", &CPU::SBC, &CPU::ZPX, 4},
             {"INC", &CPU::INC, &CPU::ZPX, 6},
-            {"ISC", &CPU::XXX, &CPU::ZPX, 6},
+            {"ISC", &CPU::ISC, &CPU::ZPX, 6},
             {"SED", &CPU::SED, &CPU::IMP, 2},
             {"SBC", &CPU::SBC, &CPU::ABY, 4},
             {"NOP", &CPU::NOP, &CPU::IMP, 2},
-            {"ISC", &CPU::XXX, &CPU::ABY, 7},
+            {"ISC", &CPU::ISC, &CPU::ABY, 7},
             {"NOP", &CPU::NOP, &CPU::ABX, 4},
             {"SBC", &CPU::SBC, &CPU::ABX, 4},
             {"INC", &CPU::INC, &CPU::ABX, 7},
-            {"ISC", &CPU::XXX, &CPU::ABX, 7},
+            {"ISC", &CPU::ISC, &CPU::ABX, 7},
         };
     }
 
@@ -1180,6 +1180,48 @@ namespace R2NES::Core
         updateNZFlags(a);
 
         return 0; // Instruções RMW não possuem penalidade de ciclo extra por cruzamento de página
+    }
+
+    uint8_t CPU::RRA()
+    {
+        fetch();
+
+        // 1. Parte ROR: Rotaciona o valor lido para a direita
+        uint8_t old_carry = GetFlag(C);
+        SetFlag(C, fetched & 0x01); // O bit 0 original vai para o Carry
+        fetched = (fetched >> 1) | (old_carry << 7);
+        
+        // 2. Escreve o valor rotacionado de volta na memória
+        bus->cpuWrite(addr_abs, fetched);
+
+        // 3. Parte ADC: Adiciona o resultado da rotação ao Acumulador
+        // Importante: Usamos o Carry que foi definido pela operação de rotação acima!
+        uint16_t temp = static_cast<uint16_t>(a) + static_cast<uint16_t>(fetched) + static_cast<uint16_t>(GetFlag(C));
+        SetFlag(V, (~(static_cast<uint16_t>(a) ^ static_cast<uint16_t>(fetched)) & (static_cast<uint16_t>(a) ^ temp)) & 0x0080);
+        SetFlag(C, temp > 0x00FF);
+        a = static_cast<uint8_t>(temp & 0x00FF);
+        updateNZFlags(a);
+
+        return 0; // Instrução RMW, não possui penalidade de ciclo extra
+    }
+
+    uint8_t CPU::ISC()
+    {
+        // 1. Parte INC: Busca o dado, incrementa e salva de volta
+        fetch();
+        fetched++;
+        bus->cpuWrite(addr_abs, fetched);
+
+        // 2. Parte SBC: Subtrai o valor incrementado do Acumulador
+        // Usamos a mesma lógica implementada no seu método SBC()
+        uint16_t value = static_cast<uint16_t>(fetched) ^ 0x00FF;
+        uint16_t temp = static_cast<uint16_t>(a) + value + static_cast<uint16_t>(GetFlag(C));
+        SetFlag(C, temp & 0xFF00);
+        SetFlag(V, (temp ^ static_cast<uint16_t>(a)) & (temp ^ value) & 0x0080);
+        a = static_cast<uint8_t>(temp & 0x00FF);
+        updateNZFlags(a);
+
+        return 0; // Instrução RMW não tem penalidade de ciclo extra por cruzamento de página
     }
 
 }
