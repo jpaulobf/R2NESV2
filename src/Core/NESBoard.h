@@ -12,6 +12,7 @@ namespace R2NES::Core
     {
     public:
         NesBoard();
+        ~NesBoard();
 
         void step();
 
@@ -29,6 +30,12 @@ namespace R2NES::Core
         // Retorna o total de ciclos executados pelo sistema
         uint32_t getSystemClockCounter() const { return systemClockCounter; }
 
+        bool isFrameComplete() const { return ppu.isFrameComplete(); }
+
+        void clearFrameComplete() { ppu.clearFrameComplete(); }
+
+        bool isCartridgeLoaded() const { return cartridgeLoaded; }
+
     private:
         Bus bus;
         RAM ram;
@@ -37,5 +44,7 @@ namespace R2NES::Core
 
         // Controle de timing
         uint32_t systemClockCounter = 0;
+
+        bool cartridgeLoaded = false;
     };
 }

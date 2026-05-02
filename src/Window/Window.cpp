@@ -1,4 +1,4 @@
-#include "Window/Window.h"
+#include "Window.h"
 #include <iostream>
 #include <SDL_syswm.h>
 

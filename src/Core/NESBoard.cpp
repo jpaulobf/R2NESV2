@@ -14,6 +14,8 @@ namespace R2NES::Core
         reset(); // Reseta o sistema para um estado inicial
     }
 
+    NesBoard::~NesBoard() {}
+
     void NesBoard::reset()
     {
         cpu.reset();

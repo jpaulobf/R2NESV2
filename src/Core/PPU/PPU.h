@@ -27,6 +27,8 @@ namespace R2NES::Core
         void clock();
         void reset();
         void connectCartridge(const std::shared_ptr<Cartridge> &cartridge);
+        bool isFrameComplete() const { return frameComplete; }
+        void clearFrameComplete() { frameComplete = false; }
 
         // Retorna o ponteiro para o buffer de pixels (256x240)
         const uint32_t* getFrameBuffer() const { return frameBuffer.data(); }
@@ -51,5 +53,7 @@ namespace R2NES::Core
         // Estado da renderização
         int16_t scanline = 0;
         int16_t cycle = 0;
+
+        bool frameComplete = true;
     };
 }
