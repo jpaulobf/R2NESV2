@@ -159,7 +159,6 @@ namespace R2NES::Core
         uint8_t TXA();
         uint8_t TXS();
         uint8_t TYA();
-
         uint8_t LAX();
         uint8_t SAX();
         uint8_t DCP();
@@ -172,9 +171,12 @@ namespace R2NES::Core
         uint8_t ALR();
         uint8_t ARR();
         uint8_t XAA();
-
-        // Instrução para lidar com Opcodes ilegais
-        uint8_t XXX();
+        uint8_t SHA();
+        uint8_t SHY();
+        uint8_t SHX();
+        uint8_t TAS();
+        uint8_t LAS(); // Load Accumulator and Stack Pointer
+        uint8_t SBX(); // Subtract X from A with Borrow, then AND X (result in X)
 
     private:
         // Variáveis auxiliares para o estado da execução

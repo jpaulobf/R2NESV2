@@ -157,7 +157,7 @@ namespace R2NES::Core
             {"BCC", &CPU::BCC, &CPU::REL, 2},
             {"STA", &CPU::STA, &CPU::IZY, 6},
             {"STP", &CPU::STP, &CPU::IMP, 2},
-            {"SHA", &CPU::XXX, &CPU::IZY, 6},
+            {"SHA", &CPU::SHA, &CPU::IZY, 6},
             {"STY", &CPU::STY, &CPU::ZPX, 4},
             {"STA", &CPU::STA, &CPU::ZPX, 4},
             {"STX", &CPU::STX, &CPU::ZPY, 4},
@@ -165,11 +165,11 @@ namespace R2NES::Core
             {"TYA", &CPU::TYA, &CPU::IMP, 2},
             {"STA", &CPU::STA, &CPU::ABY, 5},
             {"TXS", &CPU::TXS, &CPU::IMP, 2},
-            {"TAS", &CPU::XXX, &CPU::ABY, 5},
-            {"SHY", &CPU::XXX, &CPU::ABX, 5},
+            {"TAS", &CPU::TAS, &CPU::ABY, 5},
+            {"SHY", &CPU::SHY, &CPU::ABX, 5},
             {"STA", &CPU::STA, &CPU::ABX, 5},
-            {"SHX", &CPU::XXX, &CPU::ABY, 5},
-            {"SHA", &CPU::XXX, &CPU::ABY, 5},
+            {"SHX", &CPU::SHX, &CPU::ABY, 5},
+            {"SHA", &CPU::SHA, &CPU::ABY, 5},
             {"LDY", &CPU::LDY, &CPU::IMM, 2},
             {"LDA", &CPU::LDA, &CPU::IZX, 6},
             {"LDX", &CPU::LDX, &CPU::IMM, 2},
@@ -197,12 +197,12 @@ namespace R2NES::Core
             {"CLV", &CPU::CLV, &CPU::IMP, 2},
             {"LDA", &CPU::LDA, &CPU::ABY, 4},
             {"TSX", &CPU::TSX, &CPU::IMP, 2},
-            {"LAS", &CPU::XXX, &CPU::ABY, 4},
+            {"LAS", &CPU::LAS, &CPU::ABY, 4},
             {"LDY", &CPU::LDY, &CPU::ABX, 4},
             {"LDA", &CPU::LDA, &CPU::ABX, 4},
             {"LDX", &CPU::LDX, &CPU::ABY, 4},
             {"LAX", &CPU::LAX, &CPU::ABY, 4},
-            {"CPY", &CPU::CPY, &CPU::IMM, 2},
+            {"CPY", &CPU::CPY, &CPU::IMM, 2}, // C0
             {"CMP", &CPU::CMP, &CPU::IZX, 6},
             {"NOP", &CPU::NOP, &CPU::IMM, 2},
             {"DCP", &CPU::DCP, &CPU::IZX, 8},
@@ -211,9 +211,9 @@ namespace R2NES::Core
             {"DEC", &CPU::DEC, &CPU::ZP0, 5},
             {"DCP", &CPU::DCP, &CPU::ZP0, 5},
             {"INY", &CPU::INY, &CPU::IMP, 2},
-            {"CMP", &CPU::CMP, &CPU::IMM, 2},
+            {"CMP", &CPU::CMP, &CPU::IMM, 2}, // C9
             {"DEX", &CPU::DEX, &CPU::IMP, 2},
-            {"SBX", &CPU::XXX, &CPU::IMM, 2},
+            {"SBX", &CPU::SBX, &CPU::IMM, 2}, // CB
             {"CPY", &CPU::CPY, &CPU::ABS, 4},
             {"CMP", &CPU::CMP, &CPU::ABS, 4},
             {"DEC", &CPU::DEC, &CPU::ABS, 6},
@@ -1068,13 +1068,6 @@ namespace R2NES::Core
         return 0;
     }
 
-    uint8_t CPU::XXX()
-    {
-        // Placeholder para opcodes ilegais.
-        // Retornar 1 permite que versões ilegais de instruções aproveitem o cross-page.
-        return 1;
-    }
-
     uint8_t CPU::SEI()
     {
         SetFlag(I, true);
@@ -1134,7 +1127,7 @@ namespace R2NES::Core
         updateNZFlags(a);
         // O Carry é definido como o valor do bit 7 do Acumulador (igual ao Negative flag)
         SetFlag(C, a & 0x80);
-        
+
         return 0; // ANC utiliza apenas o modo IMM, que não possui penalidade de ciclo
     }
 
@@ -1190,7 +1183,7 @@ namespace R2NES::Core
         uint8_t old_carry = GetFlag(C);
         SetFlag(C, fetched & 0x01); // O bit 0 original vai para o Carry
         fetched = (fetched >> 1) | (old_carry << 7);
-        
+
         // 2. Escreve o valor rotacionado de volta na memória
         bus->cpuWrite(addr_abs, fetched);
 
@@ -1239,29 +1232,89 @@ namespace R2NES::Core
     {
         fetch();
         a &= fetched;
-        
+
         uint8_t old_carry = GetFlag(C);
         // Executa a rotação para a direita
         a = (a >> 1) | (old_carry << 7);
-        
+
         // Atualiza flags Negative e Zero baseadas no resultado final
         updateNZFlags(a);
-        
+
         // Flags específicas da instrução ARR no modo não-decimal:
         // Carry é definido como o bit 6 do resultado
         SetFlag(C, (a >> 6) & 0x01);
         // Overflow é o bit 6 XOR bit 5 do resultado
         SetFlag(V, ((a >> 6) ^ (a >> 5)) & 0x01);
-        
+
         return 0;
     }
-    
+
     uint8_t CPU::XAA()
     {
         fetch();
         // Implementação estável: A = X AND imediato
         a = x & fetched;
         updateNZFlags(a);
+        return 0;
+    }
+
+    uint8_t CPU::SHA()
+    {
+        // Armazena A & X & (High Byte do endereço + 1)
+        uint8_t val = a & x & (uint8_t)((addr_abs >> 8) + 1);
+        bus->cpuWrite(addr_abs, val);
+        return 0;
+    }
+
+    uint8_t CPU::SHY()
+    {
+        // Armazena Y & (High Byte do endereço + 1)
+        uint8_t val = y & (uint8_t)((addr_abs >> 8) + 1);
+        bus->cpuWrite(addr_abs, val);
+        return 0;
+    }
+
+    uint8_t CPU::SHX()
+    {
+        // Armazena X & (High Byte do endereço + 1)
+        uint8_t val = x & (uint8_t)((addr_abs >> 8) + 1);
+        bus->cpuWrite(addr_abs, val);
+        return 0;
+    }
+
+    uint8_t CPU::TAS()
+    {
+        // S = A & X, depois armazena S & (High Byte do endereço + 1)
+        stkp = a & x;
+        uint8_t val = stkp & (uint8_t)((addr_abs >> 8) + 1);
+        bus->cpuWrite(addr_abs, val);
+        return 0;
+    }
+
+    uint8_t CPU::LAS()
+    {
+        fetch();
+        // A = M AND S
+        a = fetched & stkp;
+        // S = M AND S
+        stkp = a; // Stack Pointer recebe o mesmo valor que A
+        updateNZFlags(a);
+
+        return 1;
+    }
+
+    uint8_t CPU::SBX()
+    {
+        fetch();
+        // (A AND X) - M
+        uint16_t temp = (static_cast<uint16_t>(a & x)) - static_cast<uint16_t>(fetched);
+
+        // Flag C: setada se (A & X) >= M
+        SetFlag(C, (a & x) >= fetched);
+
+        x = static_cast<uint8_t>(temp & 0x00FF);
+        updateNZFlags(x);
+
         return 0;
     }
 }
