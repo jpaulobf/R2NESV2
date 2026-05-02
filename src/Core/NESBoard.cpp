@@ -43,7 +43,17 @@ namespace R2NES::Core
 
     void NesBoard::step()
     {
-        // Lógica de sincronização virá aqui
+        // Executa o primeiro ciclo da instrução
+        cpu.clock();
+        systemClockCounter++;
+        
+        // Continua executando ciclos de clock até que a instrução atual
+        // seja finalizada (cycles == 0)
+        while (!cpu.complete())
+        {
+            cpu.clock();
+            systemClockCounter++;
+        }
     }
 
     void NesBoard::insertCartridge(const std::string &path)
