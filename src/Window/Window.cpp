@@ -308,7 +308,7 @@ namespace R2NES::Core
         SDL_RenderPresent(tileRenderer);
     }
 
-    void Window::render(const uint32_t *pixels, const std::map<uint16_t, std::string> &disassembly)
+    void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string>& disassembly)
     {
         if (showDisasm)
         {
@@ -325,7 +325,16 @@ namespace R2NES::Core
 
             for (auto const &[addr, line] : disassembly)
             {
-                ImGui::Text("%s", line.c_str());
+                // Se o endereço da linha for o PC atual, desenhamos em uma cor diferente (ex: Ciano)
+                if (addr == pc) {
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), ">> %s", line.c_str());
+                    
+                    // Faz o scroll automático para seguir o PC
+                    if (ImGui::IsWindowAppearing()) ImGui::SetScrollHereY();
+                }
+                else {
+                    ImGui::Text("   %s", line.c_str());
+                }
             }
             ImGui::End();
 

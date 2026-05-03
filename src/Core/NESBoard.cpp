@@ -49,17 +49,15 @@ namespace R2NES::Core
 
     void NesBoard::step()
     {
-        // Executa o primeiro ciclo da instrução
+        // A PPU roda 3 vezes mais rápido que a CPU.
+        // Então, para cada ciclo da CPU, a PPU deve ser clockada 3 vezes.
+        ppu.clock();
+        ppu.clock();
+        ppu.clock();
+
+        // Clocka a CPU uma vez. A CPU gerencia seus próprios ciclos internos por instrução.
         cpu.clock();
         systemClockCounter++;
-        
-        // Continua executando ciclos de clock até que a instrução atual
-        // seja finalizada (cycles == 0)
-        while (!cpu.complete())
-        {
-            cpu.clock();
-            systemClockCounter++;
-        }
     }
 
     void NesBoard::insertCartridge(const std::string &path)

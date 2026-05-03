@@ -32,7 +32,7 @@ namespace R2NES::Core
             {
                 // O NES precisa de um timing preciso.
                 // Um frame de NES dura aproximadamente 1/60 segundos.
-                // residualTime += deltaTime;
+                residualTime += deltaTime;
                 while (residualTime >= 1.0f / 60.0f)
                 {
                     update();
@@ -55,6 +55,10 @@ namespace R2NES::Core
             std::cout << "Engine: Loading ROM -> " << romPath << std::endl;
             nes->insertCartridge(romPath);
             nes->reset();
+
+            // Gera o disassembly apenas uma vez no carregamento
+            cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
+            
             window->clearSelectedPath();
         }
     }
@@ -73,13 +77,11 @@ namespace R2NES::Core
 
     void Engine::render()
     {
-        // Mock de disassembly por enquanto - no futuro pegaremos do CPU
-        std::map<uint16_t, std::string> mockDisasm;
-        mockDisasm[0x8000] = "$8000: LDA #$10";
-        mockDisasm[0x8002] = "$8002: STA $2000";
+        // Usamos o disassembly já armazenado e o PC atual da CPU
+        uint16_t currentPC = nes->getCpu().pc;
 
         // Pega o buffer de pixels da PPU e manda para a Window
-        window->render(nes->getPpu().getFrameBuffer(), mockDisasm);
+        window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly);
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
         if (window->isTileViewerOpen() && nes->isCartridgeLoaded())

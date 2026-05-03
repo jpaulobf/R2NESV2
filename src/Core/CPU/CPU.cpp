@@ -1317,4 +1317,96 @@ namespace R2NES::Core
 
         return 0;
     }
+
+    std::map<uint16_t, std::string> CPU::disassemble(uint16_t nStart, uint16_t nStop)
+    {
+        uint32_t addr = nStart;
+        uint8_t value = 0x00, lo = 0x00, hi = 0x00;
+        std::map<uint16_t, std::string> mapLines;
+        uint16_t line_addr = 0;
+
+        // Helper para converter números em Hexadecimal formatado
+        auto hex = [](uint32_t n, uint8_t d) {
+            std::string s(d, '0');
+            for (int i = d - 1; i >= 0; i--, n >>= 4)
+                s[i] = "0123456789ABCDEF"[n & 0xF];
+            return s;
+        };
+
+        while (addr <= (uint32_t)nStop)
+        {
+            line_addr = (uint16_t)addr;
+            std::string sInst = "$" + hex(line_addr, 4) + ": ";
+            uint8_t opcode = bus->cpuRead(addr); addr++;
+            sInst += lookup[opcode].name + " ";
+
+            if (lookup[opcode].addrmode == &CPU::IMP)
+            {
+                sInst += " {IMP}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::IMM)
+            {
+                value = bus->cpuRead(addr); addr++;
+                sInst += "#$" + hex(value, 2) + " {IMM}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::ZP0)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex(lo, 2) + " {ZP0}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::ZPX)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex(lo, 2) + ", X {ZPX}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::ZPY)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex(lo, 2) + ", Y {ZPY}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::IZX)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                sInst += "($" + hex(lo, 2) + ", X) {IZX}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::IZY)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                sInst += "($" + hex(lo, 2) + "), Y {IZY}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::ABS)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                hi = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + " {ABS}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::ABX)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                hi = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", X {ABX}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::ABY)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                hi = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", Y {ABY}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::IND)
+            {
+                lo = bus->cpuRead(addr); addr++;
+                hi = bus->cpuRead(addr); addr++;
+                sInst += "($" + hex((uint16_t)(hi << 8) | lo, 4) + ") {IND}";
+            }
+            else if (lookup[opcode].addrmode == &CPU::REL)
+            {
+                value = bus->cpuRead(addr); addr++;
+                sInst += "$" + hex(value, 2) + " [$" + hex(addr + (int8_t)value, 4) + "] {REL}";
+            }
+
+            mapLines[line_addr] = sInst;
+        }
+
+        return mapLines;
+    }
 }

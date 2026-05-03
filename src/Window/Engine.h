@@ -3,6 +3,8 @@
 #include "Window.h"
 #include "Core/NESBoard.h"
 #include <memory>
+#include <map>
+#include <string>
 
 namespace R2NES::Core
 {
@@ -22,6 +24,9 @@ namespace R2NES::Core
 
         std::unique_ptr<Window> window;
         std::unique_ptr<NesBoard> nes;
+
+        // Cache para armazenar o código traduzido da ROM
+        std::map<uint16_t, std::string> cachedDisassembly;
 
         bool isRunning = true;
 
