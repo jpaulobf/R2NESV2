@@ -319,9 +319,16 @@ namespace R2NES::Core
 
             // Agora a janela ImGui preenche toda a janela SDL secundária
             ImGui::SetNextWindowPos(ImVec2(0, 0));
-            ImGui::SetNextWindowSize(ImVec2(width * scale, 300));
+            ImGui::SetNextWindowSize(ImVec2(512, 300));
 
-            ImGui::Begin("Disassembler", &showDisasm, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+            ImGui::Begin("Disassembler", &showDisasm, 
+                ImGuiWindowFlags_NoTitleBar | 
+                ImGuiWindowFlags_NoResize | 
+                ImGuiWindowFlags_NoMove | 
+                ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+            static uint16_t lastPC = 0;
+            bool pcChanged = (pc != lastPC);
 
             for (auto const &[addr, line] : disassembly)
             {
@@ -329,13 +336,17 @@ namespace R2NES::Core
                 if (addr == pc) {
                     ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), ">> %s", line.c_str());
                     
-                    // Faz o scroll automático para seguir o PC
-                    if (ImGui::IsWindowAppearing()) ImGui::SetScrollHereY();
+                    // Faz o scroll automático apenas quando o PC mudar (emulação rodando)
+                    if (pcChanged) {
+                        ImGui::SetScrollHereY(0.5f);
+                    }
                 }
                 else {
                     ImGui::Text("   %s", line.c_str());
                 }
             }
+
+            lastPC = pc;
             ImGui::End();
 
             // Renderiza no renderer do Disassembler
