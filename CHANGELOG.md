@@ -31,6 +31,8 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação inicial da lógica de `clock()` na PPU com suporte a flag de VBlank e contagem de scanlines/ciclos.
 - Integração da biblioteca Dear ImGui para criação de interfaces de debug.
 - Implementação do Disassembler em uma janela nativa independente utilizando ImGui e um pipeline de renderização dedicado.
+- Integração de dados reais da CPU (PC e Disassembly) com a interface visual do Debugger.
+- Sistema de realce (highlight) visual para a instrução atual no Disassembler.
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
