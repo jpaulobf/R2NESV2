@@ -308,7 +308,7 @@ namespace R2NES::Core
         SDL_RenderPresent(tileRenderer);
     }
 
-    void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string>& disassembly)
+    void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, bool &stepByStep, bool &stepRequested)
     {
         if (showDisasm)
         {
@@ -321,11 +321,19 @@ namespace R2NES::Core
             ImGui::SetNextWindowPos(ImVec2(0, 0));
             ImGui::SetNextWindowSize(ImVec2(512, 300));
 
-            ImGui::Begin("Disassembler", &showDisasm, 
-                ImGuiWindowFlags_NoTitleBar | 
-                ImGuiWindowFlags_NoResize | 
-                ImGuiWindowFlags_NoMove | 
-                ImGuiWindowFlags_AlwaysVerticalScrollbar);
+            ImGui::Begin("Disassembler", &showDisasm,
+                         ImGuiWindowFlags_NoTitleBar |
+                             ImGuiWindowFlags_NoResize |
+                             ImGuiWindowFlags_NoMove |
+                             ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+            // Controles de depuração
+            ImGui::Checkbox("Step-by-Step", &stepByStep);
+            ImGui::SameLine();
+            if (ImGui::Button("Next Instruction"))
+                stepRequested = true;
+
+            ImGui::Separator();
 
             static uint16_t lastPC = 0;
             bool pcChanged = (pc != lastPC);
@@ -333,15 +341,18 @@ namespace R2NES::Core
             for (auto const &[addr, line] : disassembly)
             {
                 // Se o endereço da linha for o PC atual, desenhamos em uma cor diferente (ex: Ciano)
-                if (addr == pc) {
+                if (addr == pc)
+                {
                     ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), ">> %s", line.c_str());
-                    
+
                     // Faz o scroll automático apenas quando o PC mudar (emulação rodando)
-                    if (pcChanged) {
+                    if (pcChanged)
+                    {
                         ImGui::SetScrollHereY(0.5f);
                     }
                 }
-                else {
+                else
+                {
                     ImGui::Text("   %s", line.c_str());
                 }
             }

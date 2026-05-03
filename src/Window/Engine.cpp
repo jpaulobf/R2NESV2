@@ -30,13 +30,18 @@ namespace R2NES::Core
             // Só processa o timing e a atualização se houver um cartucho carregado no NesBoard
             if (nes->isCartridgeLoaded())
             {
-                // O NES precisa de um timing preciso.
-                // Um frame de NES dura aproximadamente 1/60 segundos.
-                residualTime += deltaTime;
-                while (residualTime >= 1.0f / 60.0f)
+                if (stepByStep)
                 {
                     update();
-                    residualTime -= 1.0f / 60.0f;
+                }
+                else
+                {
+                    residualTime += deltaTime;
+                    while (residualTime >= 1.0f / 60.0f)
+                    {
+                        update();
+                        residualTime -= 1.0f / 60.0f;
+                    }
                 }
             }
 
@@ -58,21 +63,33 @@ namespace R2NES::Core
 
             // Gera o disassembly apenas uma vez no carregamento
             cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
-            
+
             window->clearSelectedPath();
         }
     }
 
     void Engine::update()
     {
-        // Um frame de NES consome aproximadamente 29780 ciclos de CPU.
-        // O ideal é rodar o NesBoard até que um frame completo seja gerado.
-        // Se o seu NesBoard tiver um método que rode até o próximo VBlank, use-o aqui.
-        while (!nes->isFrameComplete())
+        if (stepByStep)
         {
-            nes->step();
+            if (stepRequested)
+            {
+                nes->step();
+                while (!nes->getCpu().complete())
+                {
+                    nes->step();
+                }
+                stepRequested = false;
+            }
         }
-        nes->clearFrameComplete();
+        else
+        {
+            while (!nes->isFrameComplete())
+            {
+                nes->step();
+            }
+            nes->clearFrameComplete();
+        }
     }
 
     void Engine::render()
@@ -81,7 +98,7 @@ namespace R2NES::Core
         uint16_t currentPC = nes->getCpu().pc;
 
         // Pega o buffer de pixels da PPU e manda para a Window
-        window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly);
+        window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested);
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
         if (window->isTileViewerOpen() && nes->isCartridgeLoaded())

@@ -28,6 +28,9 @@ namespace R2NES::Core
         // Cache para armazenar o código traduzido da ROM
         std::map<uint16_t, std::string> cachedDisassembly;
 
+        bool stepByStep = false;
+        bool stepRequested = false;
+
         bool isRunning = true;
 
         // Variáveis de controle de tempo
