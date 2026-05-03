@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <string>
 #include <cstdint>
+#include <map>
 
 namespace R2NES::Core
 {
@@ -16,7 +17,7 @@ namespace R2NES::Core
         void pollEvents();
 
         // Atualiza a textura com os pixels da PPU e desenha na tela
-        void render(const uint32_t *pixels);
+        void render(const uint32_t *pixels, const std::map<uint16_t, std::string>& disassembly = {});
 
         // Atualiza a janela do Tile Viewer se ela estiver aberta
         void updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1);
@@ -47,11 +48,12 @@ namespace R2NES::Core
         SDL_Texture *tileTexture[2] = {nullptr, nullptr};
         bool tileViewerOpen = false;
 
-        // Recursos para a janela do Disassembler
+        // Recursos para a janela do Disassembler (Janela nativa + ImGui)
         SDL_Window *disasmWindow = nullptr;
         SDL_Renderer *disasmRenderer = nullptr;
         bool disasmOpen = false;
 
+        bool showDisasm = false;
         bool closed = false;
         int width, height, scale;
     };

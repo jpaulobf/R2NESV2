@@ -1,6 +1,7 @@
 #include "Window/Engine.h"
 #include <SDL.h>
 #include <iostream>
+#include <map>
 
 namespace R2NES::Core
 {
@@ -72,8 +73,13 @@ namespace R2NES::Core
 
     void Engine::render()
     {
+        // Mock de disassembly por enquanto - no futuro pegaremos do CPU
+        std::map<uint16_t, std::string> mockDisasm;
+        mockDisasm[0x8000] = "$8000: LDA #$10";
+        mockDisasm[0x8002] = "$8002: STA $2000";
+
         // Pega o buffer de pixels da PPU e manda para a Window
-        window->render(nes->getPpu().getFrameBuffer());
+        window->render(nes->getPpu().getFrameBuffer(), mockDisasm);
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
         if (window->isTileViewerOpen() && nes->isCartridgeLoaded())

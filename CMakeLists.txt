@@ -36,16 +36,36 @@ FetchContent_Declare(
   GIT_TAG        release-2.30.3 # Versão estável do SDL2
   GIT_SHALLOW    TRUE
 )
+FetchContent_Declare(
+  imgui
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_TAG        v1.90.6
+)
 
 # Baixa e torna o SDL2 disponível para o projeto
 FetchContent_MakeAvailable(SDL2)
+FetchContent_MakeAvailable(imgui)
+
+# Adiciona os arquivos de backend do ImGui (SDL2 + SDL_Renderer2)
+set(IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+)
 
 # Cria o executável
-add_executable(R2NESV2 ${SOURCES})
+add_executable(R2NESV2 ${SOURCES} ${IMGUI_SOURCES})
 
 # Inclui a pasta src para permitir #include "Core/Bus.h"
 # Usar target_include_directories é a prática recomendada em C++ moderno
-target_include_directories(R2NESV2 PRIVATE src)
+target_include_directories(R2NESV2 PRIVATE 
+    src 
+    ${imgui_SOURCE_DIR} 
+    ${imgui_SOURCE_DIR}/backends
+)
 
 # Linka o SDL2 ao executável e inclui seus diretórios de cabeçalho
 target_link_libraries(R2NESV2 PRIVATE SDL2::SDL2main SDL2::SDL2-static)

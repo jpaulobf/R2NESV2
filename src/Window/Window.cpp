@@ -1,6 +1,9 @@
 #include "Window.h"
 #include <iostream>
 #include <SDL_syswm.h>
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -54,6 +57,10 @@ namespace R2NES::Core
 
         // Habilita o SDL para capturar mensagens nativas do Windows (necessário para o Menu)
         SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
+
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
     }
 
     Window::~Window()
@@ -67,9 +74,14 @@ namespace R2NES::Core
         }
         if (disasmWindow)
         {
+            ImGui_ImplSDLRenderer2_Shutdown();
+            ImGui_ImplSDL2_Shutdown();
             SDL_DestroyRenderer(disasmRenderer);
             SDL_DestroyWindow(disasmWindow);
         }
+
+        ImGui::DestroyContext();
+
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -81,6 +93,10 @@ namespace R2NES::Core
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
+            // Só processa eventos do ImGui se a janela de debug estiver ativa
+            if (showDisasm && disasmWindow)
+                ImGui_ImplSDL2_ProcessEvent(&e);
+
             if (e.type == SDL_QUIT)
                 closed = true;
 
@@ -127,7 +143,7 @@ namespace R2NES::Core
                     else if (disasmWindow && e.window.windowID == SDL_GetWindowID(disasmWindow))
                     {
                         SDL_HideWindow(disasmWindow);
-                        disasmOpen = false;
+                        showDisasm = false;
                     }
                 }
                 else if (e.window.event == SDL_WINDOWEVENT_MOVED)
@@ -141,6 +157,9 @@ namespace R2NES::Core
 
                         if (tileWindow)
                             SDL_SetWindowPosition(tileWindow, x + w_main, y);
+
+                        if (disasmWindow)
+                            SDL_SetWindowPosition(disasmWindow, x + w_main, y + 300);
                     }
                 }
             }
@@ -204,31 +223,30 @@ namespace R2NES::Core
         if (disasmWindow)
         {
             SDL_ShowWindow(disasmWindow);
-            disasmOpen = true;
+            showDisasm = true;
             return;
         }
 
-        int x, y, w_main, h_main;
+        // Pega a posição da janela principal para abrir o disasm embaixo dela
+        int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
-        SDL_GetWindowSize(window, &h_main, &h_main); // Usamos o tamanho atual escalado
+        SDL_GetWindowSize(window, &w, &h);
 
-        // Criamos a janela do Disassembler logo abaixo da principal
-        // Largura igual à da principal, altura arbitrária de 300px
         disasmWindow = SDL_CreateWindow(
             "R2NES v2 - Disassembler",
-            x + (width * scale), y,
-            500, 300,
+            x + w, y + 300, // Abre logo abaixo da principal
+            512, 300,
             SDL_WINDOW_SHOWN);
 
         if (disasmWindow)
         {
             disasmRenderer = SDL_CreateRenderer(disasmWindow, -1, SDL_RENDERER_ACCELERATED);
 
-            SDL_SetRenderDrawColor(disasmRenderer, 0x1E, 0x1E, 0x1E, 0xFF); // Fundo cinza escuro
-            SDL_RenderClear(disasmRenderer);
-            SDL_RenderPresent(disasmRenderer);
+            // Inicializa o ImGui especificamente para o Renderer desta janela
+            ImGui_ImplSDL2_InitForSDLRenderer(disasmWindow, disasmRenderer);
+            ImGui_ImplSDLRenderer2_Init(disasmRenderer);
 
-            disasmOpen = true;
+            showDisasm = true;
         }
     }
 
@@ -290,8 +308,35 @@ namespace R2NES::Core
         SDL_RenderPresent(tileRenderer);
     }
 
-    void Window::render(const uint32_t *pixels)
+    void Window::render(const uint32_t *pixels, const std::map<uint16_t, std::string> &disassembly)
     {
+        if (showDisasm)
+        {
+            // Inicializa o frame apenas para a janela secundária
+            ImGui_ImplSDLRenderer2_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+
+            // Agora a janela ImGui preenche toda a janela SDL secundária
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
+            ImGui::SetNextWindowSize(ImVec2(width * scale, 300));
+
+            ImGui::Begin("Disassembler", &showDisasm, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+
+            for (auto const &[addr, line] : disassembly)
+            {
+                ImGui::Text("%s", line.c_str());
+            }
+            ImGui::End();
+
+            // Renderiza no renderer do Disassembler
+            SDL_SetRenderDrawColor(disasmRenderer, 0, 0, 0, 255);
+            SDL_RenderClear(disasmRenderer);
+            ImGui::Render();
+            ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+            SDL_RenderPresent(disasmRenderer);
+        }
+
         SDL_UpdateTexture(texture, nullptr, pixels, width * sizeof(uint32_t));
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, nullptr, nullptr);
