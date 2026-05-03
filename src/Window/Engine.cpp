@@ -95,10 +95,12 @@ namespace R2NES::Core
     void Engine::render()
     {
         // Usamos o disassembly já armazenado e o PC atual da CPU
-        uint16_t currentPC = nes->getCpu().pc;
+        auto& cpu = nes->getCpu();
+        uint16_t currentPC = cpu.pc;
 
         // Pega o buffer de pixels da PPU e manda para a Window
-        window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested);
+        window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested,
+                       cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status);
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
         if (window->isTileViewerOpen() && nes->isCartridgeLoaded())

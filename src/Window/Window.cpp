@@ -308,7 +308,8 @@ namespace R2NES::Core
         SDL_RenderPresent(tileRenderer);
     }
 
-    void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, bool &stepByStep, bool &stepRequested)
+    void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, 
+                        bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
     {
         if (showDisasm)
         {
@@ -324,8 +325,7 @@ namespace R2NES::Core
             ImGui::Begin("Disassembler", &showDisasm,
                          ImGuiWindowFlags_NoTitleBar |
                              ImGuiWindowFlags_NoResize |
-                             ImGuiWindowFlags_NoMove |
-                             ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                             ImGuiWindowFlags_NoMove);
 
             // Controles de depuração
             ImGui::Checkbox("Step-by-Step", &stepByStep);
@@ -335,21 +335,23 @@ namespace R2NES::Core
 
             ImGui::Separator();
 
+            // Divide a janela: Coluna 0 para Código, Coluna 1 para Estado da CPU
+            ImGui::Columns(2, nullptr, false);
+            ImGui::SetColumnWidth(0, 360.0f);
+
+            // --- Lado Esquerdo: Disassembly (com scroll independente) ---
+            ImGui::BeginChild("CodeScroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
             static uint16_t lastPC = 0;
             bool pcChanged = (pc != lastPC);
 
             for (auto const &[addr, line] : disassembly)
             {
-                // Se o endereço da linha for o PC atual, desenhamos em uma cor diferente (ex: Ciano)
                 if (addr == pc)
                 {
                     ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), ">> %s", line.c_str());
 
-                    // Faz o scroll automático apenas quando o PC mudar (emulação rodando)
-                    if (pcChanged)
-                    {
-                        ImGui::SetScrollHereY(0.5f);
-                    }
+                    if (pcChanged) ImGui::SetScrollHereY(0.5f);
                 }
                 else
                 {
@@ -358,6 +360,47 @@ namespace R2NES::Core
             }
 
             lastPC = pc;
+            ImGui::EndChild();
+
+            ImGui::NextColumn();
+
+            // --- Lado Direito: Registradores e Flags ---
+            ImGui::Text("Registers");
+            ImGui::Separator();
+            ImGui::Text("A:  $%02X", a);
+            ImGui::Text("X:  $%02X", x);
+            ImGui::Text("Y:  $%02X", y);
+            ImGui::Text("PC: $%04X", pc);
+            ImGui::Text("SP: $%02X", stkp);
+
+            ImGui::Spacing();
+            ImGui::Text("Flags (NVUBDIZC)");
+            ImGui::Separator();
+
+            // Helper para mostrar flags coloridas (Verde se 1, Cinza se 0)
+            auto showFlag = [&](const char* label, uint8_t bit) {
+                bool set = status & bit;
+                ImGui::TextColored(set ? ImVec4(0, 1, 0, 1) : ImVec4(0.5f, 0.5f, 0.5f, 1), "%s", label);
+                ImGui::SameLine();
+            };
+
+            showFlag("N", 0x80);
+            showFlag("V", 0x40);
+            showFlag("U", 0x20);
+            showFlag("B", 0x10);
+            ImGui::NewLine(); // Quebra linha para não ficar muito largo
+            showFlag("D", 0x08);
+            showFlag("I", 0x04);
+            showFlag("Z", 0x02);
+            showFlag("C", 0x01);
+            
+            ImGui::NewLine();
+            ImGui::Separator();
+            
+            // Status bruto em Hex pra conferência rápida
+            ImGui::Text("P (HEX): $%02X", status);
+
+            ImGui::Columns(1); // Volta para coluna única
             ImGui::End();
 
             // Renderiza no renderer do Disassembler

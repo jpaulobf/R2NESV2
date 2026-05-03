@@ -17,7 +17,8 @@ namespace R2NES::Core
         void pollEvents();
 
         // Atualiza a textura com os pixels da PPU e desenha na tela
-        void render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, bool &stepByStep, bool &stepRequested);
+        void render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, 
+                    bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status);
 
         // Atualiza a janela do Tile Viewer se ela estiver aberta
         void updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1);
