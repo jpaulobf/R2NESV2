@@ -41,6 +41,15 @@ namespace R2NES::Core
         addr &= 0x0007;
         switch (addr)
         {
+        case 0x0002: // PPUSTATUS ($2002)
+        {
+            // Retorna o status (vblank, sprite 0 hit, etc) e limpa a flag de vblank
+            uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
+            ppuStatus &= ~0x80; // Limpa bit de VBlank após leitura
+            addressLatch = 0;   // Reseta o latch de escrita dupla ($2005/$2006)
+            return data;
+        }
+
         case 0x0007: // PPUDATA ($2007)
         {
             // Leituras do PPUDATA são atrasadas por um buffer, exceto para Paletas
@@ -194,14 +203,15 @@ namespace R2NES::Core
         {
             cycle = 0;
             scanline++;
-            if (scanline == 241)
+            if (scanline == 241) 
             {
                 // Início do Vertical Blank
                 ppuStatus |= 0x80; // Seta flag de VBlank
                 frameComplete = true;
                 
-                // Se o bit 7 do PPUCTRL estiver setado, a PPU deve disparar um NMI na CPU
-                // Você precisará implementar uma forma de avisar a CPU/Bus aqui.
+                // Se NMIs estiverem habilitados no PPUCTRL (bit 7), sinaliza para a CPU
+                if (ppuCtrl & 0x80)
+                    nmi = true;
             }
             else if (scanline >= 261)
             {

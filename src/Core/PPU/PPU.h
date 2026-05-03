@@ -62,5 +62,8 @@ namespace R2NES::Core
         int16_t cycle = 0;
 
         bool frameComplete = false;
+    
+    public:
+        bool nmi = false;
     };
 }

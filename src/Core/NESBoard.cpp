@@ -55,6 +55,13 @@ namespace R2NES::Core
         ppu.clock();
         ppu.clock();
 
+        // Verifica se a PPU disparou um sinal de NMI (VBlank)
+        if (ppu.nmi)
+        {
+            ppu.nmi = false;
+            cpu.nmi();
+        }
+
         // Clocka a CPU uma vez. A CPU gerencia seus próprios ciclos internos por instrução.
         cpu.clock();
         systemClockCounter++;
