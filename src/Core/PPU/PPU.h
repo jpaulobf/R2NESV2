@@ -47,11 +47,15 @@ namespace R2NES::Core
         // 0x3F10-0x3F1F: Paletas de sprites
         std::array<uint8_t, 32> paletteTable;
 
+        // Memória OAM (Object Attribute Memory) - 64 sprites * 4 bytes
+        std::array<uint8_t, 256> oamMemory;
+
         // Buffer de saída de imagem (RGBA8888)
         std::array<uint32_t, 256 * 240> frameBuffer;
 
         // Registradores e buffers internos
         uint8_t ppuCtrl = 0x00;
+        uint8_t oamAddr = 0x00;
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;

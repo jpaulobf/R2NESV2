@@ -44,7 +44,7 @@ namespace R2NES::Core
             std::cout << "No cartridge inserted." << std::endl;
         }
 
-        // ... (resetar PPU, APU, etc.)
+        ppu.reset();
     }
 
     void NesBoard::step()
@@ -55,8 +55,10 @@ namespace R2NES::Core
         ppu.clock();
         ppu.clock();
 
-        // Verifica se a PPU disparou um sinal de NMI (VBlank)
-        if (ppu.nmi)
+        // Verifica se a PPU disparou um sinal de NMI (VBlank).
+        // A interrupção só deve ser processada quando a CPU terminar a instrução atual
+        // para não corromper o estado de execução (Address Latch, registradores, etc).
+        if (ppu.nmi && cpu.complete())
         {
             ppu.nmi = false;
             cpu.nmi();

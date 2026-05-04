@@ -34,6 +34,17 @@ namespace R2NES::Core {
         else if (addr >= 0x2000 && addr <= 0x3FFF) {
             if (ppu) ppu->cpuWrite(addr, data);
         }
+        else if (addr == 0x4014) {
+            // OAM DMA: Inicia a transferência de 256 bytes para a PPU
+            uint16_t page = static_cast<uint16_t>(data) << 8;
+            for (uint16_t i = 0; i < 256; i++) {
+                uint8_t value = cpuRead(page | i);
+                if (ppu) ppu->cpuWrite(0x2004, value);
+            }
+
+            // Nota: Em uma implementação de "ciclo exato", a CPU deveria ser
+            // suspensa por aproximadamente 513 ciclos aqui.
+        }
     }
 
     uint8_t Bus::cpuRead(uint16_t addr, bool readOnly) {

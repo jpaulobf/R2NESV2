@@ -37,6 +37,10 @@ namespace R2NES::Core
                 else
                 {
                     residualTime += deltaTime;
+                    
+                    // Evita a "espiral da morte" se o emulador estiver muito lento
+                    if (residualTime > 0.1f) residualTime = 0.1f;
+
                     while (residualTime >= 1.0f / 60.0f)
                     {
                         update();

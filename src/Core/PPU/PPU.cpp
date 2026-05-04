@@ -19,6 +19,7 @@ namespace R2NES::Core
     {
         std::fill(paletteTable.begin(), paletteTable.end(), 0x00);
         std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000); // Inicializa com preto opaco
+        std::fill(oamMemory.begin(), oamMemory.end(), 0x00);
 
         // Debug: Inicializa paletas com valores padrão para o Viewer funcionar sem ROM carregar paletas
         paletteTable[0] = 0x0F; // Background universal (Preto)
@@ -50,6 +51,10 @@ namespace R2NES::Core
             return data;
         }
 
+        case 0x0004: // OAMDATA ($2004)
+            // Leitura da memória OAM baseada no oamAddr
+            return oamMemory[oamAddr];
+
         case 0x0007: // PPUDATA ($2007)
         {
             // Leituras do PPUDATA são atrasadas por um buffer, exceto para Paletas
@@ -59,7 +64,7 @@ namespace R2NES::Core
             // Se estivermos lendo paletas, o dado é retornado imediatamente
             if (ppuAddress >= 0x3F00) data = dataBuffer;
 
-            ppuAddress += 1; // TODO: Incrementar por 32 se PPUCTRL bit 2 estiver setado
+            ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
             return data;
         }
         }
@@ -72,7 +77,21 @@ namespace R2NES::Core
         switch (addr)
         {
         case 0x0000: // PPUCTRL ($2000)
+        {
+            uint8_t oldNmiEnabled = ppuCtrl & 0x80;
             ppuCtrl = data;
+            // Se habilitar NMI durante o VBlank, dispara imediatamente
+            if (!oldNmiEnabled && (ppuCtrl & 0x80) && (ppuStatus & 0x80)) nmi = true;
+            break;
+        }
+
+        case 0x0003: // OAMADDR ($2003)
+            oamAddr = data;
+            break;
+
+        case 0x0004: // OAMDATA ($2004)
+            oamMemory[oamAddr] = data;
+            oamAddr++;
             break;
 
         case 0x0006: // PPUADDR ($2006)
@@ -197,11 +216,12 @@ namespace R2NES::Core
 
     void PPU::clock() 
     {
-        // Renderização de Background (apenas se estivermos nos ciclos visíveis)
-        if (scanline >= 0 && scanline < 240)
+        // Só processamos renderização nos ciclos visíveis (0-255) e scanlines visíveis (0-239)
+        if (scanline >= 0 && scanline < 240 && cycle >= 0 && cycle < 256)
         {
-            if (cycle >= 0 && cycle < 256)
-            {
+                uint8_t bgPixelColor = 0;
+                uint8_t bgPaletteIndex = 0;
+
                 // 1. Determina a posição do tile e do pixel dentro do tile
                 uint16_t tileX = cycle / 8;
                 uint16_t tileY = scanline / 8;
@@ -218,22 +238,66 @@ namespace R2NES::Core
                 uint8_t lsb = ppuRead(ptBase + tileID * 16 + fineY);
                 uint8_t msb = ppuRead(ptBase + tileID * 16 + fineY + 8);
 
-                // Combinamos os bits para ter o índice da cor (0-3)
-                uint8_t pixelColorIndex = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
+                bgPixelColor = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
 
                 // 4. Busca a paleta na Attribute Table
                 uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
                 uint8_t attrByte = ppuRead(attrAddr);
                 uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
-                uint8_t paletteIndex = (attrByte >> paletteShift) & 0x03;
+                bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
 
-                // 5. Resolve a cor final usando a Palette RAM
-                uint16_t paletteAddr = 0x3F00 + (paletteIndex * 4) + pixelColorIndex;
-                if (pixelColorIndex == 0) paletteAddr = 0x3F00; // Transparência/Cor de fundo
+                // Resolve a cor do background
+                uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
+                if (bgPixelColor == 0) bgPaletteAddr = 0x3F00;
+                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(bgPaletteAddr) & 0x3F];
 
-                uint8_t colorIndex = ppuRead(paletteAddr) & 0x3F;
-                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[colorIndex];
-            }
+                // --- Renderização de Sprites (Otimizada para este ciclo) ---
+                bool spritePixelDrawn = false;
+                for (int i = 0; i < 64; i++)
+                {
+                    uint8_t spriteY = oamMemory[i * 4];
+                    int diffY = scanline - (spriteY + 1);
+                    int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+
+                    if (diffY >= 0 && diffY < spriteHeight)
+                    {
+                        uint8_t spriteX = oamMemory[i * 4 + 3];
+                        int diffX = cycle - spriteX;
+
+                        // Se o ciclo atual da PPU está dentro da largura horizontal do sprite
+                        if (diffX >= 0 && diffX < 8)
+                        {
+                            uint8_t spriteID = oamMemory[i * 4 + 1];
+                            uint8_t spriteAttrib = oamMemory[i * 4 + 2];
+                            uint16_t ptBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                            
+                            uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
+                            uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
+
+                            uint8_t lsb = ppuRead(ptBase + spriteID * 16 + row);
+                            uint8_t msb = ppuRead(ptBase + spriteID * 16 + row + 8);
+                            uint8_t spritePixelColor = ((lsb >> col) & 0x01) | (((msb >> col) & 0x01) << 1);
+
+                            if (spritePixelColor != 0) // Pixel não é transparente
+                            {
+                                // Sprite 0 Hit detection
+                                if (i == 0 && bgPixelColor != 0) ppuStatus |= 0x40;
+
+                                bool priority = (spriteAttrib & 0x20) == 0;
+                                if (priority || bgPixelColor == 0)
+                                {
+                                    uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
+                                    uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
+                                    frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
+                                    spritePixelDrawn = true;
+                                }
+                                
+                                // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade (índice maior)
+                                break; 
+                            }
+                        }
+                    }
+                }
         }
 
         cycle++;
@@ -254,7 +318,7 @@ namespace R2NES::Core
             else if (scanline >= 261)
             {
                 scanline = -1;
-                ppuStatus &= ~0x80; // Limpa flag de VBlank no fim do pre-render
+                ppuStatus &= ~0xE0; // Limpa VBlank (7), Sprite 0 Hit (6) e Sprite Overflow (5)
             }
         }
     }
@@ -262,8 +326,11 @@ namespace R2NES::Core
     void PPU::reset()
     {
         ppuCtrl = 0x00;
-        ppuStatus = 0x00;
+        ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
+        oamAddr = 0x00;
         addressLatch = 0;
         ppuAddress = 0;
+        scanline = 0;
+        cycle = 0;
     }
 }
