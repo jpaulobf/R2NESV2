@@ -197,7 +197,45 @@ namespace R2NES::Core
 
     void PPU::clock() 
     {
-        // Lógica de temporização simplificada para permitir que o jogo rode
+        // Renderização de Background (apenas se estivermos nos ciclos visíveis)
+        if (scanline >= 0 && scanline < 240)
+        {
+            if (cycle >= 0 && cycle < 256)
+            {
+                // 1. Determina a posição do tile e do pixel dentro do tile
+                uint16_t tileX = cycle / 8;
+                uint16_t tileY = scanline / 8;
+                uint16_t fineX = cycle % 8;
+                uint16_t fineY = scanline % 8;
+
+                // 2. Busca o ID do Tile na Name Table atual (definida pelo PPUCTRL)
+                // Nota: Ignorando scroll por enquanto para simplificar
+                uint16_t ntBase = 0x2000 + (ppuCtrl & 0x03) * 0x400;
+                uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
+
+                // 3. Busca os bits do pixel na Pattern Table
+                uint16_t ptBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
+                uint8_t lsb = ppuRead(ptBase + tileID * 16 + fineY);
+                uint8_t msb = ppuRead(ptBase + tileID * 16 + fineY + 8);
+
+                // Combinamos os bits para ter o índice da cor (0-3)
+                uint8_t pixelColorIndex = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
+
+                // 4. Busca a paleta na Attribute Table
+                uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
+                uint8_t attrByte = ppuRead(attrAddr);
+                uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
+                uint8_t paletteIndex = (attrByte >> paletteShift) & 0x03;
+
+                // 5. Resolve a cor final usando a Palette RAM
+                uint16_t paletteAddr = 0x3F00 + (paletteIndex * 4) + pixelColorIndex;
+                if (pixelColorIndex == 0) paletteAddr = 0x3F00; // Transparência/Cor de fundo
+
+                uint8_t colorIndex = ppuRead(paletteAddr) & 0x3F;
+                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[colorIndex];
+            }
+        }
+
         cycle++;
         if (cycle >= 341)
         {
