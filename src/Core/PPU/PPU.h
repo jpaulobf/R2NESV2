@@ -61,6 +61,17 @@ namespace R2NES::Core
         uint8_t dataBuffer = 0x00;
         uint16_t ppuAddress = 0x0000;
 
+        // Registradores de Scroll (PPUSCROLL - $2005)
+        // O NES usa um sistema de scroll baseado em:
+        // - Fine X (3 bits): pixel fino horizontal (0-7)
+        // - Coarse X (5 bits): coluna de tile (0-31)
+        // - Fine Y (3 bits): pixel fino vertical (0-7)
+        // - Coarse Y (5 bits): linha de tile (0-29)
+        // - Nametable selection (2 bits): qual das 4 nametables usar no PPUCTRL
+        uint8_t scrollX = 0x00;  // Posição X do scroll (0-255)
+        uint8_t scrollY = 0x00;  // Posição Y do scroll (0-239)
+        uint8_t scrollLatch = 0x00;  // Latch para $2005: 0 = próximo é X, 1 = próximo é Y
+
         // Estado da renderização
         int16_t scanline = 0;
         int16_t cycle = 0;

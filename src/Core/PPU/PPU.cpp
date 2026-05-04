@@ -94,6 +94,24 @@ namespace R2NES::Core
             oamAddr++;
             break;
 
+        case 0x0005: // PPUSCROLL ($2005)
+        {
+            // Escrita dupla: primeiro X scroll, depois Y scroll
+            if (scrollLatch == 0)
+            {
+                // Primeira escrita: X scroll
+                scrollX = data;
+                scrollLatch = 1;
+            }
+            else
+            {
+                // Segunda escrita: Y scroll
+                scrollY = data;
+                scrollLatch = 0;
+            }
+            break;
+        }
+
         case 0x0006: // PPUADDR ($2006)
             // Escrita dupla: primeiro MSB, depois LSB
             if (addressLatch == 0)
@@ -222,25 +240,36 @@ namespace R2NES::Core
                 uint8_t bgPixelColor = 0;
                 uint8_t bgPaletteIndex = 0;
 
-                // 1. Determina a posição do tile e do pixel dentro do tile
-                uint16_t tileX = cycle / 8;
-                uint16_t tileY = scanline / 8;
-                uint16_t fineX = cycle % 8;
-                uint16_t fineY = scanline % 8;
+                // 1. Aplica o scroll e calcula a posição no espaço de renderização virtual (256x240 * N nametables)
+                uint16_t renderX = (cycle + scrollX) % 512;  // Permite wrapping horizontal
+                uint16_t renderY = (scanline + scrollY) % 480; // Permite wrapping vertical (240 * 2)
 
-                // 2. Busca o ID do Tile na Name Table atual (definida pelo PPUCTRL)
-                // Nota: Ignorando scroll por enquanto para simplificar
-                uint16_t ntBase = 0x2000 + (ppuCtrl & 0x03) * 0x400;
+                // 2. Determina a posição do tile e do pixel dentro do tile
+                uint16_t tileX = (renderX / 8) % 32;     // Coluna de tile (0-31, com wrapping)
+                uint16_t tileY = (renderY / 8) % 30;     // Linha de tile (0-29, com wrapping em 240)
+                uint16_t fineX = renderX % 8;            // Pixel fino horizontal (0-7)
+                uint16_t fineY = renderY % 8;            // Pixel fino vertical (0-7)
+
+                // 3. Determina qual nametable estamos usando
+                // O PPUCTRL bits 0-1 definem a nametable base (0-3)
+                // Quando o scroll ultrapassa os limites, passamos para a nametable adjacente
+                uint8_t ntIndex = (ppuCtrl & 0x03);
+                if (renderX >= 256) ntIndex ^= 0x01;  // Alterna nametable horizontal
+                if (renderY >= 240) ntIndex ^= 0x02;  // Alterna nametable vertical
+                
+                uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
+
+                // 4. Busca o ID do Tile na Name Table
                 uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
 
-                // 3. Busca os bits do pixel na Pattern Table
+                // 5. Busca os bits do pixel na Pattern Table
                 uint16_t ptBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
                 uint8_t lsb = ppuRead(ptBase + tileID * 16 + fineY);
                 uint8_t msb = ppuRead(ptBase + tileID * 16 + fineY + 8);
 
                 bgPixelColor = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
 
-                // 4. Busca a paleta na Attribute Table
+                // 6. Busca a paleta na Attribute Table
                 uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
                 uint8_t attrByte = ppuRead(attrAddr);
                 uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
@@ -329,7 +358,10 @@ namespace R2NES::Core
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
         oamAddr = 0x00;
         addressLatch = 0;
+        scrollLatch = 0;
         ppuAddress = 0;
+        scrollX = 0x00;
+        scrollY = 0x00;
         scanline = 0;
         cycle = 0;
     }
