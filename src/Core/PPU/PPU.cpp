@@ -49,8 +49,11 @@ namespace R2NES::Core
         {
             // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
-            ppuStatus &= ~0x80; // Limpa bit de VBlank após leitura
-            ppuStatus &= ~0x40; // Limpa bit de Sprite 0 Hit após leitura
+            
+            // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
+            // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
+            ppuStatus &= ~0x80; 
+
             // NÃO resetar sprite0HitDetectedThisScanline aqui!
             // Esse flag interno previne múltiplos hits no mesmo scanline.
             // Só deve ser resetado no início do novo scanline.
@@ -342,34 +345,29 @@ namespace R2NES::Core
                             // Hardware real: Sprite 0 Hit requer AMBAS condições:
                             // 1. Sprite 0 com pixel opaco
                             // 2. Background com pixel opaco
+                            // 3. Renderização de background E sprites habilitada no PPUMASK
                             bool bgHasPixel = (bgPixelColor != 0);
                             bool cycleInValidRange = (cycle > 0 && cycle <= 256);
+                            bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
+
+                            // O NES também impede o hit nos primeiros 8 pixels se o clipping estiver ativo
+                            if (cycle < 8 && !((ppuMask & 0x02) && (ppuMask & 0x04))) cycleInValidRange = false;
                             
-                            if (i == 0 && bgHasPixel && !sprite0HitDetectedThisScanline && cycleInValidRange)
+                            if (i == 0) {
+                                std::cout << "[Sprite 0]";
+
+                                std::cout << "[Sprite 0] Background pixel color: " << (int)bgPixelColor;
+
+                                if (bgHasPixel) {
+                                    std::cout << "[Sprite 0] Background has pixel";
+                                }
+                            }
+
+                            if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
                             {
                                 ppuStatus |= 0x40;
                                 sprite0HitDetectedThisScanline = true;
                                 sprite0HitFrameCounter++;
-                                
-                                if (sprite0HitFrameCounter <= 100 && sprite0HitFrameCounter % 10 == 0)
-                                {
-                                    std::cout << "[Sprite 0 Hit #" << sprite0HitFrameCounter << "] "
-                                              << "SpriteY: " << (int)spriteY << ", SpriteX: " << (int)spriteX
-                                              << " | Scanline: " << scanline << ", Cycle: " << cycle << std::endl;
-                                }
-                            }
-                            else if (i == 0 && spritePixelColor != 0 && !bgHasPixel && sprite0HitFrameCounter > 80)
-                            {
-                                // Debug: quando estamos perto de travar, mostrar tentativas rejeitadas
-                                static int rejectedCount = 0;
-                                if (rejectedCount < 20)
-                                {
-                                    std::cout << "[Sprite 0 Hit REJECTED #" << (rejectedCount+1) << "] "
-                                              << "SpriteY: " << (int)spriteY << ", SpriteX: " << (int)spriteX
-                                              << " | Scanline: " << scanline << ", Cycle: " << cycle
-                                              << " (BgPixel=0, need opaco)" << std::endl;
-                                    rejectedCount++;
-                                }
                             }
 
                             bool priority = (spriteAttrib & 0x20) == 0;
