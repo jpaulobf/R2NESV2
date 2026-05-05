@@ -78,6 +78,15 @@ namespace R2NES::Core
             nes->reset();
             window->clearResetRequest();
         }
+
+        // Verifica se o usuário clicou em "Unload"
+        if (window->isUnloadRequested())
+        {
+            std::cout << "Engine: Unloading ROM..." << std::endl;
+            nes->unload();
+            cachedDisassembly.clear(); // Limpa o cache do disassembler
+            window->clearUnloadRequest();
+        }
     }
 
     void Engine::update()

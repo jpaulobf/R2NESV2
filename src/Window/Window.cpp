@@ -322,6 +322,19 @@ namespace R2NES::Core
 
     void Window::unload()
     {
+        unloadRequested = true;
+
+        // Fecha as janelas de debug ao descarregar a ROM
+        if (tileWindow)
+        {
+            SDL_HideWindow(tileWindow);
+            tileViewerOpen = false;
+        }
+        if (disasmWindow)
+        {
+            SDL_HideWindow(disasmWindow);
+            showDisasm = false;
+        }
     }
 
     void Window::reset()

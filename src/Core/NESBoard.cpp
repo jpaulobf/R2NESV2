@@ -20,6 +20,13 @@ namespace R2NES::Core
 
     NesBoard::~NesBoard() {}
 
+    void NesBoard::unload()
+    {
+        bus.setCartridge(nullptr);
+        cartridgeLoaded = false;
+        reset(); // Limpa o estado da CPU e PPU (incluindo tela preta)
+    }
+
     void NesBoard::reset()
     {
         cpu.reset();

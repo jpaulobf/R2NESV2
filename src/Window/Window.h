@@ -33,6 +33,9 @@ namespace R2NES::Core
         bool isResetRequested() const { return resetRequested; }
         void clearResetRequest() { resetRequested = false; }
 
+        bool isUnloadRequested() const { return unloadRequested; }
+        void clearUnloadRequest() { unloadRequested = false; }
+
         void clearSelectedPath() { selectedPath = ""; }
 
         bool shouldClose() const { return closed; }
@@ -64,6 +67,7 @@ namespace R2NES::Core
         bool showDisasm = false;
         bool closed = false;
         bool resetRequested = false;
+        bool unloadRequested = false;
         int width, height, scale;
     };
 }

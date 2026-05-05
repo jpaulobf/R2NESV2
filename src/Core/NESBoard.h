@@ -20,6 +20,8 @@ namespace R2NES::Core
 
         void reset();
 
+        void unload();
+
         CPU& getCpu() { return cpu; }
 
         PPU& getPpu() { return ppu; }
