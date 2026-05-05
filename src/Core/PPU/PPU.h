@@ -77,7 +77,6 @@ namespace R2NES::Core
         // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
         // Depois de ser detectado, o bit permanece setado até o pré-render scanline
         bool sprite0HitDetectedThisScanline = false;
-        uint32_t sprite0HitFrameCounter = 0;  // Debug: conta frames com Sprite 0 Hit
         uint32_t lastSprite0Y = 0xFF;
         uint32_t lastSprite0X = 0xFF;
 

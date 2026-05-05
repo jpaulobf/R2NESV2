@@ -284,10 +284,10 @@ namespace R2NES::Core
 
             // 5. Busca os bits do pixel na Pattern Table
             uint16_t ptBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
-            uint8_t lsb = ppuRead(ptBase + tileID * 16 + fineY);
-            uint8_t msb = ppuRead(ptBase + tileID * 16 + fineY + 8);
+            uint8_t bgLsb = ppuRead(ptBase + tileID * 16 + fineY);
+            uint8_t bgMsb = ppuRead(ptBase + tileID * 16 + fineY + 8);
 
-            bgPixelColor = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
+            bgPixelColor = ((bgLsb >> (7 - fineX)) & 0x01) | (((bgMsb >> (7 - fineX)) & 0x01) << 1);
 
             // 6. Busca a paleta na Attribute Table
             uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
@@ -316,11 +316,6 @@ namespace R2NES::Core
                     // Debug: se Sprite 0 mudou de posição, avisa
                     if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
                     {
-                        if (sprite0HitFrameCounter > 0)
-                        {
-                            std::cout << "[Sprite 0 Moved] New position - SpriteY: " << (int)spriteY
-                                        << ", SpriteX: " << (int)spriteX << std::endl;
-                        }
                         lastSprite0Y = spriteY;
                         lastSprite0X = spriteX;
                     }
@@ -335,9 +330,9 @@ namespace R2NES::Core
                         uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
                         uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
 
-                        uint8_t lsb = ppuRead(ptBase + spriteID * 16 + row);
-                        uint8_t msb = ppuRead(ptBase + spriteID * 16 + row + 8);
-                        uint8_t spritePixelColor = ((lsb >> col) & 0x01) | (((msb >> col) & 0x01) << 1);
+                        uint8_t spLsb = ppuRead(ptBase + spriteID * 16 + row);
+                        uint8_t spMsb = ppuRead(ptBase + spriteID * 16 + row + 8);
+                        uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
 
                         if (spritePixelColor != 0) // Pixel não é transparente
                         {
@@ -346,28 +341,18 @@ namespace R2NES::Core
                             // 1. Sprite 0 com pixel opaco
                             // 2. Background com pixel opaco
                             // 3. Renderização de background E sprites habilitada no PPUMASK
+                            // 4. Não pode ocorrer no ciclo 255 (quirk do hardware)
                             bool bgHasPixel = (bgPixelColor != 0);
-                            bool cycleInValidRange = (cycle > 0 && cycle <= 256);
+                            bool cycleInValidRange = (cycle >= 0 && cycle < 255);
                             bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
 
-                            // O NES também impede o hit nos primeiros 8 pixels se o clipping estiver ativo
-                            if (cycle < 8 && !((ppuMask & 0x02) && (ppuMask & 0x04))) cycleInValidRange = false;
-                            
-                            if (i == 0) {
-                                std::cout << "[Sprite 0]";
-
-                                std::cout << "[Sprite 0] Background pixel color: " << (int)bgPixelColor;
-
-                                if (bgHasPixel) {
-                                    std::cout << "[Sprite 0] Background has pixel";
-                                }
-                            }
+                            // Se o clipping de 8px estiver ativo, o hit não ocorre nessa área
+                            if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04))) cycleInValidRange = false;
 
                             if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
                             {
                                 ppuStatus |= 0x40;
                                 sprite0HitDetectedThisScanline = true;
-                                sprite0HitFrameCounter++;
                             }
 
                             bool priority = (spriteAttrib & 0x20) == 0;
