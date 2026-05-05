@@ -363,22 +363,6 @@ namespace R2NES::Core
                                 sprite0HitDetectedThisScanline = true;
                             }
 
-                            if (i == 0 && spritePixelColor != 0 && bgPixelColor == 0 && false)
-                            {
-                                std::cout << "--- Sprite 0 Hit Falhou ---" << std::endl;
-                                std::cout << "Scanline: " << scanline << ", Cycle: " << cycle << std::endl;
-                                std::cout << "SpriteX: " << (int)spriteX << ", SpriteY: " << (int)spriteY << std::endl;
-                                std::cout << "scrollX: " << (int)scrollX << ", scrollY: " << (int)scrollY << std::endl;
-                                std::cout << "ppuCtrl: 0x" << std::hex << (int)ppuCtrl << ", ppuMask: 0x" << (int)ppuMask << std::dec << std::endl;
-                                std::cout << "tileX: " << tileX << ", tileY: " << tileY << std::endl;
-                                std::cout << "fineX: " << fineX << ", fineY: " << fineY << std::endl;
-                                std::cout << "ntBase: 0x" << std::hex << ntBase << std::dec << std::endl;
-                                std::cout << "tileID: " << (int)tileID << std::endl;
-                                std::cout << "bgLsb: 0x" << std::hex << (int)bgLsb << ", bgMsb: 0x" << (int)bgMsb << std::dec << std::endl;
-                                std::cout << "bgPixelColor: " << (int)bgPixelColor << std::endl;
-                                std::cout << "---------------------------" << std::endl;
-                            }
-
                             bool priority = (spriteAttrib & 0x20) == 0;
                             if (priority || bgPixelColor == 0)
                             {
