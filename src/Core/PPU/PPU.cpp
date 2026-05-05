@@ -3,6 +3,7 @@
 #include "Core/Cartridge/Cartridge.h"
 #include "Common/Common.h"
 #include <algorithm>
+#include <iostream>
 
 namespace R2NES::Core
 {
@@ -26,6 +27,8 @@ namespace R2NES::Core
         paletteTable[1] = 0x01; // Azul
         paletteTable[2] = 0x11; // Azul claro
         paletteTable[3] = 0x21; // Azul muito claro
+
+        sprite0HitDetectedThisScanline = false;
     }
 
     PPU::~PPU()
@@ -44,10 +47,15 @@ namespace R2NES::Core
         {
         case 0x0002: // PPUSTATUS ($2002)
         {
-            // Retorna o status (vblank, sprite 0 hit, etc) e limpa a flag de vblank
+            // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
             ppuStatus &= ~0x80; // Limpa bit de VBlank após leitura
-            addressLatch = 0;   // Reseta o latch de escrita dupla ($2005/$2006)
+            ppuStatus &= ~0x40; // Limpa bit de Sprite 0 Hit após leitura
+            // NÃO resetar sprite0HitDetectedThisScanline aqui!
+            // Esse flag interno previne múltiplos hits no mesmo scanline.
+            // Só deve ser resetado no início do novo scanline.
+            addressLatch = 0;   // Reseta ambos latches quando $2002 é lido (quirk real do NES)
+            scrollLatch = 0;    // Reseta scroll latch também!
             return data;
         }
 
@@ -82,6 +90,15 @@ namespace R2NES::Core
             ppuCtrl = data;
             // Se habilitar NMI durante o VBlank, dispara imediatamente
             if (!oldNmiEnabled && (ppuCtrl & 0x80) && (ppuStatus & 0x80)) nmi = true;
+            break;
+        }
+
+        case 0x0001: // PPUMASK ($2001)
+        {
+            ppuMask = data;
+            // Bits importantes para Sprite 0 Hit:
+            // Bit 3: Background enable
+            // Bit 4: Sprite enable
             break;
         }
 
@@ -237,96 +254,139 @@ namespace R2NES::Core
         // Só processamos renderização nos ciclos visíveis (0-255) e scanlines visíveis (0-239)
         if (scanline >= 0 && scanline < 240 && cycle >= 0 && cycle < 256)
         {
-                uint8_t bgPixelColor = 0;
-                uint8_t bgPaletteIndex = 0;
+            uint8_t bgPixelColor = 0;
+            uint8_t bgPaletteIndex = 0;
 
-                // 1. Aplica o scroll e calcula a posição no espaço de renderização virtual (256x240 * N nametables)
-                uint16_t renderX = (cycle + scrollX) % 512;  // Permite wrapping horizontal
-                uint16_t renderY = (scanline + scrollY) % 480; // Permite wrapping vertical (240 * 2)
+            // 1. Aplica o scroll e calcula a posição no espaço de renderização virtual (256x240 * N nametables)
+            uint16_t renderX = (cycle + scrollX) % 512;  // Permite wrapping horizontal
+            uint16_t renderY = (scanline + scrollY) % 480; // Permite wrapping vertical (240 * 2)
 
-                // 2. Determina a posição do tile e do pixel dentro do tile
-                uint16_t tileX = (renderX / 8) % 32;     // Coluna de tile (0-31, com wrapping)
-                uint16_t tileY = (renderY / 8) % 30;     // Linha de tile (0-29, com wrapping em 240)
-                uint16_t fineX = renderX % 8;            // Pixel fino horizontal (0-7)
-                uint16_t fineY = renderY % 8;            // Pixel fino vertical (0-7)
+            // 2. Determina a posição do tile e do pixel dentro do tile
+            uint16_t tileX = (renderX / 8) % 32;     // Coluna de tile (0-31, com wrapping)
+            uint16_t tileY = (renderY / 8) % 30;     // Linha de tile (0-29, com wrapping em 240)
+            uint16_t fineX = renderX % 8;            // Pixel fino horizontal (0-7)
+            uint16_t fineY = renderY % 8;            // Pixel fino vertical (0-7)
 
-                // 3. Determina qual nametable estamos usando
-                // O PPUCTRL bits 0-1 definem a nametable base (0-3)
-                // Quando o scroll ultrapassa os limites, passamos para a nametable adjacente
-                uint8_t ntIndex = (ppuCtrl & 0x03);
-                if (renderX >= 256) ntIndex ^= 0x01;  // Alterna nametable horizontal
-                if (renderY >= 240) ntIndex ^= 0x02;  // Alterna nametable vertical
-                
-                uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
+            // 3. Determina qual nametable estamos usando
+            // O PPUCTRL bits 0-1 definem a nametable base (0-3)
+            // Quando o scroll ultrapassa os limites, passamos para a nametable adjacente
+            uint8_t ntIndex = (ppuCtrl & 0x03);
+            if (renderX >= 256) ntIndex ^= 0x01;  // Alterna nametable horizontal
+            if (renderY >= 240) ntIndex ^= 0x02;  // Alterna nametable vertical
+            
+            uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
 
-                // 4. Busca o ID do Tile na Name Table
-                uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
+            // 4. Busca o ID do Tile na Name Table
+            uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
 
-                // 5. Busca os bits do pixel na Pattern Table
-                uint16_t ptBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
-                uint8_t lsb = ppuRead(ptBase + tileID * 16 + fineY);
-                uint8_t msb = ppuRead(ptBase + tileID * 16 + fineY + 8);
+            // 5. Busca os bits do pixel na Pattern Table
+            uint16_t ptBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
+            uint8_t lsb = ppuRead(ptBase + tileID * 16 + fineY);
+            uint8_t msb = ppuRead(ptBase + tileID * 16 + fineY + 8);
 
-                bgPixelColor = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
+            bgPixelColor = ((lsb >> (7 - fineX)) & 0x01) | (((msb >> (7 - fineX)) & 0x01) << 1);
 
-                // 6. Busca a paleta na Attribute Table
-                uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
-                uint8_t attrByte = ppuRead(attrAddr);
-                uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
-                bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
+            // 6. Busca a paleta na Attribute Table
+            uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
+            uint8_t attrByte = ppuRead(attrAddr);
+            uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
+            bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
 
-                // Resolve a cor do background
-                uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
-                if (bgPixelColor == 0) bgPaletteAddr = 0x3F00;
-                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(bgPaletteAddr) & 0x3F];
+            // Resolve a cor do background
+            uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
+            if (bgPixelColor == 0) bgPaletteAddr = 0x3F00;
+            frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(bgPaletteAddr) & 0x3F];
 
-                // --- Renderização de Sprites (Otimizada para este ciclo) ---
-                bool spritePixelDrawn = false;
-                for (int i = 0; i < 64; i++)
+            // --- Renderização de Sprites (Otimizada para este ciclo) ---
+            bool spritePixelDrawn = false;
+            for (int i = 0; i < 64; i++)
+            {
+                uint8_t spriteY = oamMemory[i * 4];
+                int diffY = scanline - (spriteY + 1);
+                int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+
+                if (diffY >= 0 && diffY < spriteHeight)
                 {
-                    uint8_t spriteY = oamMemory[i * 4];
-                    int diffY = scanline - (spriteY + 1);
-                    int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+                    uint8_t spriteX = oamMemory[i * 4 + 3];
+                    int diffX = cycle - spriteX;
 
-                    if (diffY >= 0 && diffY < spriteHeight)
+                    // Debug: se Sprite 0 mudou de posição, avisa
+                    if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
                     {
-                        uint8_t spriteX = oamMemory[i * 4 + 3];
-                        int diffX = cycle - spriteX;
-
-                        // Se o ciclo atual da PPU está dentro da largura horizontal do sprite
-                        if (diffX >= 0 && diffX < 8)
+                        if (sprite0HitFrameCounter > 0)
                         {
-                            uint8_t spriteID = oamMemory[i * 4 + 1];
-                            uint8_t spriteAttrib = oamMemory[i * 4 + 2];
-                            uint16_t ptBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                            std::cout << "[Sprite 0 Moved] New position - SpriteY: " << (int)spriteY
+                                        << ", SpriteX: " << (int)spriteX << std::endl;
+                        }
+                        lastSprite0Y = spriteY;
+                        lastSprite0X = spriteX;
+                    }
+
+                    // Se o ciclo atual da PPU está dentro da largura horizontal do sprite
+                    if (diffX >= 0 && diffX < 8)
+                    {
+                        uint8_t spriteID = oamMemory[i * 4 + 1];
+                        uint8_t spriteAttrib = oamMemory[i * 4 + 2];
+                        uint16_t ptBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                        
+                        uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
+                        uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
+
+                        uint8_t lsb = ppuRead(ptBase + spriteID * 16 + row);
+                        uint8_t msb = ppuRead(ptBase + spriteID * 16 + row + 8);
+                        uint8_t spritePixelColor = ((lsb >> col) & 0x01) | (((msb >> col) & 0x01) << 1);
+
+                        if (spritePixelColor != 0) // Pixel não é transparente
+                        {
+                            // ========== SPRITE 0 HIT DETECTION ==========
+                            // Hardware real: Sprite 0 Hit requer AMBAS condições:
+                            // 1. Sprite 0 com pixel opaco
+                            // 2. Background com pixel opaco
+                            bool bgHasPixel = (bgPixelColor != 0);
+                            bool cycleInValidRange = (cycle > 0 && cycle <= 256);
                             
-                            uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
-                            uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
-
-                            uint8_t lsb = ppuRead(ptBase + spriteID * 16 + row);
-                            uint8_t msb = ppuRead(ptBase + spriteID * 16 + row + 8);
-                            uint8_t spritePixelColor = ((lsb >> col) & 0x01) | (((msb >> col) & 0x01) << 1);
-
-                            if (spritePixelColor != 0) // Pixel não é transparente
+                            if (i == 0 && bgHasPixel && !sprite0HitDetectedThisScanline && cycleInValidRange)
                             {
-                                // Sprite 0 Hit detection
-                                if (i == 0 && bgPixelColor != 0) ppuStatus |= 0x40;
-
-                                bool priority = (spriteAttrib & 0x20) == 0;
-                                if (priority || bgPixelColor == 0)
-                                {
-                                    uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
-                                    uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
-                                    frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
-                                    spritePixelDrawn = true;
-                                }
+                                ppuStatus |= 0x40;
+                                sprite0HitDetectedThisScanline = true;
+                                sprite0HitFrameCounter++;
                                 
-                                // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade (índice maior)
-                                break; 
+                                if (sprite0HitFrameCounter <= 100 && sprite0HitFrameCounter % 10 == 0)
+                                {
+                                    std::cout << "[Sprite 0 Hit #" << sprite0HitFrameCounter << "] "
+                                              << "SpriteY: " << (int)spriteY << ", SpriteX: " << (int)spriteX
+                                              << " | Scanline: " << scanline << ", Cycle: " << cycle << std::endl;
+                                }
                             }
+                            else if (i == 0 && spritePixelColor != 0 && !bgHasPixel && sprite0HitFrameCounter > 80)
+                            {
+                                // Debug: quando estamos perto de travar, mostrar tentativas rejeitadas
+                                static int rejectedCount = 0;
+                                if (rejectedCount < 20)
+                                {
+                                    std::cout << "[Sprite 0 Hit REJECTED #" << (rejectedCount+1) << "] "
+                                              << "SpriteY: " << (int)spriteY << ", SpriteX: " << (int)spriteX
+                                              << " | Scanline: " << scanline << ", Cycle: " << cycle
+                                              << " (BgPixel=0, need opaco)" << std::endl;
+                                    rejectedCount++;
+                                }
+                            }
+
+                            bool priority = (spriteAttrib & 0x20) == 0;
+                            if (priority || bgPixelColor == 0)
+                            {
+                                uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
+                                uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
+                                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
+                                spritePixelDrawn = true;
+                            }
+                            
+                            // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade (índice maior)
+                            break;
                         }
                     }
                 }
+            }
         }
 
         cycle++;
@@ -334,6 +394,11 @@ namespace R2NES::Core
         {
             cycle = 0;
             scanline++;
+
+            // Reseta o flag de Sprite 0 Hit para o próximo scanline
+            // (mantém o bit setado em ppuStatus até o pré-render scanline)
+            sprite0HitDetectedThisScanline = false;
+
             if (scanline == 241) 
             {
                 // Início do Vertical Blank
@@ -355,6 +420,7 @@ namespace R2NES::Core
     void PPU::reset()
     {
         ppuCtrl = 0x00;
+        ppuMask = 0x00;
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
         oamAddr = 0x00;
         addressLatch = 0;
@@ -362,6 +428,7 @@ namespace R2NES::Core
         ppuAddress = 0;
         scrollX = 0x00;
         scrollY = 0x00;
+        sprite0HitDetectedThisScanline = false;
         scanline = 0;
         cycle = 0;
     }

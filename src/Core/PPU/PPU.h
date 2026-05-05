@@ -54,7 +54,8 @@ namespace R2NES::Core
         std::array<uint32_t, 256 * 240> frameBuffer;
 
         // Registradores e buffers internos
-        uint8_t ppuCtrl = 0x00;
+        uint8_t ppuCtrl = 0x00;   // PPUCTRL ($2000)
+        uint8_t ppuMask = 0x00;   // PPUMASK ($2001) - Controla renderização
         uint8_t oamAddr = 0x00;
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
@@ -71,6 +72,14 @@ namespace R2NES::Core
         uint8_t scrollX = 0x00;  // Posição X do scroll (0-255)
         uint8_t scrollY = 0x00;  // Posição Y do scroll (0-239)
         uint8_t scrollLatch = 0x00;  // Latch para $2005: 0 = próximo é X, 1 = próximo é Y
+
+        // Sprite 0 Hit - Tracking
+        // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
+        // Depois de ser detectado, o bit permanece setado até o pré-render scanline
+        bool sprite0HitDetectedThisScanline = false;
+        uint32_t sprite0HitFrameCounter = 0;  // Debug: conta frames com Sprite 0 Hit
+        uint32_t lastSprite0Y = 0xFF;
+        uint32_t lastSprite0X = 0xFF;
 
         // Estado da renderização
         int16_t scanline = 0;
