@@ -421,6 +421,7 @@ namespace R2NES::Core
         sprite0HitDetectedThisScanline = false;
         scanline = 0;
         cycle = 0;
+        nmi = false;
 
         // Limpa o buffer de imagem para preto ao resetar/descarregar
         std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000);

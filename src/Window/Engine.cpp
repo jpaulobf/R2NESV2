@@ -61,6 +61,10 @@ namespace R2NES::Core
         std::string romPath = window->getSelectedPath();
         if (!romPath.empty())
         {
+            // Garante que o sistema seja descarregado e limpo antes de carregar a nova ROM
+            nes->unload();
+            cachedDisassembly.clear();
+
             std::cout << "Engine: Loading ROM -> " << romPath << std::endl;
             nes->insertCartridge(romPath);
             nes->reset();
