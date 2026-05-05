@@ -113,8 +113,11 @@ namespace R2NES::Core
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->ppuMapRead(addr, mapped_addr))
         {
-            data = chrROM->read(mapped_addr);
-            return true;
+            if (chrROM)
+            {
+                data = chrROM->read(mapped_addr);
+                return true;
+            }
         }
         return false;
     }
