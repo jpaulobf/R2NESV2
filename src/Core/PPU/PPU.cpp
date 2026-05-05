@@ -138,6 +138,10 @@ namespace R2NES::Core
             else
             {
                 ppuAddress = (ppuAddress & 0xFF00) | data;
+                
+                // Sincroniza os bits de Nametable (10 e 11) com o PPUCTRL.
+                // Isso garante que o sistema de coordenadas de renderização siga o "reset" de scroll do $2006.
+                ppuCtrl = (ppuCtrl & 0xFC) | ((ppuAddress >> 10) & 0x03);
                 addressLatch = 0;
             }
             break;
@@ -256,26 +260,37 @@ namespace R2NES::Core
             uint8_t bgPixelColor = 0;
             uint8_t bgPaletteIndex = 0;
 
-            // 1. Aplica o scroll e calcula a posição no espaço de renderização virtual (256x240 * N nametables)
-            uint16_t renderX = (cycle + scrollX) % 512;  // Permite wrapping horizontal
-            uint16_t renderY = (scanline + scrollY) % 480; // Permite wrapping vertical (240 * 2)
+            // 1. Calcula a posição absoluta no espaço virtual de 512x480 pixels (4 Nametables)
+            // Usamos ppuCtrl para definir qual nametable é a "página 0,0" atual
+            uint16_t baseNTX = (ppuCtrl & 0x01) ? 256 : 0;
+            uint16_t baseNTY = (ppuCtrl & 0x02) ? 240 : 0;
 
-            // 2. Determina a posição do tile e do pixel dentro do tile
-            uint16_t tileX = (renderX / 8) % 32;     // Coarse X (0-31)
-            uint16_t tileY = (renderY / 8) % 32;     // Coarse Y (0-31) (Nametables são 32x32 tiles em memória)
-            uint16_t fineX = renderX % 8;            // Pixel fino horizontal (0-7)
-            uint16_t fineY = renderY % 8;            // Pixel fino vertical (0-7)
+            uint32_t absoluteX = (uint32_t)cycle + (uint32_t)scrollX + baseNTX;
+            uint32_t absoluteY = (uint32_t)scanline + (uint32_t)scrollY + baseNTY;
 
-            // 3. Determina qual nametable estamos usando a partir do ppuAddress (registrador 'v' interno da PPU).
-            // Os bits 10 e 11 do ppuAddress (VRAM address) selecionam a nametable.
-            // ppuAddress é o endereço VRAM atual que a PPU está processando.
-            uint8_t ntIndexFromPPUAddress = (ppuAddress >> 10) & 0x03;
-            uint16_t ntBase = 0x2000 + (ntIndexFromPPUAddress * 0x400);
+            // 2. Realiza o wrapping dentro da área total de 512x480
+            absoluteX %= 512;
+            absoluteY %= 480;
 
-            // 4. Busca o ID do Tile na Name Table
+            // 3. Determina os índices de tiles e pixels finos
+            uint16_t tileX = (absoluteX / 8) % 32;
+            uint16_t tileY = (absoluteY / 8);
+            if (tileY >= 30) tileY %= 30; // Garante que tileY fique no range 0-29 da Nametable
+
+            uint16_t fineX = absoluteX % 8;
+            uint16_t fineY = absoluteY % 8;
+
+            // 4. Determina o índice da Nametable (0-3) para acesso à memória
+            uint8_t ntIndex = 0;
+            if (absoluteX >= 256) ntIndex |= 0x01;
+            if (absoluteY >= 240) ntIndex |= 0x02;
+            
+            uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
+
+            // 5. Busca o ID do Tile na Name Table
             uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
 
-            // 5. Busca os bits do pixel na Pattern Table
+            // 6. Busca os bits do pixel na Pattern Table
             uint16_t bgPtBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
             uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fineY);
             uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fineY + 8);
@@ -355,7 +370,6 @@ namespace R2NES::Core
                                 std::cout << "SpriteX: " << (int)spriteX << ", SpriteY: " << (int)spriteY << std::endl;
                                 std::cout << "scrollX: " << (int)scrollX << ", scrollY: " << (int)scrollY << std::endl;
                                 std::cout << "ppuCtrl: 0x" << std::hex << (int)ppuCtrl << ", ppuMask: 0x" << (int)ppuMask << std::dec << std::endl;
-                                std::cout << "renderX: " << renderX << ", renderY: " << renderY << std::endl;
                                 std::cout << "tileX: " << tileX << ", tileY: " << tileY << std::endl;
                                 std::cout << "fineX: " << fineX << ", fineY: " << fineY << std::endl;
                                 std::cout << "ntBase: 0x" << std::hex << ntBase << std::dec << std::endl;
