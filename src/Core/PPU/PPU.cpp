@@ -53,12 +53,9 @@ namespace R2NES::Core
             // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
             ppuStatus &= ~0x80; 
-
-            // NÃO resetar sprite0HitDetectedThisScanline aqui!
-            // Esse flag interno previne múltiplos hits no mesmo scanline.
-            // Só deve ser resetado no início do novo scanline.
-            addressLatch = 0;   // Reseta ambos latches quando $2002 é lido (quirk real do NES)
-            scrollLatch = 0;    // Reseta scroll latch também!
+            
+            // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
+            addressLatch = 0;   
             return data;
         }
 
@@ -116,18 +113,17 @@ namespace R2NES::Core
 
         case 0x0005: // PPUSCROLL ($2005)
         {
-            // Escrita dupla: primeiro X scroll, depois Y scroll
-            if (scrollLatch == 0)
+            if (addressLatch == 0)
             {
                 // Primeira escrita: X scroll
                 scrollX = data;
-                scrollLatch = 1;
+                addressLatch = 1;
             }
             else
             {
                 // Segunda escrita: Y scroll
                 scrollY = data;
-                scrollLatch = 0;
+                addressLatch = 0;
             }
             break;
         }
@@ -265,32 +261,29 @@ namespace R2NES::Core
             uint16_t renderY = (scanline + scrollY) % 480; // Permite wrapping vertical (240 * 2)
 
             // 2. Determina a posição do tile e do pixel dentro do tile
-            uint16_t tileX = (renderX / 8) % 32;     // Coluna de tile (0-31, com wrapping)
-            uint16_t tileY = (renderY / 8) % 30;     // Linha de tile (0-29, com wrapping em 240)
+            uint16_t tileX = (renderX / 8) % 32;     // Coarse X (0-31)
+            uint16_t tileY = (renderY / 8) % 32;     // Coarse Y (0-31) (Nametables são 32x32 tiles em memória)
             uint16_t fineX = renderX % 8;            // Pixel fino horizontal (0-7)
             uint16_t fineY = renderY % 8;            // Pixel fino vertical (0-7)
 
-            // 3. Determina qual nametable estamos usando
-            // O PPUCTRL bits 0-1 definem a nametable base (0-3)
-            // Quando o scroll ultrapassa os limites, passamos para a nametable adjacente
-            uint8_t ntIndex = (ppuCtrl & 0x03);
-            if (renderX >= 256) ntIndex ^= 0x01;  // Alterna nametable horizontal
-            if (renderY >= 240) ntIndex ^= 0x02;  // Alterna nametable vertical
-            
-            uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
+            // 3. Determina qual nametable estamos usando a partir do ppuAddress (registrador 'v' interno da PPU).
+            // Os bits 10 e 11 do ppuAddress (VRAM address) selecionam a nametable.
+            // ppuAddress é o endereço VRAM atual que a PPU está processando.
+            uint8_t ntIndexFromPPUAddress = (ppuAddress >> 10) & 0x03;
+            uint16_t ntBase = 0x2000 + (ntIndexFromPPUAddress * 0x400);
 
             // 4. Busca o ID do Tile na Name Table
             uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
 
             // 5. Busca os bits do pixel na Pattern Table
-            uint16_t ptBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
-            uint8_t bgLsb = ppuRead(ptBase + tileID * 16 + fineY);
-            uint8_t bgMsb = ppuRead(ptBase + tileID * 16 + fineY + 8);
+            uint16_t bgPtBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
+            uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fineY);
+            uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fineY + 8);
 
             bgPixelColor = ((bgLsb >> (7 - fineX)) & 0x01) | (((bgMsb >> (7 - fineX)) & 0x01) << 1);
 
             // 6. Busca a paleta na Attribute Table
-            uint16_t attrAddr = ntBase + 0x3C0 + (tileY / 4) * 8 + (tileX / 4);
+            uint16_t attrAddr = ntBase + 0x3C0 + ((tileY / 4) * 8) + (tileX / 4); // A tabela de atributos começa em 0x3C0 dentro de cada nametable
             uint8_t attrByte = ppuRead(attrAddr);
             uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
             bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
@@ -325,13 +318,13 @@ namespace R2NES::Core
                     {
                         uint8_t spriteID = oamMemory[i * 4 + 1];
                         uint8_t spriteAttrib = oamMemory[i * 4 + 2];
-                        uint16_t ptBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                        uint16_t spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
                         
                         uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
                         uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
 
-                        uint8_t spLsb = ppuRead(ptBase + spriteID * 16 + row);
-                        uint8_t spMsb = ppuRead(ptBase + spriteID * 16 + row + 8);
+                        uint8_t spLsb = ppuRead(spPtBase + spriteID * 16 + row);
+                        uint8_t spMsb = ppuRead(spPtBase + spriteID * 16 + row + 8);
                         uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
 
                         if (spritePixelColor != 0) // Pixel não é transparente
@@ -342,8 +335,8 @@ namespace R2NES::Core
                             // 2. Background com pixel opaco
                             // 3. Renderização de background E sprites habilitada no PPUMASK
                             // 4. Não pode ocorrer no ciclo 255 (quirk do hardware)
-                            bool bgHasPixel = (bgPixelColor != 0);
-                            bool cycleInValidRange = (cycle >= 0 && cycle < 255);
+                            bool bgHasPixel = (bgPixelColor != 0); // Verifica se o pixel de fundo não é transparente
+                            bool cycleInValidRange = (cycle >= 1 && cycle <= 254); // Sprite 0 hit pode ocorrer do ciclo 1 ao 254
                             bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
 
                             // Se o clipping de 8px estiver ativo, o hit não ocorre nessa área
@@ -353,6 +346,23 @@ namespace R2NES::Core
                             {
                                 ppuStatus |= 0x40;
                                 sprite0HitDetectedThisScanline = true;
+                            }
+
+                            if (i == 0 && spritePixelColor != 0 && bgPixelColor == 0 && false)
+                            {
+                                std::cout << "--- Sprite 0 Hit Falhou ---" << std::endl;
+                                std::cout << "Scanline: " << scanline << ", Cycle: " << cycle << std::endl;
+                                std::cout << "SpriteX: " << (int)spriteX << ", SpriteY: " << (int)spriteY << std::endl;
+                                std::cout << "scrollX: " << (int)scrollX << ", scrollY: " << (int)scrollY << std::endl;
+                                std::cout << "ppuCtrl: 0x" << std::hex << (int)ppuCtrl << ", ppuMask: 0x" << (int)ppuMask << std::dec << std::endl;
+                                std::cout << "renderX: " << renderX << ", renderY: " << renderY << std::endl;
+                                std::cout << "tileX: " << tileX << ", tileY: " << tileY << std::endl;
+                                std::cout << "fineX: " << fineX << ", fineY: " << fineY << std::endl;
+                                std::cout << "ntBase: 0x" << std::hex << ntBase << std::dec << std::endl;
+                                std::cout << "tileID: " << (int)tileID << std::endl;
+                                std::cout << "bgLsb: 0x" << std::hex << (int)bgLsb << ", bgMsb: 0x" << (int)bgMsb << std::dec << std::endl;
+                                std::cout << "bgPixelColor: " << (int)bgPixelColor << std::endl;
+                                std::cout << "---------------------------" << std::endl;
                             }
 
                             bool priority = (spriteAttrib & 0x20) == 0;
@@ -407,7 +417,6 @@ namespace R2NES::Core
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
         oamAddr = 0x00;
         addressLatch = 0;
-        scrollLatch = 0;
         ppuAddress = 0;
         scrollX = 0x00;
         scrollY = 0x00;

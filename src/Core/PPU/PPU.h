@@ -71,7 +71,6 @@ namespace R2NES::Core
         // - Nametable selection (2 bits): qual das 4 nametables usar no PPUCTRL
         uint8_t scrollX = 0x00;  // Posição X do scroll (0-255)
         uint8_t scrollY = 0x00;  // Posição Y do scroll (0-239)
-        uint8_t scrollLatch = 0x00;  // Latch para $2005: 0 = próximo é X, 1 = próximo é Y
 
         // Sprite 0 Hit - Tracking
         // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
