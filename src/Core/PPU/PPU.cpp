@@ -13,8 +13,7 @@ namespace R2NES::Core
         0xFF545454, 0xFF001E74, 0xFF081090, 0xFF300088, 0xFF440064, 0xFF5C0030, 0xFF540400, 0xFF3C1800, 0xFF202A00, 0xFF083A00, 0xFF004000, 0xFF003C00, 0xFF003260, 0xFF000000, 0xFF000000, 0xFF000000,
         0xFF989698, 0xFF084CC4, 0xFF3032EC, 0xFF5C1EE4, 0xFF8814B0, 0xFFA01468, 0xFFB03200, 0xFF8C4400, 0xFF546000, 0xFF207400, 0xFF087C00, 0xFF007A28, 0xFF006C90, 0xFF000000, 0xFF000000, 0xFF000000,
         0xFFECEEE8, 0xFF4C9AEC, 0xFF787CEC, 0xFFB062EC, 0xFFE454EC, 0xFFEC58B4, 0xFFEC6A5C, 0xFFD48820, 0xFFA0AA00, 0xFF74C400, 0xFF4CD020, 0xFF38CC6C, 0xFF38B4CC, 0xFF3E3E3E, 0xFF000000, 0xFF000000,
-        0xFFFCFCFC, 0xFFA4D2FC, 0xFFB8B8FC, 0xFFD8A8FC, 0xFFF8A4FC, 0xFFF8A8D8, 0xFFF8B4B4, 0xFFF0C090, 0xFFD8D470, 0xFFC4E470, 0xFFB0EC90, 0xFFA4ECAF, 0xFFA4E2FC, 0xFFB8B8B8, 0xFF000000, 0xFF000000
-    };
+        0xFFFCFCFC, 0xFFA4D2FC, 0xFFB8B8FC, 0xFFD8A8FC, 0xFFF8A4FC, 0xFFF8A8D8, 0xFFF8B4B4, 0xFFF0C090, 0xFFD8D470, 0xFFC4E470, 0xFFB0EC90, 0xFFA4ECAF, 0xFFA4E2FC, 0xFFB8B8B8, 0xFF000000, 0xFF000000};
 
     PPU::PPU()
     {
@@ -35,7 +34,7 @@ namespace R2NES::Core
     {
     }
 
-    void PPU::connectBus(Bus* bus)
+    void PPU::connectBus(Bus *bus)
     {
         this->bus = bus;
     }
@@ -49,13 +48,13 @@ namespace R2NES::Core
         {
             // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
-            
+
             // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
-            ppuStatus &= ~0x80; 
-            
+            ppuStatus &= ~0x80;
+
             // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
-            addressLatch = 0;   
+            addressLatch = 0;
             return data;
         }
 
@@ -70,7 +69,8 @@ namespace R2NES::Core
             dataBuffer = ppuRead(ppuAddress);
 
             // Se estivermos lendo paletas, o dado é retornado imediatamente
-            if (ppuAddress >= 0x3F00) data = dataBuffer;
+            if (ppuAddress >= 0x3F00)
+                data = dataBuffer;
 
             ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
             return data;
@@ -89,7 +89,8 @@ namespace R2NES::Core
             uint8_t oldNmiEnabled = ppuCtrl & 0x80;
             ppuCtrl = data;
             // Se habilitar NMI durante o VBlank, dispara imediatamente
-            if (!oldNmiEnabled && (ppuCtrl & 0x80) && (ppuStatus & 0x80)) nmi = true;
+            if (!oldNmiEnabled && (ppuCtrl & 0x80) && (ppuStatus & 0x80))
+                nmi = true;
             break;
         }
 
@@ -138,7 +139,7 @@ namespace R2NES::Core
             else
             {
                 ppuAddress = (ppuAddress & 0xFF00) | data;
-                
+
                 // Sincroniza os bits de Nametable (10 e 11) com o PPUCTRL.
                 // Isso garante que o sistema de coordenadas de renderização siga o "reset" de scroll do $2006.
                 ppuCtrl = (ppuCtrl & 0xFC) | ((ppuAddress >> 10) & 0x03);
@@ -168,12 +169,13 @@ namespace R2NES::Core
         {
             return vram.read(addr, bus ? bus->getMirrorMode() : MirrorMode::HORIZONTAL);
         }
-        
+
         // Se não for do cartucho, verifica paletas
         if (addr >= 0x3F00 && addr <= 0x3FFF)
         {
             addr &= 0x001F;
-            if ((addr & 0x0013) == 0x0010) addr &= 0x000F;
+            if ((addr & 0x0013) == 0x0010)
+                addr &= 0x000F;
             return paletteTable[addr];
         }
 
@@ -198,9 +200,10 @@ namespace R2NES::Core
         if (addr >= 0x3F00 && addr <= 0x3FFF)
         {
             addr &= 0x001F;
-            // No NES, os endereços $3F10, $3F14, $3F18 e $3F1C são espelhos de 
+            // No NES, os endereços $3F10, $3F14, $3F18 e $3F1C são espelhos de
             // $3F00, $3F04, $3F08 e $3F0C respectivamente (cores de fundo).
-            if ((addr & 0x0013) == 0x0010) addr &= 0x000F;
+            if ((addr & 0x0013) == 0x0010)
+                addr &= 0x000F;
             paletteTable[addr] = data;
         }
     }
@@ -223,15 +226,16 @@ namespace R2NES::Core
                     // Cada linha do tile é composta por 2 bytes (2 planes)
                     uint8_t tileLSB = 0;
                     uint8_t tileMSB = 0;
-                    
-                    if (bus) {
+
+                    if (bus)
+                    {
                         bus->ppuRead(offset + row, tileLSB);
                         bus->ppuRead(offset + row + 8, tileMSB);
                     }
 
                     for (uint16_t col = 0; col < 8; col++)
                     {
-                        // O bit 7 é o pixel mais à esquerda. 
+                        // O bit 7 é o pixel mais à esquerda.
                         // Combinamos o bit do plane 0 (LSB) e plane 1 (MSB) para ter o índice da cor (0-3)
                         uint8_t pixelColorValue = ((tileLSB >> (7 - col)) & 0x01) | (((tileMSB >> (7 - col)) & 0x01) << 1);
 
@@ -239,7 +243,7 @@ namespace R2NES::Core
                         // Endereço na Palette RAM: $3F00 + (paletteIndex * 4) + pixelColorValue
                         uint16_t paletteAddr = 0x3F00 + (paletteIndex * 4) + pixelColorValue;
                         uint8_t systemPaletteIndex = ppuRead(paletteAddr) & 0x3F;
-                        
+
                         // Escreve no buffer de pixels na posição correta da imagem 128x128
                         uint32_t pixelX = tileX * 8 + col;
                         uint32_t pixelY = tileY * 8 + row;
@@ -252,7 +256,7 @@ namespace R2NES::Core
         return pixels;
     }
 
-    void PPU::clock() 
+    void PPU::clock()
     {
         // Só processamos renderização nos ciclos visíveis (0-255) e scanlines visíveis (0-239)
         if (scanline >= 0 && scanline < 240 && cycle >= 0 && cycle < 256)
@@ -275,16 +279,19 @@ namespace R2NES::Core
             // 3. Determina os índices de tiles e pixels finos
             uint16_t tileX = (absoluteX / 8) % 32;
             uint16_t tileY = (absoluteY / 8);
-            if (tileY >= 30) tileY %= 30; // Garante que tileY fique no range 0-29 da Nametable
+            if (tileY >= 30)
+                tileY %= 30; // Garante que tileY fique no range 0-29 da Nametable
 
             uint16_t fineX = absoluteX % 8;
             uint16_t fineY = absoluteY % 8;
 
             // 4. Determina o índice da Nametable (0-3) para acesso à memória
             uint8_t ntIndex = 0;
-            if (absoluteX >= 256) ntIndex |= 0x01;
-            if (absoluteY >= 240) ntIndex |= 0x02;
-            
+            if (absoluteX >= 256)
+                ntIndex |= 0x01;
+            if (absoluteY >= 240)
+                ntIndex |= 0x02;
+
             uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
 
             // 5. Busca o ID do Tile na Name Table
@@ -305,7 +312,8 @@ namespace R2NES::Core
 
             // Resolve a cor do background
             uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
-            if (bgPixelColor == 0) bgPaletteAddr = 0x3F00;
+            if (bgPixelColor == 0)
+                bgPaletteAddr = 0x3F00;
             frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(bgPaletteAddr) & 0x3F];
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
@@ -334,7 +342,7 @@ namespace R2NES::Core
                         uint8_t spriteID = oamMemory[i * 4 + 1];
                         uint8_t spriteAttrib = oamMemory[i * 4 + 2];
                         uint16_t spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
-                        
+
                         uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
                         uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
 
@@ -350,12 +358,13 @@ namespace R2NES::Core
                             // 2. Background com pixel opaco
                             // 3. Renderização de background E sprites habilitada no PPUMASK
                             // 4. Não pode ocorrer no ciclo 255 (quirk do hardware)
-                            bool bgHasPixel = (bgPixelColor != 0); // Verifica se o pixel de fundo não é transparente
+                            bool bgHasPixel = (bgPixelColor != 0);                 // Verifica se o pixel de fundo não é transparente
                             bool cycleInValidRange = (cycle >= 1 && cycle <= 254); // Sprite 0 hit pode ocorrer do ciclo 1 ao 254
                             bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
 
                             // Se o clipping de 8px estiver ativo, o hit não ocorre nessa área
-                            if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04))) cycleInValidRange = false;
+                            if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
+                                cycleInValidRange = false;
 
                             if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
                             {
@@ -371,7 +380,7 @@ namespace R2NES::Core
                                 frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
                                 spritePixelDrawn = true;
                             }
-                            
+
                             // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade (índice maior)
                             break;
                         }
@@ -390,12 +399,12 @@ namespace R2NES::Core
             // (mantém o bit setado em ppuStatus até o pré-render scanline)
             sprite0HitDetectedThisScanline = false;
 
-            if (scanline == 241) 
+            if (scanline == 241)
             {
                 // Início do Vertical Blank
                 ppuStatus |= 0x80; // Seta flag de VBlank
                 frameComplete = true;
-                
+
                 // Se NMIs estiverem habilitados no PPUCTRL (bit 7), sinaliza para a CPU
                 if (ppuCtrl & 0x80)
                     nmi = true;

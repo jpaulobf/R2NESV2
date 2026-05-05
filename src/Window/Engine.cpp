@@ -37,9 +37,10 @@ namespace R2NES::Core
                 else
                 {
                     residualTime += deltaTime;
-                    
+
                     // Evita a "espiral da morte" se o emulador estiver muito lento
-                    if (residualTime > 0.1f) residualTime = 0.1f;
+                    if (residualTime > 0.1f)
+                        residualTime = 0.1f;
 
                     while (residualTime >= 1.0f / 60.0f)
                     {
@@ -120,7 +121,7 @@ namespace R2NES::Core
     void Engine::render()
     {
         // Usamos o disassembly já armazenado e o PC atual da CPU
-        auto& cpu = nes->getCpu();
+        auto &cpu = nes->getCpu();
         uint16_t currentPC = cpu.pc;
 
         // Pega o buffer de pixels da PPU e manda para a Window

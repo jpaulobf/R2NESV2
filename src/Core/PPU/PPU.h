@@ -27,7 +27,7 @@ namespace R2NES::Core
 
         void clock();
         void reset();
-        void connectBus(Bus* bus);
+        void connectBus(Bus *bus);
         bool isFrameComplete() const { return frameComplete; }
         void clearFrameComplete() { frameComplete = false; }
 
@@ -36,10 +36,10 @@ namespace R2NES::Core
         std::vector<uint32_t> getPatternTablePixels(uint8_t patternTableIndex, uint8_t paletteIndex = 0) const;
 
         // Retorna o ponteiro para o buffer de pixels (256x240)
-        const uint32_t* getFrameBuffer() const { return frameBuffer.data(); }
+        const uint32_t *getFrameBuffer() const { return frameBuffer.data(); }
 
     private:
-        Bus* bus = nullptr;
+        Bus *bus = nullptr;
         VRAM vram; // Name Tables gerenciadas pela classe que você criou
 
         // Paletas internas (32 bytes)
@@ -54,8 +54,8 @@ namespace R2NES::Core
         std::array<uint32_t, 256 * 240> frameBuffer;
 
         // Registradores e buffers internos
-        uint8_t ppuCtrl = 0x00;   // PPUCTRL ($2000)
-        uint8_t ppuMask = 0x00;   // PPUMASK ($2001) - Controla renderização
+        uint8_t ppuCtrl = 0x00; // PPUCTRL ($2000)
+        uint8_t ppuMask = 0x00; // PPUMASK ($2001) - Controla renderização
         uint8_t oamAddr = 0x00;
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
@@ -69,8 +69,8 @@ namespace R2NES::Core
         // - Fine Y (3 bits): pixel fino vertical (0-7)
         // - Coarse Y (5 bits): linha de tile (0-29)
         // - Nametable selection (2 bits): qual das 4 nametables usar no PPUCTRL
-        uint8_t scrollX = 0x00;  // Posição X do scroll (0-255)
-        uint8_t scrollY = 0x00;  // Posição Y do scroll (0-239)
+        uint8_t scrollX = 0x00; // Posição X do scroll (0-255)
+        uint8_t scrollY = 0x00; // Posição Y do scroll (0-239)
 
         // Sprite 0 Hit - Tracking
         // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
@@ -84,7 +84,7 @@ namespace R2NES::Core
         int16_t cycle = 0;
 
         bool frameComplete = false;
-    
+
     public:
         bool nmi = false;
     };

@@ -22,9 +22,9 @@ namespace R2NES::Core
 
         void unload();
 
-        CPU& getCpu() { return cpu; }
+        CPU &getCpu() { return cpu; }
 
-        PPU& getPpu() { return ppu; }
+        PPU &getPpu() { return ppu; }
 
         // Permite ler um byte de qualquer lugar do barramento (debug)
         uint8_t cpuRead(uint16_t addr) { return bus.cpuRead(addr); }
