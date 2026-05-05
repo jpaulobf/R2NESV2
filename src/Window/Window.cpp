@@ -15,6 +15,7 @@
 
 #define IDM_FILE_OPEN 1001
 #define IDM_FILE_EXIT 1002
+#define IDM_FILE_RESET 1003
 #define IDM_FILE_TILE_VIEWER 1003
 #define IDM_FILE_DISASSEMBLER 1004
 
@@ -110,6 +111,10 @@ namespace R2NES::Core
                     {
                         openFileDialog();
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_RESET)
+                    {
+                        reset();
+                    }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_EXIT)
                     {
                         closed = true;
@@ -180,6 +185,7 @@ namespace R2NES::Core
 
             // Adiciona a opção Open ao menu File
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
+            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
@@ -306,6 +312,11 @@ namespace R2NES::Core
         SDL_RenderCopy(tileRenderer, tileTexture[1], nullptr, &dest1);
 
         SDL_RenderPresent(tileRenderer);
+    }
+
+    void Window::reset()
+    {
+        
     }
 
     void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, 

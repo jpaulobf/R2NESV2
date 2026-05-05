@@ -34,6 +34,8 @@ namespace R2NES::Core
 
         bool shouldClose() const { return closed; }
 
+        void reset();
+
     private:
         void openFileDialog();
         void openTileViewer();
