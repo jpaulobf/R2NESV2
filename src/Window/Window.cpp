@@ -16,8 +16,9 @@
 #define IDM_FILE_OPEN 1001
 #define IDM_FILE_EXIT 1002
 #define IDM_FILE_RESET 1003
-#define IDM_FILE_TILE_VIEWER 1003
-#define IDM_FILE_DISASSEMBLER 1004
+#define IDM_FILE_UNLOAD 1004
+#define IDM_FILE_TILE_VIEWER 1005
+#define IDM_FILE_DISASSEMBLER 1006
 
 namespace R2NES::Core
 {
@@ -119,6 +120,10 @@ namespace R2NES::Core
                     {
                         closed = true;
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_UNLOAD)
+                    {
+                        unload();
+                    }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_TILE_VIEWER)
                     {
                         openTileViewer();
@@ -186,6 +191,7 @@ namespace R2NES::Core
             // Adiciona a opção Open ao menu File
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
+            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_UNLOAD, L"&Unload");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
@@ -314,9 +320,25 @@ namespace R2NES::Core
         SDL_RenderPresent(tileRenderer);
     }
 
+    void Window::unload()
+    {
+    }
+
     void Window::reset()
     {
-        
+        resetRequested = true;
+
+        // Fecha/Esconde as janelas de debug para um reset "limpo"
+        if (tileWindow)
+        {
+            SDL_HideWindow(tileWindow);
+            tileViewerOpen = false;
+        }
+        if (disasmWindow)
+        {
+            SDL_HideWindow(disasmWindow);
+            showDisasm = false;
+        }
     }
 
     void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly, 

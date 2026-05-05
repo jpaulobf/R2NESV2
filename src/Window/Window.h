@@ -30,11 +30,16 @@ namespace R2NES::Core
 
         bool isTileViewerOpen() const { return tileViewerOpen; }
 
+        bool isResetRequested() const { return resetRequested; }
+        void clearResetRequest() { resetRequested = false; }
+
         void clearSelectedPath() { selectedPath = ""; }
 
         bool shouldClose() const { return closed; }
 
         void reset();
+
+        void unload();
 
     private:
         void openFileDialog();
@@ -58,6 +63,7 @@ namespace R2NES::Core
 
         bool showDisasm = false;
         bool closed = false;
+        bool resetRequested = false;
         int width, height, scale;
     };
 }

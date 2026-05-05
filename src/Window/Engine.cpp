@@ -70,6 +70,14 @@ namespace R2NES::Core
 
             window->clearSelectedPath();
         }
+
+        // Verifica se o usuário clicou em "Reset" no menu
+        if (window->isResetRequested())
+        {
+            std::cout << "Engine: Resetting NES..." << std::endl;
+            nes->reset();
+            window->clearResetRequest();
+        }
     }
 
     void Engine::update()
