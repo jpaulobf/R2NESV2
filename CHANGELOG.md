@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [0.1.0] - 2024-05-24
+## [0.2.0] - 2026-05-05
 
 ### Adicionado
 - Estrutura inicial do projeto (Core Architecture).
@@ -33,6 +33,10 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação do Disassembler em uma janela nativa independente utilizando ImGui e um pipeline de renderização dedicado.
 - Integração de dados reais da CPU (PC e Disassembly) com a interface visual do Debugger.
 - Sistema de realce (highlight) visual para a instrução atual no Disassembler.
+- Implementação robusta de detecção de Sprite 0 Hit para sincronização de HUD.
+- Sistema de renderização baseado em coordenadas absolutas (512x480) para scrolling estável.
+- Funcionalidades de Reset e Unload de ROMs com limpeza de buffer de vídeo e estado do sistema.
+- Automação de Unload antes de novos carregamentos de ROM para prevenir estados residuais.
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).
@@ -47,3 +51,6 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Bloqueio de carregamento para ROMs com Mappers ainda não suportados para evitar comportamento indefinido.
 - Correção de crash (Assertion Failed) ao iniciar o emulador sem a janela de debug do ImGui inicializada.
 - Proteção no loop de eventos para processar inputs do ImGui apenas quando a janela de debug estiver ativa.
+- Correção de loop infinito (hang) no Super Mario Bros através da detecção de colisão do Sprite 0.
+- Resolução de instabilidades no scroll (jitter) via sincronização de bits de Nametable no registrador $2006.
+- Ajuste na lógica de wrapping vertical da PPU para respeitar o limite de 240 pixels (30 tiles).
