@@ -19,19 +19,28 @@
 #define IDM_FILE_UNLOAD 1004
 #define IDM_FILE_TILE_VIEWER 1005
 #define IDM_FILE_DISASSEMBLER 1006
+#define IDM_FILE_WINDOW_2X 2001
+#define IDM_FILE_WINDOW_3X 2002
+#define IDM_FILE_WINDOW_4X 2003
+#define IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN 2004
+#define IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 
 namespace R2NES::Core
 {
     Window::Window(const std::string &title, int w, int h, int s)
         : width(w), height(h), scale(s)
     {
+        // Store initial windowed state
+        lastWindowedW = w * s;
+        lastWindowedH = h * s;
+        // lastWindowedX and Y are already initialized to SDL_WINDOWPOS_CENTERED
+
         if (SDL_Init(SDL_INIT_VIDEO) < 0)
         {
             std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
             closed = true;
             return;
         }
-
         window = SDL_CreateWindow(
             title.c_str(),
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -132,6 +141,26 @@ namespace R2NES::Core
                     {
                         openDisassembler();
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_2X)
+                    {
+                        window2x();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_3X)
+                    {
+                        window3x();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_4X)
+                    {
+                        window4x();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH)
+                    {
+                        windowBorderlessFullscreenStretch();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN)
+                    {
+                        windowBorderlessFullscreen();
+                    }
                 }
 #endif
             }
@@ -171,6 +200,12 @@ namespace R2NES::Core
                         if (disasmWindow)
                             SDL_SetWindowPosition(disasmWindow, x + w_main, y + 300);
                     }
+                    // Update last known windowed position if not in fullscreen
+                    if (e.window.windowID == SDL_GetWindowID(window) && currentDisplayMode == DisplayMode::WINDOWED)
+                    {
+                        lastWindowedX = e.window.data1;
+                        lastWindowedY = e.window.data2;
+                    }
                 }
             }
         }
@@ -187,6 +222,7 @@ namespace R2NES::Core
             HMENU hMenuBar = CreateMenu();
             HMENU hFileMenu = CreateMenu();
             HMENU hDebugMenu = CreateMenu();
+            HMENU hDisplayMenu = CreateMenu();
 
             // Adiciona a opção Open ao menu File
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
@@ -195,9 +231,15 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_2X, L"&2x");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_3X, L"&3x");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_4X, L"&4x");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
 
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
+            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDebugMenu, L"&Debug");
 
             SetMenu(hwnd, hMenuBar);
@@ -354,6 +396,99 @@ namespace R2NES::Core
         }
     }
 
+    void Window::window2x()
+    {
+        // Exit fullscreen mode if currently in one
+        if (currentDisplayMode != DisplayMode::WINDOWED)
+        {
+            SDL_SetWindowFullscreen(window, 0);                          // Set to windowed mode
+            SDL_SetWindowBordered(window, SDL_TRUE);                     // Restore border
+            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY); // Restore last known position
+            createMenu();                                                // Restaura o menu nativo
+        }
+        SDL_SetWindowSize(window, width * 2 * scale, height * 2 * scale);
+        // Update last known windowed size
+        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        currentDisplayMode = DisplayMode::WINDOWED;
+    }
+
+    void Window::window3x()
+    {
+        if (currentDisplayMode != DisplayMode::WINDOWED)
+        {
+            SDL_SetWindowFullscreen(window, 0);
+            SDL_SetWindowBordered(window, SDL_TRUE);
+            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
+            createMenu();
+        }
+        SDL_SetWindowSize(window, width * 3 * scale, height * 3 * scale);
+        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        currentDisplayMode = DisplayMode::WINDOWED;
+    }
+
+    void Window::window4x()
+    {
+        if (currentDisplayMode != DisplayMode::WINDOWED)
+        {
+            SDL_SetWindowFullscreen(window, 0);
+            SDL_SetWindowBordered(window, SDL_TRUE);
+            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
+            createMenu();
+        }
+        SDL_SetWindowSize(window, width * 4 * scale, height * 4 * scale);
+        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        currentDisplayMode = DisplayMode::WINDOWED;
+    }
+
+    void Window::windowBorderlessFullscreenStretch()
+    {
+        // Save current windowed state before going fullscreen
+        if (currentDisplayMode == DisplayMode::WINDOWED)
+        {
+            SDL_GetWindowPosition(window, &lastWindowedX, &lastWindowedY);
+            SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        }
+
+#ifdef _WIN32
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        if (SDL_GetWindowWMInfo(window, &wmInfo))
+        {
+            // Remove o menu do Windows para um visual verdadeiramente "borderless"
+            SetMenu(wmInfo.info.win.window, NULL);
+        }
+#endif
+
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        currentDisplayMode = DisplayMode::FULLSCREEN_STRETCH;
+    }
+
+    void Window::windowBorderlessFullscreen()
+    {
+        // Save current windowed state before going fullscreen
+        if (currentDisplayMode == DisplayMode::WINDOWED)
+        {
+            SDL_GetWindowPosition(window, &lastWindowedX, &lastWindowedY);
+            SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        }
+
+#ifdef _WIN32
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        if (SDL_GetWindowWMInfo(window, &wmInfo))
+        {
+            // Remove o menu do Windows
+            SetMenu(wmInfo.info.win.window, NULL);
+        }
+#endif
+
+        // Set to borderless fullscreen desktop mode
+        // This makes the window fill the entire screen, borderless.
+        // The rendering logic in `render` will then handle the 8:7 aspect ratio.
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        currentDisplayMode = DisplayMode::FULLSCREEN_ASPECT_8_7;
+    }
+
     void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                         bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
     {
@@ -461,7 +596,42 @@ namespace R2NES::Core
 
         SDL_UpdateTexture(texture, nullptr, pixels, width * sizeof(uint32_t));
         SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+
+        SDL_Rect dest_rect;
+        if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
+        {
+            int current_window_w, current_window_h;
+            SDL_GetWindowSize(window, &current_window_w, &current_window_h);
+
+            double target_aspect_ratio = 8.0 / 7.0; // Desired 8:7 aspect ratio for NES
+
+            int render_w, render_h;
+            double potential_h = current_window_w / target_aspect_ratio;
+            double potential_w = current_window_h * target_aspect_ratio;
+
+            if (potential_h <= current_window_h)
+            {
+                render_w = static_cast<int>(current_window_w);
+                render_h = static_cast<int>(potential_h);
+            }
+            else
+            {
+                render_w = static_cast<int>(potential_w);
+                render_h = static_cast<int>(current_window_h);
+            }
+
+            dest_rect.w = render_w;
+            dest_rect.h = render_h;
+            dest_rect.x = (current_window_w - render_w) / 2;
+            dest_rect.y = (current_window_h - render_h) / 2;
+
+            SDL_RenderCopy(renderer, texture, nullptr, &dest_rect);
+        }
+        else
+        {
+            // Default behavior for windowed modes or fullscreen stretch
+            SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+        }
         SDL_RenderPresent(renderer);
     }
 }

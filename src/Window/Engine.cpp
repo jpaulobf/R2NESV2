@@ -8,7 +8,7 @@ namespace R2NES::Core
     Engine::Engine()
     {
         // Inicializa os componentes principais
-        window = std::make_unique<Window>("R2NES v2", 256, 240, 3);
+        window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
         window->createMenu();
         nes = std::make_unique<NesBoard>();
     }

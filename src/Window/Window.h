@@ -44,6 +44,23 @@ namespace R2NES::Core
 
         void unload();
 
+        void window2x();
+
+        void window3x();
+
+        void window4x();
+
+        void windowBorderlessFullscreenStretch();
+
+        void windowBorderlessFullscreen();
+
+        enum class DisplayMode
+        {
+            WINDOWED,
+            FULLSCREEN_STRETCH,
+            FULLSCREEN_ASPECT_8_7
+        };
+
     private:
         void openFileDialog();
         void openTileViewer();
@@ -69,5 +86,11 @@ namespace R2NES::Core
         bool resetRequested = false;
         bool unloadRequested = false;
         int width, height, scale;
+
+        // Membros para gerenciamento do modo de exibição
+        DisplayMode currentDisplayMode = DisplayMode::WINDOWED;
+
+        // Armazena o último estado da janela para restauração
+        int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
     };
 }
