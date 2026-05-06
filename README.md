@@ -19,12 +19,14 @@ O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma **
 ## 🛠️ Tecnologias
  * **Linguagem:** C++17
  * **Build System:** CMake
- * **Gráficos/Input/Áudio:** SDL2 (Planejado)
+ * **Gráficos/Input/Áudio:** SDL2 (WIP)
 
 ## 🚀 Status do Desenvolvimento
 - [x] Barramento Principal (Bus) e Endereçamento de RAM.
 - [x] Leitura de arquivos `.nes` (iNES).
 - [x] Infraestrutura de Mappers (NROM funcional).
 - [x] Ciclo de Reset da CPU.
-- [ ] Conjunto de Instruções da CPU (Em progresso).
-- [ ] PPU (Renderização de Background e Sprites).
+- [x] Conjunto de Instruções da CPU (6502 Completo + Instruções Ilegais).
+- [x] PPU (Renderização de Background, Sprites e Sprite 0 Hit).
+- [x] Sistema de Scrolling (Horizontal e Vertical).
+- [ ] Suporte a Áudio (APU).
