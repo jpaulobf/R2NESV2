@@ -19,6 +19,7 @@
 #define IDM_FILE_UNLOAD 1004
 #define IDM_FILE_TILE_VIEWER 1005
 #define IDM_FILE_DISASSEMBLER 1006
+#define IDM_FILE_WINDOW_1X 2000
 #define IDM_FILE_WINDOW_2X 2001
 #define IDM_FILE_WINDOW_3X 2002
 #define IDM_FILE_WINDOW_4X 2003
@@ -72,6 +73,8 @@ namespace R2NES::Core
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+
+        window3x();
     }
 
     Window::~Window()
@@ -111,6 +114,20 @@ namespace R2NES::Core
             if (e.type == SDL_QUIT)
                 closed = true;
 
+            // Sai do modo tela cheia e restaura o menu ao apertar ESC
+            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
+            {
+                if (currentDisplayMode != DisplayMode::WINDOWED)
+                {
+                    SDL_SetWindowFullscreen(window, 0);
+                    SDL_SetWindowBordered(window, SDL_TRUE);
+                    SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
+                    SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
+                    createMenu();
+                    currentDisplayMode = DisplayMode::WINDOWED;
+                }
+            }
+
             // Trata mensagens do Menu do Windows
             if (e.type == SDL_SYSWMEVENT)
             {
@@ -140,6 +157,10 @@ namespace R2NES::Core
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_DISASSEMBLER)
                     {
                         openDisassembler();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_1X)
+                    {
+                        window1x();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_2X)
                     {
@@ -231,6 +252,7 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_1X, L"&1x");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_2X, L"&2x");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_3X, L"&3x");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_4X, L"&4x");
@@ -396,7 +418,7 @@ namespace R2NES::Core
         }
     }
 
-    void Window::window2x()
+    void Window::window1x()
     {
         // Exit fullscreen mode if currently in one
         if (currentDisplayMode != DisplayMode::WINDOWED)
@@ -406,8 +428,22 @@ namespace R2NES::Core
             SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY); // Restore last known position
             createMenu();                                                // Restaura o menu nativo
         }
-        SDL_SetWindowSize(window, width * 2 * scale, height * 2 * scale);
+        SDL_SetWindowSize(window, width * 1 * scale, height * 1 * scale);
         // Update last known windowed size
+        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        currentDisplayMode = DisplayMode::WINDOWED;
+    }
+    
+    void Window::window2x()
+    {
+        if (currentDisplayMode != DisplayMode::WINDOWED)
+        {
+            SDL_SetWindowFullscreen(window, 0);                          
+            SDL_SetWindowBordered(window, SDL_TRUE);                     
+            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY); 
+            createMenu();                                                
+        }
+        SDL_SetWindowSize(window, width * 2 * scale, height * 2 * scale);
         SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
         currentDisplayMode = DisplayMode::WINDOWED;
     }

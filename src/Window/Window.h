@@ -44,6 +44,8 @@ namespace R2NES::Core
 
         void unload();
 
+        void window1x();
+
         void window2x();
 
         void window3x();
