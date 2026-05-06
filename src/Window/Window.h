@@ -44,13 +44,7 @@ namespace R2NES::Core
 
         void unload();
 
-        void window1x();
-
-        void window2x();
-
-        void window3x();
-
-        void window4x();
+        void windowResize(int times);
 
         void windowBorderlessFullscreenStretch();
 

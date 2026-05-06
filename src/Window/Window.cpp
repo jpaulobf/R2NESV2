@@ -74,7 +74,7 @@ namespace R2NES::Core
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
 
-        window3x();
+        this->windowResize(3);
     }
 
     Window::~Window()
@@ -160,19 +160,19 @@ namespace R2NES::Core
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_1X)
                     {
-                        window1x();
+                        windowResize(1);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_2X)
                     {
-                        window2x();
+                        windowResize(2);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_3X)
                     {
-                        window3x();
+                        windowResize(3);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_4X)
                     {
-                        window4x();
+                        windowResize(4);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH)
                     {
@@ -249,6 +249,7 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_UNLOAD, L"&Unload");
+            AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
@@ -256,6 +257,7 @@ namespace R2NES::Core
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_2X, L"&2x");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_3X, L"&3x");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_4X, L"&4x");
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
 
@@ -418,61 +420,20 @@ namespace R2NES::Core
         }
     }
 
-    void Window::window1x()
+    void Window::windowResize(int times)
     {
         // Exit fullscreen mode if currently in one
         if (currentDisplayMode != DisplayMode::WINDOWED)
         {
-            SDL_SetWindowFullscreen(window, 0);                          // Set to windowed mode
-            SDL_SetWindowBordered(window, SDL_TRUE);                     // Restore border
-            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY); // Restore last known position
-            createMenu();                                                // Restaura o menu nativo
+            SDL_SetWindowFullscreen(window, 0);      // Set to windowed mode
+            SDL_SetWindowBordered(window, SDL_TRUE); // Restore border
+            createMenu();                            // Restaura o menu nativo
         }
-        SDL_SetWindowSize(window, width * 1 * scale, height * 1 * scale);
+        SDL_SetWindowSize(window, width * times * scale, height * times * scale);
+        SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
         // Update last known windowed size
         SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
-        currentDisplayMode = DisplayMode::WINDOWED;
-    }
-    
-    void Window::window2x()
-    {
-        if (currentDisplayMode != DisplayMode::WINDOWED)
-        {
-            SDL_SetWindowFullscreen(window, 0);                          
-            SDL_SetWindowBordered(window, SDL_TRUE);                     
-            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY); 
-            createMenu();                                                
-        }
-        SDL_SetWindowSize(window, width * 2 * scale, height * 2 * scale);
-        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
-        currentDisplayMode = DisplayMode::WINDOWED;
-    }
-
-    void Window::window3x()
-    {
-        if (currentDisplayMode != DisplayMode::WINDOWED)
-        {
-            SDL_SetWindowFullscreen(window, 0);
-            SDL_SetWindowBordered(window, SDL_TRUE);
-            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
-            createMenu();
-        }
-        SDL_SetWindowSize(window, width * 3 * scale, height * 3 * scale);
-        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
-        currentDisplayMode = DisplayMode::WINDOWED;
-    }
-
-    void Window::window4x()
-    {
-        if (currentDisplayMode != DisplayMode::WINDOWED)
-        {
-            SDL_SetWindowFullscreen(window, 0);
-            SDL_SetWindowBordered(window, SDL_TRUE);
-            SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
-            createMenu();
-        }
-        SDL_SetWindowSize(window, width * 4 * scale, height * 4 * scale);
-        SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
+        SDL_GetWindowPosition(window, &lastWindowedX, &lastWindowedY);
         currentDisplayMode = DisplayMode::WINDOWED;
     }
 
