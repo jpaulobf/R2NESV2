@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [0.2.0] - 2026-05-05
+## [0.3.0] - 2026-05-07
 
 ### Adicionado
 - Estrutura inicial do projeto (Core Architecture).
