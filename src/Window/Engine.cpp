@@ -68,17 +68,17 @@ namespace R2NES::Core
         while (!window->shouldClose() && isRunning)
         {
             uint64_t currentTime = SDL_GetPerformanceCounter();
-            // deltaTime agora é calculado com precisão de microsegundos
+            // deltaTime calculado com precisão de micro/nanosegundos
             double deltaTime = static_cast<double>(currentTime - lastTime) / frequency;
             lastTime = currentTime;
 
             processEmulatorInput();
 
             // Calcula o FPS real a cada segundo
-            fpsTimer += deltaTime;
+            fpsTimer += static_cast<float>(deltaTime);
             if (fpsTimer >= 1.0f)
             {
-                currentFPS = (float)frameCount / fpsTimer;
+                currentFPS = static_cast<float>(frameCount) / fpsTimer;
                 frameCount = 0;
                 fpsTimer = 0.0f;
             }
@@ -93,11 +93,18 @@ namespace R2NES::Core
                 }
                 else if (uncappedSpeed)
                 {
-                    // Modo "Turbo" Máximo: ignora o tempo e roda o quanto puder
-                    // Útil para benchmarks ou carregar telas rapidamente
-                    update();
-                    render();
-                    frameCount++;
+                    // Emulação (UPS) - Roda o máximo que o núcleo da CPU permitir
+                    for (int i = 0; i < 10; ++i) { // Pequeno batch para reduzir overhead do loop
+                        update();
+                        frameCount++; // Agora contamos quadros emulados
+                    }
+
+                    // Renderização (FPS) - Limitamos a renderização para não travar na GPU
+                    renderResidualTime += deltaTime;
+                    if (renderResidualTime >= 1.0 / targetFPS) {
+                        render();
+                        renderResidualTime = 0;
+                    }
                 }
                 else
                 {
@@ -122,7 +129,8 @@ namespace R2NES::Core
                     if (renderResidualTime >= renderInterval)
                     {
                         render();
-                        frameCount++;
+                        // No modo normal, contamos aqui ou no update. 
+                        // Vamos contar no update() para ser consistente.
                         renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
@@ -131,7 +139,7 @@ namespace R2NES::Core
             {
                 // Se não há jogo, apenas renderiza a interface (ImGui/Menu)
                 render();
-                frameCount++;
+                //frameCount++;
             }
         }
     }
@@ -260,6 +268,8 @@ namespace R2NES::Core
             }
             nes->clearFrameComplete();
         }
+
+        if (!uncappedSpeed) frameCount++; // Conta quadros emulados no modo normal
     }
 
     void Engine::render()

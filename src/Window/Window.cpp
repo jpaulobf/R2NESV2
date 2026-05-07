@@ -536,6 +536,15 @@ namespace R2NES::Core
     void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                         bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status, float fps)
     {
+        // Atualiza o título da janela com o FPS
+        static float lastFps = -1.0f;
+        if (fps != lastFps) {
+            char titleBuffer[64];
+            snprintf(titleBuffer, sizeof(titleBuffer), "R2NES v2 | FPS: %.2f", fps);
+            SDL_SetWindowTitle(window, titleBuffer);
+            lastFps = fps;
+        }
+
         if (showDisasm)
         {
             // Inicializa o frame apenas para a janela secundária
@@ -557,13 +566,6 @@ namespace R2NES::Core
             ImGui::SameLine();
             if (ImGui::Button("Next Instruction"))
                 stepRequested = true;
-            
-            ImGui::SameLine();
-            ImGui::TextDisabled("|");
-            ImGui::SameLine();
-            
-            // Mostra o FPS em cor verde para destaque
-            ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS: %.2f", fps);
 
             ImGui::Separator();
 
