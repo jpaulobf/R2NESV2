@@ -37,6 +37,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Sistema de renderização baseado em coordenadas absolutas (512x480) para scrolling estável.
 - Funcionalidades de Reset e Unload de ROMs com limpeza de buffer de vídeo e estado do sistema.
 - Automação de Unload antes de novos carregamentos de ROM para prevenir estados residuais.
+- Suporte nativo a controles (Gamepads) via interface `SDL_GameController`.
+- Sistema de Hot-plugging para detecção automática de conexão/desconexão de controles em tempo real.
+- Implementação de mapeamento flexível de botões (Input Mapping) para até 2 jogadores.
 
 ### Corrigido
 - Erros de definições múltiplas no header `Common.h` com a adição de Include Guards (`#pragma once`).

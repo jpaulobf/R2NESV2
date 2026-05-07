@@ -19,7 +19,8 @@ O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma **
 ## 🛠️ Tecnologias
  * **Linguagem:** C++17
  * **Build System:** CMake
- * **Gráficos/Input/Áudio:** SDL2 (WIP)
+ * **Gráficos/Input:** SDL2
+ * **Interface de Debug:** Dear ImGui
 
 ## 🚀 Status do Desenvolvimento
 - [x] Barramento Principal (Bus) e Endereçamento de RAM.
@@ -29,4 +30,5 @@ O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma **
 - [x] Conjunto de Instruções da CPU (6502 Completo + Instruções Ilegais).
 - [x] PPU (Renderização de Background, Sprites e Sprite 0 Hit).
 - [x] Sistema de Scrolling (Horizontal e Vertical).
+- [x] Suporte a Controles (Xbox, 8BitDo, etc.) via SDL_GameController.
 - [ ] Suporte a Áudio (APU).
