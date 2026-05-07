@@ -106,16 +106,30 @@ namespace R2NES::Core
 
         switch (key)
         {
-            case SDLK_z:      /* joy1.setButton(IO::Button::A, isPressed); */ break;
-            case SDLK_x:      /* joy1.setButton(IO::Button::B, isPressed); */ break;
-            case SDLK_SPACE:  /* joy1.setButton(IO::Button::SELECT, isPressed); */ break;
+            case SDLK_j:
+                joy1.setButton(R2NES::Core::IO::BUTTON_B, isPressed); 
+                break;
+            case SDLK_k:
+                joy1.setButton(R2NES::Core::IO::BUTTON_A, isPressed); 
+                break;
+            case SDLK_BACKSPACE:
+                joy1.setButton(R2NES::Core::IO::BUTTON_SELECT, isPressed); 
+                break;
             case SDLK_RETURN: 
                 joy1.setButton(R2NES::Core::IO::BUTTON_START, isPressed); 
                 break;
-            case SDLK_UP:     /* joy1.setButton(IO::Button::UP, isPressed); */ break;
-            case SDLK_DOWN:   /* joy1.setButton(IO::Button::DOWN, isPressed); */ break;
-            case SDLK_LEFT:   /* joy1.setButton(IO::Button::LEFT, isPressed); */ break;
-            case SDLK_RIGHT:  /* joy1.setButton(IO::Button::RIGHT, isPressed); */ break;
+            case SDLK_w:
+                joy1.setButton(R2NES::Core::IO::BUTTON_UP, isPressed); 
+                break;
+            case SDLK_s:
+                joy1.setButton(R2NES::Core::IO::BUTTON_DOWN, isPressed); 
+                break;
+            case SDLK_a:
+                joy1.setButton(R2NES::Core::IO::BUTTON_LEFT, isPressed); 
+                break;
+            case SDLK_d:
+                joy1.setButton(R2NES::Core::IO::BUTTON_RIGHT, isPressed); 
+                break;
             
             // Atalhos da Engine
             case SDLK_F7: if(isPressed) window->windowResize(1); break;
