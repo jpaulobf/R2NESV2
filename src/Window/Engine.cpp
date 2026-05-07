@@ -11,6 +11,11 @@ namespace R2NES::Core
         window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
         window->createMenu();
         nes = std::make_unique<NesBoard>();
+
+        // Conecta o callback da janela à função da Engine
+        window->setKeyCallback([this](SDL_Keycode key, bool isPressed) {
+            this->handleKeyboard(key, isPressed);
+        });
     }
 
     Engine::~Engine() {}
@@ -91,6 +96,34 @@ namespace R2NES::Core
             nes->unload();
             cachedDisassembly.clear(); // Limpa o cache do disassembler
             window->clearUnloadRequest();
+        }
+    }
+
+    void Engine::handleKeyboard(SDL_Keycode key, bool isPressed)
+    {
+        // Exemplo de mapeamento simples para o Controller 1
+        auto& joy1 = nes->getJoysticks().controller1;
+
+        switch (key)
+        {
+            case SDLK_z:      /* joy1.setButton(IO::Button::A, isPressed); */ break;
+            case SDLK_x:      /* joy1.setButton(IO::Button::B, isPressed); */ break;
+            case SDLK_SPACE:  /* joy1.setButton(IO::Button::SELECT, isPressed); */ break;
+            case SDLK_RETURN: 
+                joy1.setButton(R2NES::Core::IO::BUTTON_START, isPressed); 
+                break;
+            case SDLK_UP:     /* joy1.setButton(IO::Button::UP, isPressed); */ break;
+            case SDLK_DOWN:   /* joy1.setButton(IO::Button::DOWN, isPressed); */ break;
+            case SDLK_LEFT:   /* joy1.setButton(IO::Button::LEFT, isPressed); */ break;
+            case SDLK_RIGHT:  /* joy1.setButton(IO::Button::RIGHT, isPressed); */ break;
+            
+            // Atalhos da Engine
+            case SDLK_F7: if(isPressed) window->windowResize(1); break;
+            case SDLK_F8: if(isPressed) window->windowResize(2); break;
+            case SDLK_F9: if(isPressed) window->windowResize(3); break;
+            case SDLK_F10: if(isPressed) window->windowResize(4); break;
+            case SDLK_F11: if(isPressed) window->windowBorderlessFullscreen(); break;
+            case SDLK_F12: if(isPressed) nes->reset(); break;
         }
     }
 

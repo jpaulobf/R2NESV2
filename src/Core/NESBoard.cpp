@@ -8,6 +8,8 @@ namespace R2NES::Core
         // Conecta a RAM ao Bus
         bus.connectRam(&ram);
 
+        bus.setJoysticks(&joysticks);
+
         // Conecta a CPU ao Bus
         cpu.connectBus(&bus);
 

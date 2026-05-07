@@ -128,6 +128,14 @@ namespace R2NES::Core
                 }
             }
 
+            if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) && e.key.keysym.sym != SDLK_ESCAPE) {
+                if (keyCallback)
+                {
+                    bool isPressed = (e.type == SDL_KEYDOWN);
+                    keyCallback(e.key.keysym.sym, isPressed);
+                }
+            }
+
             // Trata mensagens do Menu do Windows
             if (e.type == SDL_SYSWMEVENT)
             {

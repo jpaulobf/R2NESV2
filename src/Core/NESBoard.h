@@ -5,6 +5,7 @@
 #include "Core/Memory/RAM/RAM.h"
 #include "Core/Cartridge/Cartridge.h"
 #include <string>
+#include "Core/IO/Joysticks.h"
 
 namespace R2NES::Core
 {
@@ -38,11 +39,14 @@ namespace R2NES::Core
 
         bool isCartridgeLoaded() const { return cartridgeLoaded; }
 
+        IO::Joysticks& getJoysticks() { return joysticks; }
+
     private:
         Bus bus;
         RAM ram;
         CPU cpu;
         PPU ppu;
+        IO::Joysticks joysticks;
 
         // Controle de timing
         uint32_t systemClockCounter = 0;

@@ -2,6 +2,7 @@
 #include "Core/Memory/RAM/RAM.h"
 #include "Core/Cartridge/Cartridge.h"
 #include "Core/PPU/PPU.h"
+#include "Core/IO/Joysticks.h"
 #include <algorithm>
 
 namespace R2NES::Core
@@ -28,6 +29,11 @@ namespace R2NES::Core
     void Bus::connectPPU(PPU *pPpu)
     {
         this->ppu = pPpu;
+    }
+
+    void Bus::setJoysticks(IO::Joysticks *joysticks)
+    {
+        this->joysticks = joysticks;
     }
 
     void Bus::cpuWrite(uint16_t addr, uint8_t data)
@@ -60,6 +66,14 @@ namespace R2NES::Core
             // Nota: Em uma implementação de "ciclo exato", a CPU deveria ser
             // suspensa por aproximadamente 513 ciclos aqui.
         }
+        else if (addr == 0x4016)
+        {
+            if (joysticks)
+            {
+                joysticks->controller1.writeStrobe(data);
+                joysticks->controller2.writeStrobe(data);
+            }
+        }
     }
 
     uint8_t Bus::cpuRead(uint16_t addr, bool readOnly)
@@ -76,6 +90,14 @@ namespace R2NES::Core
         else if (addr >= 0x2000 && addr <= 0x3FFF)
         {
             return ppu ? ppu->cpuRead(addr) : 0x00;
+        }
+        else if (addr == 0x4016) 
+        {
+            return joysticks ? joysticks->controller1.readNextBit() : 0x00;
+        }
+        else if (addr == 0x4017) 
+        {
+            return joysticks ? joysticks->controller2.readNextBit() : 0x00;
         }
         return data;
     }

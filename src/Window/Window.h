@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <map>
+#include <functional>
 
 namespace R2NES::Core
 {
@@ -12,6 +13,9 @@ namespace R2NES::Core
     public:
         Window(const std::string &title, int width, int height, int scale);
         ~Window();
+
+        using KeyCallback = std::function<void(SDL_Keycode, bool)>;
+        void setKeyCallback(KeyCallback cb) { keyCallback = cb; }
 
         // Processa eventos do sistema (como o botão de fechar)
         void pollEvents();
@@ -31,9 +35,11 @@ namespace R2NES::Core
         bool isTileViewerOpen() const { return tileViewerOpen; }
 
         bool isResetRequested() const { return resetRequested; }
+
         void clearResetRequest() { resetRequested = false; }
 
         bool isUnloadRequested() const { return unloadRequested; }
+        
         void clearUnloadRequest() { unloadRequested = false; }
 
         void clearSelectedPath() { selectedPath = ""; }
@@ -82,6 +88,8 @@ namespace R2NES::Core
         bool resetRequested = false;
         bool unloadRequested = false;
         int width, height, scale;
+
+        KeyCallback keyCallback = nullptr;
 
         // Membros para gerenciamento do modo de exibição
         DisplayMode currentDisplayMode = DisplayMode::WINDOWED;
