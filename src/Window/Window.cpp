@@ -55,7 +55,7 @@ namespace R2NES::Core
             return;
         }
 
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
         // Garante que o fundo da janela principal também comece preto
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);

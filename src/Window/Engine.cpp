@@ -62,12 +62,14 @@ namespace R2NES::Core
 
     void Engine::run()
     {
-        uint32_t lastTime = SDL_GetTicks();
+        uint64_t lastTime = SDL_GetPerformanceCounter();
+        uint64_t frequency = SDL_GetPerformanceFrequency();
 
         while (!window->shouldClose() && isRunning)
         {
-            uint32_t currentTime = SDL_GetTicks();
-            float deltaTime = (currentTime - lastTime) / 1000.0f;
+            uint64_t currentTime = SDL_GetPerformanceCounter();
+            // deltaTime agora é calculado com precisão de microsegundos
+            double deltaTime = static_cast<double>(currentTime - lastTime) / frequency;
             lastTime = currentTime;
 
             processEmulatorInput();

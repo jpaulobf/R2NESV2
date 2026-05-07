@@ -60,6 +60,6 @@ namespace R2NES::Core
         float fpsTimer = 0.0f;
 
         // Flag para ignorar o limite de tempo (Fast Forward ilimitado)
-        bool uncappedSpeed = true;
+        bool uncappedSpeed = false;
     };
 }
