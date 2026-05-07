@@ -78,24 +78,47 @@ namespace R2NES::Core
                 if (stepByStep)
                 {
                     update();
+                    render();
+                }
+                else if (uncappedSpeed)
+                {
+                    // Modo "Turbo" Máximo: ignora o tempo e roda o quanto puder
+                    // Útil para benchmarks ou carregar telas rapidamente
+                    update();
+                    render();
                 }
                 else
                 {
-                    residualTime += deltaTime;
+                    // 1. Emulação (UPS): Depende do timeScale
+                    double updateInterval = 1.0 / targetUPS;
+                    residualTime += deltaTime * timeScale;
 
                     // Evita a "espiral da morte" se o emulador estiver muito lento
                     if (residualTime > 0.1f)
                         residualTime = 0.1f;
 
-                    while (residualTime >= 1.0f / 60.0f)
+                    while (residualTime >= updateInterval)
                     {
                         update();
-                        residualTime -= 1.0f / 60.0f;
+                        residualTime -= updateInterval;
+                    }
+
+                    // 2. Renderização (FPS): Independente do timeScale
+                    double renderInterval = 1.0 / targetFPS;
+                    renderResidualTime += deltaTime;
+
+                    if (renderResidualTime >= renderInterval)
+                    {
+                        render();
+                        renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
             }
-
-            render();
+            else 
+            {
+                // Se não há jogo, apenas renderiza a interface (ImGui/Menu)
+                render();
+            }
         }
     }
 

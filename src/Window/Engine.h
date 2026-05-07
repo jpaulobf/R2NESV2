@@ -46,7 +46,15 @@ namespace R2NES::Core
 
         bool isRunning = true;
 
-        // Variáveis de controle de tempo
+        // Variáveis de controle de tempo e performance
         double residualTime = 0.0;
+        double renderResidualTime = 0.0;
+        
+        float timeScale = 1.0f;      // 1.0 = Normal, 2.0 = Fast Forward, 0.5 = Slow Motion
+        double targetUPS = 60.0;   // Taxa real do NES NTSC
+        double targetFPS = 60.0;     // Taxa de renderização desejada
+
+        // Flag para ignorar o limite de tempo (Fast Forward ilimitado)
+        bool uncappedSpeed = false;
     };
 }
