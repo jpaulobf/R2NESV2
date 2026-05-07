@@ -16,6 +16,20 @@ namespace R2NES::Core
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed) {
             this->handleKeyboard(key, isPressed);
         });
+
+        // Inicializa o mapeamento de teclas padrão para o Player 1
+        player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
+        player1KeyMap[SDLK_k] = R2NES::Core::IO::BUTTON_A;
+        player1KeyMap[SDLK_BACKSPACE] = R2NES::Core::IO::BUTTON_SELECT;
+        player1KeyMap[SDLK_RETURN] = R2NES::Core::IO::BUTTON_START;
+        player1KeyMap[SDLK_w] = R2NES::Core::IO::BUTTON_UP;
+        player1KeyMap[SDLK_s] = R2NES::Core::IO::BUTTON_DOWN;
+        player1KeyMap[SDLK_a] = R2NES::Core::IO::BUTTON_LEFT;
+        player1KeyMap[SDLK_d] = R2NES::Core::IO::BUTTON_RIGHT;
+
+        // Você pode adicionar mapeamentos para o Player 2 aqui também, se tiver um player2KeyMap
+        // Ex: player2KeyMap[SDLK_KP_1] = R2NES::Core::IO::BUTTON_B;
+
     }
 
     Engine::~Engine() {}
@@ -104,40 +118,21 @@ namespace R2NES::Core
         // Exemplo de mapeamento simples para o Controller 1
         auto& joy1 = nes->getJoysticks().controller1;
 
-        switch (key)
+        // Procura a tecla no mapeamento do Player 1
+        auto it = player1KeyMap.find(key);
+        if (it != player1KeyMap.end())
         {
-            case SDLK_j:
-                joy1.setButton(R2NES::Core::IO::BUTTON_B, isPressed); 
-                break;
-            case SDLK_k:
-                joy1.setButton(R2NES::Core::IO::BUTTON_A, isPressed); 
-                break;
-            case SDLK_BACKSPACE:
-                joy1.setButton(R2NES::Core::IO::BUTTON_SELECT, isPressed); 
-                break;
-            case SDLK_RETURN: 
-                joy1.setButton(R2NES::Core::IO::BUTTON_START, isPressed); 
-                break;
-            case SDLK_w:
-                joy1.setButton(R2NES::Core::IO::BUTTON_UP, isPressed); 
-                break;
-            case SDLK_s:
-                joy1.setButton(R2NES::Core::IO::BUTTON_DOWN, isPressed); 
-                break;
-            case SDLK_a:
-                joy1.setButton(R2NES::Core::IO::BUTTON_LEFT, isPressed); 
-                break;
-            case SDLK_d:
-                joy1.setButton(R2NES::Core::IO::BUTTON_RIGHT, isPressed); 
-                break;
+            joy1.setButton(it->second, isPressed);
+        }
             
-            // Atalhos da Engine
-            case SDLK_F7: if(isPressed) window->windowResize(1); break;
-            case SDLK_F8: if(isPressed) window->windowResize(2); break;
-            case SDLK_F9: if(isPressed) window->windowResize(3); break;
-            case SDLK_F10: if(isPressed) window->windowResize(4); break;
-            case SDLK_F11: if(isPressed) window->windowBorderlessFullscreen(); break;
-            case SDLK_F12: if(isPressed) nes->reset(); break;
+        // Atalhos da Engine
+        switch (key) {
+            case SDLK_F7: if(isPressed) window->windowResize(1); break; //
+            case SDLK_F8: if(isPressed) window->windowResize(2); break; //
+            case SDLK_F9: if(isPressed) window->windowResize(3); break; //
+            case SDLK_F10: if(isPressed) window->windowResize(4); break; //
+            case SDLK_F11: if(isPressed) window->windowBorderlessFullscreen(); break; //
+            case SDLK_F12: if(isPressed) nes->reset(); break; //
         }
     }
 

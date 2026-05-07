@@ -5,6 +5,7 @@
 #include <memory>
 #include <map>
 #include <string>
+#include "Core/IO/NESButtons.h"
 
 namespace R2NES::Core
 {
@@ -25,6 +26,10 @@ namespace R2NES::Core
 
             std::unique_ptr<Window> window;
             std::unique_ptr<NesBoard> nes;
+
+            // Mapeamento de teclas para o Player 1 e 2
+            std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
+            std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player2KeyMap;
 
             // Cache para armazenar o código traduzido da ROM
             std::map<uint16_t, std::string> cachedDisassembly;
