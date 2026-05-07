@@ -17,6 +17,9 @@ namespace R2NES::Core
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         void setKeyCallback(KeyCallback cb) { keyCallback = cb; }
 
+        using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
+        void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
+
         // Processa eventos do sistema (como o botão de fechar)
         void pollEvents();
 
@@ -90,6 +93,10 @@ namespace R2NES::Core
         int width, height, scale;
 
         KeyCallback keyCallback = nullptr;
+        ControllerCallback controllerCallback = nullptr;
+
+        // Suporte para até 2 controles
+        SDL_GameController* controllers[2] = { nullptr, nullptr };
 
         // Membros para gerenciamento do modo de exibição
         DisplayMode currentDisplayMode = DisplayMode::WINDOWED;

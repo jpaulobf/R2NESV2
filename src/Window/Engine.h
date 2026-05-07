@@ -21,6 +21,9 @@ namespace R2NES::Core
         private:
             void processEmulatorInput();
             void handleKeyboard(SDL_Keycode key, bool isPressed);
+            void handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed);
+            void handleJoystick1(SDL_GameControllerButton button, bool isPressed);
+            void handleJoystick2(SDL_GameControllerButton button, bool isPressed);
             void update();
             void render();
 
@@ -30,6 +33,10 @@ namespace R2NES::Core
             // Mapeamento de teclas para o Player 1 e 2
             std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
             std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player2KeyMap;
+
+            // Mapeamento de botões de controle
+            std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1ControllerMap;
+            std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player2ControllerMap;
 
             // Cache para armazenar o código traduzido da ROM
             std::map<uint16_t, std::string> cachedDisassembly;

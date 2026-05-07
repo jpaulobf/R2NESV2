@@ -36,7 +36,7 @@ namespace R2NES::Core
         lastWindowedH = h * s;
         // lastWindowedX and Y are already initialized to SDL_WINDOWPOS_CENTERED
 
-        if (SDL_Init(SDL_INIT_VIDEO) < 0)
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0)
         {
             std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
             closed = true;
@@ -79,6 +79,15 @@ namespace R2NES::Core
 
     Window::~Window()
     {
+        for (int i = 0; i < 2; ++i)
+        {
+            if (controllers[i])
+            {
+                SDL_GameControllerClose(controllers[i]);
+                controllers[i] = nullptr;
+            }
+        }
+
         if (tileWindow)
         {
             SDL_DestroyTexture(tileTexture[0]);
@@ -125,6 +134,48 @@ namespace R2NES::Core
                     SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
                     createMenu();
                     currentDisplayMode = DisplayMode::WINDOWED;
+                }
+            }
+
+            // Gerenciamento de Conexão de Controles
+            if (e.type == SDL_CONTROLLERDEVICEADDED)
+            {
+                int deviceIndex = e.cdevice.which;
+                if (SDL_IsGameController(deviceIndex))
+                {
+                    for (int i = 0; i < 2; ++i)
+                    {
+                        if (!controllers[i])
+                        {
+                            controllers[i] = SDL_GameControllerOpen(deviceIndex);
+                            std::cout << "Controller connected as Player " << (i + 1) << ": " 
+                                      << SDL_GameControllerName(controllers[i]) << std::endl;
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (e.type == SDL_CONTROLLERDEVICEREMOVED)
+            {
+                SDL_GameController* removed = SDL_GameControllerFromInstanceID(e.cdevice.which);
+                for (int i = 0; i < 2; ++i)
+                {
+                    if (controllers[i] == removed)
+                    {
+                        std::cout << "Controller disconnected from Player " << (i + 1) << std::endl;
+                        SDL_GameControllerClose(removed);
+                        controllers[i] = nullptr;
+                        break;
+                    }
+                }
+            }
+            // Eventos de Botões do Controle
+            else if (e.type == SDL_CONTROLLERBUTTONDOWN || e.type == SDL_CONTROLLERBUTTONUP)
+            {
+                if (controllerCallback)
+                {
+                    int playerNum = (SDL_GameControllerFromInstanceID(e.cbutton.which) == controllers[0]) ? 1 : 2;
+                    controllerCallback(playerNum, (SDL_GameControllerButton)e.cbutton.button, e.type == SDL_CONTROLLERBUTTONDOWN);
                 }
             }
 
