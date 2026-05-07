@@ -490,36 +490,14 @@ namespace R2NES::Core
         }
         SDL_SetWindowSize(window, width * times * scale, height * times * scale);
         SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
         // Update last known windowed size
         SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
         SDL_GetWindowPosition(window, &lastWindowedX, &lastWindowedY);
         currentDisplayMode = DisplayMode::WINDOWED;
     }
 
-    void Window::windowBorderlessFullscreenStretch()
-    {
-        // Save current windowed state before going fullscreen
-        if (currentDisplayMode == DisplayMode::WINDOWED)
-        {
-            SDL_GetWindowPosition(window, &lastWindowedX, &lastWindowedY);
-            SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
-        }
-
-#ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
-        {
-            // Remove o menu do Windows para um visual verdadeiramente "borderless"
-            SetMenu(wmInfo.info.win.window, NULL);
-        }
-#endif
-
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-        currentDisplayMode = DisplayMode::FULLSCREEN_STRETCH;
-    }
-
-    void Window::windowBorderlessFullscreen()
+    void Window::setWindowBorderlessFullscreen(DisplayMode dm, Uint32 flags) 
     {
         // Save current windowed state before going fullscreen
         if (currentDisplayMode == DisplayMode::WINDOWED)
@@ -542,7 +520,17 @@ namespace R2NES::Core
         // This makes the window fill the entire screen, borderless.
         // The rendering logic in `render` will then handle the 8:7 aspect ratio.
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-        currentDisplayMode = DisplayMode::FULLSCREEN_ASPECT_8_7;
+        currentDisplayMode = dm;
+    }
+
+    void Window::windowBorderlessFullscreenStretch()
+    {
+        this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_STRETCH, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+
+    void Window::windowBorderlessFullscreen()
+    {
+        this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_ASPECT_8_7, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
     void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,

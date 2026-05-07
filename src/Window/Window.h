@@ -14,6 +14,13 @@ namespace R2NES::Core
         Window(const std::string &title, int width, int height, int scale);
         ~Window();
 
+        enum class DisplayMode
+        {
+            WINDOWED,
+            FULLSCREEN_STRETCH,
+            FULLSCREEN_ASPECT_8_7
+        };
+
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         void setKeyCallback(KeyCallback cb) { keyCallback = cb; }
 
@@ -59,12 +66,7 @@ namespace R2NES::Core
 
         void windowBorderlessFullscreen();
 
-        enum class DisplayMode
-        {
-            WINDOWED,
-            FULLSCREEN_STRETCH,
-            FULLSCREEN_ASPECT_8_7
-        };
+        void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode, Uint32 flags);
 
     private:
         void openFileDialog();
