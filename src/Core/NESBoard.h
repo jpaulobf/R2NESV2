@@ -39,7 +39,7 @@ namespace R2NES::Core
 
         bool isCartridgeLoaded() const { return cartridgeLoaded; }
 
-        IO::Joysticks& getJoysticks() { return joysticks; }
+        IO::Joysticks &getJoysticks() { return joysticks; }
 
     private:
         Bus bus;

@@ -42,7 +42,7 @@ namespace R2NES::Core
         void clearResetRequest() { resetRequested = false; }
 
         bool isUnloadRequested() const { return unloadRequested; }
-        
+
         void clearUnloadRequest() { unloadRequested = false; }
 
         void clearSelectedPath() { selectedPath = ""; }
@@ -96,7 +96,7 @@ namespace R2NES::Core
         ControllerCallback controllerCallback = nullptr;
 
         // Suporte para até 2 controles
-        SDL_GameController* controllers[2] = { nullptr, nullptr };
+        SDL_GameController *controllers[2] = {nullptr, nullptr};
 
         // Membros para gerenciamento do modo de exibição
         DisplayMode currentDisplayMode = DisplayMode::WINDOWED;

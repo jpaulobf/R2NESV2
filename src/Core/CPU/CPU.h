@@ -185,8 +185,6 @@ namespace R2NES::Core
         uint16_t addr_rel = 0x0000; // Endereço relativo para saltos (branch)
         uint8_t opcode = 0x00;      // Instrução atual
         uint8_t cycles = 0;         // Quantos ciclos restam para a instrução terminar
-
-    private:
-        Bus *bus = nullptr; // Ponteiro para o Bus ao qual a CPU está conectada
+        Bus *bus = nullptr;         // Ponteiro para o Bus ao qual a CPU está conectada
     };
 }

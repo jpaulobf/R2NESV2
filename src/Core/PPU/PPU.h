@@ -20,6 +20,7 @@ namespace R2NES::Core
         // Comunicação com o barramento da CPU ($2000 - $2007)
         uint8_t cpuRead(uint16_t addr);
         void cpuWrite(uint16_t addr, uint8_t data);
+        bool nmi = false;
 
         // Comunicação com o barramento interno da PPU ($0000 - $3FFF)
         uint8_t ppuRead(uint16_t addr) const;
@@ -84,8 +85,5 @@ namespace R2NES::Core
         int16_t cycle = 0;
 
         bool frameComplete = false;
-
-    public:
-        bool nmi = false;
     };
 }
