@@ -72,6 +72,15 @@ namespace R2NES::Core
 
             processEmulatorInput();
 
+            // Calcula o FPS real a cada segundo
+            fpsTimer += deltaTime;
+            if (fpsTimer >= 1.0f)
+            {
+                currentFPS = (float)frameCount / fpsTimer;
+                frameCount = 0;
+                fpsTimer = 0.0f;
+            }
+
             // Só processa o timing e a atualização se houver um cartucho carregado no NesBoard
             if (nes->isCartridgeLoaded())
             {
@@ -86,6 +95,7 @@ namespace R2NES::Core
                     // Útil para benchmarks ou carregar telas rapidamente
                     update();
                     render();
+                    frameCount++;
                 }
                 else
                 {
@@ -110,6 +120,7 @@ namespace R2NES::Core
                     if (renderResidualTime >= renderInterval)
                     {
                         render();
+                        frameCount++;
                         renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
@@ -118,6 +129,7 @@ namespace R2NES::Core
             {
                 // Se não há jogo, apenas renderiza a interface (ImGui/Menu)
                 render();
+                frameCount++;
             }
         }
     }
@@ -256,7 +268,7 @@ namespace R2NES::Core
 
         // Pega o buffer de pixels da PPU e manda para a Window
         window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested,
-                       cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status);
+                       cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status, currentFPS);
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
         if (window->isTileViewerOpen() && nes->isCartridgeLoaded())

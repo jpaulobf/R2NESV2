@@ -54,7 +54,12 @@ namespace R2NES::Core
         double targetUPS = 60.0;   // Taxa real do NES NTSC
         double targetFPS = 60.0;     // Taxa de renderização desejada
 
+        // Cálculo de FPS real
+        float currentFPS = 0.0f;
+        int frameCount = 0;
+        float fpsTimer = 0.0f;
+
         // Flag para ignorar o limite de tempo (Fast Forward ilimitado)
-        bool uncappedSpeed = false;
+        bool uncappedSpeed = true;
     };
 }
