@@ -29,6 +29,7 @@ namespace R2NES::Core
         void handleJoystick2(SDL_GameControllerButton button, bool isPressed);
         void update();
         void render();
+        void setFastForward(bool enabled);
 
         std::unique_ptr<Window> window;
         std::unique_ptr<NesBoard> nes;
@@ -65,11 +66,16 @@ namespace R2NES::Core
         float fpsTimer = 0.0f;
 
         // Flag para ignorar o limite de tempo (Fast Forward ilimitado)
-        bool uncappedSpeed = true;
+        bool uncappedSpeed = false;
+        bool vsyncEnabled = false;
+        // ---
+        bool fastForwardEnabled = false;
+        bool runningFastForward = false;
+        bool oldUncappedSpeed = uncappedSpeed;
+        bool oldVsyncEnabled = vsyncEnabled;
+        //---
         bool turboA = false;
         bool turboB = false;
-
-        bool vsyncEnabled = false;
         bool unlimitedSprites = false;
     };
 }

@@ -28,11 +28,15 @@ namespace R2NES::Core
                                             { 
                                                 this->unlimitedSprites = enabled; 
                                                 if (nes) 
-                                                    nes->getPpu().setUnlimitedSprites(enabled);
-                                            });
+                                                    nes->getPpu().setUnlimitedSprites(enabled); });
+
+        // Conecta o callback de FF
+        window->setFFCallback([this](bool enabled)
+                              { this->fastForwardEnabled = enabled; });
 
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
+        this->fastForwardEnabled = window->isFastForwardEnabled();
 
         // Inicializa o mapeamento de teclas padrão para o Player 1
         player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
@@ -125,7 +129,7 @@ namespace R2NES::Core
                 }
                 else if (uncappedSpeed)
                 {
-                    //std::cout << "Uncapped Speed Enabled" << std::endl;
+                    // std::cout << "Uncapped Speed Enabled" << std::endl;
 
                     // Emulação (UPS) - Roda o máximo que o núcleo da CPU permitir
                     for (int i = 0; i < 10; ++i)
@@ -144,14 +148,14 @@ namespace R2NES::Core
                 }
                 else if (vsyncEnabled) // uncapped tem prioridade sobre vsync
                 {
-                    //std::cout << "Vsync Enabled" << std::endl;
+                    // std::cout << "Vsync Enabled" << std::endl;
                     update();
                     render();
                 }
                 else
                 {
-                    //std::cout << "Normal Speed" << std::endl;
-                    // 1. Emulação (UPS): Depende do timeScale
+                    // std::cout << "Normal Speed" << std::endl;
+                    //  1. Emulação (UPS): Depende do timeScale
                     double updateInterval = 1.0 / targetUPS;
                     residualTime += deltaTime * timeScale;
 
@@ -291,27 +295,53 @@ namespace R2NES::Core
         case SDLK_F7:
             if (isPressed)
                 window->windowResize(1);
-            break; //
+            break;
         case SDLK_F8:
             if (isPressed)
                 window->windowResize(2);
-            break; //
+            break;
         case SDLK_F9:
             if (isPressed)
                 window->windowResize(3);
-            break; //
+            break;
         case SDLK_F10:
             if (isPressed)
                 window->windowResize(4);
-            break; //
+            break;
         case SDLK_F11:
             if (isPressed)
                 window->windowBorderlessFullscreen();
-            break; //
+            break;
         case SDLK_F12:
             if (isPressed)
                 nes->reset();
-            break; //
+            break;
+        case SDLK_TAB:
+            // Ao pressionar tab, alterna para FF se FFEnabled for True, caso contrário, retorna ao estado normal.
+            this->setFastForward(this->fastForwardEnabled && isPressed);
+            break;
+        }
+    }
+
+    void Engine::setFastForward(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (runningFastForward == enabled)
+            return;
+
+        runningFastForward = enabled;
+
+        if (runningFastForward)
+        {
+            oldUncappedSpeed = uncappedSpeed;
+            oldVsyncEnabled = vsyncEnabled;
+            uncappedSpeed = true;
+            vsyncEnabled = false;
+        }
+        else
+        {
+            uncappedSpeed = oldUncappedSpeed;
+            vsyncEnabled = oldVsyncEnabled;
         }
     }
 
