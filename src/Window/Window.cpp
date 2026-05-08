@@ -147,7 +147,7 @@ namespace R2NES::Core
                         if (!controllers[i])
                         {
                             controllers[i] = SDL_GameControllerOpen(deviceIndex);
-                            std::cout << "Controller connected as Player " << (i + 1) << ": " 
+                            std::cout << "Controller connected as Player " << (i + 1) << ": "
                                       << SDL_GameControllerName(controllers[i]) << std::endl;
                             break;
                         }
@@ -156,7 +156,7 @@ namespace R2NES::Core
             }
             else if (e.type == SDL_CONTROLLERDEVICEREMOVED)
             {
-                SDL_GameController* removed = SDL_GameControllerFromInstanceID(e.cdevice.which);
+                SDL_GameController *removed = SDL_GameControllerFromInstanceID(e.cdevice.which);
                 for (int i = 0; i < 2; ++i)
                 {
                     if (controllers[i] == removed)
@@ -178,7 +178,8 @@ namespace R2NES::Core
                 }
             }
 
-            if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) && e.key.keysym.sym != SDLK_ESCAPE) {
+            if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) && e.key.keysym.sym != SDLK_ESCAPE)
+            {
                 if (keyCallback)
                 {
                     bool isPressed = (e.type == SDL_KEYDOWN);
@@ -221,10 +222,13 @@ namespace R2NES::Core
                         HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
                         UINT state = GetMenuState(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND);
 
-                        if (state & MF_CHECKED) {
+                        if (state & MF_CHECKED)
+                        {
                             CheckMenuItem(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND | MF_UNCHECKED);
                             this->vsyncOff();
-                        } else {
+                        }
+                        else
+                        {
                             CheckMenuItem(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND | MF_CHECKED);
                             this->vsyncOn();
                         }
@@ -254,16 +258,18 @@ namespace R2NES::Core
                         windowBorderlessFullscreen();
                     }
 
-
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
                     {
                         HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
                         UINT state = GetMenuState(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND);
 
-                        if (state & MF_CHECKED) {
+                        if (state & MF_CHECKED)
+                        {
                             CheckMenuItem(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND | MF_UNCHECKED);
                             this->unlimitedSpritesOff();
-                        } else {
+                        }
+                        else
+                        {
                             CheckMenuItem(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND | MF_CHECKED);
                             this->unlimitedSpritesOn();
                         }
@@ -335,10 +341,13 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");           
-            if (this->vsyncEnabled) {
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
+            if (this->vsyncEnabled)
+            {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_VSYNC, L"&VSync");
-            } else {
+            }
+            else
+            {
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
             }
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
@@ -393,7 +402,7 @@ namespace R2NES::Core
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
-        
+
         disassembler.open(x, y, w);
     }
 
@@ -423,7 +432,7 @@ namespace R2NES::Core
 
         // Fecha as janelas de debug ao descarregar a ROM
         tileViewer.close();
-        
+
         disassembler.close();
     }
 
@@ -433,14 +442,15 @@ namespace R2NES::Core
 
         // Fecha/Esconde as janelas de debug para um reset "limpo"
         tileViewer.close();
-        
+
         disassembler.close();
     }
 
-    void Window::setUnlimitedSprites(bool enabled) 
+    void Window::setUnlimitedSprites(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
-        if (unlimitedSprites == enabled) return;
+        if (unlimitedSprites == enabled)
+            return;
 
         unlimitedSprites = enabled;
 
@@ -454,7 +464,8 @@ namespace R2NES::Core
     void Window::setVSync(bool enabled)
     {
         // Se não houve mudança e o renderer já existe, não fazemos nada
-        if (vsyncEnabled == enabled && renderer != nullptr) return;
+        if (vsyncEnabled == enabled && renderer != nullptr)
+            return;
 
         vsyncEnabled = enabled;
 
@@ -476,7 +487,7 @@ namespace R2NES::Core
             flags |= SDL_RENDERER_PRESENTVSYNC;
 
         renderer = SDL_CreateRenderer(window, -1, flags);
-        
+
         // 3. Restaurar estado do renderer e recriar texturas
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
         texture = SDL_CreateTexture(
@@ -510,7 +521,7 @@ namespace R2NES::Core
         currentDisplayMode = DisplayMode::WINDOWED;
     }
 
-    void Window::setWindowBorderlessFullscreen(DisplayMode dm, Uint32 flags) 
+    void Window::setWindowBorderlessFullscreen(DisplayMode dm, Uint32 flags)
     {
         // Save current windowed state before going fullscreen
         if (currentDisplayMode == DisplayMode::WINDOWED)
@@ -549,7 +560,8 @@ namespace R2NES::Core
     {
         // Atualiza o título da janela com o FPS
         static float lastFps = -1.0f;
-        if (fps != lastFps) {
+        if (fps != lastFps)
+        {
             char titleBuffer[64];
             snprintf(titleBuffer, sizeof(titleBuffer), "R2NES v2 | FPS: %.2f", fps);
             SDL_SetWindowTitle(window, titleBuffer);

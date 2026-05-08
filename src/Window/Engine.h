@@ -54,10 +54,10 @@ namespace R2NES::Core
         // Variáveis de controle de tempo e performance
         double residualTime = 0.0;
         double renderResidualTime = 0.0;
-        
-        float timeScale = 1.0f;      // 1.0 = Normal, 2.0 = Fast Forward, 0.5 = Slow Motion
-        double targetUPS = 59.94;   // Taxa real do NES NTSC
-        double targetFPS = 60.0;     // Taxa de renderização desejada
+
+        float timeScale = 1.0f;   // 1.0 = Normal, 2.0 = Fast Forward, 0.5 = Slow Motion
+        double targetUPS = 59.94; // Taxa real do NES NTSC
+        double targetFPS = 60.0;  // Taxa de renderização desejada
 
         // Cálculo de FPS real
         float currentFPS = 0.0f;

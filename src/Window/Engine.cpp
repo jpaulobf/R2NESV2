@@ -25,7 +25,7 @@ namespace R2NES::Core
                                  { this->vsyncEnabled = enabled; });
 
         window->setUnlimitedSpritesCallback([this](bool enabled)
-                                           { this->unlimitedSprites = enabled; });
+                                            { this->unlimitedSprites = enabled; });
 
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
@@ -133,7 +133,7 @@ namespace R2NES::Core
                         renderResidualTime = 0;
                     }
                 }
-                else if (vsyncEnabled) //uncapped tem prioridade sobre vsync
+                else if (vsyncEnabled) // uncapped tem prioridade sobre vsync
                 {
                     update();
                     render();
