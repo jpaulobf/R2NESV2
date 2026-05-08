@@ -10,6 +10,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Recurso de "Unlimited Sprites" (overclocking de PPU) para remover o flicker clássico de sprites, com toggle em tempo real.
 - Sincronização dinâmica de VSync entre a interface de usuário e o loop principal da Engine.
 - Cache de índices de sprites por scanline para reduzir iterações no loop de renderização de pixels.
+- Implementação de funcionalidade de Fast Forward (FF) acionada pela tecla TAB para aceleração dinâmica da emulação, controlada pela flag enable no menu
 
 ## [0.3.0] - 2026-05-07
 
