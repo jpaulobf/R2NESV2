@@ -88,21 +88,6 @@ namespace R2NES::Core
             }
         }
 
-        if (tileWindow)
-        {
-            SDL_DestroyTexture(tileTexture[0]);
-            SDL_DestroyTexture(tileTexture[1]);
-            SDL_DestroyRenderer(tileRenderer);
-            SDL_DestroyWindow(tileWindow);
-        }
-        if (disasmWindow)
-        {
-            ImGui_ImplSDLRenderer2_Shutdown();
-            ImGui_ImplSDL2_Shutdown();
-            SDL_DestroyRenderer(disasmRenderer);
-            SDL_DestroyWindow(disasmWindow);
-        }
-
         ImGui::DestroyContext();
 
         SDL_DestroyTexture(texture);
@@ -117,8 +102,8 @@ namespace R2NES::Core
         while (SDL_PollEvent(&e))
         {
             // Só processa eventos do ImGui se a janela de debug estiver ativa
-            if (showDisasm && disasmWindow)
-                ImGui_ImplSDL2_ProcessEvent(&e);
+            tileViewer.handleEvent(&e);
+            disassembler.handleEvent(&e);
 
             if (e.type == SDL_QUIT)
                 closed = true;
@@ -254,15 +239,13 @@ namespace R2NES::Core
                     {
                         closed = true;
                     }
-                    else if (tileWindow && e.window.windowID == SDL_GetWindowID(tileWindow))
+                    else if (tileViewer.getWindowID() != 0 && e.window.windowID == tileViewer.getWindowID())
                     {
-                        SDL_HideWindow(tileWindow);
-                        tileViewerOpen = false;
+                        tileViewer.close();
                     }
-                    else if (disasmWindow && e.window.windowID == SDL_GetWindowID(disasmWindow))
+                    else if (disassembler.getWindowID() != 0 && e.window.windowID == disassembler.getWindowID())
                     {
-                        SDL_HideWindow(disasmWindow);
-                        showDisasm = false;
+                        disassembler.close();
                     }
                 }
                 else if (e.window.event == SDL_WINDOWEVENT_MOVED)
@@ -274,11 +257,9 @@ namespace R2NES::Core
                         SDL_GetWindowPosition(window, &x, &y);
                         SDL_GetWindowSize(window, &w_main, &h_main);
 
-                        if (tileWindow)
-                            SDL_SetWindowPosition(tileWindow, x + w_main, y);
+                        tileViewer.updatePosition(x, y, w_main);
 
-                        if (disasmWindow)
-                            SDL_SetWindowPosition(disasmWindow, x + w_main, y + 300);
+                        disassembler.updatePosition(x, y, w_main);
                     }
                     // Update last known windowed position if not in fullscreen
                     if (e.window.windowID == SDL_GetWindowID(window) && currentDisplayMode == DisplayMode::WINDOWED)
@@ -357,92 +338,25 @@ namespace R2NES::Core
 
     void Window::openDisassembler()
     {
-        if (disasmWindow)
-        {
-            SDL_ShowWindow(disasmWindow);
-            showDisasm = true;
-            return;
-        }
-
-        // Pega a posição da janela principal para abrir o disasm embaixo dela
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
-
-        disasmWindow = SDL_CreateWindow(
-            "R2NES v2 - Disassembler",
-            x + w, y + 300, // Abre logo abaixo da principal
-            512, 300,
-            SDL_WINDOW_SHOWN);
-
-        if (disasmWindow)
-        {
-            disasmRenderer = SDL_CreateRenderer(disasmWindow, -1, SDL_RENDERER_ACCELERATED);
-
-            // Inicializa o ImGui especificamente para o Renderer desta janela
-            ImGui_ImplSDL2_InitForSDLRenderer(disasmWindow, disasmRenderer);
-            ImGui_ImplSDLRenderer2_Init(disasmRenderer);
-
-            showDisasm = true;
-        }
+        
+        disassembler.open(x, y, w);
     }
 
     void Window::openTileViewer()
     {
-        if (tileWindow)
-        {
-            SDL_ShowWindow(tileWindow);
-            tileViewerOpen = true;
-            return;
-        }
-
-        // Pega a posição e tamanho da janela principal para colar ao lado
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        // Uma Pattern Table é 128x128. Exibiremos as duas lado a lado (256x128).
-        // Aplicamos uma escala de 2x para facilitar a visualização (512x256).
-        tileWindow = SDL_CreateWindow(
-            "R2NES v2 - Pattern Table Viewer",
-            x + w, y,
-            512, 256,
-            SDL_WINDOW_SHOWN);
-
-        if (tileWindow)
-        {
-            tileRenderer = SDL_CreateRenderer(tileWindow, -1, SDL_RENDERER_ACCELERATED);
-
-            // Define a cor de fundo como preto e limpa a janela imediatamente
-            SDL_SetRenderDrawColor(tileRenderer, 0x00, 0x00, 0x00, 0xFF);
-            SDL_RenderClear(tileRenderer);
-            SDL_RenderPresent(tileRenderer);
-
-            // Criamos duas texturas (uma para cada Pattern Table de 128x128)
-            tileTexture[0] = SDL_CreateTexture(tileRenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
-            tileTexture[1] = SDL_CreateTexture(tileRenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
-
-            tileViewerOpen = true;
-        }
+        tileViewer.open(x, y, w);
     }
 
     void Window::updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1)
     {
-        if (!tileViewerOpen || !tileRenderer)
-            return;
-
-        SDL_UpdateTexture(tileTexture[0], nullptr, pixels0, 128 * sizeof(uint32_t));
-        SDL_UpdateTexture(tileTexture[1], nullptr, pixels1, 128 * sizeof(uint32_t));
-
-        SDL_RenderClear(tileRenderer);
-
-        SDL_Rect dest0 = {0, 0, 256, 256};
-        SDL_Rect dest1 = {256, 0, 256, 256};
-
-        SDL_RenderCopy(tileRenderer, tileTexture[0], nullptr, &dest0);
-        SDL_RenderCopy(tileRenderer, tileTexture[1], nullptr, &dest1);
-
-        SDL_RenderPresent(tileRenderer);
+        tileViewer.render(pixels0, pixels1);
     }
 
     void Window::unload()
@@ -450,16 +364,9 @@ namespace R2NES::Core
         unloadRequested = true;
 
         // Fecha as janelas de debug ao descarregar a ROM
-        if (tileWindow)
-        {
-            SDL_HideWindow(tileWindow);
-            tileViewerOpen = false;
-        }
-        if (disasmWindow)
-        {
-            SDL_HideWindow(disasmWindow);
-            showDisasm = false;
-        }
+        tileViewer.close();
+        
+        disassembler.close();
     }
 
     void Window::reset()
@@ -467,16 +374,9 @@ namespace R2NES::Core
         resetRequested = true;
 
         // Fecha/Esconde as janelas de debug para um reset "limpo"
-        if (tileWindow)
-        {
-            SDL_HideWindow(tileWindow);
-            tileViewerOpen = false;
-        }
-        if (disasmWindow)
-        {
-            SDL_HideWindow(disasmWindow);
-            showDisasm = false;
-        }
+        tileViewer.close();
+        
+        disassembler.close();
     }
 
     void Window::windowResize(int times)
@@ -545,107 +445,8 @@ namespace R2NES::Core
             lastFps = fps;
         }
 
-        if (showDisasm)
-        {
-            // Inicializa o frame apenas para a janela secundária
-            ImGui_ImplSDLRenderer2_NewFrame();
-            ImGui_ImplSDL2_NewFrame();
-            ImGui::NewFrame();
-
-            // Agora a janela ImGui preenche toda a janela SDL secundária
-            ImGui::SetNextWindowPos(ImVec2(0, 0));
-            ImGui::SetNextWindowSize(ImVec2(512, 300));
-
-            ImGui::Begin("Disassembler", &showDisasm,
-                         ImGuiWindowFlags_NoTitleBar |
-                             ImGuiWindowFlags_NoResize |
-                             ImGuiWindowFlags_NoMove);
-
-            // Controles de depuração
-            ImGui::Checkbox("Step-by-Step", &stepByStep);
-            ImGui::SameLine();
-            if (ImGui::Button("Next Instruction"))
-                stepRequested = true;
-
-            ImGui::Separator();
-
-            // Divide a janela: Coluna 0 para Código, Coluna 1 para Estado da CPU
-            ImGui::Columns(2, nullptr, false);
-            ImGui::SetColumnWidth(0, 360.0f);
-
-            // --- Lado Esquerdo: Disassembly (com scroll independente) ---
-            ImGui::BeginChild("CodeScroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-
-            static uint16_t lastPC = 0;
-            bool pcChanged = (pc != lastPC);
-
-            for (auto const &[addr, line] : disassembly)
-            {
-                if (addr == pc)
-                {
-                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), ">> %s", line.c_str());
-
-                    if (pcChanged)
-                        ImGui::SetScrollHereY(0.5f);
-                }
-                else
-                {
-                    ImGui::Text("   %s", line.c_str());
-                }
-            }
-
-            lastPC = pc;
-            ImGui::EndChild();
-
-            ImGui::NextColumn();
-
-            // --- Lado Direito: Registradores e Flags ---
-            ImGui::Text("Registers");
-            ImGui::Separator();
-            ImGui::Text("A:  $%02X", a);
-            ImGui::Text("X:  $%02X", x);
-            ImGui::Text("Y:  $%02X", y);
-            ImGui::Text("PC: $%04X", pc);
-            ImGui::Text("SP: $%02X", stkp);
-
-            ImGui::Spacing();
-            ImGui::Text("Flags (NVUBDIZC)");
-            ImGui::Separator();
-
-            // Helper para mostrar flags coloridas (Verde se 1, Cinza se 0)
-            auto showFlag = [&](const char *label, uint8_t bit)
-            {
-                bool set = status & bit;
-                ImGui::TextColored(set ? ImVec4(0, 1, 0, 1) : ImVec4(0.5f, 0.5f, 0.5f, 1), "%s", label);
-                ImGui::SameLine();
-            };
-
-            showFlag("N", 0x80);
-            showFlag("V", 0x40);
-            showFlag("U", 0x20);
-            showFlag("B", 0x10);
-            ImGui::NewLine(); // Quebra linha para não ficar muito largo
-            showFlag("D", 0x08);
-            showFlag("I", 0x04);
-            showFlag("Z", 0x02);
-            showFlag("C", 0x01);
-
-            ImGui::NewLine();
-            ImGui::Separator();
-
-            // Status bruto em Hex pra conferência rápida
-            ImGui::Text("P (HEX): $%02X", status);
-
-            ImGui::Columns(1); // Volta para coluna única
-            ImGui::End();
-
-            // Renderiza no renderer do Disassembler
-            SDL_SetRenderDrawColor(disasmRenderer, 0, 0, 0, 255);
-            SDL_RenderClear(disasmRenderer);
-            ImGui::Render();
-            ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-            SDL_RenderPresent(disasmRenderer);
-        }
+        // Delega a renderização do Disassembler para sua própria classe
+        disassembler.render(pc, disassembly, stepByStep, stepRequested, a, x, y, stkp, status);
 
         SDL_UpdateTexture(texture, nullptr, pixels, width * sizeof(uint32_t));
         SDL_RenderClear(renderer);

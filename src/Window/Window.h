@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <map>
 #include <functional>
+#include <memory>
+#include "TileViewer.h"
+#include "Disassembler.h"
 
 namespace R2NES::Core
 {
@@ -42,7 +45,7 @@ namespace R2NES::Core
 
         std::string getSelectedPath() const { return selectedPath; }
 
-        bool isTileViewerOpen() const { return tileViewerOpen; }
+        bool isTileViewerOpen() const { return tileViewer.isOpen(); }
 
         bool isResetRequested() const { return resetRequested; }
 
@@ -69,26 +72,17 @@ namespace R2NES::Core
         void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode, Uint32 flags);
 
     private:
-        void openFileDialog();
-        void openTileViewer();
-        void openDisassembler();
+        void openFileDialog(); // Estes métodos agora são privados e delegam para as classes de ferramentas.
+        void openTileViewer(); // O menu chama estes métodos.
+        void openDisassembler(); 
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
         std::string selectedPath = "";
+        
+        TileViewer tileViewer;
+        Disassembler disassembler;
 
-        // Recursos para a janela do Tile Viewer (Pattern Tables)
-        SDL_Window *tileWindow = nullptr;
-        SDL_Renderer *tileRenderer = nullptr;
-        SDL_Texture *tileTexture[2] = {nullptr, nullptr};
-        bool tileViewerOpen = false;
-
-        // Recursos para a janela do Disassembler (Janela nativa + ImGui)
-        SDL_Window *disasmWindow = nullptr;
-        SDL_Renderer *disasmRenderer = nullptr;
-        bool disasmOpen = false;
-
-        bool showDisasm = false;
         bool closed = false;
         bool resetRequested = false;
         bool unloadRequested = false;
@@ -105,5 +99,7 @@ namespace R2NES::Core
 
         // Armazena o último estado da janela para restauração
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
+
+        bool unlimitedSprites = false;
     };
 }
