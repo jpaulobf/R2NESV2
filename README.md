@@ -33,4 +33,5 @@ O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma **
 - [x] Sistema de Scrolling (Horizontal e Vertical).
 - [x] Suporte a Controles (Xbox, 8BitDo, etc.) via SDL_GameController.
 - [x] Opções de Vídeo: VSync dinâmico e modo "Unlimited Sprites".
+- [x] Funcionalidade de Fast Forward (Aceleração) via tecla TAB.
 - [ ] Suporte a Áudio (APU).
