@@ -2,6 +2,15 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.3.1] - 2026-05-08
+
+### Adicionado (Sessão Atual)
+- Implementação da fase de "Sprite Evaluation" no Ciclo 0 de cada scanline, otimizando drasticamente a performance da PPU.
+- Suporte ao bit de Sprite Overflow ($2002 bit 5) e implementação fiel do limite de 8 sprites por linha.
+- Recurso de "Unlimited Sprites" (overclocking de PPU) para remover o flicker clássico de sprites, com toggle em tempo real.
+- Sincronização dinâmica de VSync entre a interface de usuário e o loop principal da Engine.
+- Cache de índices de sprites por scanline para reduzir iterações no loop de renderização de pixels.
+
 ## [0.3.0] - 2026-05-07
 
 ### Adicionado
@@ -33,7 +42,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - Implementação do Disassembler em uma janela nativa independente utilizando ImGui e um pipeline de renderização dedicado.
 - Integração de dados reais da CPU (PC e Disassembly) com a interface visual do Debugger.
 - Sistema de realce (highlight) visual para a instrução atual no Disassembler.
-- Implementação robusta de detecção de Sprite 0 Hit para sincronização de HUD.
+- Implementação de detecção de Sprite 0 Hit para sincronização de HUD.
 - Sistema de renderização baseado em coordenadas absolutas (512x480) para scrolling estável.
 - Funcionalidades de Reset e Unload de ROMs com limpeza de buffer de vídeo e estado do sistema.
 - Automação de Unload antes de novos carregamentos de ROM para prevenir estados residuais.
