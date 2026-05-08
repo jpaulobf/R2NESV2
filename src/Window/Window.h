@@ -91,14 +91,11 @@ namespace R2NES::Core
         void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode, Uint32 flags);
 
     private:
-        void openFileDialog(); // Estes métodos agora são privados e delegam para as classes de ferramentas.
-        void openTileViewer(); // O menu chama estes métodos.
-        void openDisassembler(); 
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
         std::string selectedPath = "";
-        
+
         TileViewer tileViewer;
         Disassembler disassembler;
 
@@ -123,5 +120,9 @@ namespace R2NES::Core
         bool unlimitedSprites = false;
         bool vsyncEnabled = true;
         bool uncappedSpeed = false;
+
+        void openFileDialog(); // Estes métodos agora são privados e delegam para as classes de ferramentas.
+        void openTileViewer(); // O menu chama estes métodos.
+        void openDisassembler();
     };
 }

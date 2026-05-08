@@ -318,8 +318,12 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");           
+            if (this->vsyncEnabled) {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_VSYNC, L"&VSync");
+            } else {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
+            }
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_1X, L"&1x");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_2X, L"&2x");
