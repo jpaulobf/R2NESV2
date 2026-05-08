@@ -37,6 +37,10 @@ namespace R2NES::Core
         void render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                     bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status, float fps);
 
+        // Atualiza a janela do Disassembler se ela estiver aberta
+        void updateDisassembler(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
+                                bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status);
+
         // Atualiza a janela do Tile Viewer se ela estiver aberta
         void updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1);
 
@@ -44,6 +48,8 @@ namespace R2NES::Core
         void createMenu();
 
         std::string getSelectedPath() const { return selectedPath; }
+
+        bool isDisassemblerOpen() const { return disassembler.isOpen(); }
 
         bool isTileViewerOpen() const { return tileViewer.isOpen(); }
 
@@ -101,5 +107,7 @@ namespace R2NES::Core
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
 
         bool unlimitedSprites = false;
+        bool vsyncEnabled = false;
+        bool uncappedSpeed = false;
     };
 }

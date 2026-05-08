@@ -18,6 +18,9 @@ namespace R2NES::Core
         // Inicia o loop principal
         void run();
 
+        void toggleVSync() { vsyncEnabled = !vsyncEnabled; }
+        void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
+
     private:
         void processEmulatorInput();
         void handleKeyboard(SDL_Keycode key, bool isPressed);
@@ -65,5 +68,7 @@ namespace R2NES::Core
         bool uncappedSpeed = false;
         bool turboA = false;
         bool turboB = false;
+
+        bool vsyncEnabled = false;
     };
 }

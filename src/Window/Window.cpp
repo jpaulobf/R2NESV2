@@ -345,6 +345,12 @@ namespace R2NES::Core
         disassembler.open(x, y, w);
     }
 
+    void Window::updateDisassembler(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
+                                    bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
+    {
+        disassembler.render(pc, disassembly, stepByStep, stepRequested, a, x, y, stkp, status);
+    }
+
     void Window::openTileViewer()
     {
         int x, y, w, h;
@@ -442,9 +448,6 @@ namespace R2NES::Core
             SDL_SetWindowTitle(window, titleBuffer);
             lastFps = fps;
         }
-
-        // Delega a renderização do Disassembler para sua própria classe
-        disassembler.render(pc, disassembly, stepByStep, stepRequested, a, x, y, stkp, status);
 
         SDL_UpdateTexture(texture, nullptr, pixels, width * sizeof(uint32_t));
         SDL_RenderClear(renderer);

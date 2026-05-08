@@ -115,6 +115,11 @@ namespace R2NES::Core
                         renderResidualTime = 0;
                     }
                 }
+                else if (vsyncEnabled) //uncapped tem prioridade sobre vsync
+                {
+                    update();
+                    render();
+                }
                 else
                 {
                     // 1. Emulação (UPS): Depende do timeScale
@@ -328,6 +333,12 @@ namespace R2NES::Core
         // Pega o buffer de pixels da PPU e manda para a Window
         window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested,
                        cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status, currentFPS);
+
+        // Se o Disassembler estiver aberto, atualiza-o
+        if (window->isDisassemblerOpen())
+        {
+            window->updateDisassembler(currentPC, cachedDisassembly, stepByStep, stepRequested, cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status);
+        }
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária
         if (window->isTileViewerOpen() && nes->isCartridgeLoaded())
