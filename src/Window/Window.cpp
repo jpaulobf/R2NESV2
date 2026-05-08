@@ -416,9 +416,7 @@ namespace R2NES::Core
         }
 #endif
 
-        // Set to borderless fullscreen desktop mode
         // This makes the window fill the entire screen, borderless.
-        // The rendering logic in `render` will then handle the 8:7 aspect ratio.
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         currentDisplayMode = dm;
     }
