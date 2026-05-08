@@ -24,7 +24,11 @@ namespace R2NES::Core
         window->setVSyncCallback([this](bool enabled)
                                  { this->vsyncEnabled = enabled; });
 
+        window->setUnlimitedSpritesCallback([this](bool enabled)
+                                           { this->unlimitedSprites = enabled; });
+
         this->vsyncEnabled = window->isVSyncEnabled();
+        this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
 
         // Inicializa o mapeamento de teclas padrão para o Player 1
         player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;

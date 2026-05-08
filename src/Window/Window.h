@@ -30,6 +30,9 @@ namespace R2NES::Core
         using VSyncCallback = std::function<void(bool)>;
         void setVSyncCallback(VSyncCallback cb) { vsyncCallback = cb; }
 
+        using UnlimitedSpritesCallback = std::function<void(bool)>;
+        void setUnlimitedSpritesCallback(UnlimitedSpritesCallback cb) { unlimitedSpritesCallback = cb; }
+
         using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
 
@@ -76,6 +79,16 @@ namespace R2NES::Core
 
         void vsyncOn() { setVSync(true); }
 
+        bool isUnlimitedSpritesEnabled() const { return unlimitedSprites; }
+
+        void setUnlimitedSprites(bool enabled);
+
+        void toggleUnlimitedSprites() { setUnlimitedSprites(!unlimitedSprites); }
+
+        void unlimitedSpritesOff() { setUnlimitedSprites(false); }
+
+        void unlimitedSpritesOn() { setUnlimitedSprites(true); }
+
         bool shouldClose() const { return closed; }
 
         void reset();
@@ -107,7 +120,7 @@ namespace R2NES::Core
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
         VSyncCallback vsyncCallback = nullptr;
-
+        UnlimitedSpritesCallback unlimitedSpritesCallback = nullptr;
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
 

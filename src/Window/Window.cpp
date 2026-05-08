@@ -26,6 +26,7 @@
 #define IDM_VIEW_WINDOW_4X 2003
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
+#define IDM_HACKS_UNLIMITED_SPRITES 3000
 
 namespace R2NES::Core
 {
@@ -252,6 +253,21 @@ namespace R2NES::Core
                     {
                         windowBorderlessFullscreen();
                     }
+
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
+                    {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        UINT state = GetMenuState(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND);
+
+                        if (state & MF_CHECKED) {
+                            CheckMenuItem(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND | MF_UNCHECKED);
+                            this->unlimitedSpritesOff();
+                        } else {
+                            CheckMenuItem(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND | MF_CHECKED);
+                            this->unlimitedSpritesOn();
+                        }
+                    }
                 }
 #endif
             }
@@ -310,6 +326,7 @@ namespace R2NES::Core
             HMENU hFileMenu = CreateMenu();
             HMENU hDebugMenu = CreateMenu();
             HMENU hDisplayMenu = CreateMenu();
+            HMENU hHacksMenu = CreateMenu();
 
             // Adiciona a opção Open ao menu File
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
@@ -333,10 +350,13 @@ namespace R2NES::Core
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
 
+            AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_UNLIMITED_SPRITES, L"&Unlimited Sprites");
+
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDebugMenu, L"&Debug");
+            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hHacksMenu, L"&Hacks");
 
             SetMenu(hwnd, hMenuBar);
         }
@@ -415,6 +435,20 @@ namespace R2NES::Core
         tileViewer.close();
         
         disassembler.close();
+    }
+
+    void Window::setUnlimitedSprites(bool enabled) 
+    {
+        // Se não houve mudança, não fazemos nada
+        if (unlimitedSprites == enabled) return;
+
+        unlimitedSprites = enabled;
+
+        // Notificar a Engine sobre a mudança para ajustar a lógica de renderização
+        if (unlimitedSpritesCallback)
+            unlimitedSpritesCallback(unlimitedSprites);
+
+        std::cout << "Window: Unlimited Sprites " << (unlimitedSprites ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setVSync(bool enabled)

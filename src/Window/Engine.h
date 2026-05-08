@@ -70,5 +70,6 @@ namespace R2NES::Core
         bool turboB = false;
 
         bool vsyncEnabled = false;
+        bool unlimitedSprites = false;
     };
 }
