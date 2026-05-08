@@ -30,6 +30,9 @@ namespace R2NES::Core
         using VSyncCallback = std::function<void(bool)>;
         void setVSyncCallback(VSyncCallback cb) { vsyncCallback = cb; }
 
+        using FFCallback = std::function<void(bool)>;
+        void setFFCallback(FFCallback cb) { ffCallback = cb; }
+
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         void setUnlimitedSpritesCallback(UnlimitedSpritesCallback cb) { unlimitedSpritesCallback = cb; }
 
@@ -83,11 +86,17 @@ namespace R2NES::Core
 
         void setUnlimitedSprites(bool enabled);
 
-        void toggleUnlimitedSprites() { setUnlimitedSprites(!unlimitedSprites); }
-
         void unlimitedSpritesOff() { setUnlimitedSprites(false); }
 
         void unlimitedSpritesOn() { setUnlimitedSprites(true); }
+
+        bool isFastForwardEnabled() const { return fastForwardEnabled; }
+
+        void setFastForward(bool enabled);
+
+        void fastForwardOff() { setFastForward(false); }
+
+        void fastForwardOn() { setFastForward(true); }
 
         bool shouldClose() const { return closed; }
 
@@ -121,6 +130,8 @@ namespace R2NES::Core
         ControllerCallback controllerCallback = nullptr;
         VSyncCallback vsyncCallback = nullptr;
         UnlimitedSpritesCallback unlimitedSpritesCallback = nullptr;
+        FFCallback ffCallback = nullptr;
+
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
 
@@ -131,11 +142,11 @@ namespace R2NES::Core
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
 
         bool unlimitedSprites = false;
-        bool vsyncEnabled = false;
+        bool vsyncEnabled = true;
         bool uncappedSpeed = false;
-
-        void openFileDialog(); // Estes métodos agora são privados e delegam para as classes de ferramentas.
-        void openTileViewer(); // O menu chama estes métodos.
+        bool fastForwardEnabled = true;
+        void openFileDialog();
+        void openTileViewer();
         void openDisassembler();
     };
 }

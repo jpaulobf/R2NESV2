@@ -27,6 +27,7 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
+#define IDM_HACKS_FAST_FORWARD 3001
 
 namespace R2NES::Core
 {
@@ -274,6 +275,22 @@ namespace R2NES::Core
                             this->unlimitedSpritesOn();
                         }
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_FAST_FORWARD)
+                    {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        UINT state = GetMenuState(hMenu, IDM_HACKS_FAST_FORWARD, MF_BYCOMMAND);
+
+                        if (state & MF_CHECKED)
+                        {
+                            CheckMenuItem(hMenu, IDM_HACKS_FAST_FORWARD, MF_BYCOMMAND | MF_UNCHECKED);
+                            this->fastForwardOff();
+                        }
+                        else
+                        {
+                            CheckMenuItem(hMenu, IDM_HACKS_FAST_FORWARD, MF_BYCOMMAND | MF_CHECKED);
+                            this->fastForwardOn();
+                        }
+                    }
                 }
 #endif
             }
@@ -359,7 +376,23 @@ namespace R2NES::Core
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
 
-            AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_UNLIMITED_SPRITES, L"&Unlimited Sprites");
+            if (this->unlimitedSprites)
+            {
+                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_UNLIMITED_SPRITES, L"&Enable Unlimited Sprites");
+            }
+            else
+            {
+                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_UNLIMITED_SPRITES, L"&Enable Unlimited Sprites");
+            }
+
+            if (this->fastForwardEnabled)
+            {
+                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_FAST_FORWARD, L"&Enable Fast Forward");
+            }
+            else
+            {
+                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_FAST_FORWARD, L"&Enable Fast Forward");
+            }
 
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
@@ -444,6 +477,21 @@ namespace R2NES::Core
         tileViewer.close();
 
         disassembler.close();
+    }
+
+    void Window::setFastForward(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (fastForwardEnabled == enabled)
+            return;
+
+        fastForwardEnabled = enabled;
+
+        // Notificar a Engine sobre a mudança
+        if (ffCallback)
+            ffCallback(fastForwardEnabled);
+
+        std::cout << "Window: Fast Forward " << (fastForwardEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setUnlimitedSprites(bool enabled)
