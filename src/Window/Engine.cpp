@@ -30,17 +30,24 @@ namespace R2NES::Core
         player1KeyMap[SDLK_a] = R2NES::Core::IO::BUTTON_LEFT;
         player1KeyMap[SDLK_d] = R2NES::Core::IO::BUTTON_RIGHT;
 
+        // Mapeamento de Turbo (Teclado)
+        player1TurboKeyMap[SDLK_i] = R2NES::Core::IO::BUTTON_A;
+        player1TurboKeyMap[SDLK_u] = R2NES::Core::IO::BUTTON_B;
+
         // Mapeamento Padrão para Controles (Xbox/8BitDo layout)
         // Player 1
         player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_A;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_B;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B; // Alternativo
         player1ControllerMap[SDL_CONTROLLER_BUTTON_BACK] = R2NES::Core::IO::BUTTON_SELECT;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_START] = R2NES::Core::IO::BUTTON_START;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_UP] = R2NES::Core::IO::BUTTON_UP;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_DOWN] = R2NES::Core::IO::BUTTON_DOWN;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_LEFT] = R2NES::Core::IO::BUTTON_LEFT;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = R2NES::Core::IO::BUTTON_RIGHT;
+
+        // Mapeamento de Turbo (Controle)
+        player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
+        player1TurboControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
 
         // Player 2 (mesmo mapeamento, controles diferentes)
         player2ControllerMap = player1ControllerMap;
@@ -94,14 +101,16 @@ namespace R2NES::Core
                 else if (uncappedSpeed)
                 {
                     // Emulação (UPS) - Roda o máximo que o núcleo da CPU permitir
-                    for (int i = 0; i < 10; ++i) { // Pequeno batch para reduzir overhead do loop
+                    for (int i = 0; i < 10; ++i)
+                    { // Pequeno batch para reduzir overhead do loop
                         update();
                         frameCount++; // Agora contamos quadros emulados
                     }
 
                     // Renderização (FPS) - Limitamos a renderização para não travar na GPU
                     renderResidualTime += deltaTime;
-                    if (renderResidualTime >= 1.0 / targetFPS) {
+                    if (renderResidualTime >= 1.0 / targetFPS)
+                    {
                         render();
                         renderResidualTime = 0;
                     }
@@ -129,17 +138,17 @@ namespace R2NES::Core
                     if (renderResidualTime >= renderInterval)
                     {
                         render();
-                        // No modo normal, contamos aqui ou no update. 
+                        // No modo normal, contamos aqui ou no update.
                         // Vamos contar no update() para ser consistente.
                         renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
             }
-            else 
+            else
             {
                 // Se não há jogo, apenas renderiza a interface (ImGui/Menu)
                 render();
-                //frameCount++;
+                // frameCount++;
             }
         }
     }
@@ -192,6 +201,20 @@ namespace R2NES::Core
         {
             joy1.setButton(it->second, isPressed);
         }
+
+        // Verifica botões de Turbo no controle
+        auto itTurbo = player1TurboControllerMap.find(button);
+        if (itTurbo != player1TurboControllerMap.end())
+        {
+            if (itTurbo->second == R2NES::Core::IO::BUTTON_A)
+                turboA = isPressed;
+            if (itTurbo->second == R2NES::Core::IO::BUTTON_B)
+                turboB = isPressed;
+
+            // Garante que o botão seja solto no Core se o turbo for liberado
+            if (!isPressed)
+                joy1.setButton(itTurbo->second, false);
+        }
     }
 
     void Engine::handleJoystick2(SDL_GameControllerButton button, bool isPressed)
@@ -214,6 +237,19 @@ namespace R2NES::Core
         if (it != player1KeyMap.end())
         {
             joy1.setButton(it->second, isPressed);
+        }
+
+        // Verifica teclas de Turbo no teclado
+        auto itTurbo = player1TurboKeyMap.find(key);
+        if (itTurbo != player1TurboKeyMap.end())
+        {
+            if (itTurbo->second == R2NES::Core::IO::BUTTON_A)
+                turboA = isPressed;
+            if (itTurbo->second == R2NES::Core::IO::BUTTON_B)
+                turboB = isPressed;
+
+            if (!isPressed)
+                joy1.setButton(itTurbo->second, false);
         }
 
         // Atalhos da Engine
@@ -248,6 +284,16 @@ namespace R2NES::Core
 
     void Engine::update()
     {
+        // Lógica de Turbo: Oscila o estado dos botões a cada 2 frames (15Hz em 60FPS)
+        // Isso garante que o jogo registre tanto o pressionamento quanto a liberação.
+        auto &joy1 = nes->getJoysticks().controller1;
+        bool turboPulse = (frameCount % 4 > 2); // Fica 'true' por 2 frames, 'false' por 2 frames
+
+        if (turboA)
+            joy1.setButton(R2NES::Core::IO::BUTTON_A, turboPulse);
+        if (turboB)
+            joy1.setButton(R2NES::Core::IO::BUTTON_B, turboPulse);
+
         if (stepByStep)
         {
             if (stepRequested)
@@ -269,7 +315,8 @@ namespace R2NES::Core
             nes->clearFrameComplete();
         }
 
-        if (!uncappedSpeed) frameCount++; // Conta quadros emulados no modo normal
+        if (!uncappedSpeed)
+            frameCount++; // Conta quadros emulados no modo normal
     }
 
     void Engine::render()

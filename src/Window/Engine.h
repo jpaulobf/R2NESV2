@@ -33,10 +33,12 @@ namespace R2NES::Core
         // Mapeamento de teclas para o Player 1 e 2
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player2KeyMap;
+        std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1TurboKeyMap;
 
         // Mapeamento de botões de controle
         std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1ControllerMap;
         std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player2ControllerMap;
+        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1TurboControllerMap;
 
         // Cache para armazenar o código traduzido da ROM
         std::map<uint16_t, std::string> cachedDisassembly;
@@ -61,5 +63,7 @@ namespace R2NES::Core
 
         // Flag para ignorar o limite de tempo (Fast Forward ilimitado)
         bool uncappedSpeed = false;
+        bool turboA = false;
+        bool turboB = false;
     };
 }
