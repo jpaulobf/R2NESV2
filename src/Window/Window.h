@@ -131,7 +131,7 @@ namespace R2NES::Core
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
 
         bool unlimitedSprites = false;
-        bool vsyncEnabled = true;
+        bool vsyncEnabled = false;
         bool uncappedSpeed = false;
 
         void openFileDialog(); // Estes métodos agora são privados e delegam para as classes de ferramentas.

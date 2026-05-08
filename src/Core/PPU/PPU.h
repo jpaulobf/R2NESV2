@@ -31,6 +31,7 @@ namespace R2NES::Core
         void connectBus(Bus *bus);
         bool isFrameComplete() const { return frameComplete; }
         void clearFrameComplete() { frameComplete = false; }
+        void setUnlimitedSprites(bool enabled) { unlimitedSprites = enabled; }
 
         // Retorna um buffer de pixels ARGB para um Pattern Table específico
         // patternTableIndex: 0 para Pattern Table 0 ($0000-$0FFF), 1 para Pattern Table 1 ($1000-$1FFF)
@@ -84,6 +85,11 @@ namespace R2NES::Core
         int16_t scanline = 0;
         int16_t cycle = 0;
 
+        // Cache de sprites para o scanline atual (máximo 64 para o modo ilimitado)
+        std::array<uint8_t, 64> scanlineSprites;
+        int scanlineSpriteCount = 0;
+
         bool frameComplete = false;
+        bool unlimitedSprites = false;
     };
 }

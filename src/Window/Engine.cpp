@@ -25,7 +25,11 @@ namespace R2NES::Core
                                  { this->vsyncEnabled = enabled; });
 
         window->setUnlimitedSpritesCallback([this](bool enabled)
-                                            { this->unlimitedSprites = enabled; });
+                                            { 
+                                                this->unlimitedSprites = enabled; 
+                                                if (nes) 
+                                                    nes->getPpu().setUnlimitedSprites(enabled);
+                                            });
 
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
@@ -61,6 +65,9 @@ namespace R2NES::Core
 
         // Player 2 (mesmo mapeamento, controles diferentes)
         player2ControllerMap = player1ControllerMap;
+
+        // Inicializa o estado da PPU com a configuração da janela
+        nes->getPpu().setUnlimitedSprites(this->unlimitedSprites);
     }
 
     void Engine::toggleVSync()
@@ -118,6 +125,8 @@ namespace R2NES::Core
                 }
                 else if (uncappedSpeed)
                 {
+                    //std::cout << "Uncapped Speed Enabled" << std::endl;
+
                     // Emulação (UPS) - Roda o máximo que o núcleo da CPU permitir
                     for (int i = 0; i < 10; ++i)
                     { // Pequeno batch para reduzir overhead do loop
@@ -135,11 +144,13 @@ namespace R2NES::Core
                 }
                 else if (vsyncEnabled) // uncapped tem prioridade sobre vsync
                 {
+                    //std::cout << "Vsync Enabled" << std::endl;
                     update();
                     render();
                 }
                 else
                 {
+                    //std::cout << "Normal Speed" << std::endl;
                     // 1. Emulação (UPS): Depende do timeScale
                     double updateInterval = 1.0 / targetUPS;
                     residualTime += deltaTime * timeScale;

@@ -258,6 +258,44 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        // No início de cada scanline visível (ciclo 0), avaliamos quais sprites serão desenhados.
+        // No hardware real, isso acontece durante o scanline anterior, mas para fins de emulação,
+        // fazer no ciclo 0 é eficiente e preciso o suficiente para a maioria dos casos.
+        if (cycle == 0 && scanline >= 0 && scanline < 240)
+        {
+            scanlineSpriteCount = 0;
+            int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+
+            for (int i = 0; i < 64; i++)
+            {
+                uint8_t spriteY = oamMemory[i * 4];
+                int diffY = scanline - (spriteY + 1);
+
+                if (diffY >= 0 && diffY < spriteHeight)
+                {
+                    // No NES real, há um limite de 8 sprites por scanline.
+                    if (scanlineSpriteCount < 8)
+                    {
+                        scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
+                    }
+                    else
+                    {
+                        // Seta o bit de Sprite Overflow (bit 5) do PPUSTATUS
+                        ppuStatus |= 0x20;
+
+                        if (unlimitedSprites)
+                        {
+                            scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
+                        }
+                        else
+                        {
+                            break; // Comportamento real: ignora os demais sprites da linha
+                        }
+                    }
+                }
+            }
+        }
+
         // Só processamos renderização nos ciclos visíveis (0-255) e scanlines visíveis (0-239)
         if (scanline >= 0 && scanline < 240 && cycle >= 0 && cycle < 256)
         {
@@ -318,72 +356,64 @@ namespace R2NES::Core
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
             bool spritePixelDrawn = false;
-            for (int i = 0; i < 64; i++)
+            for (int j = 0; j < scanlineSpriteCount; j++)
             {
+                uint8_t i = scanlineSprites[j];
                 uint8_t spriteY = oamMemory[i * 4];
                 int diffY = scanline - (spriteY + 1);
                 int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
 
-                if (diffY >= 0 && diffY < spriteHeight)
+                uint8_t spriteX = oamMemory[i * 4 + 3];
+                int diffX = cycle - spriteX;
+
+                // Debug: se Sprite 0 mudou de posição, avisa
+                if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
                 {
-                    uint8_t spriteX = oamMemory[i * 4 + 3];
-                    int diffX = cycle - spriteX;
+                    lastSprite0Y = spriteY;
+                    lastSprite0X = spriteX;
+                }
 
-                    // Debug: se Sprite 0 mudou de posição, avisa
-                    if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
+                // Se o ciclo atual da PPU está dentro da largura horizontal do sprite
+                if (diffX >= 0 && diffX < 8)
+                {
+                    uint8_t spriteID = oamMemory[i * 4 + 1];
+                    uint8_t spriteAttrib = oamMemory[i * 4 + 2];
+                    uint16_t spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+
+                    uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
+                    uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
+
+                    uint8_t spLsb = ppuRead(spPtBase + spriteID * 16 + row);
+                    uint8_t spMsb = ppuRead(spPtBase + spriteID * 16 + row + 8);
+                    uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
+
+                    if (spritePixelColor != 0) // Pixel não é transparente
                     {
-                        lastSprite0Y = spriteY;
-                        lastSprite0X = spriteX;
-                    }
+                        // ========== SPRITE 0 HIT DETECTION ==========
+                        bool bgHasPixel = (bgPixelColor != 0);
+                        bool cycleInValidRange = (cycle >= 1 && cycle <= 254);
+                        bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
 
-                    // Se o ciclo atual da PPU está dentro da largura horizontal do sprite
-                    if (diffX >= 0 && diffX < 8)
-                    {
-                        uint8_t spriteID = oamMemory[i * 4 + 1];
-                        uint8_t spriteAttrib = oamMemory[i * 4 + 2];
-                        uint16_t spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                        if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
+                            cycleInValidRange = false;
 
-                        uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
-                        uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
-
-                        uint8_t spLsb = ppuRead(spPtBase + spriteID * 16 + row);
-                        uint8_t spMsb = ppuRead(spPtBase + spriteID * 16 + row + 8);
-                        uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
-
-                        if (spritePixelColor != 0) // Pixel não é transparente
+                        if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
                         {
-                            // ========== SPRITE 0 HIT DETECTION ==========
-                            // Hardware real: Sprite 0 Hit requer AMBAS condições:
-                            // 1. Sprite 0 com pixel opaco
-                            // 2. Background com pixel opaco
-                            // 3. Renderização de background E sprites habilitada no PPUMASK
-                            // 4. Não pode ocorrer no ciclo 255 (quirk do hardware)
-                            bool bgHasPixel = (bgPixelColor != 0);                 // Verifica se o pixel de fundo não é transparente
-                            bool cycleInValidRange = (cycle >= 1 && cycle <= 254); // Sprite 0 hit pode ocorrer do ciclo 1 ao 254
-                            bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
-
-                            // Se o clipping de 8px estiver ativo, o hit não ocorre nessa área
-                            if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
-                                cycleInValidRange = false;
-
-                            if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
-                            {
-                                ppuStatus |= 0x40;
-                                sprite0HitDetectedThisScanline = true;
-                            }
-
-                            bool priority = (spriteAttrib & 0x20) == 0;
-                            if (priority || bgPixelColor == 0)
-                            {
-                                uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
-                                uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
-                                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
-                                spritePixelDrawn = true;
-                            }
-
-                            // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade (índice maior)
-                            break;
+                            ppuStatus |= 0x40;
+                            sprite0HitDetectedThisScanline = true;
                         }
+
+                        bool priority = (spriteAttrib & 0x20) == 0;
+                        if (priority || bgPixelColor == 0)
+                        {
+                            uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
+                            uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
+                            frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
+                            spritePixelDrawn = true;
+                        }
+
+                        // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade
+                        break;
                     }
                 }
             }
@@ -430,6 +460,7 @@ namespace R2NES::Core
         sprite0HitDetectedThisScanline = false;
         scanline = 0;
         cycle = 0;
+        scanlineSpriteCount = 0;
         nmi = false;
 
         // Limpa o buffer de imagem para preto ao resetar/descarregar
