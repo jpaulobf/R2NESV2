@@ -20,6 +20,12 @@ namespace R2NES::Core
         window->setControllerCallback([this](int player, SDL_GameControllerButton button, bool isPressed)
                                       { this->handleJoystick(player, button, isPressed); });
 
+        // Conecta o callback de VSync para sincronizar o loop da Engine
+        window->setVSyncCallback([this](bool enabled)
+                                 { this->vsyncEnabled = enabled; });
+
+        this->vsyncEnabled = window->isVSyncEnabled();
+
         // Inicializa o mapeamento de teclas padrão para o Player 1
         player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
         player1KeyMap[SDLK_k] = R2NES::Core::IO::BUTTON_A;
@@ -51,6 +57,14 @@ namespace R2NES::Core
 
         // Player 2 (mesmo mapeamento, controles diferentes)
         player2ControllerMap = player1ControllerMap;
+    }
+
+    void Engine::toggleVSync()
+    {
+        // A Engine solicita a mudança para a Window
+        // O callback configurado no construtor atualizará o vsyncEnabled da Engine
+        // garantindo que ambos fiquem sincronizados.
+        window->toggleVSync();
     }
 
     void Engine::handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed)
@@ -153,7 +167,6 @@ namespace R2NES::Core
             {
                 // Se não há jogo, apenas renderiza a interface (ImGui/Menu)
                 render();
-                // frameCount++;
             }
         }
     }

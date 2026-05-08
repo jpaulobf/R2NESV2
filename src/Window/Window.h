@@ -27,6 +27,9 @@ namespace R2NES::Core
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         void setKeyCallback(KeyCallback cb) { keyCallback = cb; }
 
+        using VSyncCallback = std::function<void(bool)>;
+        void setVSyncCallback(VSyncCallback cb) { vsyncCallback = cb; }
+
         using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
 
@@ -63,6 +66,12 @@ namespace R2NES::Core
 
         void clearSelectedPath() { selectedPath = ""; }
 
+        bool isVSyncEnabled() const { return vsyncEnabled; }
+
+        void setVSync(bool enabled);
+
+        void toggleVSync() { setVSync(!vsyncEnabled); }
+
         bool shouldClose() const { return closed; }
 
         void reset();
@@ -96,6 +105,7 @@ namespace R2NES::Core
 
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
+        VSyncCallback vsyncCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -107,7 +117,7 @@ namespace R2NES::Core
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
 
         bool unlimitedSprites = false;
-        bool vsyncEnabled = false;
+        bool vsyncEnabled = true;
         bool uncappedSpeed = false;
     };
 }

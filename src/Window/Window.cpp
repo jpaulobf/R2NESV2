@@ -55,7 +55,14 @@ namespace R2NES::Core
             return;
         }
 
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        if (vsyncEnabled)
+        {
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        }
+        else
+        {
+            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        }
 
         // Garante que o fundo da janela principal também comece preto
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -74,7 +81,12 @@ namespace R2NES::Core
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
 
+        // Redimensiona a janela para 3x por padrão.
         this->windowResize(3);
+
+        // Informa a Engine o estado inicial do VSync
+        if (vsyncCallback)
+            this->vsyncCallback(vsyncEnabled);
     }
 
     Window::~Window()
@@ -383,6 +395,47 @@ namespace R2NES::Core
         tileViewer.close();
         
         disassembler.close();
+    }
+
+    void Window::setVSync(bool enabled)
+    {
+        // Se não houve mudança e o renderer já existe, não fazemos nada
+        if (vsyncEnabled == enabled && renderer != nullptr) return;
+
+        vsyncEnabled = enabled;
+
+        // 1. Destruir recursos antigos vinculados ao renderer atual
+        if (texture)
+        {
+            SDL_DestroyTexture(texture);
+            texture = nullptr;
+        }
+        if (renderer)
+        {
+            SDL_DestroyRenderer(renderer);
+            renderer = nullptr;
+        }
+
+        // 2. Criar novo renderer com a flag de VSync se solicitado
+        Uint32 flags = SDL_RENDERER_ACCELERATED;
+        if (vsyncEnabled)
+            flags |= SDL_RENDERER_PRESENTVSYNC;
+
+        renderer = SDL_CreateRenderer(window, -1, flags);
+        
+        // 3. Restaurar estado do renderer e recriar texturas
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+        texture = SDL_CreateTexture(
+            renderer,
+            SDL_PIXELFORMAT_ARGB8888,
+            SDL_TEXTUREACCESS_STREAMING,
+            width, height);
+
+        // 4. Notificar a Engine sobre a mudança para ajustar o Game Loop
+        if (vsyncCallback)
+            vsyncCallback(vsyncEnabled);
+
+        std::cout << "Window: VSync " << (vsyncEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::windowResize(int times)

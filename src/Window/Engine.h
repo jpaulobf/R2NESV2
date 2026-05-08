@@ -18,7 +18,7 @@ namespace R2NES::Core
         // Inicia o loop principal
         void run();
 
-        void toggleVSync() { vsyncEnabled = !vsyncEnabled; }
+        void toggleVSync();
         void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
 
     private:
