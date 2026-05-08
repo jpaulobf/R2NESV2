@@ -72,6 +72,10 @@ namespace R2NES::Core
 
         void toggleVSync() { setVSync(!vsyncEnabled); }
 
+        void vsyncOff() { setVSync(false); }
+
+        void vsyncOn() { setVSync(true); }
+
         bool shouldClose() const { return closed; }
 
         void reset();

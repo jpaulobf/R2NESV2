@@ -17,14 +17,15 @@
 #define IDM_FILE_EXIT 1002
 #define IDM_FILE_RESET 1003
 #define IDM_FILE_UNLOAD 1004
-#define IDM_FILE_TILE_VIEWER 1005
-#define IDM_FILE_DISASSEMBLER 1006
-#define IDM_FILE_WINDOW_1X 2000
-#define IDM_FILE_WINDOW_2X 2001
-#define IDM_FILE_WINDOW_3X 2002
-#define IDM_FILE_WINDOW_4X 2003
-#define IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN 2004
-#define IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
+#define IDM_DEBUG_TILE_VIEWER 1005
+#define IDM_DEBUG_DISASSEMBLER 1006
+#define IDM_VIEW_VSYNC 1999
+#define IDM_VIEW_WINDOW_1X 2000
+#define IDM_VIEW_WINDOW_2X 2001
+#define IDM_VIEW_WINDOW_3X 2002
+#define IDM_VIEW_WINDOW_4X 2003
+#define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
+#define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 
 namespace R2NES::Core
 {
@@ -206,35 +207,48 @@ namespace R2NES::Core
                     {
                         unload();
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_TILE_VIEWER)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
                     {
                         openTileViewer();
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_DISASSEMBLER)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_DISASSEMBLER)
                     {
                         openDisassembler();
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_1X)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
+                    {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        UINT state = GetMenuState(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND);
+
+                        if (state & MF_CHECKED) {
+                            CheckMenuItem(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND | MF_UNCHECKED);
+                            this->vsyncOff();
+                        } else {
+                            CheckMenuItem(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND | MF_CHECKED);
+                            this->vsyncOn();
+                        }
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_1X)
                     {
                         windowResize(1);
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_2X)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_2X)
                     {
                         windowResize(2);
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_3X)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_3X)
                     {
                         windowResize(3);
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_4X)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_4X)
                     {
                         windowResize(4);
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH)
                     {
                         windowBorderlessFullscreenStretch();
                     }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN)
                     {
                         windowBorderlessFullscreen();
                     }
@@ -303,15 +317,17 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_UNLOAD, L"&Unload");
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_TILE_VIEWER, L"&Tile Viewer");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_FILE_DISASSEMBLER, L"&Disassembler");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_1X, L"&1x");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_2X, L"&2x");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_3X, L"&3x");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_4X, L"&4x");
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_FILE_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_1X, L"&1x");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_2X, L"&2x");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_3X, L"&3x");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_4X, L"&4x");
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
+            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
 
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
