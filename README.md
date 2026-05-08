@@ -28,7 +28,9 @@ O projeto segue a anatomia clássica do "Famicom", organizada em torno de uma **
 - [x] Infraestrutura de Mappers (NROM funcional).
 - [x] Ciclo de Reset da CPU.
 - [x] Conjunto de Instruções da CPU (6502 Completo + Instruções Ilegais).
-- [x] PPU (Renderização de Background, Sprites e Sprite 0 Hit).
+- [x] PPU (Renderização de Background, Sprites, Sprite 0 Hit e Overflow).
+- [x] Otimização de Performance: Sprite Evaluation e Cache por scanline.
 - [x] Sistema de Scrolling (Horizontal e Vertical).
 - [x] Suporte a Controles (Xbox, 8BitDo, etc.) via SDL_GameController.
+- [x] Opções de Vídeo: VSync dinâmico e modo "Unlimited Sprites".
 - [ ] Suporte a Áudio (APU).
