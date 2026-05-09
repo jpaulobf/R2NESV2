@@ -49,25 +49,8 @@ FetchContent_Declare(
   GIT_TAG        v1.3.1
 )
 
-FetchContent_Declare(
-  libzip
-  GIT_REPOSITORY https://github.com/nih-at/libzip.git
-  GIT_TAG        v1.10.1
-)
-
 # Configurações Globais para Dependências
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) # Força tudo como estático (.a)
-
-# Configurações para a libzip
-set(ENABLE_COMMONCRYPTO OFF CACHE BOOL "" FORCE)
-set(ENABLE_GNUTLS OFF CACHE BOOL "" FORCE)
-set(ENABLE_MBEDTLS OFF CACHE BOOL "" FORCE)
-set(ENABLE_OPENSSL OFF CACHE BOOL "" FORCE)
-set(ENABLE_WINDOWS_CRYPTO OFF CACHE BOOL "" FORCE)
-set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(BUILD_DOC OFF CACHE BOOL "" FORCE)
-set(BUILD_REGRESS OFF CACHE BOOL "" FORCE)
 
 # Silencia os erros de tipos de ponteiro da libzip no MinGW/GCC 13
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-incompatible-pointer-types")
@@ -76,18 +59,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-incompatible-pointer-types")
 FetchContent_MakeAvailable(SDL2)
 FetchContent_MakeAvailable(imgui)
 
-# Precisamos configurar a zlib primeiro e avisar a libzip onde ela está
+# Precisamos configurar a zlib primeiro
 # Desativamos exemplos da zlib para acelerar o build
 set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(zlib)
-
-set(ZLIB_FOUND TRUE CACHE BOOL "" FORCE)
-# FindZLIB espera os nomes no singular para validar a busca
-set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE PATH "" FORCE)
-set(ZLIB_LIBRARY zlibstatic CACHE FILEPATH "" FORCE)
-set(ZLIB_VERSION_STRING "1.3.1" CACHE STRING "" FORCE)
-
-FetchContent_MakeAvailable(libzip)
 
 # Adiciona os arquivos de backend do ImGui (SDL2 + SDL_Renderer2)
 set(IMGUI_SOURCES
@@ -110,16 +85,11 @@ target_include_directories(R2NESV2 PRIVATE
     ${imgui_SOURCE_DIR}/backends
     ${zlib_SOURCE_DIR}
     ${zlib_BINARY_DIR}
-    ${libzip_SOURCE_DIR}/lib
-    ${libzip_BINARY_DIR}
 )
 
-# Linka o SDL2 ao executável e inclui seus diretórios de cabeçalho
-# Adicionamos bcrypt e advapi32 que são dependências de sistema para libzip no Windows
+# Linka o SDL2 e zlib ao executável
 target_link_libraries(R2NESV2 PRIVATE 
     SDL2::SDL2main 
     SDL2::SDL2-static 
-    zip
-    bcrypt 
-    advapi32
+    zlibstatic
 )

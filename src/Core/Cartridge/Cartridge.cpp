@@ -4,11 +4,98 @@
 #include <fstream>
 #include <cstring>
 #include <iostream>
-#include <zip.h>
+#include <zlib.h>
 #include <algorithm>
 
 namespace R2NES::Core
 {
+    // Função auxiliar para extrair arquivo .nes de um ZIP usando zlib
+    static bool extractNESFromZIP(const std::string &zipFileName, std::vector<uint8_t> &buffer)
+    {
+        std::ifstream zipFile(zipFileName, std::ios::binary);
+        if (!zipFile.is_open()) return false;
+
+        // Lê o arquivo ZIP completamente na memória
+        zipFile.seekg(0, std::ios::end);
+        std::streamsize zipSize = zipFile.tellg();
+        zipFile.seekg(0, std::ios::beg);
+        
+        std::vector<uint8_t> zipData(zipSize);
+        zipFile.read((char*)zipData.data(), zipSize);
+        zipFile.close();
+
+        // Procura pela assinatura do Local File Header (0x04034b50)
+        uint32_t signature = 0x04034b50;
+        size_t pos = 0;
+
+        while (pos < zipData.size() - 30)
+        {
+            uint32_t header = *(uint32_t*)(zipData.data() + pos);
+            if (header == signature)
+            {
+                // Lê o header do arquivo local
+                uint16_t fileNameLength = *(uint16_t*)(zipData.data() + pos + 26);
+                uint16_t extraFieldLength = *(uint16_t*)(zipData.data() + pos + 28);
+                uint32_t compressedSize = *(uint32_t*)(zipData.data() + pos + 18);
+                uint32_t uncompressedSize = *(uint32_t*)(zipData.data() + pos + 22);
+                uint16_t compressionMethod = *(uint16_t*)(zipData.data() + pos + 8);
+
+                // Lê o nome do arquivo
+                std::string fileName((char*)(zipData.data() + pos + 30), fileNameLength);
+
+                // Verifica se é um arquivo .nes
+                if (fileName.size() > 4)
+                {
+                    std::string ext = fileName.substr(fileName.size() - 4);
+                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+                    if (ext == ".nes")
+                    {
+                        size_t fileDataPos = pos + 30 + fileNameLength + extraFieldLength;
+
+                        if (compressionMethod == 0)
+                        {
+                            // Sem compressão - copia direto
+                            buffer.resize(uncompressedSize);
+                            std::memcpy(buffer.data(), zipData.data() + fileDataPos, uncompressedSize);
+                            return true;
+                        }
+                        else if (compressionMethod == 8)
+                        {
+                            // Comprimido com DEFLATE - descomprimi com zlib
+                            z_stream stream = {};
+                            if (inflateInit2(&stream, -MAX_WBITS) != Z_OK)
+                                return false;
+
+                            stream.avail_in = compressedSize;
+                            stream.next_in = (Bytef*)(zipData.data() + fileDataPos);
+
+                            buffer.resize(uncompressedSize);
+                            stream.avail_out = uncompressedSize;
+                            stream.next_out = buffer.data();
+
+                            int ret = inflate(&stream, Z_FINISH);
+                            inflateEnd(&stream);
+
+                            if (ret == Z_STREAM_END)
+                                return true;
+                            else
+                                return false;
+                        }
+                    }
+                }
+
+                pos += 30 + fileNameLength + extraFieldLength + compressedSize;
+            }
+            else
+            {
+                pos++;
+            }
+        }
+
+        return false;
+    }
+
     Cartridge::Cartridge(const std::string &fileName)
     {
         std::vector<uint8_t> buffer;
@@ -21,35 +108,15 @@ namespace R2NES::Core
 
         if (ext == ".zip")
         {
-            int err = 0;
-            zip_t *archive = zip_open(fileName.c_str(), ZIP_RDONLY, &err);
-            if (archive)
+            // Tenta extrair arquivo .nes do ZIP usando zlib
+            if (!extractNESFromZIP(fileName, buffer))
             {
-                zip_int64_t num_entries = zip_get_num_entries(archive, 0);
-                for (zip_int64_t i = 0; i < num_entries; i++)
-                {
-                    std::string name = zip_get_name(archive, i, 0);
-                    if (name.size() > 4 && (name.substr(name.size() - 4) == ".nes" || name.substr(name.size() - 4) == ".NES"))
-                    {
-                        zip_stat_t st;
-                        zip_stat_init(&st);
-                        zip_stat_index(archive, i, 0, &st);
-
-                        buffer.resize(st.size);
-                        zip_file_t *f = zip_fopen_index(archive, i, 0);
-                        if (f)
-                        {
-                            zip_fread(f, buffer.data(), st.size);
-                            zip_fclose(f);
-                        }
-                        break;
-                    }
-                }
-                zip_close(archive);
+                std::cerr << "Error: Could not extract .nes file from ZIP " << fileName << std::endl;
             }
         }
-        else
+        else if (ext == ".nes")
         {
+            // Lê arquivo .nes diretamente
             std::ifstream ifs(fileName, std::ifstream::binary | std::ifstream::ate);
             if (ifs.is_open())
             {
@@ -59,6 +126,14 @@ namespace R2NES::Core
                 ifs.read((char *)buffer.data(), size);
                 ifs.close();
             }
+            else
+            {
+                std::cerr << "Error: Could not open file " << fileName << std::endl;
+            }
+        }
+        else
+        {
+            std::cerr << "Error: Unsupported file format. Please use .nes or .zip files." << std::endl;
         }
 
         if (!buffer.empty())
