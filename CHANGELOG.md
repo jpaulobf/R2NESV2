@@ -2,6 +2,13 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.3.2] - 2026-05-09
+
+### Adicionado
+- Suporte parcial ao **Mapper 001 (MMC1)**, expandindo a compatibilidade para clássicos como *The Legend of Zelda*, *Metroid* e *Mega Man 2* (muitos bugs ainda)
+- Implementação de suporte a arquivos comprimidos (**ZIP**), permitindo carregar ROMs diretamente sem necessidade de descompactação manual.
+- Integração da biblioteca `zlib` no pipeline de build para descompressão de dados em tempo real.
+
 ## [0.3.1] - 2026-05-08
 
 ### Adicionado (Sessão Atual)
