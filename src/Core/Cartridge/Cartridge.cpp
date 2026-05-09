@@ -1,5 +1,6 @@
 #include "Core/Cartridge/Cartridge.h"
 #include "Core/Cartridge/Mappers/Mapper000.h"
+#include "Core/Cartridge/Mappers/Mapper001.h"
 #include <fstream>
 #include <cstring>
 #include <iostream>
@@ -76,6 +77,9 @@ namespace R2NES::Core
             case 0:
                 pMapper = std::make_shared<Mapper000>(prgBanks, chrBanks);
                 break;
+            case 1:
+                pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks);
+                break;
             default:
                 std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet. Only Mapper 0 (NROM) is available." << std::endl;
                 return;
@@ -89,8 +93,10 @@ namespace R2NES::Core
     bool Cartridge::cpuRead(uint16_t addr, uint8_t &data) const
     {
         uint32_t mapped_addr = 0;
-        if (pMapper && pMapper->cpuMapRead(addr, mapped_addr))
+        if (pMapper && pMapper->cpuMapRead(addr, mapped_addr, data))
         {
+            if (mapped_addr == 0xFFFFFFFF) return true; // Dado já preenchido pelo Mapper (ex: PRG RAM)
+            
             data = prgROM->read(mapped_addr);
             return true;
         }
@@ -100,9 +106,10 @@ namespace R2NES::Core
     bool Cartridge::cpuWrite(uint16_t addr, uint8_t data)
     {
         uint32_t mapped_addr = 0;
-        if (pMapper && pMapper->cpuMapWrite(addr, mapped_addr))
+        if (pMapper && pMapper->cpuMapWrite(addr, mapped_addr, data))
         {
-            // Geralmente PRG ROM é apenas leitura, mas Mappers podem interceptar escritas
+            if (mapped_addr == 0xFFFFFFFF) return true; // Escrita tratada internamente pelo Mapper
+            
             return true;
         }
         return false;
@@ -111,8 +118,10 @@ namespace R2NES::Core
     bool Cartridge::ppuRead(uint16_t addr, uint8_t &data) const
     {
         uint32_t mapped_addr = 0;
-        if (pMapper && pMapper->ppuMapRead(addr, mapped_addr))
+        if (pMapper && pMapper->ppuMapRead(addr, mapped_addr, data))
         {
+            if (mapped_addr == 0xFFFFFFFF) return true;
+
             if (chrROM)
             {
                 data = chrROM->read(mapped_addr);
@@ -125,11 +134,24 @@ namespace R2NES::Core
     bool Cartridge::ppuWrite(uint16_t addr, uint8_t data)
     {
         uint32_t mapped_addr = 0;
-        if (pMapper && pMapper->ppuMapWrite(addr, mapped_addr))
+        if (pMapper && pMapper->ppuMapWrite(addr, mapped_addr, data))
         {
+            if (mapped_addr == 0xFFFFFFFF) return true;
+
             chrROM->write(mapped_addr, data);
             return true;
         }
         return false;
+    }
+
+    MirrorMode Cartridge::getMirrorMode() const
+    {
+        // Mappers avançados (como MMC1) controlam o Mirroring via software.
+        // Verificamos se o mapper atual suporta isso, caso contrário usamos o valor do cabeçalho.
+        if (pMapper && (mapperID == 1)) 
+        {
+            return pMapper->getMirrorMode();
+        }
+        return mirror;
     }
 }

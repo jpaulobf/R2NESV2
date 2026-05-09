@@ -6,7 +6,7 @@ namespace R2NES::Core
 
     Mapper000::~Mapper000() {}
 
-    bool Mapper000::cpuMapRead(uint16_t addr, uint32_t &mapped_addr)
+    bool Mapper000::cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
     {
         // PRG ROM no Mapper 000 fica entre 0x8000 e 0xFFFF
         if (addr >= 0x8000 && addr <= 0xFFFF)
@@ -18,7 +18,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper000::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr)
+    bool Mapper000::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
     {
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
@@ -28,7 +28,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper000::ppuMapRead(uint16_t addr, uint32_t &mapped_addr)
+    bool Mapper000::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
     {
         // CHR ROM no Mapper 000 fica entre 0x0000 e 0x1FFF
         if (addr >= 0x0000 && addr <= 0x1FFF)
@@ -39,7 +39,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper000::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr)
+    bool Mapper000::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {

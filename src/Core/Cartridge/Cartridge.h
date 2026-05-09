@@ -27,7 +27,7 @@ namespace R2NES::Core
         // Retorna se o cartucho foi carregado com sucesso
         bool isValid() const { return imageValid; }
 
-        MirrorMode getMirrorMode() const { return mirror; }
+        MirrorMode getMirrorMode() const;
 
     private:
         std::unique_ptr<PRGROM> prgROM;
