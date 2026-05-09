@@ -146,39 +146,37 @@ namespace R2NES::Core
                         renderResidualTime = 0;
                     }
                 }
-                else if (vsyncEnabled) // uncapped tem prioridade sobre vsync
-                {
-                    // std::cout << "Vsync Enabled" << std::endl;
-                    update();
-                    render();
-                }
                 else
                 {
-                    // std::cout << "Normal Speed" << std::endl;
-                    //  1. Emulação (UPS): Depende do timeScale
+                    // Lógica unificada para VSync e Modo Normal
+                    // Isso garante que o NES rode a 60 UPS (Updates Per Second) 
+                    // independentemente da taxa de atualização do monitor (75Hz, 144Hz, etc)
                     double updateInterval = 1.0 / targetUPS;
                     residualTime += deltaTime * timeScale;
 
-                    // Evita a "espiral da morte" se o emulador estiver muito lento
                     if (residualTime > 0.1f)
                         residualTime = 0.1f;
 
-                    while (residualTime >= updateInterval)
+                    while (residualTime >= updateInterval - 0.0002)
                     {
                         update();
                         residualTime -= updateInterval;
                     }
 
-                    // 2. Renderização (FPS): Independente do timeScale
-                    double renderInterval = 1.0 / targetFPS;
-                    renderResidualTime += deltaTime;
-
-                    if (renderResidualTime >= renderInterval)
+                    if (vsyncEnabled)
                     {
                         render();
-                        // No modo normal, contamos aqui ou no update.
-                        // Vamos contar no update() para ser consistente.
-                        renderResidualTime = std::fmod(renderResidualTime, renderInterval);
+                    }
+                    else
+                    {
+                        double renderInterval = 1.0 / targetFPS;
+                        renderResidualTime += deltaTime;
+
+                        if (renderResidualTime >= renderInterval)
+                        {
+                            render();
+                            renderResidualTime = std::fmod(renderResidualTime, renderInterval);
+                        }
                     }
                 }
             }
