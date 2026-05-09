@@ -416,7 +416,7 @@ namespace R2NES::Core
         ofn.hwndOwner = NULL;
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "NES ROMs (*.nes)\0*.nes\0All Files (*.*)\0*.*\0";
+        ofn.lpstrFilter = "NES ROMs (*.nes, *.zip)\0*.nes;*.zip\0All Files (*.*)\0*.*\0";
         ofn.nFilterIndex = 1;
         ofn.lpstrFileTitle = NULL;
         ofn.nMaxFileTitle = 0;

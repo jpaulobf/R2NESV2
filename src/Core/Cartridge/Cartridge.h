@@ -30,6 +30,7 @@ namespace R2NES::Core
         MirrorMode getMirrorMode() const;
 
     private:
+        bool loadFromBuffer(const std::vector<uint8_t> &buffer);
         std::unique_ptr<PRGROM> prgROM;
         std::unique_ptr<CHRROM> chrROM;
         std::shared_ptr<Mapper> pMapper;

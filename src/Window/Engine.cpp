@@ -146,6 +146,12 @@ namespace R2NES::Core
                         renderResidualTime = 0;
                     }
                 }
+                else if (vsyncEnabled) // uncapped tem prioridade sobre vsync
+                {
+                    // std::cout << "Vsync Enabled" << std::endl;
+                    update();
+                    render();
+                }
                 else
                 {
                     // Lógica unificada para VSync e Modo Normal
