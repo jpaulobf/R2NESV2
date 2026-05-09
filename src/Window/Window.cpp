@@ -85,7 +85,7 @@ namespace R2NES::Core
         ImGui::CreateContext();
 
         // Redimensiona a janela para 3x por padrão.
-        this->windowResize(3);
+        this->windowResize(currentWindowX);
 
         // Informa a Engine o estado inicial do VSync
         if (vsyncCallback)
@@ -236,18 +236,38 @@ namespace R2NES::Core
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_1X)
                     {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_CHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_UNCHECKED);
                         windowResize(1);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_2X)
                     {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_CHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_UNCHECKED);
                         windowResize(2);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_3X)
                     {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_CHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_UNCHECKED);
                         windowResize(3);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_4X)
                     {
+                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_CHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_UNCHECKED);
+                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_UNCHECKED);
                         windowResize(4);
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH)
@@ -368,10 +388,42 @@ namespace R2NES::Core
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
             }
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_1X, L"&1x");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_2X, L"&2x");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_3X, L"&3x");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_4X, L"&4x");
+            if (this->currentWindowX == 1) 
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_1X, L"&1x");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_1X, L"&1x");
+            }
+
+            if (this->currentWindowX == 2) 
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_2X, L"&2x");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_2X, L"&2x");
+            }
+
+            if (this->currentWindowX == 3) 
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_3X, L"&3x");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_3X, L"&3x");
+            }
+
+            if (this->currentWindowX == 4) 
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_4X, L"&4x");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_4X, L"&4x");
+            }
+
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
@@ -567,6 +619,7 @@ namespace R2NES::Core
         SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
         SDL_GetWindowPosition(window, &lastWindowedX, &lastWindowedY);
         currentDisplayMode = DisplayMode::WINDOWED;
+        this->currentWindowX = times;
     }
 
     void Window::setWindowBorderlessFullscreen(DisplayMode dm, Uint32 flags)

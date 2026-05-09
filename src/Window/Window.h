@@ -141,6 +141,8 @@ namespace R2NES::Core
         // Armazena o último estado da janela para restauração
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
 
+        int currentWindowX = 3;
+
         bool unlimitedSprites = false;
         bool vsyncEnabled = true;
         bool uncappedSpeed = false;
