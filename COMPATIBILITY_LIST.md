@@ -56,3 +56,13 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Seicross | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Slalom | US | 000 | ⭐⭐⭐ | Vários Glitches Gráficos. Jogável. |
 | Soccer | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
+
+---
+
+### Resumo Estatístico
+
+- **Total de Jogos Testados:** 43
+- ⭐⭐⭐⭐⭐ (Perfeito): 29
+- ⭐⭐⭐⭐ (Jogável): 8
+- ⭐⭐⭐ (Médio): 2
+- ⭐ (Não funciona): 4
