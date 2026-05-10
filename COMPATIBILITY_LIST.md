@@ -50,13 +50,9 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Othello | US | 000 | ⭐ | Super Glitchy e travado no menu |
 | Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
-
-
-
-
-
-
-
-
-
-
+| Pinball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Popeye | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Raid on Bungeling Bay | US | 000 | ⭐⭐⭐⭐ | Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
+| Seicross | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Slalom | US | 000 | ⭐⭐⭐ | Vários Glitches Gráficos. Jogável. |
+| Soccer | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
