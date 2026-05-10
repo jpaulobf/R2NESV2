@@ -13,7 +13,6 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | :--- | :---: | :---: | :---: | :--- |
-| Super Mario Bros | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
 | 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | 1942 | US | 000 | ⭐⭐⭐⭐ | Bugs no HUD. Falhas gráficas nas transições. Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
 | Balloon Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -56,13 +55,25 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Seicross | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Slalom | US | 000 | ⭐⭐⭐ | Vários Glitches Gráficos. Jogável. |
 | Soccer | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
+| Spy vs. Spy | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Sqoon | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Stack-Up | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Super Mario Bros | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
+| Tag Team Wrestling | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Tennis | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Urban Champion | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Volleyball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Wild Gunman | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
+| Wrecking Crew | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Xevious | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+
 
 ---
 
 ### Resumo Estatístico
 
-- **Total de Jogos Testados:** 43
-- ⭐⭐⭐⭐⭐ (Perfeito): 29
-- ⭐⭐⭐⭐ (Jogável): 8
-- ⭐⭐⭐ (Médio): 2
-- ⭐ (Não funciona): 4
+- **Total de Jogos Testados:** 53
+- ⭐⭐⭐⭐⭐ (Perfeito): 39 - 73.6%
+- ⭐⭐⭐⭐ (Jogável): 8 - 15.1%
+- ⭐⭐⭐ (Médio): 2 - 3.8%
+- ⭐ (Não funciona): 4 - 7.5%
