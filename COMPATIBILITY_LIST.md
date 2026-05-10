@@ -49,7 +49,7 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Millipide | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Othello | US | 000 | ⭐ | Super Glitchy e travado no menu |
-
+| Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
 
 
 
