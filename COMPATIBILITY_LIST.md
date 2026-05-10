@@ -38,6 +38,20 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Hogan's Alley | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
 | Hydlide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ice Climber | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Ice Hockey | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Kung Fu | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Lode Runner | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Lunar Pool | US | 000 | ⭐⭐⭐⭐ | Pequenos Glitches Gráficos |
+| M.U.S.C.L.E. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Mach Rider | US | 000 | ⭐⭐⭐ | Glitches visuais |
+| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
+| Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Millipide | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
+| Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Othello | US | 000 | ⭐ | Super Glitchy e travado no menu |
+
+
+
 
 
 
