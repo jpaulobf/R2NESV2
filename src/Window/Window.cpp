@@ -28,6 +28,7 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
+#define IDI_ICON 101
 
 namespace R2NES::Core
 {
@@ -365,6 +366,14 @@ namespace R2NES::Core
         if (SDL_GetWindowWMInfo(window, &wmInfo))
         {
             HWND hwnd = wmInfo.info.win.window;
+
+            // Carrega o ícone do recurso e define na janela
+            HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON));
+            if (hIcon) {
+                SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+                SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+            }
+
             HMENU hMenuBar = CreateMenu();
             HMENU hFileMenu = CreateMenu();
             HMENU hDebugMenu = CreateMenu();
