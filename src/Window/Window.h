@@ -8,6 +8,7 @@
 #include <memory>
 #include "TileViewer.h"
 #include "Disassembler.h"
+#include "Util/ConfigManager.h"
 
 namespace R2NES::Core
 {
@@ -120,6 +121,8 @@ namespace R2NES::Core
 
         TileViewer tileViewer;
         Disassembler disassembler;
+
+        Util::ConfigManager configManager;
 
         bool closed = false;
         bool resetRequested = false;

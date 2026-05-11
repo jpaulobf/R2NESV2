@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
+#include "Util/ConfigManager.h"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -487,6 +488,7 @@ namespace R2NES::Core
         if (GetOpenFileNameA(&ofn) == TRUE)
         {
             selectedPath = szFile;
+            configManager.addRomToList(selectedPath);
         }
 #endif
     }
