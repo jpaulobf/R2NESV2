@@ -93,3 +93,10 @@ target_link_libraries(R2NESV2 PRIVATE
     SDL2::SDL2-static 
     zlibstatic
 )
+
+# Copia a pasta resources para o diretório de saída do executável após o build
+add_custom_command(TARGET R2NESV2 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/resources"
+    "$<TARGET_FILE_DIR:R2NESV2>/resources"
+)
