@@ -18,8 +18,9 @@
 #define IDM_FILE_EXIT 1002
 #define IDM_FILE_RESET 1003
 #define IDM_FILE_UNLOAD 1004
-#define IDM_DEBUG_TILE_VIEWER 1005
-#define IDM_DEBUG_DISASSEMBLER 1006
+#define IDM_RECENT_FILE_BASE_ID 10000 // Base ID para os itens da lista de ROMs recentes
+#define IDM_DEBUG_TILE_VIEWER 1006
+#define IDM_DEBUG_DISASSEMBLER 1007
 #define IDM_VIEW_VSYNC 1999
 #define IDM_VIEW_WINDOW_1X 2000
 #define IDM_VIEW_WINDOW_2X 2001
@@ -212,6 +213,19 @@ namespace R2NES::Core
                     {
                         unload();
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_RECENT_FILE_BASE_ID && LOWORD(e.syswm.msg->msg.win.wParam) < IDM_RECENT_FILE_BASE_ID + 10)
+                    {
+                        // Um item de ROM recente foi clicado
+                        int index = LOWORD(e.syswm.msg->msg.win.wParam) - IDM_RECENT_FILE_BASE_ID;
+                        const auto& recentRoms = configManager.getRecentRoms();
+                        if (index < recentRoms.size()) {
+                            auto it = recentRoms.begin();
+                            std::advance(it, index); // Avança o iterador para a posição correta
+                            selectedPath = *it;
+                            configManager.addRomToList(selectedPath); // Re-adiciona para subir ao topo da lista de recentes
+                            createMenu(); // Atualiza a lista visualmente no menu
+                        }
+                    }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
                     {
                         openTileViewer();
@@ -368,6 +382,10 @@ namespace R2NES::Core
         {
             HWND hwnd = wmInfo.info.win.window;
 
+            // Remove e destrói o menu anterior antes de criar um novo (evita memory leaks)
+            HMENU hOldMenu = GetMenu(hwnd);
+            if (hOldMenu) DestroyMenu(hOldMenu);
+
             // Carrega o ícone do recurso e define na janela
             HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON));
             if (hIcon) {
@@ -386,6 +404,29 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_UNLOAD, L"&Unload");
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
+
+            // Cria o submenu para "Recent Files"
+            HMENU hRecentFilesMenu = CreatePopupMenu();
+            const auto& recentRoms = configManager.getRecentRoms();
+            
+            if (recentRoms.empty())
+            {
+                AppendMenuW(hRecentFilesMenu, MF_STRING | MF_GRAYED, 0, L"No Recent Files");
+            }
+            else
+            {
+                int i = 0;
+                for (const auto& romPath : recentRoms)
+                {
+                    // Mostra apenas o nome do arquivo no menu, para não ficar muito largo
+                    std::string fileName = romPath.substr(romPath.find_last_of("\\/") + 1);
+                    AppendMenuA(hRecentFilesMenu, MF_STRING, IDM_RECENT_FILE_BASE_ID + i, fileName.c_str());
+                    if (++i >= 10) break; // Garante o limite de 10
+                }
+            }
+            AppendMenuW(hFileMenu, MF_POPUP, (UINT_PTR)hRecentFilesMenu, L"&Recent Files");
+            AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
+
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
@@ -489,6 +530,7 @@ namespace R2NES::Core
         {
             selectedPath = szFile;
             configManager.addRomToList(selectedPath);
+            createMenu(); // Atualiza o menu com a nova ROM no topo da lista
         }
 #endif
     }

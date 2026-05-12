@@ -15,6 +15,7 @@ namespace R2NES::Core::Util
         void loadConfigFile();
         void saveConfigFile();
         void addRomToList(const std::string& romPath);
+        
         const std::list<std::string>& getRecentRoms() const { return listOfRoms; }
 
     private:
