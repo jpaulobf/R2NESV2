@@ -4,6 +4,7 @@
   <img src="https://github.com/jpaulobf/R2NES/blob/main/nesemu%2F.assets%2Flogob.png"/>
 </div>
 
+---
 
 A high-performance Nintendo Entertainment System (NES) emulator written in modern C++, focused on accuracy and development tools.
 
