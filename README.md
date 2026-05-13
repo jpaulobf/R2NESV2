@@ -40,8 +40,10 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
 4. The executable will be generated in the `/bin` folder.
 
 ## 🎮 Default Controls
-- **DPAD/Directionals**: Keyboard arrows or controller D-Pad.
-- **A/B/Select/Start**: Z, X, Shift, and Enter keys respectively.
+- **Directionals (D-Pad)**: `W`, `S`, `A`, `D` keys or controller D-Pad.
+- **A / B**: `K` / `J` keys.
+- **Turbo A / Turbo B**: `I` / `U` keys.
+- **Select / Start**: `Backspace` / `Enter` keys.
 - **Fast Forward**: Hold down `TAB`.
 
 ---
@@ -88,6 +90,8 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
 4. O executável será gerado na pasta `/bin`.
 
 ## 🎮 Controles Padrão
-- **DPAD/Direcionais**: Setas do teclado ou D-Pad do controle.
-- **A/B/Select/Start**: Teclas Z, X, Shift e Enter respectivamente.
+- **Direcionais (D-Pad)**: Teclas `W`, `S`, `A`, `D` ou D-Pad do controle.
+- **A / B**: Teclas `K` / `J`.
+- **Turbo A / Turbo B**: Teclas `I` / `U`.
+- **Select / Start**: Teclas `Backspace` / `Enter`.
 - **Fast Forward**: Manter pressionado `TAB`.
