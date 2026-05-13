@@ -3,6 +3,7 @@
 #include <SDL_syswm.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
+#include <filesystem> // For path manipulation
 #include "imgui_impl_sdlrenderer2.h"
 #include "Util/ConfigManager.h"
 
@@ -40,7 +41,6 @@ namespace R2NES::Core
         // Store initial windowed state
         lastWindowedW = w * s;
         lastWindowedH = h * s;
-        // lastWindowedX and Y are already initialized to SDL_WINDOWPOS_CENTERED
 
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0)
         {
@@ -217,13 +217,14 @@ namespace R2NES::Core
                     {
                         // Um item de ROM recente foi clicado
                         int index = LOWORD(e.syswm.msg->msg.win.wParam) - IDM_RECENT_FILE_BASE_ID;
-                        const auto& recentRoms = configManager.getRecentRoms();
-                        if (index < recentRoms.size()) {
+                        const auto &recentRoms = configManager.getRecentRoms();
+                        if (index < recentRoms.size())
+                        {
                             auto it = recentRoms.begin();
                             std::advance(it, index); // Avança o iterador para a posição correta
                             selectedPath = *it;
                             configManager.addRomToList(selectedPath); // Re-adiciona para subir ao topo da lista de recentes
-                            createMenu(); // Atualiza a lista visualmente no menu
+                            createMenu();                             // Atualiza a lista visualmente no menu
                         }
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
@@ -384,11 +385,13 @@ namespace R2NES::Core
 
             // Remove e destrói o menu anterior antes de criar um novo (evita memory leaks)
             HMENU hOldMenu = GetMenu(hwnd);
-            if (hOldMenu) DestroyMenu(hOldMenu);
+            if (hOldMenu)
+                DestroyMenu(hOldMenu);
 
             // Carrega o ícone do recurso e define na janela
             HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON));
-            if (hIcon) {
+            if (hIcon)
+            {
                 SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
                 SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
             }
@@ -407,8 +410,8 @@ namespace R2NES::Core
 
             // Cria o submenu para "Recent Files"
             HMENU hRecentFilesMenu = CreatePopupMenu();
-            const auto& recentRoms = configManager.getRecentRoms();
-            
+            const auto &recentRoms = configManager.getRecentRoms();
+
             if (recentRoms.empty())
             {
                 AppendMenuW(hRecentFilesMenu, MF_STRING | MF_GRAYED, 0, L"No Recent Files");
@@ -416,12 +419,13 @@ namespace R2NES::Core
             else
             {
                 int i = 0;
-                for (const auto& romPath : recentRoms)
+                for (const auto &romPath : recentRoms)
                 {
                     // Mostra apenas o nome do arquivo no menu, para não ficar muito largo
                     std::string fileName = romPath.substr(romPath.find_last_of("\\/") + 1);
                     AppendMenuA(hRecentFilesMenu, MF_STRING, IDM_RECENT_FILE_BASE_ID + i, fileName.c_str());
-                    if (++i >= 10) break; // Garante o limite de 10
+                    if (++i >= 10)
+                        break; // Garante o limite de 10
                 }
             }
             AppendMenuW(hFileMenu, MF_POPUP, (UINT_PTR)hRecentFilesMenu, L"&Recent Files");
@@ -439,7 +443,7 @@ namespace R2NES::Core
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
             }
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            if (this->currentWindowX == 1) 
+            if (this->currentWindowX == 1)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_1X, L"&1x");
             }
@@ -448,7 +452,7 @@ namespace R2NES::Core
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_1X, L"&1x");
             }
 
-            if (this->currentWindowX == 2) 
+            if (this->currentWindowX == 2)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_2X, L"&2x");
             }
@@ -457,7 +461,7 @@ namespace R2NES::Core
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_2X, L"&2x");
             }
 
-            if (this->currentWindowX == 3) 
+            if (this->currentWindowX == 3)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_3X, L"&3x");
             }
@@ -466,7 +470,7 @@ namespace R2NES::Core
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_3X, L"&3x");
             }
 
-            if (this->currentWindowX == 4) 
+            if (this->currentWindowX == 4)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_4X, L"&4x");
             }
@@ -513,6 +517,7 @@ namespace R2NES::Core
 #ifdef _WIN32
         OPENFILENAMEA ofn;
         char szFile[260] = {0};
+        char szInitialDir[260] = {0}; // Buffer for initial directory
 
         ZeroMemory(&ofn, sizeof(ofn));
         ofn.lStructSize = sizeof(ofn);
@@ -523,13 +528,33 @@ namespace R2NES::Core
         ofn.nFilterIndex = 1;
         ofn.lpstrFileTitle = NULL;
         ofn.nMaxFileTitle = 0;
-        ofn.lpstrInitialDir = NULL;
+
+        // Set initial directory if available
+        std::string lastRomPath = configManager.getLastRomPath();
+        if (!lastRomPath.empty() && std::filesystem::is_directory(lastRomPath))
+        {
+            strncpy(szInitialDir, lastRomPath.c_str(), sizeof(szInitialDir) - 1);
+            szInitialDir[sizeof(szInitialDir) - 1] = '\0';
+            ofn.lpstrInitialDir = szInitialDir;
+        }
+        else
+        {
+            ofn.lpstrInitialDir = NULL;
+        }
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
         if (GetOpenFileNameA(&ofn) == TRUE)
         {
             selectedPath = szFile;
             configManager.addRomToList(selectedPath);
+
+            // Update last_rom_path
+            std::filesystem::path romFilePath(selectedPath);
+            if (romFilePath.has_parent_path())
+            {
+                configManager.setLastRomPath(romFilePath.parent_path().string());
+            }
+
             createMenu(); // Atualiza o menu com a nova ROM no topo da lista
         }
 #endif
