@@ -1,5 +1,53 @@
 # R2NES V2
 
+A high-performance Nintendo Entertainment System (NES) emulator written in modern C++, focused on accuracy and development tools.
+
+## 🚀 Current Features
+
+- **CPU Core**: Full implementation of the 6502 (Ricoh 2A03).
+- **PPU (Graphics)**: Cycle-accurate rendering with support for Sprite 0 Hit and Unlimited Sprites (flicker reduction).
+- **Mapper Support**: 
+  - Mapper 000 (NROM)
+  - Mapper 001 (MMC1)
+- **File Formats**: Support for `.nes` (iNES) files and compressed `.zip` files.
+- **Debug Interface**:
+  - **Tile Viewer**: Real-time visualization of Pattern Tables.
+  - **Disassembler**: Assembly code debugging with execution highlighting.
+- **Quality of Life (QoL)**:
+  - **Recent Files**: Menu with history of the last 10 loaded ROMs for quick access.
+  - **Directory Persistence**: Automatic memorization of the last opened folder, facilitating navigation.
+- **Input**: Native support for Keyboard and Controllers (XInput/DirectInput via SDL2) with Hot-plugging.
+
+## 🛠️ Technologies Used
+
+- **Language**: C++17
+- **Graphics/Input**: SDL2
+- **Debug UI**: Dear ImGui
+- **Compression**: zlib
+- **Build System**: CMake
+
+## 📦 How to Build
+
+1. Make sure you have `cmake` and a C++ compiler (GCC/MinGW recommended) installed.
+2. Clone the repository.
+3. In the project root, run:
+   ```bash
+   mkdir build
+   cd build
+   cmake ..
+   cmake --build .
+   ```
+4. The executable will be generated in the `/bin` folder.
+
+## 🎮 Default Controls
+- **DPAD/Directionals**: Keyboard arrows or controller D-Pad.
+- **A/B/Select/Start**: Z, X, Shift, and Enter keys respectively.
+- **Fast Forward**: Hold down `TAB`.
+
+---
+
+# R2NES V2
+
 Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em C++ moderno, focado em precisão e ferramentas de desenvolvimento.
 
 ## 🚀 Funcionalidades Atuais
