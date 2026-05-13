@@ -22,7 +22,8 @@ namespace R2NES::Core::Util
     void ConfigManager::loadConfigFile()
     {
         std::ifstream file(configFilePath);
-        if (!file.is_open()) {
+        if (!file.is_open())
+        {
             std::cout << "ConfigManager: Arquivo de config nao encontrado em: " << std::filesystem::absolute(configFilePath) << " (Sera criado ao fechar)" << std::endl;
             return;
         }
@@ -31,7 +32,8 @@ namespace R2NES::Core::Util
         while (std::getline(file, line))
         {
             // Ignora linhas vazias ou comentários
-            if (line.empty() || line[0] == '#') continue;
+            if (line.empty() || line[0] == '#')
+                continue;
 
             size_t delimiterPos = line.find('=');
             if (delimiterPos != std::string::npos)
@@ -52,6 +54,16 @@ namespace R2NES::Core::Util
                 listOfRoms.push_back(configValues[key]);
             }
         }
+
+        // Popula lastRomPath
+        if (configValues.count("last_rom_path"))
+        {
+            lastRomPath = configValues["last_rom_path"];
+        }
+        else
+        {
+            lastRomPath = ""; // Ensure it's empty if not found
+        }
     }
 
     void ConfigManager::saveConfigFile()
@@ -67,7 +79,7 @@ namespace R2NES::Core::Util
 
         // Atualiza os valores f1-f10 no map antes de salvar
         int i = 1;
-        for (const auto& rom : listOfRoms)
+        for (const auto &rom : listOfRoms)
         {
             configValues["f" + std::to_string(i)] = rom;
             i++;
@@ -78,8 +90,12 @@ namespace R2NES::Core::Util
             configValues["f" + std::to_string(i)] = "";
         }
 
+        // Ensure last_rom_path is updated in the map before saving
+        configValues["last_rom_path"] = lastRomPath;
+
         std::ofstream file(configFilePath);
-        if (!file.is_open()) return;
+        if (!file.is_open())
+            return;
 
         file << "# Last Opened Files\n";
         for (int j = 1; j <= 10; ++j)
@@ -89,7 +105,7 @@ namespace R2NES::Core::Util
         }
 
         // Salva outras configurações futuras que estiverem no map
-        for (auto const& [key, val] : configValues)
+        for (auto const &[key, val] : configValues)
         {
             if (key.size() > 0 && key[0] != 'f') // Evita duplicar f1-f10
             {
@@ -98,13 +114,14 @@ namespace R2NES::Core::Util
         }
     }
 
-    void ConfigManager::addRomToList(const std::string& romPath)
+    void ConfigManager::addRomToList(const std::string &romPath)
     {
-        if (romPath.empty()) return;
+        if (romPath.empty())
+            return;
 
         // Se a ROM já estiver na lista, removemos para reinseri-la no topo (f1)
         listOfRoms.remove(romPath);
-        
+
         // Adiciona no início (f1)
         listOfRoms.push_front(romPath);
 
