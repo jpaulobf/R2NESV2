@@ -13,6 +13,9 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
 - **Interface de Debug**:
   - **Tile Viewer**: Visualização das Pattern Tables em tempo real.
   - **Disassembler**: Depuração de código assembly com highlight de execução.
+- **Qualidade de Vida (QoL)**:
+  - **Arquivos Recentes**: Menu com histórico das últimas 10 ROMs carregadas para acesso rápido.
+  - **Persistência de Diretório**: Memorização automática da última pasta aberta, facilitando a navegação.
 - **Input**: Suporte nativo a Teclado e Controles (XInput/DirectInput via SDL2) com Hot-plugging.
 
 ## 🛠️ Tecnologias Utilizadas
