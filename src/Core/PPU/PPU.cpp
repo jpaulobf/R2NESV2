@@ -174,6 +174,8 @@ namespace R2NES::Core
         if (addr >= 0x3F00 && addr <= 0x3FFF)
         {
             addr &= 0x001F;
+            // Espelhamento de paletas: $3F10/$3F14/$3F18/$3F1C -> $3F00/$3F04/$3F08/$3F0C
+            // (endereços sprite background) -> (endereços universal background)
             if ((addr & 0x0013) == 0x0010)
                 addr &= 0x000F;
             return paletteTable[addr];
@@ -202,6 +204,7 @@ namespace R2NES::Core
             addr &= 0x001F;
             // No NES, os endereços $3F10, $3F14, $3F18 e $3F1C são espelhos de
             // $3F00, $3F04, $3F08 e $3F0C respectivamente (cores de fundo).
+            // Quando escrevemos em $3F00, também escrevemos em $3F10, $3F14, $3F18, $3F1C
             if ((addr & 0x0013) == 0x0010)
                 addr &= 0x000F;
             paletteTable[addr] = data;
@@ -269,6 +272,8 @@ namespace R2NES::Core
             for (int i = 0; i < 64; i++)
             {
                 uint8_t spriteY = oamMemory[i * 4];
+                // No NES, spriteY é armazenado como Y-1, então para comparar com o scanline usamos Y+1
+                // (porque o sprite começa a ser desenhado uma linha após seu valor Y)
                 int diffY = scanline - (spriteY + 1);
 
                 if (diffY >= 0 && diffY < spriteHeight)
@@ -302,51 +307,60 @@ namespace R2NES::Core
             uint8_t bgPixelColor = 0;
             uint8_t bgPaletteIndex = 0;
 
-            // 1. Calcula a posição absoluta no espaço virtual de 512x480 pixels (4 Nametables)
-            // Usamos ppuCtrl para definir qual nametable é a "página 0,0" atual
-            uint16_t baseNTX = (ppuCtrl & 0x01) ? 256 : 0;
-            uint16_t baseNTY = (ppuCtrl & 0x02) ? 240 : 0;
+            // Renderiza background se habilitado (PPUMASK bit 3)
+            // Nos primeiros 8 pixels (ciclos 0-7), verifica bit 1 (show background in leftmost 8 pixels)
+            bool bgRenderingEnabled = (ppuMask & 0x08) != 0;
+            if (cycle < 8 && !(ppuMask & 0x02))
+                bgRenderingEnabled = false;
 
-            uint32_t absoluteX = (uint32_t)cycle + (uint32_t)scrollX + baseNTX;
-            uint32_t absoluteY = (uint32_t)scanline + (uint32_t)scrollY + baseNTY;
+            if (bgRenderingEnabled)
+            {
+                // 1. Calcula a posição absoluta no espaço virtual de 512x480 pixels (4 Nametables)
+                // Usamos ppuCtrl para definir qual nametable é a "página 0,0" atual
+                uint16_t baseNTX = (ppuCtrl & 0x01) ? 256 : 0;
+                uint16_t baseNTY = (ppuCtrl & 0x02) ? 240 : 0;
 
-            // 2. Realiza o wrapping dentro da área total de 512x480
-            absoluteX %= 512;
-            absoluteY %= 480;
+                uint32_t absoluteX = (uint32_t)cycle + (uint32_t)scrollX + baseNTX;
+                uint32_t absoluteY = (uint32_t)scanline + (uint32_t)scrollY + baseNTY;
 
-            // 3. Determina os índices de tiles e pixels finos
-            uint16_t tileX = (absoluteX / 8) % 32;
-            uint16_t tileY = (absoluteY / 8);
-            if (tileY >= 30)
-                tileY %= 30; // Garante que tileY fique no range 0-29 da Nametable
+                // 2. Realiza o wrapping dentro da área total de 512x480
+                absoluteX %= 512;
+                absoluteY %= 480;
 
-            uint16_t fineX = absoluteX % 8;
-            uint16_t fineY = absoluteY % 8;
+                // 3. Determina os índices de tiles e pixels finos
+                uint16_t tileX = (absoluteX / 8) % 32;
+                uint16_t tileY = (absoluteY / 8);
+                if (tileY >= 30)
+                    tileY %= 30; // Garante que tileY fique no range 0-29 da Nametable
 
-            // 4. Determina o índice da Nametable (0-3) para acesso à memória
-            uint8_t ntIndex = 0;
-            if (absoluteX >= 256)
-                ntIndex |= 0x01;
-            if (absoluteY >= 240)
-                ntIndex |= 0x02;
+                uint16_t fineX = absoluteX % 8;
+                uint16_t fineY = absoluteY % 8;
 
-            uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
+                // 4. Determina o índice da Nametable (0-3) para acesso à memória
+                uint8_t ntIndex = 0;
+                if (absoluteX >= 256)
+                    ntIndex |= 0x01;
+                if (absoluteY >= 240)
+                    ntIndex |= 0x02;
 
-            // 5. Busca o ID do Tile na Name Table
-            uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
+                uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
 
-            // 6. Busca os bits do pixel na Pattern Table
-            uint16_t bgPtBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
-            uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fineY);
-            uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fineY + 8);
+                // 5. Busca o ID do Tile na Name Table
+                uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
 
-            bgPixelColor = ((bgLsb >> (7 - fineX)) & 0x01) | (((bgMsb >> (7 - fineX)) & 0x01) << 1);
+                // 6. Busca os bits do pixel na Pattern Table
+                uint16_t bgPtBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
+                uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fineY);
+                uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fineY + 8);
 
-            // 6. Busca a paleta na Attribute Table
-            uint16_t attrAddr = ntBase + 0x3C0 + ((tileY / 4) * 8) + (tileX / 4); // A tabela de atributos começa em 0x3C0 dentro de cada nametable
-            uint8_t attrByte = ppuRead(attrAddr);
-            uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
-            bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
+                bgPixelColor = ((bgLsb >> (7 - fineX)) & 0x01) | (((bgMsb >> (7 - fineX)) & 0x01) << 1);
+
+                // 7. Busca a paleta na Attribute Table
+                uint16_t attrAddr = ntBase + 0x3C0 + ((tileY / 4) * 8) + (tileX / 4); // A tabela de atributos começa em 0x3C0 dentro de cada nametable
+                uint8_t attrByte = ppuRead(attrAddr);
+                uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
+                bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
+            }
 
             // Resolve a cor do background
             uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
@@ -355,65 +369,110 @@ namespace R2NES::Core
             frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(bgPaletteAddr) & 0x3F];
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
+            bool spriteRenderingEnabled = (ppuMask & 0x10) != 0;
+            // Nos primeiros 8 pixels (ciclos 0-7), verifica bit 2 (show sprites in leftmost 8 pixels)
+            if (cycle < 8 && !(ppuMask & 0x04))
+                spriteRenderingEnabled = false;
+
             bool spritePixelDrawn = false;
-            for (int j = 0; j < scanlineSpriteCount; j++)
+
+            if (spriteRenderingEnabled)
             {
-                uint8_t i = scanlineSprites[j];
-                uint8_t spriteY = oamMemory[i * 4];
-                int diffY = scanline - (spriteY + 1);
-                int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
-
-                uint8_t spriteX = oamMemory[i * 4 + 3];
-                int diffX = cycle - spriteX;
-
-                // Debug: se Sprite 0 mudou de posição, avisa
-                if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
+                for (int j = 0; j < scanlineSpriteCount; j++)
                 {
-                    lastSprite0Y = spriteY;
-                    lastSprite0X = spriteX;
-                }
+                    uint8_t i = scanlineSprites[j];
+                    uint8_t spriteY = oamMemory[i * 4];
+                    int diffY = scanline - (spriteY + 1);
+                    int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
 
-                // Se o ciclo atual da PPU está dentro da largura horizontal do sprite
-                if (diffX >= 0 && diffX < 8)
-                {
-                    uint8_t spriteID = oamMemory[i * 4 + 1];
-                    uint8_t spriteAttrib = oamMemory[i * 4 + 2];
-                    uint16_t spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                    uint8_t spriteX = oamMemory[i * 4 + 3];
+                    // diffX pode ser negativo (sprite ainda não começou) ou > 7 (sprite já terminou)
+                    int diffX = cycle - spriteX;
 
-                    uint8_t row = (spriteAttrib & 0x80) ? (spriteHeight - 1 - diffY) : diffY;
-                    uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
-
-                    uint8_t spLsb = ppuRead(spPtBase + spriteID * 16 + row);
-                    uint8_t spMsb = ppuRead(spPtBase + spriteID * 16 + row + 8);
-                    uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
-
-                    if (spritePixelColor != 0) // Pixel não é transparente
+                    // Debug: se Sprite 0 mudou de posição, avisa
+                    if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
                     {
-                        // ========== SPRITE 0 HIT DETECTION ==========
-                        bool bgHasPixel = (bgPixelColor != 0);
-                        bool cycleInValidRange = (cycle >= 1 && cycle <= 254);
-                        bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
+                        lastSprite0Y = spriteY;
+                        lastSprite0X = spriteX;
+                    }
 
-                        if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
-                            cycleInValidRange = false;
+                    // Se o ciclo atual está dentro da largura horizontal do sprite (0-7 pixels)
+                    if (diffX >= 0 && diffX < 8)
+                    {
+                        uint8_t spriteID = oamMemory[i * 4 + 1];
+                        uint8_t spriteAttrib = oamMemory[i * 4 + 2];
 
-                        if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
+                        // Para sprites 8x8: spPtBase é controlado por ppuCtrl bit 3
+                        // Para sprites 8x16: spPtBase é sempre 0x0000 e selecionado pelo bit 0 do spriteID
+                        uint16_t spPtBase;
+                        uint8_t pattern = spriteID;
+                        uint8_t row = 0;
+
+                        if (spriteHeight == 16)
                         {
-                            ppuStatus |= 0x40;
-                            sprite0HitDetectedThisScanline = true;
+                            // Sprites 8x16: padrão é selecionado pelo bit 0 do spriteID
+                            // spPtBase é sempre 0x0000
+                            spPtBase = 0x0000;
+
+                            if (spriteAttrib & 0x80) // Flip vertical
+                            {
+                                // Com flip: inverter a linha e selecionar padrão corretamente
+                                int flippedY = 15 - diffY;
+                                pattern = (spriteID & 0xFE) | ((flippedY >> 3) & 0x01);
+                                row = flippedY & 0x07;
+                            }
+                            else // Sem flip vertical
+                            {
+                                // Metade superior (0-7): padrão com bit 0 = 0
+                                // Metade inferior (8-15): padrão com bit 0 = 1
+                                pattern = (spriteID & 0xFE) | ((diffY >> 3) & 0x01);
+                                row = diffY & 0x07;
+                            }
+                        }
+                        else
+                        {
+                            // Sprites 8x8: padrão é direto, spPtBase controlado por ppuCtrl bit 3
+                            spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                            row = (spriteAttrib & 0x80) ? (7 - diffY) : diffY;
                         }
 
-                        bool priority = (spriteAttrib & 0x20) == 0;
-                        if (priority || bgPixelColor == 0)
-                        {
-                            uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
-                            uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
-                            frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
-                            spritePixelDrawn = true;
-                        }
+                        // Para flip horizontal: invertemos como acessamos os bits da pattern
+                        // Sem flip: bit 7 (esquerda) a bit 0 (direita) = (7 - diffX)
+                        // Com flip: bit 0 (esquerda) a bit 7 (direita) = diffX
+                        uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
 
-                        // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade
-                        break;
+                        uint8_t spLsb = ppuRead(spPtBase + pattern * 16 + row);
+                        uint8_t spMsb = ppuRead(spPtBase + pattern * 16 + row + 8);
+                        uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
+
+                        if (spritePixelColor != 0) // Pixel não é transparente
+                        {
+                            // ========== SPRITE 0 HIT DETECTION ==========
+                            bool bgHasPixel = (bgPixelColor != 0);
+                            bool cycleInValidRange = (cycle >= 1 && cycle <= 254);
+                            bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
+
+                            if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
+                                cycleInValidRange = false;
+
+                            if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
+                            {
+                                ppuStatus |= 0x40;
+                                sprite0HitDetectedThisScanline = true;
+                            }
+
+                            bool priority = (spriteAttrib & 0x20) == 0;
+                            if (priority || bgPixelColor == 0)
+                            {
+                                uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
+                                uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
+                                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
+                                spritePixelDrawn = true;
+                            }
+
+                            // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade
+                            break;
+                        }
                     }
                 }
             }

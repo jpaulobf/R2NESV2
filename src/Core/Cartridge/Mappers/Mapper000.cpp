@@ -20,11 +20,8 @@ namespace R2NES::Core
 
     bool Mapper000::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
     {
-        if (addr >= 0x8000 && addr <= 0xFFFF)
-        {
-            mapped_addr = addr & (nPRGBanks > 1 ? 0x7FFF : 0x3FFF);
-            return true;
-        }
+        // Mapper 000 não suporta escrita na PRG ROM. Todas as escritas em $8000-$FFFF são ignoradas.
+        // Retornamos false para não tratar a escrita.
         return false;
     }
 
