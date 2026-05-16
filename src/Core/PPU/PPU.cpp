@@ -69,8 +69,11 @@ namespace R2NES::Core
             dataBuffer = ppuRead(ppuAddress);
 
             // Se estivermos lendo paletas, o dado é retornado imediatamente
-            if (ppuAddress >= 0x3F00)
-                data = dataBuffer;
+            if (ppuAddress >= 0x3F00) 
+            {
+                // Leitura normal da VRAM sofre o atraso do buffer
+                dataBuffer = ppuRead(ppuAddress);
+            }
 
             ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
             return data;
@@ -410,9 +413,8 @@ namespace R2NES::Core
 
                         if (spriteHeight == 16)
                         {
-                            // Sprites 8x16: padrão é selecionado pelo bit 0 do spriteID
-                            // spPtBase é sempre 0x0000
-                            spPtBase = 0x0000;
+                            spPtBase = (spriteID & 0x01) ? 0x1000 : 0x0000;
+                            pattern = (spriteID & 0xFE);
 
                             if (spriteAttrib & 0x80) // Flip vertical
                             {
