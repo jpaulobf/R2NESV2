@@ -330,9 +330,7 @@ namespace R2NES::Core
 
                 // 3. Determina os índices de tiles e pixels finos
                 uint16_t tileX = (absoluteX / 8) % 32;
-                uint16_t tileY = (absoluteY / 8);
-                if (tileY >= 30)
-                    tileY %= 30; // Garante que tileY fique no range 0-29 da Nametable
+                uint16_t tileY = (absoluteY / 8) % 30;
 
                 uint16_t fineX = absoluteX % 8;
                 uint16_t fineY = absoluteY % 8;
