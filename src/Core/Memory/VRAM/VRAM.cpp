@@ -33,17 +33,11 @@ namespace R2NES::Core
         switch (mode)
         {
         case MirrorMode::VERTICAL:
-            // NT0 (0x2000) e NT2 (0x2800) apontam para os primeiros 1KB físicos.
-            // NT1 (0x2400) e NT3 (0x2C00) apontam para os segundos 1KB físicos.
             return maskedAddr & 0x07FF;
 
         case MirrorMode::HORIZONTAL:
-            // NT0 (0x2000) e NT1 (0x2400) apontam para os primeiros 1KB físicos.
-            // NT2 (0x2800) e NT3 (0x2C00) apontam para os segundos 1KB físicos.
-            if (maskedAddr < 0x0800)
-                return maskedAddr & 0x03FF; // NT0 e NT1
-            else
-                return (maskedAddr & 0x03FF) + 0x0400; // NT2 e NT3
+            // Ignora o bit 10 (A10) e usa o bit 11 (A11) para selecionar o banco de 1KB
+            return (maskedAddr & 0x03FF) | ((maskedAddr & 0x0800) >> 1);
 
         case MirrorMode::ONESCREEN_LO:
             return maskedAddr & 0x03FF;
@@ -52,7 +46,8 @@ namespace R2NES::Core
             return (maskedAddr & 0x03FF) + 0x0400;
 
         case MirrorMode::FOUR_SCREEN:
-            return maskedAddr & 0x0FFF; // Requeriria 4KB, mas por enquanto limitamos aos 2KB internos
+            // Proteção contra overflow enquanto não houver 4KB reais
+            return maskedAddr & 0x07FF; 
 
         default:
             // Fallback para Vertical (comum em muitos jogos)
