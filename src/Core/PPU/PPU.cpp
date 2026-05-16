@@ -71,8 +71,9 @@ namespace R2NES::Core
             // Se estivermos lendo paletas, o dado é retornado imediatamente
             if (ppuAddress >= 0x3F00) 
             {
-                // Leitura normal da VRAM sofre o atraso do buffer
-                dataBuffer = ppuRead(ppuAddress);
+                // Paletas retornam dado imediato, mas o buffer é preenchido com o dado da VRAM "atrás" (nametable)
+                data = ppuRead(ppuAddress);
+                dataBuffer = ppuRead(ppuAddress & 0x2FFF); // Espelhamento de VRAM abaixo das paletas
             }
 
             ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
@@ -142,9 +143,6 @@ namespace R2NES::Core
             else
             {
                 ppuAddress = (ppuAddress & 0xFF00) | data;
-
-                // Sincroniza os bits de Nametable (10 e 11) com o PPUCTRL.
-                // Isso garante que o sistema de coordenadas de renderização siga o "reset" de scroll do $2006.
                 ppuCtrl = (ppuCtrl & 0xFC) | ((ppuAddress >> 10) & 0x03);
                 addressLatch = 0;
             }
