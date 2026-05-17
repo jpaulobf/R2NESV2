@@ -11,7 +11,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
 ## 🚀 Current Features
 
 - **CPU Core**: Full implementation of the 6502 (Ricoh 2A03).
-- **PPU (Graphics)**: Cycle-accurate rendering with support for Sprite 0 Hit and Unlimited Sprites (flicker reduction).
+- **PPU (Graphics)**: Cycle-accurate rendering with support for Loopy's Registers (v, t, x, w) for precise scrolling, Sprite 0 Hit, and Unlimited Sprites (flicker reduction).
 - **Mapper Support**: 
   - Mapper 000 (NROM)
   - Mapper 001 (MMC1)
@@ -61,7 +61,7 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
 ## 🚀 Funcionalidades Atuais
 
 - **Core da CPU**: Implementação completa do 6502 (ricoh 2A03).
-- **PPU (Gráficos)**: Renderização cycle-accurate com suporte a Sprite 0 Hit e Unlimited Sprites (redução de flicker).
+- **PPU (Gráficos)**: Renderização cycle-accurate com suporte a Loopy's Registers (v, t, x, w) para scroll preciso, Sprite 0 Hit e Unlimited Sprites (redução de flicker).
 - **Suporte a Mappers**: 
   - Mapper 000 (NROM)
   - Mapper 001 (MMC1)
