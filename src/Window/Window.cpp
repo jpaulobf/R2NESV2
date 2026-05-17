@@ -742,7 +742,7 @@ namespace R2NES::Core
         if (fps != lastFps)
         {
             char titleBuffer[64];
-            snprintf(titleBuffer, sizeof(titleBuffer), "R2NESV2 - build 0.3.2 | FPS: %.2f", fps);
+            snprintf(titleBuffer, sizeof(titleBuffer), "R2NESV2 - build 0.3.7 | FPS: %.2f", fps);
             SDL_SetWindowTitle(window, titleBuffer);
             lastFps = fps;
         }
