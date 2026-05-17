@@ -93,25 +93,25 @@ Mapper 001 (MMC1)
 | --- | --- | --- | --- | --- |
 | 720° | US | 001 | ⭐ | Travado no Menu |
 | Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Adventures of Lolo 3 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Adventures of Rad Gravity, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Adventures of Tom Sawyer | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Air Fortress | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Airwolf | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Al Unser Jr. Turbo Racing | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| All-Pro Basketball | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| American Gladiators | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Anticipation | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Attack of the Killer Tomatoes | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Back to the Future II & III | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bad Street Brawler | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Barbie | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐ | Não inicializa |
+| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐ | Pequenos problemas nas 8 primeiras linhas do scroll vertical (sujeira) |
+| Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures of Lolo 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures of Rad Gravity, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures of Tom Sawyer | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Air Fortress | US | 001 | ⭐ | Não inicializa |
+| Airwolf | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Al Unser Jr. Turbo Racing | US | 001 | ⭐ | Glitches Gráficos severos |
+| All-Pro Basketball | US | 001 | ⭐ | Não inicializa |
+| American Gladiators | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Anticipation | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Attack of the Killer Tomatoes | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Back to the Future II & III | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bad Street Brawler | US | 001 | ⭐ | Trava após o menu |
+| Barbie | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Barker Bill's Trick Shooting | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Baseball Simulator 1.000 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
@@ -132,7 +132,7 @@ Mapper 001 (MMC1)
 | BreakThru | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Bubble Bobble | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Caveman Games | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Chessmaster, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
@@ -151,7 +151,7 @@ Mapper 001 (MMC1)
 | Desert Commander | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Destiny of an Emperor | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Die Hard | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dr. Jekyll and Mr. Hyde | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Dr. Mario | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Dragon Fighter | US | 001 | ⭐⭐⭐⭐⭐ | ... |
