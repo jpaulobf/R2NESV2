@@ -22,10 +22,9 @@ namespace R2NES::Core
         std::fill(oamMemory.begin(), oamMemory.end(), 0x00);
 
         // Debug: Inicializa paletas com valores padrão para o Viewer funcionar sem ROM carregar paletas
-        paletteTable[0] = 0x0F; // Background universal (Preto)
-        paletteTable[1] = 0x01; // Azul
-        paletteTable[2] = 0x11; // Azul claro
-        paletteTable[3] = 0x21; // Azul muito claro
+        vramAddr = 0;
+        tempAddr = 0;
+        fineX = 0;
 
         sprite0HitDetectedThisScanline = false;
     }
@@ -66,17 +65,17 @@ namespace R2NES::Core
         {
             // Leituras do PPUDATA são atrasadas por um buffer, exceto para Paletas
             uint8_t data = dataBuffer;
-            dataBuffer = ppuRead(ppuAddress);
+            dataBuffer = ppuRead(vramAddr & 0x3FFF);
 
             // Se estivermos lendo paletas, o dado é retornado imediatamente
-            if (ppuAddress >= 0x3F00) 
+            if ((vramAddr & 0x3FFF) >= 0x3F00) 
             {
                 // Paletas retornam dado imediato, mas o buffer é preenchido com o dado da VRAM "atrás" (nametable)
-                data = ppuRead(ppuAddress);
-                dataBuffer = ppuRead(ppuAddress & 0x2FFF); // Espelhamento de VRAM abaixo das paletas
+                data = ppuRead(vramAddr & 0x3FFF);
+                dataBuffer = ppuRead((vramAddr & 0x3FFF) & 0x2FFF); // Espelhamento de VRAM abaixo das paletas
             }
 
-            ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
+            vramAddr += (ppuCtrl & 0x04) ? 32 : 1;
             return data;
         }
         }
@@ -92,6 +91,7 @@ namespace R2NES::Core
         {
             uint8_t oldNmiEnabled = ppuCtrl & 0x80;
             ppuCtrl = data;
+            tempAddr = (tempAddr & 0xF3FF) | ((static_cast<uint16_t>(data) & 0x03) << 10);
             // Se habilitar NMI durante o VBlank, dispara imediatamente
             if (!oldNmiEnabled && (ppuCtrl & 0x80) && (ppuStatus & 0x80))
                 nmi = true;
@@ -120,14 +120,15 @@ namespace R2NES::Core
         {
             if (addressLatch == 0)
             {
-                // Primeira escrita: X scroll
-                scrollX = data;
+                // Primeira escrita: Coarse X e Fine X
+                fineX = data & 0x07;
+                tempAddr = (tempAddr & 0xFFE0) | (data >> 3);
                 addressLatch = 1;
             }
             else
             {
-                // Segunda escrita: Y scroll
-                scrollY = data;
+                // Segunda escrita: Coarse Y e Fine Y
+                tempAddr = (tempAddr & 0x8C1F) | ((static_cast<uint16_t>(data) & 0x07) << 12) | ((static_cast<uint16_t>(data) & 0xF8) << 2);
                 addressLatch = 0;
             }
             break;
@@ -137,20 +138,20 @@ namespace R2NES::Core
             // Escrita dupla: primeiro MSB, depois LSB
             if (addressLatch == 0)
             {
-                ppuAddress = (ppuAddress & 0x00FF) | (static_cast<uint16_t>(data & 0x3F) << 8);
+                tempAddr = (tempAddr & 0x00FF) | ((static_cast<uint16_t>(data) & 0x3F) << 8);
                 addressLatch = 1;
             }
             else
             {
-                ppuAddress = (ppuAddress & 0xFF00) | data;
-                ppuCtrl = (ppuCtrl & 0xFC) | ((ppuAddress >> 10) & 0x03);
+                tempAddr = (tempAddr & 0xFF00) | data;
+                vramAddr = tempAddr;
                 addressLatch = 0;
             }
             break;
 
         case 0x0007: // PPUDATA ($2007)
-            ppuWrite(ppuAddress, data);
-            ppuAddress += (ppuCtrl & 0x04) ? 32 : 1;
+            ppuWrite(vramAddr & 0x3FFF, data);
+            vramAddr += (ppuCtrl & 0x04) ? 32 : 1;
             break;
         }
     }
@@ -260,8 +261,72 @@ namespace R2NES::Core
         return pixels;
     }
 
+    void PPU::incrementScrollX()
+    {
+        if ((vramAddr & 0x001F) == 31)
+        {
+            vramAddr &= ~0x001F;
+            vramAddr ^= 0x0400;
+        }
+        else
+        {
+            vramAddr++;
+        }
+    }
+
+    void PPU::incrementScrollY()
+    {
+        if ((vramAddr & 0x7000) != 0x7000)
+        {
+            vramAddr += 0x1000;
+        }
+        else
+        {
+            vramAddr &= ~0x7000;
+            uint16_t y = (vramAddr & 0x03E0) >> 5;
+            if (y == 29)
+            {
+                y = 0;
+                vramAddr ^= 0x0800;
+            }
+            else if (y == 31)
+            {
+                y = 0;
+            }
+            else
+            {
+                y++;
+            }
+            vramAddr = (vramAddr & ~0x03E0) | (y << 5);
+        }
+    }
+
+    void PPU::transferAddressX()
+    {
+        vramAddr = (vramAddr & 0xFBE0) | (tempAddr & 0x041F);
+    }
+
+    void PPU::transferAddressY()
+    {
+        vramAddr = (vramAddr & 0x841F) | (tempAddr & 0x7BE0);
+    }
+
     void PPU::clock()
     {
+        // Lógica de atualização de Scroll baseada em ciclos
+        bool renderingEnabled = (ppuMask & 0x08) || (ppuMask & 0x10);
+
+        if (renderingEnabled)
+        {
+            if (scanline == -1 && cycle >= 280 && cycle <= 304) transferAddressY();
+            if (scanline >= 0 && scanline < 240)
+            {
+                if (cycle > 0 && cycle <= 256 && (cycle % 8 == 0)) incrementScrollX();
+                if (cycle == 256) incrementScrollY();
+                if (cycle == 257) transferAddressX();
+            }
+        }
+
         // No início de cada scanline visível (ciclo 0), avaliamos quais sprites serão desenhados.
         // No hardware real, isso acontece durante o scanline anterior, mas para fins de emulação,
         // fazer no ciclo 0 é eficiente e preciso o suficiente para a maioria dos casos.
@@ -316,43 +381,32 @@ namespace R2NES::Core
 
             if (bgRenderingEnabled)
             {
-                // 1. Calcula a posição absoluta no espaço virtual de 512x480 pixels (4 Nametables)
-                // Usamos ppuCtrl para definir qual nametable é a "página 0,0" atual
-                uint16_t baseNTX = (ppuCtrl & 0x01) ? 256 : 0;
-                uint16_t baseNTY = (ppuCtrl & 0x02) ? 240 : 0;
+                // Cálculo do endereço de busca levando em conta o fineX (Scroll Fino Horizontal)
+                // Se (ciclo atual + fineX) passar de 8, precisamos buscar dados do PRÓXIMO tile
+                uint16_t currentV = vramAddr;
+                uint8_t fX = (cycle + fineX) % 8;
 
-                uint32_t absoluteX = (uint32_t)cycle + (uint32_t)scrollX + baseNTX;
-                uint32_t absoluteY = (uint32_t)scanline + (uint32_t)scrollY + baseNTY;
+                if ((cycle % 8) + fineX >= 8)
+                {
+                    // Incremento horizontal temporário para a busca do tile adjacente
+                    if ((currentV & 0x001F) == 31)
+                        currentV = (currentV & ~0x001F) ^ 0x0400;
+                    else
+                        currentV++;
+                }
 
-                // 2. Realiza o wrapping dentro da área total de 512x480
-                absoluteX %= 512;
-                absoluteY %= 480;
+                uint16_t tileX = currentV & 0x001F;
+                uint16_t tileY = (currentV & 0x03E0) >> 5;
+                uint16_t ntBase = 0x2000 | (currentV & 0x0C00);
+                uint8_t fY = (currentV & 0x7000) >> 12;
 
-                // 3. Determina os índices de tiles e pixels finos
-                uint16_t tileX = (absoluteX / 8) % 32;
-                uint16_t tileY = (absoluteY / 8) % 30;
-
-                uint16_t fineX = absoluteX % 8;
-                uint16_t fineY = absoluteY % 8;
-
-                // 4. Determina o índice da Nametable (0-3) para acesso à memória
-                uint8_t ntIndex = 0;
-                if (absoluteX >= 256)
-                    ntIndex |= 0x01;
-                if (absoluteY >= 240)
-                    ntIndex |= 0x02;
-
-                uint16_t ntBase = 0x2000 + (ntIndex * 0x400);
-
-                // 5. Busca o ID do Tile na Name Table
                 uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
 
-                // 6. Busca os bits do pixel na Pattern Table
                 uint16_t bgPtBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
-                uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fineY);
-                uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fineY + 8);
+                uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fY);
+                uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fY + 8);
 
-                bgPixelColor = ((bgLsb >> (7 - fineX)) & 0x01) | (((bgMsb >> (7 - fineX)) & 0x01) << 1);
+                bgPixelColor = ((bgLsb >> (7 - fX)) & 0x01) | (((bgMsb >> (7 - fX)) & 0x01) << 1);
 
                 // 7. Busca a paleta na Attribute Table
                 uint16_t attrAddr = ntBase + 0x3C0 + ((tileY / 4) * 8) + (tileX / 4); // A tabela de atributos começa em 0x3C0 dentro de cada nametable
@@ -517,9 +571,9 @@ namespace R2NES::Core
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
         oamAddr = 0x00;
         addressLatch = 0;
-        ppuAddress = 0;
-        scrollX = 0x00;
-        scrollY = 0x00;
+        vramAddr = 0;
+        tempAddr = 0;
+        fineX = 0;
         sprite0HitDetectedThisScanline = false;
         scanline = 0;
         cycle = 0;

@@ -62,17 +62,11 @@ namespace R2NES::Core
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;
-        uint16_t ppuAddress = 0x0000;
 
-        // Registradores de Scroll (PPUSCROLL - $2005)
-        // O NES usa um sistema de scroll baseado em:
-        // - Fine X (3 bits): pixel fino horizontal (0-7)
-        // - Coarse X (5 bits): coluna de tile (0-31)
-        // - Fine Y (3 bits): pixel fino vertical (0-7)
-        // - Coarse Y (5 bits): linha de tile (0-29)
-        // - Nametable selection (2 bits): qual das 4 nametables usar no PPUCTRL
-        uint8_t scrollX = 0x00; // Posição X do scroll (0-255)
-        uint8_t scrollY = 0x00; // Posição Y do scroll (0-239)
+        // Registradores Internos (Loopy's Registers)
+        uint16_t vramAddr = 0x0000; // v: Endereço de VRAM atual (15 bits)
+        uint16_t tempAddr = 0x0000; // t: Endereço de VRAM temporário (15 bits)
+        uint8_t fineX = 0x00;       // x: Scroll fino horizontal (3 bits)
 
         // Sprite 0 Hit - Tracking
         // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
@@ -92,5 +86,11 @@ namespace R2NES::Core
         bool frameComplete = false;
         bool unlimitedSprites = false;
         bool usedDebugColors = true;
+
+        // Métodos auxiliares para Loopy Registers
+        void incrementScrollX();
+        void incrementScrollY();
+        void transferAddressX();
+        void transferAddressY();
     };
 }
