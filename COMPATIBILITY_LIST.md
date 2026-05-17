@@ -91,8 +91,8 @@ Mapper 001 (MMC1)
 
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | --- | --- | --- | --- | --- |
-| 720° | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| 720° | US | 001 | ⭐ | Travado no Menu |
+| Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
