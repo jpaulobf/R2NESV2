@@ -13,7 +13,7 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | :--- | :---: | :---: | :---: | :--- |
-| 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
 | 1942 | US | 000 | ⭐⭐⭐⭐ | Bugs no HUD. Falhas gráficas nas transições. Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
 | Balloon Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -53,15 +53,15 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Popeye | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Raid on Bungeling Bay | US | 000 | ⭐⭐⭐⭐ | Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
 | Seicross | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Slalom | US | 000 | ⭐⭐⭐ | Vários Glitches Gráficos. Jogável. |
-| Soccer | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
+| Slalom | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Soccer | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Spy vs. Spy | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Sqoon | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Stack-Up | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Super Mario Bros | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
+| Super Mario Bros | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Tag Team Wrestling | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Tennis | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Urban Champion | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Urban Champion | US | 000 | ⭐⭐⭐⭐  | Sujeira na primeira linha do scroll vertical  |
 | Volleyball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Wild Gunman | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
 | Wrecking Crew | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -71,9 +71,9 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 ---
 
 ### Resumo Estatístico
-
 - **Total de Jogos Testados:** 53
-- ⭐⭐⭐⭐⭐ (Perfeito): 39 - 73.6%
-- ⭐⭐⭐⭐ (Jogável): 8 - 15.1%
-- ⭐⭐⭐ (Médio): 2 - 3.8%
-- ⭐ (Não funciona): 4 - 7.5%
+- ⭐⭐⭐⭐⭐ (Perfeito): 45 - 84.9%
+- ⭐⭐⭐⭐ (Jogável): 5 - 9.4%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 3 - 5.7%
