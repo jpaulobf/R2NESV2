@@ -464,7 +464,13 @@ namespace R2NES::Core
                             {
                                 uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
                                 uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
-                                frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
+                                
+                                // Debug: Pintar o Sprite 0 de Lilás (Magenta) para facilitar o rastreio do Sprite 0 Hit
+                                if (i == 0 && usedDebugColors)
+                                    frameBuffer[scanline * 256 + cycle] = 0xFFFF00FF; 
+                                else
+                                    frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
+
                                 spritePixelDrawn = true;
                             }
 

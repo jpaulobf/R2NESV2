@@ -91,5 +91,6 @@ namespace R2NES::Core
 
         bool frameComplete = false;
         bool unlimitedSprites = false;
+        bool usedDebugColors = true;
     };
 }
