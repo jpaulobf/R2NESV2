@@ -19,11 +19,11 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Baseball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman | US | 000 | ⭐ | Preso na Tela Título |
 | Burgertime | US | 000 | ⭐ | Preso na Tela Título |
-| Chubby Cherub | US | 000 | ⭐⭐⭐⭐ | 1 linha de pixels piscando |
+| Chubby Cherub | US | 000 | ⭐⭐⭐⭐ | SFI |
 | Clu Clu Land | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Defender 2 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Dig Dug | US | 000 | ⭐⭐⭐⭐ | Falhas Gráficas |
-| Dig Dug 2 | US | 000 | ⭐⭐⭐⭐ | Falhas Gráficas |
+| Dig Dug | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Dig Dug 2 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Donkey Kong | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Donkey Kong 3 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Donkey Kong Junior | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -31,21 +31,21 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 | Duck Hunt | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
 | Elevator Action | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Excitebike | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Galaga: Demons of Death | US | 000 | ⭐⭐⭐⭐ | Glitchs nas explosões |
-| Golf | US | 000 | ⭐ | Glitchs gráficos severos |
-| Gyromite | US | 000 | ⭐⭐⭐⭐ | 1 linha de pixels piscando |
+| Galaga: Demons of Death | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Golf | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Gyromite | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Hogan's Alley | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
 | Hydlide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ice Climber | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ice Hockey | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Kung Fu | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Lode Runner | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Lunar Pool | US | 000 | ⭐⭐⭐⭐ | Pequenos Glitches Gráficos |
+| Lunar Pool | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | M.U.S.C.L.E. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Mach Rider | US | 000 | ⭐⭐⭐ | Glitches visuais |
-| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
+| Mach Rider | US | 000 | ⭐⭐⭐⭐ | Small Glitches visuais |
+| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Millipide | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
+| Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Othello | US | 000 | ⭐ | Super Glitchy e travado no menu |
 | Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
