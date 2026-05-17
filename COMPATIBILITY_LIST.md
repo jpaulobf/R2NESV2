@@ -316,3 +316,14 @@ Mapper 001 (MMC1)
 | Yo! Noid | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Yoshi | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+
+
+---
+
+### Resumo Estatístico - Mapper 001 (MMC1)
+- **Total de Jogos Documentados:** 24
+- ⭐⭐⭐⭐⭐ (Perfeito): 17 - 70.8%
+- ⭐⭐⭐⭐ (Jogável): 1 - 4.2%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 6 - 25.0%
