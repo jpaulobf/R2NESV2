@@ -11,6 +11,8 @@ Este arquivo documenta o estado atual de compatibilidade das ROMs testadas no em
 
 ### Tabela de Jogos
 
+Mapper 000 (NROM)
+
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | :--- | :---: | :---: | :---: | :--- |
 | 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
