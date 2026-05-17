@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.3.7] - 2026-05-17
+
+### Adicionado
+- Implementação completa dos **Loopy's Registers** (`v`, `t`, `x`, `w`) para controle preciso de endereçamento de VRAM e renderização.
+- Refatoração da comunicação da CPU com os registradores `$2000`, `$2005` e `$2006` para suportar o estado interno da PPU (latch de escrita e endereços temporários).
+- Mecânica de incremento automático de Scroll (X e Y) e transferência de endereços sincronizada com o `clock()` da PPU nos ciclos específicos.
+
+### Corrigido
+- Problemas críticos de **Scroll Vertical** e wrapping de Nametables (corrigindo o posicionamento do HUD em *The Legend of Zelda*).
+- Dessincronização visual onde os Sprites pareciam "deslizar" ou scrollar junto com o cenário.
+- Eliminação de tremores (jitter) no scroll horizontal através do cálculo dinâmico de transbordo de tile usando `fineX`.
+- Renderização de pixels do background agora utiliza o `vramAddr` atualizado para buscar dados de Pattern Table e Attribute Table com precisão de ciclo.
+
 ## [0.3.2] - 2026-05-09
 
 ### Adicionado
