@@ -203,7 +203,7 @@ Mapper 001 (MMC1)
 | Kid Niki: Radical Ninja | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Knight Rider | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Lee Trevino's Fighting Golf | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
 | Legend of the Ghost Lion | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Lemmings | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Lethal Weapon | US | 001 | ⭐⭐⭐⭐⭐ | ... |
