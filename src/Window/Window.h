@@ -18,6 +18,13 @@ namespace R2NES::Core
         Window(const std::string &title, int width, int height, int scale);
         ~Window();
 
+        struct MouseState
+        {
+            int x = -1;
+            int y = -1;
+            bool leftButton = false;
+        };
+
         enum class DisplayMode
         {
             WINDOWED,
@@ -58,6 +65,8 @@ namespace R2NES::Core
         void createMenu();
 
         std::string getSelectedPath() const { return selectedPath; }
+
+        MouseState getMouseState() const { return mouseState; }
 
         bool isDisassemblerOpen() const { return disassembler.isOpen(); }
 
@@ -117,6 +126,7 @@ namespace R2NES::Core
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
+        MouseState mouseState;
         std::string selectedPath = "";
 
         TileViewer tileViewer;

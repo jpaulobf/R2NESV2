@@ -182,6 +182,47 @@ namespace R2NES::Core
                 }
             }
 
+            // Captura de Mouse para Zapper
+            if (e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP)
+            {
+                int mouseX, mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                mouseState.leftButton = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT));
+
+                int winW, winH;
+                SDL_GetWindowSize(window, &winW, &winH);
+
+                if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
+                {
+                    double target_aspect = 8.0 / 7.0;
+                    int renderW, renderH, offsetX, offsetY;
+                    if ((double)winW / winH > target_aspect)
+                    {
+                        renderH = winH;
+                        renderW = (int)(winH * target_aspect);
+                    }
+                    else
+                    {
+                        renderW = winW;
+                        renderH = (int)(winW / target_aspect);
+                    }
+                    offsetX = (winW - renderW) / 2;
+                    offsetY = (winH - renderH) / 2;
+
+                    mouseState.x = (int)((float)(mouseX - offsetX) * 256.0f / (float)renderW);
+                    mouseState.y = (int)((float)(mouseY - offsetY) * 240.0f / (float)renderH);
+                }
+                else
+                {
+                    mouseState.x = (int)((float)mouseX * 256.0f / (float)winW);
+                    mouseState.y = (int)((float)mouseY * 240.0f / (float)winH);
+                }
+
+                // Garante que os valores não saiam do range do NES (Clamping)
+                mouseState.x = std::max(0, std::min(255, mouseState.x));
+                mouseState.y = std::max(0, std::min(239, mouseState.y));
+            }
+
             if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) && e.key.keysym.sym != SDLK_ESCAPE)
             {
                 if (keyCallback)
