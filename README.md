@@ -23,6 +23,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
   - **Recent Files**: Menu with history of the last 10 loaded ROMs for quick access.
   - **Directory Persistence**: Automatic memorization of the last opened folder, facilitating navigation.
 - **Input**: Native support for Keyboard and Controllers (XInput/DirectInput via SDL2) with Hot-plugging.
+- **Peripherals**: Zapper (Light Gun) emulation via mouse with precision mapping.
 
 ## 🛠️ Technologies Used
 
@@ -50,6 +51,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
 - **A / B**: `K` / `J` keys.
 - **Turbo A / Turbo B**: `I` / `U` keys.
 - **Select / Start**: `Backspace` / `Enter` keys.
+- **Zapper (Light Gun)**: Left Mouse Click.
 - **Fast Forward**: Hold down `TAB`.
 
 ---
@@ -73,6 +75,7 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
   - **Arquivos Recentes**: Menu com histórico das últimas 10 ROMs carregadas para acesso rápido.
   - **Persistência de Diretório**: Memorização automática da última pasta aberta, facilitando a navegação.
 - **Input**: Suporte nativo a Teclado e Controles (XInput/DirectInput via SDL2) com Hot-plugging.
+- **Periféricos**: Suporte à Zapper emulada via mouse com mapeamento de precisão.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -100,4 +103,5 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
 - **A / B**: Teclas `K` / `J`.
 - **Turbo A / Turbo B**: Teclas `I` / `U`.
 - **Select / Start**: Teclas `Backspace` / `Enter`.
+- **Zapper (Pistola)**: Clique esquerdo do Mouse.
 - **Fast Forward**: Manter pressionado `TAB`.
