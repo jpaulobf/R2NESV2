@@ -155,7 +155,7 @@ namespace R2NES::Core
                 else
                 {
                     // Lógica unificada para VSync e Modo Normal
-                    // Isso garante que o NES rode a 60 UPS (Updates Per Second) 
+                    // Isso garante que o NES rode a 60 UPS (Updates Per Second)
                     // independentemente da taxa de atualização do monitor (75Hz, 144Hz, etc)
                     double updateInterval = 1.0 / targetUPS;
                     residualTime += deltaTime * timeScale;
@@ -197,6 +197,14 @@ namespace R2NES::Core
     void Engine::processEmulatorInput()
     {
         window->pollEvents();
+
+        // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
+        if (nes->isCartridgeLoaded())
+        {
+            auto mouse = window->getMouseState();
+            nes->getPpu().setZapperPos(mouse.x, mouse.y);
+            nes->getBus().setZapperTrigger(mouse.leftButton);
+        }
 
         // Verifica se uma ROM foi selecionada via menu
         std::string romPath = window->getSelectedPath();
