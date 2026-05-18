@@ -112,20 +112,20 @@ Mapper 001 (MMC1)
 | Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bad Street Brawler | US | 001 | ⭐ | Trava após o menu |
 | Barbie | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Barker Bill's Trick Shooting | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Baseball Simulator 1.000 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Baseball Stars | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bases Loaded | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bases Loaded II: Second Season | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bashi Bazook: Morphoid Masher | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Battle Chess | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Battle of Olympus, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bigfoot | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐ | Não inicializa |
+| Barker Bill's Trick Shooting | US | 001 | ⭐ | Não inicializa |
+| Baseball Simulator 1.000 | US | 001 | ⭐ | Trava na seleção de estádios |
+| Baseball Stars | US | 001 | ⭐ | Não inicializa |
+| Bases Loaded | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bases Loaded II: Second Season | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bashi Bazook: Morphoid Masher | US | 001 |  | N/A |
+| Battle Chess | US | 001 | ⭐ | Não inicializa |
+| Battle of Olympus, The | US | 001 | ⭐⭐⭐⭐ | Glitches nas caixas de diálogo - jogável |
+| Bigfoot | US | 001 | ⭐ | Não inicializa |
+| Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐ | Não inicializa |
+| Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Break Time: The National Pool Tour | US | 001 | ⭐⭐⭐⭐⭐ | ... |
