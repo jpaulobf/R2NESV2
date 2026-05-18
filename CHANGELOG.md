@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.3.8] - 2026-05-18
+
+### Adicionado
+- Suporte à emulação da **Zapper** (pistola de luz) utilizando o mouse.
+- Lógica de detecção de brilho na PPU com área de sensibilidade de 5x5 pixels, simulando a lente da pistola e melhorando a precisão do clique.
+- Mapeamento de hardware no Barramento (Bus) para os bits de gatilho e sensor de luz no endereço `$4017`.
+- Sistema de conversão de coordenadas do mouse para o espaço de tela do NES (256x240), compatível com modos de janela e tela cheia (Stretch e 8:7).
+
 ## [0.3.7] - 2026-05-17
 
 ### Adicionado
