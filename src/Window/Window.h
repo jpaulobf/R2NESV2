@@ -139,6 +139,8 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
+        std::string title = "R2NESV2 - build 0.3.8 | FPS: %.2f";
+
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
         VSyncCallback vsyncCallback = nullptr;
