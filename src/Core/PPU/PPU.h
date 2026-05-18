@@ -30,6 +30,15 @@ namespace R2NES::Core
         void reset();
         void connectBus(Bus *bus);
         bool isFrameComplete() const { return frameComplete; }
+
+        // Zapper Interface
+        void setZapperPos(int x, int y)
+        {
+            zapperX = x;
+            zapperY = y;
+        }
+        bool getZapperLightSense() const { return zapperLightDetected; }
+
         void clearFrameComplete() { frameComplete = false; }
         void setUnlimitedSprites(bool enabled) { unlimitedSprites = enabled; }
 
@@ -54,6 +63,10 @@ namespace R2NES::Core
 
         // Buffer de saída de imagem (RGBA8888)
         std::array<uint32_t, 256 * 240> frameBuffer;
+
+        // Zapper State
+        int zapperX = -1, zapperY = -1;
+        bool zapperLightDetected = false;
 
         // Registradores e buffers internos
         uint8_t ppuCtrl = 0x00; // PPUCTRL ($2000)

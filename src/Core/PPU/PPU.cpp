@@ -68,7 +68,7 @@ namespace R2NES::Core
             dataBuffer = ppuRead(vramAddr & 0x3FFF);
 
             // Se estivermos lendo paletas, o dado é retornado imediatamente
-            if ((vramAddr & 0x3FFF) >= 0x3F00) 
+            if ((vramAddr & 0x3FFF) >= 0x3F00)
             {
                 // Paletas retornam dado imediato, mas o buffer é preenchido com o dado da VRAM "atrás" (nametable)
                 data = ppuRead(vramAddr & 0x3FFF);
@@ -318,12 +318,16 @@ namespace R2NES::Core
 
         if (renderingEnabled)
         {
-            if (scanline == -1 && cycle >= 280 && cycle <= 304) transferAddressY();
+            if (scanline == -1 && cycle >= 280 && cycle <= 304)
+                transferAddressY();
             if (scanline >= 0 && scanline < 240)
             {
-                if (cycle > 0 && cycle <= 256 && (cycle % 8 == 0)) incrementScrollX();
-                if (cycle == 256) incrementScrollY();
-                if (cycle == 257) transferAddressX();
+                if (cycle > 0 && cycle <= 256 && (cycle % 8 == 0))
+                    incrementScrollX();
+                if (cycle == 256)
+                    incrementScrollY();
+                if (cycle == 257)
+                    transferAddressX();
             }
         }
 
@@ -518,10 +522,10 @@ namespace R2NES::Core
                             {
                                 uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
                                 uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
-                                
+
                                 // Debug: Pintar o Sprite 0 de Lilás (Magenta) para facilitar o rastreio do Sprite 0 Hit
                                 if (i == 0 && usedDebugColors)
-                                    frameBuffer[scanline * 256 + cycle] = 0xFFFF00FF; 
+                                    frameBuffer[scanline * 256 + cycle] = 0xFFFF00FF;
                                 else
                                     frameBuffer[scanline * 256 + cycle] = nesSystemPalette[ppuRead(palAddr) & 0x3F];
 
@@ -533,6 +537,19 @@ namespace R2NES::Core
                         }
                     }
                 }
+            }
+
+            // ZAPPER
+            // Verifica uma área de 5x5 em volta da mira para facilitar o acerto (emula a lente da pistola)
+            if (cycle >= zapperX - 2 && cycle <= zapperX + 2 &&
+                scanline >= zapperY - 2 && scanline <= zapperY + 2)
+            {
+                // Pegamos a cor final que foi parar no framebuffer para este pixel
+                uint32_t finalPixelColor = frameBuffer[scanline * 256 + cycle];
+                // Se o brilho for alto (ex: branco do flash do pato), detecta luz.
+                // No seu palette, branco é 0xFFFCFCFC. Vamos checar se o canal R é alto.
+                if (((finalPixelColor >> 16) & 0xFF) > 0xEE)
+                    zapperLightDetected = true;
             }
         }
 
@@ -559,7 +576,8 @@ namespace R2NES::Core
             else if (scanline >= 261)
             {
                 scanline = -1;
-                ppuStatus &= ~0xE0; // Limpa VBlank (7), Sprite 0 Hit (6) e Sprite Overflow (5)
+                zapperLightDetected = false; // Reseta o sensor para o próximo frame
+                ppuStatus &= ~0xE0;          // Limpa VBlank (7), Sprite 0 Hit (6) e Sprite Overflow (5)
             }
         }
     }
