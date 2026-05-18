@@ -10,6 +10,7 @@ namespace R2NES::Core
 
     Bus::Bus()
     {
+        zapperTrigger = false;
     }
 
     Bus::~Bus()
@@ -34,6 +35,11 @@ namespace R2NES::Core
     void Bus::setJoysticks(IO::Joysticks *joysticks)
     {
         this->joysticks = joysticks;
+    }
+
+    void Bus::setZapperTrigger(bool pulled)
+    {
+        this->zapperTrigger = pulled;
     }
 
     void Bus::cpuWrite(uint16_t addr, uint8_t data)
@@ -91,13 +97,30 @@ namespace R2NES::Core
         {
             return ppu ? ppu->cpuRead(addr) : 0x00;
         }
-        else if (addr == 0x4016) 
+        else if (addr == 0x4016)
         {
             return joysticks ? joysticks->controller1.readNextBit() : 0x00;
         }
-        else if (addr == 0x4017) 
+        else if (addr == 0x4017)
         {
-            return joysticks ? joysticks->controller2.readNextBit() : 0x00;
+            // O bit 0 continua vindo do controle padrão (entrada serial)
+            uint8_t data = (joysticks ? joysticks->controller2.readNextBit() : 0x00);
+
+            // Suporte à Zapper (Pistola) no Port 2
+
+            // Bit 3: Sensor de Luz (0 = Luz detectada, 1 = Nenhuma luz)
+            if (ppu && ppu->getZapperLightSense())
+                data &= ~0x08; // Limpa o bit 3 (detectado)
+            else
+                data |= 0x08; // Seta o bit 3 (não detectado)
+
+            // Bit 4: Gatilho (1 = Puxado / 0 = Solto)
+            if (zapperTrigger)
+                data |= 0x10;
+            else
+                data &= ~0x10;
+
+            return data;
         }
         return data;
     }

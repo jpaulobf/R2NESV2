@@ -54,10 +54,15 @@ namespace R2NES::Core
 
         void connectPPU(PPU *pPpu);
 
+        void setZapperTrigger(bool pulled);
+
     public:
         RAM *ram = nullptr;
         PPU *ppu = nullptr;
         IO::Joysticks *joysticks = nullptr;
         std::shared_ptr<Cartridge> cart;
+
+    private:
+        bool zapperTrigger = false;
     };
 }
