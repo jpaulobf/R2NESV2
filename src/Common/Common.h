@@ -10,4 +10,18 @@ namespace R2NES::Core
         ONESCREEN_HI,
         FOUR_SCREEN
     };
+
+    struct MouseState
+    {
+        int x = -1;
+        int y = -1;
+        bool leftButton = false;
+    };
+
+    enum class DisplayMode
+    {
+        WINDOWED,
+        FULLSCREEN_STRETCH,
+        FULLSCREEN_ASPECT_8_7
+    };
 }
