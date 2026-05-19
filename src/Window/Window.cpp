@@ -6,6 +6,7 @@
 #include <filesystem> // For path manipulation
 #include "imgui_impl_sdlrenderer2.h"
 #include "Util/ConfigManager.h"
+#include "Common/Common.h"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
