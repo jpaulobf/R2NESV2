@@ -3,7 +3,7 @@
 #include <SDL_syswm.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
-#include <filesystem> // For path manipulation
+#include <filesystem>
 #include "imgui_impl_sdlrenderer2.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
