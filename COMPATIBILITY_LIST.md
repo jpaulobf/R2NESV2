@@ -139,186 +139,186 @@ Mapper 001 (MMC1)
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
-| Chessmaster, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Clash At Demonhead | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Cobra Command | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Conflict | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Cool World | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dance Aerobics | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Darkman | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Day Dreamin' Davey | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Defender of the Crown | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Demon Sword | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Desert Commander | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Destiny of an Emperor | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Die Hard | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dr. Jekyll and Mr. Hyde | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dr. Mario | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dragon Fighter | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dragon Warrior | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dragon Warrior II | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dragon Warrior III | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dragon Warrior IV | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dungeon Magic: Sword of the Elements | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dusty Diamond's All-Star Softball | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Dynowarz: The Destruction of Spondylus | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Eliminator Boat Duel | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Family Feud, The All New | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Faria | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Faxanadu | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ferrari Grand Prix Challenge | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Fester's Quest | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Final Fantasy | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Final Fantasy II | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Flying Warriors | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Frankenstein: The Monster Returns | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Freedom Force | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Genghis Khan | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ghostbusters II | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ghoul School | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Goal! | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Godzilla 2: War of the Monsters | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Godzilla: Monster of Monsters! | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Golf Grand Slam | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Golgo 13: Top Secret Episode | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Great Waldo Search, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Greg Norman's Golf Power | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Guerrilla War | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Harlem Globetrotters | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Hatris | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Heavy Shreddin' | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Heroes of the Lance, Advanced Dungeons & Dragons | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Hillsfar, Advanced Dungeons & Dragons | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Hook | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Hoops | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Hudson Hawk | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ikari Warriors II: Victory Road | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ikari Warriors III: The Rescue | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Indiana Jones and The Last Crusade | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Iron Tank: The Invasion of Normandy | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Journey to Silius | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Kid Icarus | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Kid Niki: Radical Ninja | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Knight Rider | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Lee Trevino's Fighting Golf | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Legend of the Ghost Lion | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Lemmings | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Lethal Weapon | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Little League Baseball Championship Series | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| M.U.L.E. | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| MTV's Remote Control | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Magic Darts | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Magic Johnson's Fast Break | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Magic of Scheherazade, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Maniac Mansion | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Mechanized Attack | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Metal Mech: Man & Machine | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Metroid | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Miracle Piano Teaching System, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Monopoly | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Monster Party | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Motor City Patrol | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Muppet Adventure: Chaos at the Carnival | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Mutant Virus, The: Crisis in a Computer World | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| NES Open Tournament Golf | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| NTF2 System Cartridge | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Nigel Mansell's World Championship Racing | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ninja Gaiden | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Nobunaga's Ambition | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Operation Wolf: Take no Prisoners | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Orb 3-D | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Overlord | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| P.O.W.: Prisoners of War | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Palamedes | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Phantom Fighter | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Pictionary | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Pinball Quest | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Pirates! | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Platoon | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Predator | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Princess Tomato in the Salad Kingdom | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Qix | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| R.C. Pro-Am | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Race America, Alex DeMeo's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Racket Attack | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Rad Racer | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Rescue: The Embassy Mission | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| RoadBlasters | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Robin Hood: Prince of Thieves | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| RoboCop 2 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| RoboCop 3 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Rocket Ranger | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Rocketeer, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Rollerball | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Romance of the Three Kingdoms | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| S.C.A.T.: Special Cybernetic Attack Team | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sesame Street 123 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sesame Street ABC | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sesame Street ABC & 123 | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sesame Street Countdown | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sesame Street: Big Bird's Hide and Speak | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Shingen The Ruler | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Short Order / Eggsplode! | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Silkworm | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Simpsons, The: Bart vs. The Space Mutants | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Skate or Die 2: The Search for Double Trouble | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ski or Die | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sky Kid | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Sky Shark | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Snake Rattle 'n Roll | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Snake's Revenge | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Snoopy's Silly Sports Spectacular! | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Snow Brothers | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Space Shuttle Project | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Spot | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Stealth ATF | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Street Cop | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Strider | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Super Dodge Ball | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Super Jeopardy! | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Superman | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Swamp Thing | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Taboo: The Sixth Sense | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| TaleSpin, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Target: Renegade | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Taro's Quest | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Tecmo Baseball | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Tecmo Bowl | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Tecmo Cup: Soccer Game | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Tecmo World Wrestling | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Teenage Mutant Ninja Turtles | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Tetris | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Three Stooges, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Thunderbirds | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Tombs and Treasure | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Top Players' Tennis, Chris Evert & Ivan Lendl in | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Touchdown Fever | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Track & Field II | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Treasure Master | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ultima: Exodus | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ultima: Quest of the Avatar | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Ultima: Warriors of Destiny | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Untouchables, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Vegas Dream | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Virus | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Willow | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Win, Lose or Draw | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Winter Games | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Wizardry: Proving Grounds of the Mad Overlord | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Wrath of the Black Manta | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Xenophobe | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Xexyz | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Yo! Noid | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Yoshi | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Chessmaster, The | US | 001 |  | ... |
+| Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 |  | ... |
+| Chip 'n Dale Rescue Rangers, Disney's | US | 001 |  | ... |
+| Circus Caper | US | 001 |  | ... |
+| Clash At Demonhead | US | 001 |  | ... |
+| Cobra Command | US | 001 |  | ... |
+| Conflict | US | 001 |  | ... |
+| Cool World | US | 001 |  | ... |
+| Dance Aerobics | US | 001 |  | ... |
+| Darkman | US | 001 |  | ... |
+| Darkwing Duck, Disney's | US | 001 |  | ... |
+| Day Dreamin' Davey | US | 001 |  | ... |
+| Defender of the Crown | US | 001 |  | ... |
+| Demon Sword | US | 001 |  | ... |
+| Desert Commander | US | 001 |  | ... |
+| Destiny of an Emperor | US | 001 |  | ... |
+| Die Hard | US | 001 |  | ... |
+| Dr. Jekyll and Mr. Hyde | US | 001 |  | ... |
+| Dr. Mario | US | 001 |  | ... |
+| Dragon Fighter | US | 001 |  | ... |
+| Dragon Warrior | US | 001 |  | ... |
+| Dragon Warrior II | US | 001 |  | ... |
+| Dragon Warrior III | US | 001 |  | ... |
+| Dragon Warrior IV | US | 001 |  | ... |
+| Dungeon Magic: Sword of the Elements | US | 001 |  | ... |
+| Dusty Diamond's All-Star Softball | US | 001 |  | ... |
+| Dynowarz: The Destruction of Spondylus | US | 001 |  | ... |
+| Eliminator Boat Duel | US | 001 |  | ... |
+| Family Feud, The All New | US | 001 |  | ... |
+| Faria | US | 001 |  | ... |
+| Faxanadu | US | 001 |  | ... |
+| Ferrari Grand Prix Challenge | US | 001 |  | ... |
+| Fester's Quest | US | 001 |  | ... |
+| Final Fantasy | US | 001 |  | ... |
+| Final Fantasy II | US | 001 |  | ... |
+| Flying Warriors | US | 001 |  | ... |
+| Formula One: Built to Win | US | 001 |  | ... |
+| Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 |  | ... |
+| Frankenstein: The Monster Returns | US | 001 |  | ... |
+| Freedom Force | US | 001 |  | ... |
+| Genghis Khan | US | 001 |  | ... |
+| Ghostbusters II | US | 001 |  | ... |
+| Ghoul School | US | 001 |  | ... |
+| Goal! | US | 001 |  | ... |
+| Godzilla 2: War of the Monsters | US | 001 |  | ... |
+| Godzilla: Monster of Monsters! | US | 001 |  | ... |
+| Golf Grand Slam | US | 001 |  | ... |
+| Golgo 13: Top Secret Episode | US | 001 |  | ... |
+| Great Waldo Search, The | US | 001 |  | ... |
+| Greg Norman's Golf Power | US | 001 |  | ... |
+| Guerrilla War | US | 001 |  | ... |
+| Harlem Globetrotters | US | 001 |  | ... |
+| Hatris | US | 001 |  | ... |
+| Heavy Shreddin' | US | 001 |  | ... |
+| Heroes of the Lance, Advanced Dungeons & Dragons | US | 001 |  | ... |
+| Hillsfar, Advanced Dungeons & Dragons | US | 001 |  | ... |
+| Hook | US | 001 |  | ... |
+| Hoops | US | 001 |  | ... |
+| Hudson Hawk | US | 001 |  | ... |
+| Ikari Warriors II: Victory Road | US | 001 |  | ... |
+| Ikari Warriors III: The Rescue | US | 001 |  | ... |
+| Indiana Jones and The Last Crusade | US | 001 |  | ... |
+| Iron Tank: The Invasion of Normandy | US | 001 |  | ... |
+| Journey to Silius | US | 001 |  | ... |
+| Kid Icarus | US | 001 |  | ... |
+| Kid Niki: Radical Ninja | US | 001 |  | ... |
+| Knight Rider | US | 001 |  | ... |
+| Lee Trevino's Fighting Golf | US | 001 |  | ... |
+| Legend of the Ghost Lion | US | 001 |  | ... |
+| Lemmings | US | 001 |  | ... |
+| Lethal Weapon | US | 001 |  | ... |
+| Little League Baseball Championship Series | US | 001 |  | ... |
+| M.U.L.E. | US | 001 |  | ... |
+| MTV's Remote Control | US | 001 |  | ... |
+| Magic Darts | US | 001 |  | ... |
+| Magic Johnson's Fast Break | US | 001 |  | ... |
+| Magic of Scheherazade, The | US | 001 |  | ... |
+| Maniac Mansion | US | 001 |  | ... |
+| Mechanized Attack | US | 001 |  | ... |
+| Mega Man 2 | US | 001 |  | ... |
+| Metal Mech: Man & Machine | US | 001 |  | ... |
+| Metroid | US | 001 |  | ... |
+| Miracle Piano Teaching System, The | US | 001 |  | ... |
+| Monopoly | US | 001 |  | ... |
+| Monster Party | US | 001 |  | ... |
+| Motor City Patrol | US | 001 |  | ... |
+| Muppet Adventure: Chaos at the Carnival | US | 001 |  | ... |
+| Mutant Virus, The: Crisis in a Computer World | US | 001 |  | ... |
+| NES Open Tournament Golf | US | 001 |  | ... |
+| NTF2 System Cartridge | US | 001 |  | ... |
+| Nigel Mansell's World Championship Racing | US | 001 |  | ... |
+| Ninja Gaiden | US | 001 |  | ... |
+| Nobunaga's Ambition | US | 001 |  | ... |
+| Operation Wolf: Take no Prisoners | US | 001 |  | ... |
+| Orb 3-D | US | 001 |  | ... |
+| Overlord | US | 001 |  | ... |
+| P.O.W.: Prisoners of War | US | 001 |  | ... |
+| Palamedes | US | 001 |  | ... |
+| Phantom Fighter | US | 001 |  | ... |
+| Pictionary | US | 001 |  | ... |
+| Pinball Quest | US | 001 |  | ... |
+| Pirates! | US | 001 |  | ... |
+| Platoon | US | 001 |  | ... |
+| Predator | US | 001 |  | ... |
+| Princess Tomato in the Salad Kingdom | US | 001 |  | ... |
+| Qix | US | 001 |  | ... |
+| R.C. Pro-Am | US | 001 |  | ... |
+| Race America, Alex DeMeo's | US | 001 |  | ... |
+| Racket Attack | US | 001 |  | ... |
+| Rad Racer | US | 001 |  | ... |
+| Rescue: The Embassy Mission | US | 001 |  | ... |
+| RoadBlasters | US | 001 |  | ... |
+| Robin Hood: Prince of Thieves | US | 001 |  | ... |
+| RoboCop 2 | US | 001 |  | ... |
+| RoboCop 3 | US | 001 |  | ... |
+| Rocket Ranger | US | 001 |  | ... |
+| Rocketeer, The | US | 001 |  | ... |
+| Rollerball | US | 001 |  | ... |
+| Romance of the Three Kingdoms | US | 001 |  | ... |
+| S.C.A.T.: Special Cybernetic Attack Team | US | 001 |  | ... |
+| Sesame Street 123 | US | 001 |  | ... |
+| Sesame Street ABC | US | 001 |  | ... |
+| Sesame Street ABC & 123 | US | 001 |  | ... |
+| Sesame Street Countdown | US | 001 |  | ... |
+| Sesame Street: Big Bird's Hide and Speak | US | 001 |  | ... |
+| Shingen The Ruler | US | 001 |  | ... |
+| Short Order / Eggsplode! | US | 001 |  | ... |
+| Silkworm | US | 001 |  | ... |
+| Simpsons, The: Bart vs. The Space Mutants | US | 001 |  | ... |
+| Skate or Die 2: The Search for Double Trouble | US | 001 |  | ... |
+| Ski or Die | US | 001 |  | ... |
+| Sky Kid | US | 001 |  | ... |
+| Sky Shark | US | 001 |  | ... |
+| Snake Rattle 'n Roll | US | 001 |  | ... |
+| Snake's Revenge | US | 001 |  | ... |
+| Snoopy's Silly Sports Spectacular! | US | 001 |  | ... |
+| Snow Brothers | US | 001 |  | ... |
+| Space Shuttle Project | US | 001 |  | ... |
+| Spot | US | 001 |  | ... |
+| Stealth ATF | US | 001 |  | ... |
+| Street Cop | US | 001 |  | ... |
+| Strider | US | 001 |  | ... |
+| Super Dodge Ball | US | 001 |  | ... |
+| Super Jeopardy! | US | 001 |  | ... |
+| Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 |  | ... |
+| Superman | US | 001 |  | ... |
+| Swamp Thing | US | 001 |  | ... |
+| Taboo: The Sixth Sense | US | 001 |  | ... |
+| TaleSpin, Disney's | US | 001 |  | ... |
+| Target: Renegade | US | 001 |  | ... |
+| Taro's Quest | US | 001 |  | ... |
+| Tecmo Baseball | US | 001 |  | ... |
+| Tecmo Bowl | US | 001 |  | ... |
+| Tecmo Cup: Soccer Game | US | 001 |  | ... |
+| Tecmo World Wrestling | US | 001 |  | ... |
+| Teenage Mutant Ninja Turtles | US | 001 |  | ... |
+| Tetris | US | 001 |  | ... |
+| Three Stooges, The | US | 001 |  | ... |
+| Thunderbirds | US | 001 |  | ... |
+| Tombs and Treasure | US | 001 |  | ... |
+| Top Players' Tennis, Chris Evert & Ivan Lendl in | US | 001 |  | ... |
+| Touchdown Fever | US | 001 |  | ... |
+| Track & Field II | US | 001 |  | ... |
+| Treasure Master | US | 001 |  | ... |
+| Ultima: Exodus | US | 001 |  | ... |
+| Ultima: Quest of the Avatar | US | 001 |  | ... |
+| Ultima: Warriors of Destiny | US | 001 |  | ... |
+| Untouchables, The | US | 001 |  | ... |
+| Vegas Dream | US | 001 |  | ... |
+| Virus | US | 001 |  | ... |
+| Willow | US | 001 |  | ... |
+| Win, Lose or Draw | US | 001 |  | ... |
+| Winter Games | US | 001 |  | ... |
+| Wizardry: Proving Grounds of the Mad Overlord | US | 001 |  | ... |
+| Wrath of the Black Manta | US | 001 |  | ... |
+| Xenophobe | US | 001 |  | ... |
+| Xexyz | US | 001 |  | ... |
+| Yo! Noid | US | 001 |  | ... |
+| Yoshi | US | 001 |  | ... |
+| Zelda II: The Adventure of Link | US | 001 |  | ... |
 
 
 ---
