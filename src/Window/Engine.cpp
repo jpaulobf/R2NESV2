@@ -417,5 +417,11 @@ namespace R2NES::Core
             auto p1 = nes->getPpu().getPatternTablePixels(1, 0);
             window->updateTileViewer(p0.data(), p1.data());
         }
+
+        // Se o RamViewer estiver aberto, atualiza-o
+        if (window->isRamViewerOpen() && nes->isCartridgeLoaded())
+        {
+            window->updateRamViewer(nes->getBus().ram);
+        }
     }
 }
