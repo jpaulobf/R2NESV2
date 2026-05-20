@@ -5,8 +5,8 @@
 </div>
 
 ---
-
-A high-performance Nintendo Entertainment System (NES) emulator written in modern C++, focused on accuracy and development tools.
+Still quite an early implementation of Nintendo Entertainment System (NES) emulation.
+R2NES is a high-performance Nintendo Entertainment System (NES) emulator written in modern C++, focused on accuracy and development tools.
 
 ## Current Features
 
