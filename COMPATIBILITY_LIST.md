@@ -318,7 +318,7 @@ Mapper 001 (MMC1)
 | Xexyz | US | 001 |  | ... |
 | Yo! Noid | US | 001 |  | ... |
 | Yoshi | US | 001 |  | ... |
-| Zelda II: The Adventure of Link | US | 001 |  | ... |
+| Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 
 
 ---
