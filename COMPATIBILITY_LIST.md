@@ -135,9 +135,9 @@ Mapper 001 (MMC1)
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Caveman Games | US | 001 | ⭐ | Trava após o menu |
 
-|... | | | | |
-|... (not tested yet)| | | | |
-|... | | | | |
+| ... | ... | ... | ... | ... |
+| Games not tested yet | ... | ... | ... | ... |
+| ... | ... | ... | ... | ... |
 | Chessmaster, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
