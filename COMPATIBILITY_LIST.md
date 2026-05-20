@@ -324,9 +324,9 @@ Mapper 001 (MMC1)
 ---
 
 ### Resumo Estatístico - Mapper 001 (MMC1)
-- **Total de Jogos Documentados:** 37
-- ⭐⭐⭐⭐⭐ (Perfeito): 22 - 59.5%
-- ⭐⭐⭐⭐ (Jogável): 2 - 5.4%
+- **Total de Jogos Documentados:** 45
+- ⭐⭐⭐⭐⭐ (Perfeito): 29 - 64.4%
+- ⭐⭐⭐⭐ (Jogável): 2 - 4.4%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 13 - 35.1%
+- ⭐ (Não funciona): 14 - 31.2%
