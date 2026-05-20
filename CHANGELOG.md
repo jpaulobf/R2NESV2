@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.3.9] - 2026-05-20
+
+### Adicionado
+- Suporte inicial de visualização e edição da memória RAM em tempo real (propósito de debug)
+
 ## [0.3.8] - 2026-05-18
 
 ### Adicionado
