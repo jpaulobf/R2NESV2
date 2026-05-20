@@ -14,7 +14,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 - **PPU (Graphics)**: Cycle-accurate rendering with support for Loopy's Registers (v, t, x, w) for precise scrolling, Sprite 0 Hit, and Unlimited Sprites (flicker reduction).
 - **Mapper Support**: 
   - Mapper 000 (NROM)
-  - Mapper 001 (MMC1)
+  - Mapper 001 (MMC1) * Still Buggy!! Read the COMPATIBILITY_LIST.
 - **File Formats**: Support for `.nes` (iNES) files and compressed `.zip` files.
 - **Debug Interface**:
   - **Tile Viewer**: Real-time visualization of Pattern Tables.
