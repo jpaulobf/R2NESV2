@@ -7,6 +7,7 @@
 #include "imgui_impl_sdlrenderer2.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
+#include "Core/Memory/RAM/RAM.h" // For RAM* in updateRamViewer
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -23,6 +24,7 @@
 #define IDM_RECENT_FILE_BASE_ID 10000 // Base ID para os itens da lista de ROMs recentes
 #define IDM_DEBUG_TILE_VIEWER 1006
 #define IDM_DEBUG_DISASSEMBLER 1007
+#define IDM_DEBUG_RAM_VIEWER 1008
 #define IDM_VIEW_VSYNC 1999
 #define IDM_VIEW_WINDOW_1X 2000
 #define IDM_VIEW_WINDOW_2X 2001
@@ -123,6 +125,7 @@ namespace R2NES::Core
             // Só processa eventos do ImGui se a janela de debug estiver ativa
             tileViewer.handleEvent(&e);
             disassembler.handleEvent(&e);
+            ramViewer.handleEvent(&e);
 
             if (e.type == SDL_QUIT)
                 closed = true;
@@ -277,6 +280,10 @@ namespace R2NES::Core
                     {
                         openDisassembler();
                     }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_RAM_VIEWER)
+                    {
+                        openRamViewer();
+                    }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
                     {
                         HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
@@ -387,6 +394,10 @@ namespace R2NES::Core
                     {
                         tileViewer.close();
                     }
+                    else if (ramViewer.getWindowID() != 0 && e.window.windowID == ramViewer.getWindowID())
+                    {
+                        ramViewer.close();
+                    }
                     else if (disassembler.getWindowID() != 0 && e.window.windowID == disassembler.getWindowID())
                     {
                         disassembler.close();
@@ -402,6 +413,7 @@ namespace R2NES::Core
                         SDL_GetWindowSize(window, &w_main, &h_main);
 
                         tileViewer.updatePosition(x, y, w_main);
+                        ramViewer.updatePosition(x, y, w_main);
 
                         disassembler.updatePosition(x, y, w_main);
                     }
@@ -476,6 +488,7 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
             AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
+            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
             if (this->vsyncEnabled)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_VSYNC, L"&VSync");
@@ -631,6 +644,22 @@ namespace R2NES::Core
         tileViewer.render(pixels0, pixels1);
     }
 
+    void Window::openRamViewer()
+    {
+        int x, y, w, h;
+        SDL_GetWindowPosition(window, &x, &y);
+        SDL_GetWindowSize(window, &w, &h);
+
+        ramViewer.open(x, y, w);
+    }
+
+    void Window::updateRamViewer(RAM* ram)
+    {
+        if (ramViewer.isOpen()) {
+            ramViewer.render(ram);
+        }
+    }
+
     void Window::unload()
     {
         unloadRequested = true;
@@ -638,6 +667,7 @@ namespace R2NES::Core
         // Fecha as janelas de debug ao descarregar a ROM
         tileViewer.close();
 
+        ramViewer.close();
         disassembler.close();
     }
 
@@ -647,6 +677,7 @@ namespace R2NES::Core
 
         // Fecha/Esconde as janelas de debug para um reset "limpo"
         tileViewer.close();
+        ramViewer.close();
 
         disassembler.close();
     }
