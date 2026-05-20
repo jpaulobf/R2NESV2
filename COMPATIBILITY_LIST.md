@@ -126,14 +126,16 @@ Mapper 001 (MMC1)
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Break Time: The National Pool Tour | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| BreakThru | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bubble Bobble | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Break Time: The National Pool Tour | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| BreakThru | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bubble Bobble | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Caveman Games | US | 001 | ⭐⭐⭐⭐⭐ | ... |
+| Caveman Games | US | 001 | ⭐ | Trava após o menu |
+
+... (not tested yet)
 | Chessmaster, The | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | ... |
