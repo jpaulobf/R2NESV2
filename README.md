@@ -8,7 +8,7 @@
 
 A high-performance Nintendo Entertainment System (NES) emulator written in modern C++, focused on accuracy and development tools.
 
-## 🚀 Current Features
+## Current Features
 
 - **CPU Core**: Full implementation of the 6502 (Ricoh 2A03).
 - **PPU (Graphics)**: Cycle-accurate rendering with support for Loopy's Registers (v, t, x, w) for precise scrolling, Sprite 0 Hit, and Unlimited Sprites (flicker reduction).
@@ -25,7 +25,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
 - **Input**: Native support for Keyboard and Controllers (XInput/DirectInput via SDL2) with Hot-plugging.
 - **Peripherals**: Zapper (Light Gun) emulation via mouse with precision mapping.
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 - **Language**: C++17
 - **Graphics/Input**: SDL2
@@ -33,7 +33,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
 - **Compression**: zlib
 - **Build System**: CMake
 
-## 📦 How to Build
+## How to Build
 
 1. Make sure you have `cmake` and a C++ compiler (GCC/MinGW recommended) installed.
 2. Clone the repository.
@@ -46,7 +46,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
    ```
 4. The executable will be generated in the `/bin` folder.
 
-## 🎮 Default Controls
+## Default Controls
 - **Directionals (D-Pad)**: `W`, `S`, `A`, `D` keys or controller D-Pad.
 - **A / B**: `K` / `J` keys.
 - **Turbo A / Turbo B**: `I` / `U` keys.
@@ -60,7 +60,7 @@ A high-performance Nintendo Entertainment System (NES) emulator written in moder
 
 Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em C++ moderno, focado em precisão e ferramentas de desenvolvimento.
 
-## 🚀 Funcionalidades Atuais
+## Funcionalidades Atuais
 
 - **Core da CPU**: Implementação completa do 6502 (ricoh 2A03).
 - **PPU (Gráficos)**: Renderização cycle-accurate com suporte a Loopy's Registers (v, t, x, w) para scroll preciso, Sprite 0 Hit e Unlimited Sprites (redução de flicker).
@@ -77,7 +77,7 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
 - **Input**: Suporte nativo a Teclado e Controles (XInput/DirectInput via SDL2) com Hot-plugging.
 - **Periféricos**: Suporte à Zapper emulada via mouse com mapeamento de precisão.
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **Linguagem**: C++17
 - **Graphics/Input**: SDL2
@@ -85,7 +85,7 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
 - **Compressão**: zlib
 - **Build System**: CMake
 
-## 📦 Como Compilar
+## Como Compilar
 
 1. Certifique-se de ter o `cmake` e um compilador C++ (GCC/MinGW recomendado) instalados.
 2. Clone o repositório.
@@ -98,7 +98,7 @@ Um emulador de Nintendo Entertainment System (NES) de alto desempenho escrito em
    ```
 4. O executável será gerado na pasta `/bin`.
 
-## 🎮 Controles Padrão
+## Controles Padrão
 - **Direcionais (D-Pad)**: Teclas `W`, `S`, `A`, `D` ou D-Pad do controle.
 - **A / B**: Teclas `K` / `J`.
 - **Turbo A / Turbo B**: Teclas `I` / `U`.
