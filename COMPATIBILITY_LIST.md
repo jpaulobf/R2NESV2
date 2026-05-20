@@ -134,6 +134,8 @@ Mapper 001 (MMC1)
 | Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Caveman Games | US | 001 | ⭐ | Trava após o menu |
+| Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
@@ -154,7 +156,6 @@ Mapper 001 (MMC1)
 | Desert Commander | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Destiny of an Emperor | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Die Hard | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dr. Jekyll and Mr. Hyde | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Dr. Mario | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Dragon Fighter | US | 001 | ⭐⭐⭐⭐⭐ | ... |
@@ -206,7 +207,6 @@ Mapper 001 (MMC1)
 | Kid Niki: Radical Ninja | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Knight Rider | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Lee Trevino's Fighting Golf | US | 001 | ⭐⭐⭐⭐⭐ | ... |
-| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
 | Legend of the Ghost Lion | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Lemmings | US | 001 | ⭐⭐⭐⭐⭐ | ... |
 | Lethal Weapon | US | 001 | ⭐⭐⭐⭐⭐ | ... |
