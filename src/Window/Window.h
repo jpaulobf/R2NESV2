@@ -7,17 +7,19 @@
 #include <functional>
 #include <memory>
 #include "TileViewer.h"
+#include "RamViewer.h"
 #include "Disassembler.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 
 namespace R2NES::Core
 {
+    class RAM;
+
     class Window
     {
     public:
-        
-        //callbacks
+        // callbacks
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         using VSyncCallback = std::function<void(bool)>;
         using FFCallback = std::function<void(bool)>;
@@ -59,6 +61,9 @@ namespace R2NES::Core
         /* Atualiza os pixels das Pattern Tables na janela do Tile Viewer. */
         void updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1);
 
+        /* Atualiza os dados e renderiza a janela do RamViewer se estiver aberta. */
+        void updateRamViewer(RAM *ram);
+
         /* Cria e configura o menu nativo do Windows (File, Display, Debug, etc). */
         void createMenu();
 
@@ -75,6 +80,9 @@ namespace R2NES::Core
         bool isTileViewerOpen() const { return tileViewer.isOpen(); }
 
         /* Verifica se houve um pedido de reset via menu. */
+        /* Verifica se a janela do RamViewer está aberta. */
+        bool isRamViewerOpen() const { return ramViewer.isOpen(); }
+
         bool isResetRequested() const { return resetRequested; }
 
         /* Limpa a flag de solicitação de reset. */
@@ -159,6 +167,9 @@ namespace R2NES::Core
         /* Inicializa e exibe a janela do desensamblador de CPU. */
         void openDisassembler();
 
+        /* Inicializa e exibe a janela do RamViewer. */
+        void openRamViewer();
+
     private:
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
@@ -167,6 +178,7 @@ namespace R2NES::Core
         std::string selectedPath = "";
 
         TileViewer tileViewer;
+        RamViewer ramViewer;
         Disassembler disassembler;
 
         Util::ConfigManager configManager;
@@ -176,7 +188,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.3.8 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.3.9 | FPS: %.2f";
 
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
