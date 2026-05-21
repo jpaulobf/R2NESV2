@@ -53,3 +53,10 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 - **Select / Start**: `Backspace` / `Enter` keys.
 - **Zapper (Light Gun)**: Left Mouse Click.
 - **Fast Forward**: Hold down `TAB`.
+
+---
+## Screenshots:
+
+<div align="center">
+  <img src="https://github.com/jpaulobf/R2NESV2/blob/main/screenshots/captura1.png"/>
+</div>
