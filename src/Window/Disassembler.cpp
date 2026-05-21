@@ -11,10 +11,16 @@ namespace R2NES::Core
     {
         if (window)
         {
+            if (imguiContext)
+                ImGui::SetCurrentContext(imguiContext);
+
             ImGui_ImplSDLRenderer2_Shutdown();
             ImGui_ImplSDL2_Shutdown();
             SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
+
+            if (imguiContext)
+                ImGui::DestroyContext(imguiContext);
         }
     }
 
@@ -36,6 +42,10 @@ namespace R2NES::Core
         if (window)
         {
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+            imguiContext = ImGui::CreateContext();
+            ImGui::SetCurrentContext(imguiContext);
+
             ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
             ImGui_ImplSDLRenderer2_Init(renderer);
             visible = true;
@@ -58,8 +68,11 @@ namespace R2NES::Core
 
     void Disassembler::handleEvent(SDL_Event *e)
     {
-        if (visible && window)
+        if (visible && window && imguiContext)
+        {
+            ImGui::SetCurrentContext(imguiContext);
             ImGui_ImplSDL2_ProcessEvent(e);
+        }
     }
 
     void Disassembler::updatePosition(int parentX, int parentY, int parentW)
@@ -71,8 +84,10 @@ namespace R2NES::Core
     void Disassembler::render(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                               bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
     {
-        if (!visible || !renderer)
+        if (!visible || !renderer || !imguiContext)
             return;
+
+        ImGui::SetCurrentContext(imguiContext);
 
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
