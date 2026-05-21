@@ -38,8 +38,8 @@ namespace R2NES::Core
 
         window = SDL_CreateWindow(
             "R2NES v2 - RAM Viewer",
-            parentX + parentW, parentY + 600,
-            512, 400,
+            parentX - 512, parentY,
+            512, 600,
             SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
         if (window)
@@ -47,6 +47,11 @@ namespace R2NES::Core
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
             if (renderer)
             {
+                // Define a cor de fundo como preto e limpa a janela imediatamente após a criação
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                SDL_RenderClear(renderer);
+                SDL_RenderPresent(renderer);
+
                 imguiContext = ImGui::CreateContext();
                 ImGui::SetCurrentContext(imguiContext);
 
@@ -88,7 +93,7 @@ namespace R2NES::Core
     void RamViewer::updatePosition(int parentX, int parentY, int parentW)
     {
         if (window)
-            SDL_SetWindowPosition(window, parentX + parentW, parentY + 600);
+            SDL_SetWindowPosition(window, parentX - 512, parentY);
     }
 
     void RamViewer::render(RAM *ram)
@@ -102,7 +107,7 @@ namespace R2NES::Core
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(512, 400));
+        ImGui::SetNextWindowSize(ImVec2(512, 600));
         ImGui::Begin("RAM Viewer", &visible, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
         size_t ramSize = ram->getSize();
