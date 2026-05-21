@@ -58,5 +58,5 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 ## Screenshots:
 
 <div align="center">
-  <img src="https://github.com/jpaulobf/R2NESV2/blob/main/screenshots/captura1.png"/>
+  <img src="https://github.com/jpaulobf/R2NESV2/blob/9f21708d45570f7b8cce75639e761914f46b0c84/screenshots/captura1.png"/>
 </div>
