@@ -139,10 +139,10 @@ Mapper 001 (MMC1)
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
-| Chessmaster, The | US | 001 |  | ... |
-| Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 |  | ... |
-| Chip 'n Dale Rescue Rangers, Disney's | US | 001 |  | ... |
-| Circus Caper | US | 001 |  | ... |
+| Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
+| Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Clash At Demonhead | US | 001 |  | ... |
 | Cobra Command | US | 001 |  | ... |
 | Conflict | US | 001 |  | ... |
