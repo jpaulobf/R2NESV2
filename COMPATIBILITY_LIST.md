@@ -147,12 +147,12 @@ Mapper 001 (MMC1)
 | Dance Aerobics | US | 001 | ⭐ | Não abre |
 | Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
-| Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Yoshi | US | 001 | ⭐ | Não abre |
+| Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | RoboCop 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | RoboCop 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
+| Yoshi | US | 001 | ⭐ | Não abre |
+| Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
