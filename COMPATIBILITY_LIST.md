@@ -150,6 +150,9 @@ Mapper 001 (MMC1)
 | Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
 | Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Yoshi | US | 001 | ⭐ | Não abre |
+| RoboCop 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| RoboCop 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
@@ -221,7 +224,6 @@ Mapper 001 (MMC1)
 | Magic of Scheherazade, The | US | 001 |  | ... |
 | Maniac Mansion | US | 001 |  | ... |
 | Mechanized Attack | US | 001 |  | ... |
-| Mega Man 2 | US | 001 |  | ... |
 | Metal Mech: Man & Machine | US | 001 |  | ... |
 | Metroid | US | 001 |  | ... |
 | Miracle Piano Teaching System, The | US | 001 |  | ... |
@@ -255,8 +257,6 @@ Mapper 001 (MMC1)
 | Rescue: The Embassy Mission | US | 001 |  | ... |
 | RoadBlasters | US | 001 |  | ... |
 | Robin Hood: Prince of Thieves | US | 001 |  | ... |
-| RoboCop 2 | US | 001 |  | ... |
-| RoboCop 3 | US | 001 |  | ... |
 | Rocket Ranger | US | 001 |  | ... |
 | Rocketeer, The | US | 001 |  | ... |
 | Rollerball | US | 001 |  | ... |
