@@ -147,6 +147,9 @@ Mapper 001 (MMC1)
 | Dance Aerobics | US | 001 | ⭐ | Não abre |
 | Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
+| Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Yoshi | US | 001 | ⭐ | Não abre |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
@@ -316,9 +319,6 @@ Mapper 001 (MMC1)
 | Wrath of the Black Manta | US | 001 |  | ... |
 | Xenophobe | US | 001 |  | ... |
 | Xexyz | US | 001 |  | ... |
-| Yo! Noid | US | 001 |  | ... |
-| Yoshi | US | 001 |  | ... |
-| Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 
 
 ---
