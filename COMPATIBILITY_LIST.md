@@ -136,9 +136,6 @@ Mapper 001 (MMC1)
 | Caveman Games | US | 001 | ⭐ | Trava após o menu |
 | Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
-| --- | --- | --- | --- | --- |
-| Games not tested yet | --- | --- | --- | --- |
-| --- | --- | --- | --- | --- |
 | Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -150,6 +147,9 @@ Mapper 001 (MMC1)
 | Dance Aerobics | US | 001 | ⭐ | Não abre |
 | Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| --- | --- | --- | --- | --- |
+| Games not tested yet | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Day Dreamin' Davey | US | 001 |  | ... |
 | Defender of the Crown | US | 001 |  | ... |
 | Demon Sword | US | 001 |  | ... |
