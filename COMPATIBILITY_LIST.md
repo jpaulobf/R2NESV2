@@ -147,9 +147,9 @@ Mapper 001 (MMC1)
 | Cobra Command | US | 001 | ⭐ | Não abre |
 | Conflict | US | 001 | ⭐ | Não abre |
 | Cool World | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Dance Aerobics | US | 001 |  | ... |
-| Darkman | US | 001 |  | ... |
-| Darkwing Duck, Disney's | US | 001 |  | ... |
+| Dance Aerobics | US | 001 | ⭐ | Não abre |
+| Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Day Dreamin' Davey | US | 001 |  | ... |
 | Defender of the Crown | US | 001 |  | ... |
 | Demon Sword | US | 001 |  | ... |
