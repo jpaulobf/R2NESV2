@@ -143,10 +143,10 @@ Mapper 001 (MMC1)
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Clash At Demonhead | US | 001 |  | ... |
-| Cobra Command | US | 001 |  | ... |
-| Conflict | US | 001 |  | ... |
-| Cool World | US | 001 |  | ... |
+| Clash At Demonhead | US | 001 | ⭐⭐⭐⭐ | Última coluna de 8 pixels preta (totalmente jogável) |
+| Cobra Command | US | 001 | ⭐ | Não abre |
+| Conflict | US | 001 | ⭐ | Não abre |
+| Cool World | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dance Aerobics | US | 001 |  | ... |
 | Darkman | US | 001 |  | ... |
 | Darkwing Duck, Disney's | US | 001 |  | ... |
