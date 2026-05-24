@@ -79,7 +79,7 @@ namespace R2NES::Core
         want.freq = 44100;
         want.format = AUDIO_F32SYS;
         want.channels = 1;
-        want.samples = 1024;
+        want.samples = 256;
 
         audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
         if (audioDevice > 0)
@@ -431,9 +431,9 @@ namespace R2NES::Core
             {
                 // Se o buffer do SDL estiver muito cheio (mais de 0.2s), ignoramos
                 // para evitar que o áudio fique dessincronizado (lag)
-                if (SDL_GetQueuedAudioSize(audioDevice) > 44100 * sizeof(float) / 5)
+                if (SDL_GetQueuedAudioSize(audioDevice) > 44100 * sizeof(float) / 15)
                 {
-                    SDL_ClearQueuedAudio(audioDevice); //para forçar sincronia
+                    SDL_ClearQueuedAudio(audioDevice);
                 }
                 // Enfileira o áudio se houver espaço seguro
                 else if (SDL_GetQueuedAudioSize(audioDevice) < 44100 * sizeof(float) / 4)
