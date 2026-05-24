@@ -9,6 +9,7 @@ namespace R2NES::Core
     class RAM;
     class Cartridge;
     class PPU;
+    class APU;
 
     namespace IO
     {
@@ -37,6 +38,9 @@ namespace R2NES::Core
         // Conecta a RAM física ao barramento
         void connectRam(RAM *pRam);
 
+        // Conecta a APU ao barramento
+        void connectAPU(APU *pApu);
+
         // Comunicação básica
         void cpuWrite(uint16_t addr, uint8_t data);
         uint8_t cpuRead(uint16_t addr, bool readOnly = false);
@@ -49,8 +53,7 @@ namespace R2NES::Core
         // Conecta o cartucho inserido
         void setCartridge(const std::shared_ptr<Cartridge> &cartridge);
 
-        // Conecta os joysticks
-        void setJoysticks(IO::Joysticks *joysticks);
+        void connectJoysticks(IO::Joysticks *joysticks);
 
         void connectPPU(PPU *pPpu);
 
@@ -59,6 +62,7 @@ namespace R2NES::Core
     public:
         RAM *ram = nullptr;
         PPU *ppu = nullptr;
+        APU *apu = nullptr;
         IO::Joysticks *joysticks = nullptr;
         std::shared_ptr<Cartridge> cart;
 

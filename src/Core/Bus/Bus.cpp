@@ -3,6 +3,7 @@
 #include "Core/Cartridge/Cartridge.h"
 #include "Core/PPU/PPU.h"
 #include "Core/IO/Joysticks.h"
+#include "Core/APU/APU.h"
 #include <algorithm>
 
 namespace R2NES::Core
@@ -32,7 +33,12 @@ namespace R2NES::Core
         this->ppu = pPpu;
     }
 
-    void Bus::setJoysticks(IO::Joysticks *joysticks)
+    void Bus::connectAPU(APU *pApu)
+    {
+        this->apu = pApu;
+    }
+
+    void Bus::connectJoysticks(IO::Joysticks *joysticks)
     {
         this->joysticks = joysticks;
     }
@@ -47,6 +53,11 @@ namespace R2NES::Core
         if (cart && cart->cpuWrite(addr, data))
         {
             // Cartucho tratou a escrita (Mappers podem interceptar isso)
+        }
+        else if (addr >= 0x4000 && addr <= 0x4013 || addr == 0x4015 || addr == 0x4017)
+        {
+            if (apu)
+                apu->cpuWrite(addr, data);
         }
         else if (addr >= 0x0000 && addr <= 0x1FFF)
         {
@@ -96,6 +107,10 @@ namespace R2NES::Core
         else if (addr >= 0x2000 && addr <= 0x3FFF)
         {
             return ppu ? ppu->cpuRead(addr) : 0x00;
+        }
+        else if (addr == 0x4015)
+        {
+            return apu ? apu->cpuRead(addr) : 0x00;
         }
         else if (addr == 0x4016)
         {
