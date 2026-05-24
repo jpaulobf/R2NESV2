@@ -72,6 +72,22 @@ namespace R2NES::Core
 
         // Inicializa o estado da PPU com a configuração da janela
         nes->getPpu().setUnlimitedSprites(this->unlimitedSprites);
+
+        // Inicialização do Áudio SDL
+        SDL_AudioSpec want, have;
+        SDL_zero(want);
+        want.freq = 44100;
+        want.format = AUDIO_F32SYS;
+        want.channels = 1;
+        want.samples = 1024;
+
+        audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+        if (audioDevice > 0) {
+            std::cout << "Audio: Device opened successfully (ID: " << audioDevice << ")" << std::endl;
+            SDL_PauseAudioDevice(audioDevice, 0);
+        } else {
+            std::cerr << "Audio: Failed to open device! SDL_Error: " << SDL_GetError() << std::endl;
+        }
     }
 
     void Engine::toggleVSync()
@@ -94,7 +110,11 @@ namespace R2NES::Core
         }
     }
 
-    Engine::~Engine() {}
+    Engine::~Engine()
+    {
+        if (audioDevice > 0)
+            SDL_CloseAudioDevice(audioDevice);
+    }
 
     void Engine::run()
     {
@@ -369,11 +389,15 @@ namespace R2NES::Core
         if (turboB)
             joy1.setButton(R2NES::Core::IO::BUTTON_B, turboPulse);
 
+        // Sincronização de Áudio: CPU freq / Sample rate (1789773 / 44100 = 40.58)
+        const double cyclesPerSample = 1789773.0 / 44100.0;
+
         if (stepByStep)
         {
             if (stepRequested)
             {
                 nes->step();
+                // Em modo step, o áudio geralmente é ignorado ou produz "clicks"
                 while (!nes->getCpu().complete())
                 {
                     nes->step();
@@ -383,11 +407,35 @@ namespace R2NES::Core
         }
         else
         {
+            std::vector<float> samples;
             while (!nes->isFrameComplete())
             {
                 nes->step();
+
+                // Acumulador de ciclos para saber quando pegar uma amostra de áudio
+                audioCycleAccumulator += 1.0;
+                if (audioCycleAccumulator >= cyclesPerSample)
+                {
+                    audioCycleAccumulator -= cyclesPerSample;
+                    samples.push_back(nes->getApu().getOutputSample());
+                }
             }
             nes->clearFrameComplete();
+
+            // Envia o buffer de áudio do frame para o SDL
+            if (audioDevice > 0 && !samples.empty())
+            {
+                // Se o buffer do SDL estiver muito cheio (mais de 0.2s), limpa para evitar lag
+                if (SDL_GetQueuedAudioSize(audioDevice) > 44100 * sizeof(float) / 5) {
+                     // Opcional: SDL_ClearQueuedAudio(audioDevice);
+                }
+                
+                // Enfileira o áudio se não houver excesso
+                if (SDL_GetQueuedAudioSize(audioDevice) < 44100 * sizeof(float) / 4)
+                {
+                    SDL_QueueAudio(audioDevice, samples.data(), samples.size() * sizeof(float));
+                }
+            }
         }
 
         if (!uncappedSpeed)
