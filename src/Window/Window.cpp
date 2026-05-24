@@ -45,7 +45,7 @@ namespace R2NES::Core
         lastWindowedW = w * s;
         lastWindowedH = h * s;
 
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0)
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) < 0)
         {
             std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
             closed = true;
