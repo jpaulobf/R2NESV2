@@ -204,8 +204,8 @@ namespace R2NES::Core
         if (tndDenominator != 0)
             tndOut = 159.79f / (1.0f / tndDenominator + 100.0f);
 
-        // Master volume aumentado para 4.0 para garantir que seja audível
-        return (pulseOut + tndOut) * 4.0f;
+        // Master volume aumentado para 1.0 para garantir que seja audível
+        return (pulseOut + tndOut) * 1.0f;
     }
 
     // --- Implementações auxiliares ---
