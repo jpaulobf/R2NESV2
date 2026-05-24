@@ -12,6 +12,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 
 - **CPU Core**: Full implementation of the 6502 (Ricoh 2A03).
 - **PPU (Graphics)**: Cycle-accurate rendering with support for Loopy's Registers (v, t, x, w) for precise scrolling, Sprite 0 Hit, and Unlimited Sprites (flicker reduction).
+- **APU**: Sound support. Still early stages.
 - **Mapper Support**: 
   - Mapper 000 (NROM)
   - Mapper 001 (MMC1) * Still Buggy!! Read the COMPATIBILITY_LIST.
