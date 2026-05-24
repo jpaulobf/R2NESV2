@@ -5,19 +5,21 @@ namespace R2NES::Core
 {
     NesBoard::NesBoard()
     {
-        // Conecta a RAM ao Bus
         bus.connectRam(&ram);
 
-        bus.setJoysticks(&joysticks);
+        bus.connectJoysticks(&joysticks);
 
-        // Conecta a CPU ao Bus
         cpu.connectBus(&bus);
 
         bus.connectPPU(&ppu);
 
         ppu.connectBus(&bus);
 
-        reset(); // Reseta o sistema para um estado inicial
+        bus.connectAPU(&apu);
+
+        apu.connectBus(&bus);
+
+        reset();
     }
 
     NesBoard::~NesBoard() {}
@@ -32,6 +34,7 @@ namespace R2NES::Core
     void NesBoard::reset()
     {
         cpu.reset();
+        apu.reset();
         systemClockCounter = 0;
 
         // Teste: Tenta ler os vetores de reset da ROM
@@ -72,6 +75,9 @@ namespace R2NES::Core
             ppu.nmi = false;
             cpu.nmi();
         }
+
+        // APU clock (mesma velocidade da CPU)
+        apu.step();
 
         // Clocka a CPU uma vez. A CPU gerencia seus próprios ciclos internos por instrução.
         cpu.clock();
