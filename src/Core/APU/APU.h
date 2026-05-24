@@ -25,6 +25,10 @@ namespace R2NES::Core
 
         float getOutputSample();
 
+        void setAudioSampleRate(float rate);
+
+        void setSlewMs(float ms);
+
     private:
         Bus *bus = nullptr;
 
@@ -57,6 +61,7 @@ namespace R2NES::Core
             uint8_t timer = 0;
             uint8_t period = 0;
             void tick(uint16_t &pulseTimer, bool isPulse1);
+            bool isSilencing(uint16_t pulseTimer, bool isPulse1) const;
         };
 
         struct PulseChannel
@@ -107,6 +112,18 @@ namespace R2NES::Core
             uint8_t sampleValue = 0;
             uint8_t sample() const { return sampleValue; }
         } dmc;
+
+        float audioSampleRate = 44100.0f;
+        float slewMs = 0.7f;
+        float lastPulse1Sample = 0.0f;
+        float lastPulse2Sample = 0.0f;
+        float lastTriangleSample = 0.0f;
+        float lastNoiseSample = 0.0f;
+        float lastDmcSample = 0.0f;
+        
+        // Filtros simples para o sinal final
+        float highPassOutput = 0.0f;
+        float lowPassOutput = 0.0f;
 
         uint32_t frameClockCounter = 0;
         uint8_t frameCounterMode = 0;
