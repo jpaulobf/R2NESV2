@@ -94,9 +94,6 @@ namespace R2NES::Core
         {
             std::cerr << "Audio: Failed to open device! SDL_Error: " << SDL_GetError() << std::endl;
         }
-
-        // Inicializa a última amostra da APU (usa o estado inicial do APU)
-        lastApuSample = nes->getApu().getOutputSample();
     }
 
     void Engine::toggleVSync()
@@ -398,9 +395,6 @@ namespace R2NES::Core
         if (turboB)
             joy1.setButton(R2NES::Core::IO::BUTTON_B, turboPulse);
 
-        // Sincronização de Áudio: CPU freq / Sample rate (1789773 / 44100 = 40.58)
-        const double cyclesPerSample = 1789773.0 / 44100.0;
-
         if (stepByStep)
         {
             if (stepRequested)
@@ -417,50 +411,32 @@ namespace R2NES::Core
         else
         {
             std::vector<float> samples;
+
+            // 1. Roda a CPU e a APU até o final do quadro de vídeo (Frame)
             while (!nes->isFrameComplete())
             {
-                double prevAcc = audioCycleAccumulator;
                 nes->step();
-
-                // Incrementa o acumulador de ciclos (1 ciclo da CPU por step)
-                audioCycleAccumulator += 1.0;
-
-                // Reduzimos o ganho master para evitar clipping após o mixer
-                float masterGain = 2.0f;
-
-                // Amostra atual da APU (após o passo)
-                float currentApuSample = nes->getApu().getOutputSample();
-
-                // Se cruzou o limiar para gerar uma amostra, interpola linearmente
-                // entre a última amostra e a amostra atual usando a fração do ciclo.
-                if (audioCycleAccumulator >= cyclesPerSample)
-                {
-                    double fraction = (cyclesPerSample - prevAcc); // no intervalo (0,1]
-                    if (fraction < 0.0)
-                        fraction = 0.0;
-                    if (fraction > 1.0)
-                        fraction = 1.0;
-                    float sample = (lastApuSample * static_cast<float>(1.0 - fraction) + currentApuSample * static_cast<float>(fraction)) * masterGain;
-                    samples.push_back(sample);
-                    audioCycleAccumulator -= cyclesPerSample;
-                }
-
-                // Atualiza a última amostra para próxima interpolação
-                lastApuSample = currentApuSample;
+                // A cada step, a APU agora gera e guarda as amostras de áudio sozinha!
             }
             nes->clearFrameComplete();
 
-            // Envia o buffer de áudio do frame para o SDL
+            // 2. Coleta todo o áudio que a APU gerou durante este frame
+            while (nes->getApu().hasSamples())
+            {
+                samples.push_back(nes->getApu().getOutputSample());
+            }
+
+            // 3. Envia o buffer de áudio do frame inteiro para o SDL
             if (audioDevice > 0 && !samples.empty())
             {
-                // Se o buffer do SDL estiver muito cheio (mais de 0.2s), limpa para evitar lag
+                // Se o buffer do SDL estiver muito cheio (mais de 0.2s), ignoramos
+                // para evitar que o áudio fique dessincronizado (lag)
                 if (SDL_GetQueuedAudioSize(audioDevice) > 44100 * sizeof(float) / 5)
                 {
-                    // Opcional: SDL_ClearQueuedAudio(audioDevice);
+                    SDL_ClearQueuedAudio(audioDevice); //para forçar sincronia
                 }
-
-                // Enfileira o áudio se não houver excesso
-                if (SDL_GetQueuedAudioSize(audioDevice) < 44100 * sizeof(float) / 4)
+                // Enfileira o áudio se houver espaço seguro
+                else if (SDL_GetQueuedAudioSize(audioDevice) < 44100 * sizeof(float) / 4)
                 {
                     SDL_QueueAudio(audioDevice, samples.data(), samples.size() * sizeof(float));
                 }
