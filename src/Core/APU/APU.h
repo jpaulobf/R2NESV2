@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <array>
 #include <vector>
+#include <queue>
 
 namespace R2NES::Core
 {
@@ -28,6 +29,8 @@ namespace R2NES::Core
         void setAudioSampleRate(float rate);
 
         void setSlewMs(float ms);
+
+        bool hasSamples() const { return !audioBuffer.empty(); }
 
     private:
         Bus *bus = nullptr;
@@ -113,6 +116,57 @@ namespace R2NES::Core
             uint8_t sample() const { return sampleValue; }
         } dmc;
 
+        struct FirstOrderFilter
+        {
+            float alpha = 0.0f;
+            float prevX = 0.0f;
+            float prevY = 0.0f;
+            bool isHighPass = true;
+
+            void init(float sampleRate, float cutoffFreq, bool highPass)
+            {
+                isHighPass = highPass;
+                float dt = 1.0f / sampleRate;
+                float rc = 1.0f / (2.0f * 3.14159f * cutoffFreq);
+                if (isHighPass)
+                {
+                    alpha = rc / (rc + dt);
+                }
+                else
+                {
+                    alpha = dt / (rc + dt);
+                }
+                prevX = 0.0f;
+                prevY = 0.0f;
+            }
+
+            float process(float x)
+            {
+                float y = 0.0f;
+                if (isHighPass)
+                {
+                    y = alpha * (prevY + x - prevX);
+                }
+                else
+                {
+                    y = prevY + alpha * (x - prevY);
+                }
+                prevX = x;
+                prevY = y;
+                return y;
+            }
+        };
+
+        FirstOrderFilter hpf90;
+        FirstOrderFilter lpf14000;
+
+        std::queue<float> audioBuffer;
+
+        float sampleSum = 0.0f;
+        int sampleCount = 0;
+        double apuCyclesPerSample = 0.0;
+        double cycleCounter = 0.0;
+
         float audioSampleRate = 44100.0f;
         float slewMs = 0.7f;
         float lastPulse1Sample = 0.0f;
@@ -120,7 +174,7 @@ namespace R2NES::Core
         float lastTriangleSample = 0.0f;
         float lastNoiseSample = 0.0f;
         float lastDmcSample = 0.0f;
-        
+
         // Filtros simples para o sinal final
         float highPassOutput = 0.0f;
         float lowPassOutput = 0.0f;
@@ -129,5 +183,7 @@ namespace R2NES::Core
         uint8_t frameCounterMode = 0;
         bool irqEnabled = false;
         bool irqFlag = false;
+
+        float getRawMix();
     };
 }

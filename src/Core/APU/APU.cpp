@@ -51,6 +51,12 @@ namespace R2NES::Core
         lastDmcSample = 0.0f;
         highPassOutput = 0.0f;
         lowPassOutput = 0.0f;
+
+        sampleSum = 0.0f;
+        sampleCount = 0;
+
+        audioBuffer = std::queue<float>(); // Limpa os restos de áudio
+        cycleCounter = 0.0;
     }
 
     void APU::connectBus(Bus *b) { bus = b; }
@@ -257,7 +263,6 @@ namespace R2NES::Core
         }
 
         // Clock dos canais (Timers)
-        // Pulse rodam na metade da frequência da CPU
         if (frameClockCounter % 2 == 0)
         {
             pulse1.clock();
@@ -265,78 +270,82 @@ namespace R2NES::Core
             noise.clock();
         }
         triangle.clock(); // Triangle roda na frequência cheia
+
+        // --- NOVA LÓGICA DE RESAMPLING ---
+        sampleSum += getRawMix();
+        sampleCount++;
+        cycleCounter += 1.0;
+
+        // Quando o clock da CPU atingir o tempo exato de 1 amostra de áudio (ex: ~40.5 ciclos)
+        if (cycleCounter >= apuCyclesPerSample)
+        {
+            cycleCounter -= apuCyclesPerSample; // Subtrai para manter a precisão fracionária
+
+            float averageMix = sampleSum / static_cast<float>(sampleCount);
+            sampleSum = 0.0f;
+            sampleCount = 0;
+
+            // Filtros (Passa-Alta para centralizar o eixo, Passa-Baixa para limpar chiados)
+            float filtered = hpf90.process(averageMix);
+            filtered = lpf14000.process(filtered);
+
+            // Um ganho mais conservador para evitar o som distorcido/metálico
+            filtered *= 1.2f;
+
+            // Envia para a fila em vez de esperar a placa de som pedir
+            audioBuffer.push(filtered);
+        }
     }
 
     float APU::getOutputSample()
     {
-        // Coleta valores brutos por canal (0-15 para a maioria, 0-127 para DMC)
-        float rawP1 = static_cast<float>(pulse1.sample());
-        float rawP2 = static_cast<float>(pulse2.sample());
-        float rawTri = static_cast<float>(triangle.sample());
-        float rawN = static_cast<float>(noise.sample());
-        float rawD = static_cast<float>(dmc.sample());
+        if (audioBuffer.empty())
+            return 0.0f; // Silêncio se o emulador estiver pausado ou lento
 
-        // Aplica Slew Limiter por canal (limita variação por amostra para evitar cliques)
-        auto applySlew = [this](float &lastValue, float targetValue, float fullScale)
-        {
-            if (slewMs <= 0.0f || audioSampleRate <= 0.0f)
-            {
-                lastValue = targetValue;
-                return;
-            }
-            float samplesPerSlew = audioSampleRate * (slewMs / 1000.0f);
-            if (samplesPerSlew <= 0.0f)
-            {
-                lastValue = targetValue;
-                return;
-            }
-            float maxDelta = fullScale / samplesPerSlew;
-            float diff = targetValue - lastValue;
-            if (diff > maxDelta)
-                lastValue += maxDelta;
-            else if (diff < -maxDelta)
-                lastValue -= maxDelta;
-            else
-                lastValue = targetValue;
-        };
+        float sample = audioBuffer.front();
+        audioBuffer.pop();
 
-        applySlew(lastPulse1Sample, rawP1, 15.0f);
-        applySlew(lastPulse2Sample, rawP2, 15.0f);
-        applySlew(lastTriangleSample, rawTri, 15.0f);
-        applySlew(lastNoiseSample, rawN, 15.0f);
-        applySlew(lastDmcSample, rawD, 127.0f);
+        // Clipper suave de segurança para a placa de som
+        if (sample > 1.0f)
+            sample = 1.0f;
+        if (sample < -1.0f)
+            sample = -1.0f;
 
-        float p1 = lastPulse1Sample;
-        float p2 = lastPulse2Sample;
-        float tri = lastTriangleSample;
-        float n = lastNoiseSample;
-        float d = lastDmcSample;
-
-        // Mixer não-linear
-        float pulseOut = 0.0f;
-        float pulseSum = p1 + p2;
-        if (pulseSum > 0.0f)
-            pulseOut = 95.88f / (8128.0f / pulseSum + 100.0f); // Saída ~0.0 a 0.2
-
-        float tndOut = 0.0f;
-        float tndDenominator = (tri / 8227.0f + n / 12241.0f + d / 22638.0f);
-        if (tndDenominator > 0.0f)
-            tndOut = 159.79f / (1.0f / tndDenominator + 100.0f); // Saída ~0.0 a 0.3
-
-        float mixed = pulseOut + tndOut;
-
-        // Filtro High-Pass básico para remover o "thump" de DC e estalos de transição
-        // Y = alpha * (Y_prev + X - X_prev)
-        float highPassAlpha = 0.996f; 
-        highPassOutput = highPassAlpha * (highPassOutput + mixed - (lastPulse1Sample + lastPulse2Sample + lastTriangleSample + lastNoiseSample + lastDmcSample)/15.0f*0.2f); // Aproximação
-
-        return (pulseOut + tndOut);
+        return sample;
     }
 
     void APU::setAudioSampleRate(float rate)
     {
         if (rate > 0.0f)
+        {
             audioSampleRate = rate;
+            apuCyclesPerSample = 1789773.0 / rate;
+
+            // Configura apenas o HPF para DC Offset e o LPF para os ruídos agudos
+            hpf90.init(rate, 90.0f, true);
+            lpf14000.init(rate, 14000.0f, false);
+        }
+    }
+
+    float APU::getRawMix()
+    {
+        float p1 = static_cast<float>(pulse1.sample());
+        float p2 = static_cast<float>(pulse2.sample());
+        float tri = static_cast<float>(triangle.sample());
+        float n = static_cast<float>(noise.sample());
+        float d = static_cast<float>(dmc.sample());
+
+        float pulseOut = 0.0f;
+        float pulseSum = p1 + p2;
+        if (pulseSum > 0.0f)
+            pulseOut = 95.88f / (8128.0f / pulseSum + 100.0f);
+
+        float tndOut = 0.0f;
+        float tndDenominator = (tri / 8227.0f + n / 12241.0f + d / 22638.0f);
+        if (tndDenominator > 0.0f)
+            tndOut = 159.79f / (1.0f / tndDenominator + 100.0f);
+
+        return pulseOut + tndOut;
     }
 
     void APU::setSlewMs(float ms)
@@ -388,15 +397,17 @@ namespace R2NES::Core
     }
 
     bool APU::Sweep::isSilencing(uint16_t pulseTimer, bool isPulse1) const
-   {
-        if (pulseTimer < 8) return true;
-        
+    {
+        if (pulseTimer < 8)
+            return true;
+
         uint16_t delta = pulseTimer >> shift;
         if (!down)
         {
-            if (pulseTimer + delta > 0x7FF) return true;
+            if (pulseTimer + delta > 0x7FF)
+                return true;
         }
-        // O canal 1 e 2 têm comportamentos de muting ligeiramente diferentes no 'down', 
+        // O canal 1 e 2 têm comportamentos de muting ligeiramente diferentes no 'down',
         // mas a regra do 0x7FF no 'up' é a principal causadora de silêncio em notas agudas.
         return false;
     }
@@ -472,10 +483,6 @@ namespace R2NES::Core
 
     uint8_t APU::TriangleChannel::sample() const
     {
-        // Triangle deve ser silenciado se os contadores forem zero
-        if (!enabled || lengthCounter.count == 0 || linearCount == 0)
-            return 0;
-        // Sequência aproximada de triângulo (0-15-0)
         if (dutyValue < 16)
             return 15 - dutyValue;
         return dutyValue - 16;
