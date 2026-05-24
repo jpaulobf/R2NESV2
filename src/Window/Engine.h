@@ -47,6 +47,7 @@ namespace R2NES::Core
         // Gerenciamento de Áudio
         SDL_AudioDeviceID audioDevice = 0;
         double audioCycleAccumulator = 0.0;
+        float lastApuSample = 0.0f;
 
         // Mapeamento de teclas para o Player 1 e 2
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
