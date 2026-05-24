@@ -23,7 +23,6 @@ namespace R2NES::Core
         void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
 
     private:
-
         void processEmulatorInput();
 
         void handleKeyboard(SDL_Keycode key, bool isPressed);
@@ -86,7 +85,7 @@ namespace R2NES::Core
         bool runningFastForward = false;
         bool oldUncappedSpeed = uncappedSpeed;
         bool oldVsyncEnabled = vsyncEnabled;
-        
+
         // Controle dos botões turbo
         bool turboA = false;
         bool turboB = false;

@@ -426,7 +426,7 @@ namespace R2NES::Core
                 audioCycleAccumulator += 1.0;
 
                 // Reduzimos o ganho master para evitar clipping após o mixer
-                float masterGain = 2.0f; 
+                float masterGain = 2.0f;
 
                 // Amostra atual da APU (após o passo)
                 float currentApuSample = nes->getApu().getOutputSample();
