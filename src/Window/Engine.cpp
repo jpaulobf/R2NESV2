@@ -79,7 +79,7 @@ namespace R2NES::Core
         want.freq = 44100;
         want.format = AUDIO_F32SYS;
         want.channels = 1;
-        want.samples = 256;
+        want.samples = 512;
 
         audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
         if (audioDevice > 0)
@@ -87,8 +87,6 @@ namespace R2NES::Core
             std::cout << "Audio: Device opened successfully (ID: " << audioDevice << ")" << std::endl;
             SDL_PauseAudioDevice(audioDevice, 0);
             nes->getApu().setAudioSampleRate(static_cast<float>(have.freq));
-            // Opcional: ajustar o tempo de slew aqui se desejar
-            // nes->getApu().setSlewMs(0.5f);
         }
         else
         {
