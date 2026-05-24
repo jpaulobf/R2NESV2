@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.4.5] - 2026-05-24
+
+### Adicionado
+- Implementação da **APU (Audio Processing Unit)** v.Beta.
+- Suporte aos canais: 2x Pulse, 1x Triangle, 1x Noise e esqueleto para DMC.
+- Mixer não-linear implementado para maior fidelidade sonora.
+- Integração de áudio via **SDL2** (amostragem de 44.1kHz, 32-bit Float).
+- Sistema de sincronização de áudio por acumulador de ciclos e master volume gain (4.0x).
+- Implementação do Frame Counter, Length Counters e Envelopes.
+
 ## [0.3.9] - 2026-05-20
 
 ### Adicionado
