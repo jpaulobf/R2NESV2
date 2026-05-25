@@ -49,7 +49,7 @@ Mapper 000 (NROM)
 | Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Othello | US | 000 | ⭐ | Super Glitchy e travado no menu |
+| Othello | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
 | Pinball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Popeye | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -74,11 +74,11 @@ Mapper 000 (NROM)
 
 ### Resumo Estatístico - Mapper 000 (NROM)
 - **Total de Jogos Testados:** 53
-- ⭐⭐⭐⭐⭐ (Perfeito): 45 - 84.9%
+- ⭐⭐⭐⭐⭐ (Perfeito): 46 - 86.7%
 - ⭐⭐⭐⭐ (Jogável): 5 - 9.4%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 3 - 5.7%
+- ⭐ (Não funciona): 2 - 3.7%
 
 
 
