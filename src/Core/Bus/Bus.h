@@ -3,6 +3,7 @@
 #include <memory>
 #include "Common/Common.h"
 #include "Core/IO/Joysticks.h"
+#include "Core/CPU/CPU.h"
 
 namespace R2NES::Core
 {
@@ -10,6 +11,7 @@ namespace R2NES::Core
     class Cartridge;
     class PPU;
     class APU;
+    class CPU;
 
     namespace IO
     {
@@ -34,6 +36,9 @@ namespace R2NES::Core
             PPUADDR = 0x2006,
             PPUDATA = 0x2007
         };
+
+        // Conecta a CPU física ao barramento
+        void connectCPU(CPU *pCpu);
 
         // Conecta a RAM física ao barramento
         void connectRam(RAM *pRam);
@@ -63,6 +68,7 @@ namespace R2NES::Core
         RAM *ram = nullptr;
         PPU *ppu = nullptr;
         APU *apu = nullptr;
+        CPU *cpu = nullptr;
         IO::Joysticks *joysticks = nullptr;
         std::shared_ptr<Cartridge> cart;
 
