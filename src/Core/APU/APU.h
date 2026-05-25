@@ -32,6 +32,8 @@ namespace R2NES::Core
 
         bool hasSamples() const { return !audioBuffer.empty(); }
 
+        bool getIrqFlag() const { return irqFlag; }
+
     private:
         Bus *bus = nullptr;
 
