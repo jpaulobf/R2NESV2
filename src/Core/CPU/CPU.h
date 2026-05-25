@@ -77,6 +77,10 @@ namespace R2NES::Core
 
         std::vector<INSTRUCTION> lookup; // Tabela de 256 opcodes
 
+        // Quantos ciclos restam para a instrução terminar.
+        // Aumentado para uint16_t para suportar stalls de DMA (~513 ciclos).
+        uint16_t cycles = 0;
+
         // Registradores do 6502
         uint8_t a = 0x00;      // Acumulador
         uint8_t x = 0x00;      // Registrador de Índice X
@@ -184,7 +188,6 @@ namespace R2NES::Core
         uint16_t addr_abs = 0x0000; // Endereço calculado pela instrução
         uint16_t addr_rel = 0x0000; // Endereço relativo para saltos (branch)
         uint8_t opcode = 0x00;      // Instrução atual
-        uint8_t cycles = 0;         // Quantos ciclos restam para a instrução terminar
         Bus *bus = nullptr;         // Ponteiro para o Bus ao qual a CPU está conectada
     };
 }
