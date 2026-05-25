@@ -27,6 +27,9 @@ namespace R2NES::Core
         // Retorna se o cartucho foi carregado com sucesso
         bool isValid() const { return imageValid; }
 
+        // Retorna se o Mapper está solicitando uma interrupção (IRQ)
+        bool getIrqFlag() const;
+
         MirrorMode getMirrorMode() const;
 
     private:
