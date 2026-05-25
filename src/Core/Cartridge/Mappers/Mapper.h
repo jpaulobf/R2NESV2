@@ -18,6 +18,9 @@ namespace R2NES::Core
         virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) = 0;
         virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) = 0;
 
+        // Retorna se o Mapper está solicitando uma interrupção (IRQ)
+        virtual bool getIrqFlag() const { return false; }
+
         // Por padrão, mappers retornam HARDWARE (indicando o que está no iNES)
         virtual MirrorMode getMirrorMode() 
         { 
