@@ -276,4 +276,11 @@ namespace R2NES::Core
         }
         return mirror;
     }
+
+    bool Cartridge::getIrqFlag() const
+    {
+        if (pMapper)
+            return pMapper->getIrqFlag();
+        return false;
+    }
 }
