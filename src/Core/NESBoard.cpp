@@ -5,6 +5,8 @@ namespace R2NES::Core
 {
     NesBoard::NesBoard()
     {
+        bus.connectCPU(&cpu);
+        
         bus.connectRam(&ram);
 
         bus.connectJoysticks(&joysticks);
@@ -78,6 +80,16 @@ namespace R2NES::Core
 
         // APU clock (mesma velocidade da CPU)
         apu.step();
+
+        // Propagação do sinal de IRQ (Interrupt Request)
+        // O IRQ pode ser disparado pela APU ou pelo Cartucho (Mappers)
+        bool irqActive = apu.getIrqFlag();
+        if (bus.cart)
+            irqActive |= bus.cart->getIrqFlag();
+
+        // A interrupção só é processada quando a CPU termina a instrução atual
+        if (irqActive && cpu.complete())
+            cpu.irq();
 
         // Clocka a CPU uma vez. A CPU gerencia seus próprios ciclos internos por instrução.
         cpu.clock();
