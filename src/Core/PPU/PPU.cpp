@@ -151,7 +151,7 @@ namespace R2NES::Core
 
         case 0x0007: // PPUDATA ($2007)
             ppuWrite(vramAddr & 0x3FFF, data);
-            vramAddr += (ppuCtrl & 0x04) ? 32 : 1;
+            vramAddr = (vramAddr + ((ppuCtrl & 0x04) ? 32 : 1)) & 0x7FFF;
             break;
         }
     }
@@ -318,9 +318,21 @@ namespace R2NES::Core
 
         if (renderingEnabled)
         {
-            if (scanline == -1 && cycle >= 280 && cycle <= 304)
-                transferAddressY();
-            if (scanline >= 0 && scanline < 240)
+            // O pre-render scanline (-1) prepara o scroll para o próximo frame
+            if (scanline == -1)
+            {
+                if (cycle == 1)
+                {
+                    // Limpa flags de VBlank, Sprite 0 Hit e Overflow no início do pre-render
+                    ppuStatus &= ~0xE0; 
+                    sprite0HitDetectedThisScanline = false;
+                }
+
+                if (cycle >= 280 && cycle <= 304)
+                    transferAddressY();
+            }
+
+            if (scanline >= -1 && scanline < 240)
             {
                 if (cycle > 0 && cycle <= 256 && (cycle % 8 == 0))
                     incrementScrollX();
@@ -560,25 +572,29 @@ namespace R2NES::Core
             scanline++;
 
             // Reseta o flag de Sprite 0 Hit para o próximo scanline
-            // (mantém o bit setado em ppuStatus até o pré-render scanline)
             sprite0HitDetectedThisScanline = false;
 
             if (scanline == 241)
             {
                 // Início do Vertical Blank
-                ppuStatus |= 0x80; // Seta flag de VBlank
+                ppuStatus |= 0x80;
                 frameComplete = true;
 
-                // Se NMIs estiverem habilitados no PPUCTRL (bit 7), sinaliza para a CPU
                 if (ppuCtrl & 0x80)
                     nmi = true;
             }
             else if (scanline >= 261)
             {
                 scanline = -1;
-                zapperLightDetected = false; // Reseta o sensor para o próximo frame
-                ppuStatus &= ~0xE0;          // Limpa VBlank (7), Sprite 0 Hit (6) e Sprite Overflow (5)
+                zapperLightDetected = false;
+                frameCounter++;
             }
+        }
+
+        // Implementação do Odd Frame Cycle Skip
+        if (scanline == -1 && cycle == 339 && renderingEnabled && (frameCounter % 2 != 0))
+        {
+            cycle = 340; 
         }
     }
 
@@ -596,6 +612,7 @@ namespace R2NES::Core
         scanline = 0;
         cycle = 0;
         scanlineSpriteCount = 0;
+        frameCounter = 0;
         nmi = false;
 
         // Limpa o buffer de imagem para preto ao resetar/descarregar
