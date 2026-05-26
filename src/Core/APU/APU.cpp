@@ -87,7 +87,7 @@ namespace R2NES::Core
             pulse1.timerReload = (pulse1.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
             if (pulse1.enabled)
                 pulse1.lengthCounter.load(data >> 3);
-            pulse1.dutyValue = 0;
+            //pulse1.dutyValue = 0;
             pulse1.envelope.start = true;
             break;
 
@@ -172,8 +172,18 @@ namespace R2NES::Core
         case 0x4017: // Frame Counter
             frameCounterMode = (data & 0x80) ? 5 : 4;
             irqEnabled = !(data & 0x40);
+            frameClockCounter = 0; 
             if (frameCounterMode == 5)
-            { /* Ticks imediatos ocorrem aqui */
+            { 
+                pulse1.envelope.tick();
+                pulse2.envelope.tick();
+                noise.envelope.tick();
+                pulse1.lengthCounter.tick();
+                pulse2.lengthCounter.tick();
+                triangle.lengthCounter.tick();
+                noise.lengthCounter.tick();
+                pulse1.sweep.tick(pulse1.timerReload, true);
+                pulse2.sweep.tick(pulse2.timerReload, false);
             }
             break;
         }
@@ -210,13 +220,13 @@ namespace R2NES::Core
 
         if (frameCounterMode == 4)
         {
-            if (frameClockCounter == 3729)
-                quarterFrame = true;
             if (frameClockCounter == 7457)
-                quarterFrame = halfFrame = true;
-            if (frameClockCounter == 11186)
                 quarterFrame = true;
-            if (frameClockCounter == 14915)
+            else if (frameClockCounter == 14913)
+                quarterFrame = halfFrame = true;
+            else if (frameClockCounter == 22371)
+                quarterFrame = true;
+            else if (frameClockCounter == 29829)
             {
                 quarterFrame = halfFrame = true;
                 if (irqEnabled)
@@ -226,16 +236,19 @@ namespace R2NES::Core
         }
         else // Mode 5
         {
-            if (frameClockCounter == 3729)
-                quarterFrame = true;
             if (frameClockCounter == 7457)
-                quarterFrame = halfFrame = true;
-            if (frameClockCounter == 11186)
                 quarterFrame = true;
-            if (frameClockCounter == 18641)
+            else if (frameClockCounter == 14913)
                 quarterFrame = halfFrame = true;
-            if (frameClockCounter >= 18642)
+            else if (frameClockCounter == 22371)
+                quarterFrame = true;
+            else if (frameClockCounter == 29829)
+                ; // No-op step
+            else if (frameClockCounter == 37281)
+            {
+                quarterFrame = halfFrame = true;
                 frameClockCounter = 0;
+            }
         }
 
         if (quarterFrame)
