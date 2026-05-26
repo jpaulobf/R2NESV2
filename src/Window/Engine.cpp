@@ -34,6 +34,10 @@ namespace R2NES::Core
         window->setFFCallback([this](bool enabled)
                               { this->fastForwardEnabled = enabled; });
 
+        // Conecta o callback de Pause
+        window->setPauseCallback([this](bool p)
+                                 { this->paused = p; });
+
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
         this->fastForwardEnabled = window->isFastForwardEnabled();
@@ -128,7 +132,6 @@ namespace R2NES::Core
         while (!window->shouldClose() && isRunning)
         {
             uint64_t currentTime = SDL_GetPerformanceCounter();
-            // deltaTime calculado com precisão de micro/nanosegundos
             double deltaTime = static_cast<double>(currentTime - lastTime) / frequency;
             lastTime = currentTime;
 
@@ -146,23 +149,44 @@ namespace R2NES::Core
             // Só processa o timing e a atualização se houver um cartucho carregado no NesBoard
             if (nes->isCartridgeLoaded())
             {
-                if (stepByStep)
+                if (!paused)
                 {
-                    update();
-                    render();
-                }
-                else if (uncappedSpeed)
-                {
-                    // std::cout << "Uncapped Speed Enabled" << std::endl;
-
-                    // Emulação (UPS) - Roda o máximo que o núcleo da CPU permitir
-                    for (int i = 0; i < 10; ++i)
-                    { // Pequeno batch para reduzir overhead do loop
+                    if (stepByStep)
+                    {
                         update();
-                        frameCount++; // Agora contamos quadros emulados
                     }
+                    else if (uncappedSpeed)
+                    {
+                        // Emulação (UPS)
+                        for (int i = 0; i < 10; ++i)
+                        {
+                            update();
+                            frameCount++;
+                        }
+                    }
+                    else if (vsyncEnabled)
+                    {
+                        update();
+                    }
+                    else
+                    {
+                        // Lógica de tempo normal
+                        double updateInterval = 1.0 / targetUPS;
+                        residualTime += deltaTime * timeScale;
 
-                    // Renderização (FPS) - Limitamos a renderização para não travar na GPU
+                        if (residualTime > 0.1f)
+                            residualTime = 0.1f;
+
+                        while (residualTime >= updateInterval - 0.0002)
+                        {
+                            update();
+                            residualTime -= updateInterval;
+                        }
+                    }
+                }
+
+                if (uncappedSpeed)
+                {
                     renderResidualTime += deltaTime;
                     if (renderResidualTime >= 1.0 / targetFPS)
                     {
@@ -170,49 +194,23 @@ namespace R2NES::Core
                         renderResidualTime = 0;
                     }
                 }
-                else if (vsyncEnabled) // uncapped tem prioridade sobre vsync
+                else if (vsyncEnabled)
                 {
-                    // std::cout << "Vsync Enabled" << std::endl;
-                    update();
                     render();
                 }
                 else
                 {
-                    // Lógica unificada para VSync e Modo Normal
-                    // Isso garante que o NES rode a 60 UPS (Updates Per Second)
-                    // independentemente da taxa de atualização do monitor (75Hz, 144Hz, etc)
-                    double updateInterval = 1.0 / targetUPS;
-                    residualTime += deltaTime * timeScale;
-
-                    if (residualTime > 0.1f)
-                        residualTime = 0.1f;
-
-                    while (residualTime >= updateInterval - 0.0002)
-                    {
-                        update();
-                        residualTime -= updateInterval;
-                    }
-
-                    if (vsyncEnabled)
+                    double renderInterval = 1.0 / targetFPS;
+                    renderResidualTime += deltaTime;
+                    if (renderResidualTime >= renderInterval)
                     {
                         render();
-                    }
-                    else
-                    {
-                        double renderInterval = 1.0 / targetFPS;
-                        renderResidualTime += deltaTime;
-
-                        if (renderResidualTime >= renderInterval)
-                        {
-                            render();
-                            renderResidualTime = std::fmod(renderResidualTime, renderInterval);
-                        }
+                        renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
             }
             else
             {
-                // Se não há jogo, apenas renderiza a interface (ImGui/Menu)
                 render();
             }
         }
@@ -241,6 +239,7 @@ namespace R2NES::Core
             std::cout << "Engine: Loading ROM -> " << romPath << std::endl;
             nes->insertCartridge(romPath);
             nes->reset();
+            window->setPaused(false); // Garante que comece despausado ao carregar novo jogo
 
             // Gera o disassembly apenas uma vez no carregamento
             cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
@@ -353,8 +352,14 @@ namespace R2NES::Core
                 nes->reset();
             break;
         case SDLK_TAB:
-            // Ao pressionar tab, alterna para FF se FFEnabled for True, caso contrário, retorna ao estado normal.
             this->setFastForward(this->fastForwardEnabled && isPressed);
+            break;
+        case SDLK_p:
+        case SDLK_PAUSE:
+            if (isPressed && nes->isCartridgeLoaded())
+            {
+                window->setPaused(!window->isPaused());
+            }
             break;
         }
     }

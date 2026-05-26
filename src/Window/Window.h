@@ -24,6 +24,7 @@ namespace R2NES::Core
         using VSyncCallback = std::function<void(bool)>;
         using FFCallback = std::function<void(bool)>;
         using UnlimitedSpritesCallback = std::function<void(bool)>;
+        using PauseCallback = std::function<void(bool)>;
         using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
@@ -43,6 +44,9 @@ namespace R2NES::Core
 
         /* Define a função de callback para o recurso de Unlimited Sprites. */
         void setUnlimitedSpritesCallback(UnlimitedSpritesCallback cb) { unlimitedSpritesCallback = cb; }
+
+        /* Define a função de callback para o estado de Pause. */
+        void setPauseCallback(PauseCallback cb) { pauseCallback = cb; }
 
         /* Define a função de callback para eventos de botões do controle. */
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
@@ -136,6 +140,17 @@ namespace R2NES::Core
         /* Ativa o Fast Forward. */
         void fastForwardOn() { setFastForward(true); }
 
+        /* Verifica se a emulação está pausada. */
+        bool isPaused() const { return paused; }
+
+        /* Define o estado de pause da janela e notifica a engine. */
+        void setPaused(bool p)
+        {
+            paused = p;
+            if (pauseCallback)
+                pauseCallback(paused);
+        }
+
         /* Verifica se a janela principal foi fechada. */
         bool shouldClose() const { return closed; }
 
@@ -194,6 +209,7 @@ namespace R2NES::Core
         ControllerCallback controllerCallback = nullptr;
         VSyncCallback vsyncCallback = nullptr;
         UnlimitedSpritesCallback unlimitedSpritesCallback = nullptr;
+        PauseCallback pauseCallback = nullptr;
         FFCallback ffCallback = nullptr;
 
         // Suporte para até 2 controles
@@ -209,5 +225,6 @@ namespace R2NES::Core
         bool vsyncEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
+        bool paused = false;
     };
 }

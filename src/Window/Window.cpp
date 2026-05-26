@@ -653,9 +653,10 @@ namespace R2NES::Core
         ramViewer.open(x, y, w);
     }
 
-    void Window::updateRamViewer(RAM* ram)
+    void Window::updateRamViewer(RAM *ram)
     {
-        if (ramViewer.isOpen()) {
+        if (ramViewer.isOpen())
+        {
             ramViewer.render(ram);
         }
     }
@@ -663,6 +664,7 @@ namespace R2NES::Core
     void Window::unload()
     {
         unloadRequested = true;
+        setPaused(false);
 
         // Fecha as janelas de debug ao descarregar a ROM
         tileViewer.close();
@@ -674,6 +676,7 @@ namespace R2NES::Core
     void Window::reset()
     {
         resetRequested = true;
+        setPaused(false);
 
         // Fecha/Esconde as janelas de debug para um reset "limpo"
         tileViewer.close();
@@ -812,12 +815,16 @@ namespace R2NES::Core
     {
         // Atualiza o título da janela com o FPS
         static float lastFps = -1.0f;
-        if (fps != lastFps)
+        static bool lastPausedState = false;
+
+        if (fps != lastFps || paused != lastPausedState)
         {
-            char titleBuffer[64];
-            snprintf(titleBuffer, sizeof(titleBuffer), title.c_str(), fps);
+            char titleBuffer[128];
+            std::string displayTitle = title + (paused ? " | PAUSED" : "");
+            snprintf(titleBuffer, sizeof(titleBuffer), displayTitle.c_str(), paused ? 0.0f : fps);
             SDL_SetWindowTitle(window, titleBuffer);
             lastFps = fps;
+            lastPausedState = paused;
         }
 
         SDL_UpdateTexture(texture, nullptr, pixels, width * sizeof(uint32_t));
