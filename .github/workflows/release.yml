@@ -17,7 +17,7 @@ jobs:
           submodules: recursive
 
       - name: Setup MinGW
-        uses: egor-tensin/setup-gcc@v1
+        uses: egor-tensin/setup-mingw@v1
         with:
           platform: x64
 
