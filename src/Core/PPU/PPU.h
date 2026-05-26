@@ -98,6 +98,7 @@ namespace R2NES::Core
 
         bool frameComplete = false;
         bool unlimitedSprites = false;
+        uint32_t frameCounter = 0;
         bool usedDebugColors = false;
 
         // Métodos auxiliares para Loopy Registers
