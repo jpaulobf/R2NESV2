@@ -432,16 +432,23 @@ namespace R2NES::Core
             // 3. Envia o buffer de áudio do frame inteiro para o SDL
             if (audioDevice > 0 && !samples.empty())
             {
-                // Se o buffer do SDL estiver muito cheio (mais de 0.2s), ignoramos
-                // para evitar que o áudio fique dessincronizado (lag)
-                if (SDL_GetQueuedAudioSize(audioDevice) > 44100 * sizeof(float) / 15)
+                if (!uncappedSpeed) 
                 {
-                    SDL_ClearQueuedAudio(audioDevice);
-                }
-                // Enfileira o áudio se houver espaço seguro
-                else if (SDL_GetQueuedAudioSize(audioDevice) < 44100 * sizeof(float) / 4)
-                {
+                    // Latência alvo de ~3 frames (~50ms)
+                    Uint32 maxSafeBytes = 44100 * sizeof(float) / 20; 
+
+                    // Se o buffer engasgar e acumular áudio velho, limpamos
+                    if (SDL_GetQueuedAudioSize(audioDevice) > maxSafeBytes)
+                    {
+                        SDL_ClearQueuedAudio(audioDevice);
+                    }
+
                     SDL_QueueAudio(audioDevice, samples.data(), samples.size() * sizeof(float));
+                }
+                else
+                {
+                    // Fast-Forward
+                    SDL_ClearQueuedAudio(audioDevice); 
                 }
             }
         }
