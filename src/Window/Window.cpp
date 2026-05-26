@@ -7,7 +7,7 @@
 #include "imgui_impl_sdlrenderer2.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
-#include "Core/Memory/RAM/RAM.h" // For RAM* in updateRamViewer
+#include "Core/Memory/RAM/RAM.h"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -21,7 +21,7 @@
 #define IDM_FILE_EXIT 1002
 #define IDM_FILE_RESET 1003
 #define IDM_FILE_UNLOAD 1004
-#define IDM_RECENT_FILE_BASE_ID 10000 // Base ID para os itens da lista de ROMs recentes
+#define IDM_RECENT_FILE_BASE_ID 10000
 #define IDM_DEBUG_TILE_VIEWER 1006
 #define IDM_DEBUG_DISASSEMBLER 1007
 #define IDM_DEBUG_RAM_VIEWER 1008
@@ -88,7 +88,10 @@ namespace R2NES::Core
 
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
+        imguiContext = ImGui::CreateContext();
+        ImGui::SetCurrentContext(imguiContext);
+        ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+        ImGui_ImplSDLRenderer2_Init(renderer);
 
         // Redimensiona a janela para 3x por padrão.
         this->windowResize(currentWindowX);
@@ -109,7 +112,13 @@ namespace R2NES::Core
             }
         }
 
-        ImGui::DestroyContext();
+        if (imguiContext)
+        {
+            ImGui::SetCurrentContext(imguiContext);
+            ImGui_ImplSDLRenderer2_Shutdown();
+            ImGui_ImplSDL2_Shutdown();
+            ImGui::DestroyContext(imguiContext);
+        }
 
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
@@ -122,6 +131,13 @@ namespace R2NES::Core
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
+            // Processa eventos para o ImGui da janela principal
+            if (imguiContext)
+            {
+                ImGui::SetCurrentContext(imguiContext);
+                ImGui_ImplSDL2_ProcessEvent(&e);
+            }
+
             // Só processa eventos do ImGui se a janela de debug estiver ativa
             tileViewer.handleEvent(&e);
             disassembler.handleEvent(&e);
@@ -176,6 +192,7 @@ namespace R2NES::Core
                     }
                 }
             }
+
             // Eventos de Botões do Controle
             else if (e.type == SDL_CONTROLLERBUTTONDOWN || e.type == SDL_CONTROLLERBUTTONUP)
             {
@@ -260,16 +277,15 @@ namespace R2NES::Core
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_RECENT_FILE_BASE_ID && LOWORD(e.syswm.msg->msg.win.wParam) < IDM_RECENT_FILE_BASE_ID + 10)
                     {
-                        // Um item de ROM recente foi clicado
                         int index = LOWORD(e.syswm.msg->msg.win.wParam) - IDM_RECENT_FILE_BASE_ID;
                         const auto &recentRoms = configManager.getRecentRoms();
                         if (index < recentRoms.size())
                         {
                             auto it = recentRoms.begin();
-                            std::advance(it, index); // Avança o iterador para a posição correta
+                            std::advance(it, index);
                             selectedPath = *it;
-                            configManager.addRomToList(selectedPath); // Re-adiciona para subir ao topo da lista de recentes
-                            createMenu();                             // Atualiza a lista visualmente no menu
+                            configManager.addRomToList(selectedPath);
+                            createMenu();
                         }
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
@@ -572,7 +588,7 @@ namespace R2NES::Core
 #ifdef _WIN32
         OPENFILENAMEA ofn;
         char szFile[260] = {0};
-        char szInitialDir[260] = {0}; // Buffer for initial directory
+        char szInitialDir[260] = {0};
 
         ZeroMemory(&ofn, sizeof(ofn));
         ofn.lStructSize = sizeof(ofn);
@@ -731,6 +747,8 @@ namespace R2NES::Core
         }
         if (renderer)
         {
+            ImGui::SetCurrentContext(imguiContext);
+            ImGui_ImplSDLRenderer2_Shutdown();
             SDL_DestroyRenderer(renderer);
             renderer = nullptr;
         }
@@ -749,6 +767,7 @@ namespace R2NES::Core
             SDL_PIXELFORMAT_ARGB8888,
             SDL_TEXTUREACCESS_STREAMING,
             width, height);
+        ImGui_ImplSDLRenderer2_Init(renderer);
 
         // 4. Notificar a Engine sobre a mudança para ajustar o Game Loop
         if (vsyncCallback)
@@ -795,7 +814,6 @@ namespace R2NES::Core
         }
 #endif
 
-        // This makes the window fill the entire screen, borderless.
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         currentDisplayMode = dm;
     }
@@ -862,9 +880,28 @@ namespace R2NES::Core
         }
         else
         {
-            // Default behavior for windowed modes or fullscreen stretch
             SDL_RenderCopy(renderer, texture, nullptr, nullptr);
         }
+
+        // Renderiza o overlay de PAUSE em modo Fullscreen
+        if (paused && currentDisplayMode != DisplayMode::WINDOWED && imguiContext)
+        {
+            ImGui::SetCurrentContext(imguiContext);
+            ImGui_ImplSDLRenderer2_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+
+            // Posiciona no centro da tela
+            ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("PauseOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
+            ImGui::SetWindowFontScale(4.0f);
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.8f), "PAUSED");
+            ImGui::End();
+
+            ImGui::Render();
+            ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+        }
+
         SDL_RenderPresent(renderer);
     }
 }

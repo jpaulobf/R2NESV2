@@ -11,6 +11,7 @@
 #include "Disassembler.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
+#include "imgui.h"
 
 namespace R2NES::Core
 {
@@ -189,6 +190,7 @@ namespace R2NES::Core
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
+        ImGuiContext* imguiContext = nullptr;
         MouseState mouseState;
         std::string selectedPath = "";
 
