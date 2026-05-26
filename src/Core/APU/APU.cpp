@@ -113,7 +113,7 @@ namespace R2NES::Core
             pulse2.timerReload = (pulse2.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
             if (pulse2.enabled)
                 pulse2.lengthCounter.load(data >> 3);
-            pulse2.dutyValue = 0;
+            //pulse2.dutyValue = 0;
             pulse2.envelope.start = true;
             break;
 
