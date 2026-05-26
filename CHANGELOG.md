@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.5.0] - 2026-05-26
+
+### Adicionado
+- Interface de **Overlay de Pause** visual utilizando ImGui, exibido centralizado quando a emulação está pausada, garantindo feedback claro especialmente em modo Fullscreen.
+- Melhorias na estabilidade e latência do áudio: implementação de monitoramento de buffer (`SDL_GetQueuedAudioSize`) para evitar atrasos acumulados.
+- Lógica de limpeza automática do buffer de áudio (`SDL_ClearQueuedAudio`) ao ativar o **Fast Forward** ou em situações de dessincronização (buffer > 50ms).
+- Atualização dinâmica do título da janela para incluir o estado "PAUSED" e a identificação da build.
+
 ## [0.4.5] - 2026-05-24
 
 ### Adicionado
