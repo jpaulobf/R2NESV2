@@ -330,3 +330,122 @@ Mapper 001 (MMC1)
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
 - ⭐ (Não funciona): 14 - 31.2%
+
+
+-------
+Mapper 002 (UNROM)
+-------
+
+** (não todos os jogos foram testados - WIP) **
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| --- | --- | --- | --- | --- |
+| Games not tested yet | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
+| 1943: The Battle of Midway | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| 3-D Battles of Worldrunner, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Dr. Franken, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Gilligan's Island, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Alfred Chicken | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Amagon | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Archon | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Athena | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Best of the Best: Championship Karate | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| California Games | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| California Raisins, The: The Grape Escape | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Castelian | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Commando | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Conan | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Contra | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Double Dribble | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Dr. Chaos | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Dragon's Lair | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| DuckTales 2, Disney's | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| DuckTales, Disney's | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Fist of the North Star | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Flight of the Intruder | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Flying Dragon: The Secret Scroll | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Fun House | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Ghosts 'n Goblins | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Goonies II, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Guardian Legend, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Gun.Smoke | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Hollywood Squares | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Ikari Warriors | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Indiana Jones and The Last Crusade | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Jack Nicklaus' Greatest 18 Holes of Major Championship Golf | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Jackal | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Jimmy Connors Tennis | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Jordan vs. Bird: One on One | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Kid Kool and the Quest for the Seven Wonder Herbs | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| KlashBall | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Legendary Wings | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Life Force | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Little Mermaid, Disney's The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Loopz | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Mega Man | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Metal Gear | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| NFL | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Paperboy 2 | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Prince of Persia | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Pro Wrestling | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Puss 'n Boots: Pero's Great Adventure | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Rainbow Islands | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Rally Bike | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Rambo | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Renegade | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Robo Warrior | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Rush'n Attack | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Rygar | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Section Z | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Side Pocket | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Silent Service | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Skate or Die! | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Star Trek: The Next Generation | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Starship Hector | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Stinger | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Super Cars | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Super Glove Ball | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Super Pitfall | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Swords and Serpents | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Terra Cresta | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Thundercade | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Times of Lore | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Titan Warriors | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Top Gun | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Total Recall | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Trog! | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Trojan | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Twin Eagle | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Uncanny X-Men, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| WWF WrestleMania Challenge | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Wall Street Kid | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Wayne Gretzky Hockey | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Winter Games | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Zanac | US | 002 | ⭐⭐⭐⭐⭐ | - |
+
+
+---
+
+### Resumo Estatístico - Mapper 002 (UNROM)
+- **Total de Jogos Documentados:** 0
+- ⭐⭐⭐⭐⭐ (Perfeito): 0 - 0.0%
+- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 0 - 0.0%
