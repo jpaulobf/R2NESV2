@@ -1,6 +1,7 @@
 #include "Core/Cartridge/Cartridge.h"
 #include "Core/Cartridge/Mappers/Mapper000.h"
 #include "Core/Cartridge/Mappers/Mapper001.h"
+#include "Core/Cartridge/Mappers/Mapper002.h"
 #include <fstream>
 #include <cstring>
 #include <iostream>
@@ -203,6 +204,9 @@ namespace R2NES::Core
             break;
         case 1:
             pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks);
+            break;
+        case 2:
+            pMapper = std::make_shared<Mapper002>(prgBanks, chrBanks);
             break;
         default:
             std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet." << std::endl;
