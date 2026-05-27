@@ -63,9 +63,9 @@ Mapper 000 (NROM)
 | Super Mario Bros | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Tag Team Wrestling | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Tennis | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Urban Champion | US | 000 | ⭐⭐⭐⭐  | Sujeira na primeira linha do scroll vertical  |
+| Urban Champion | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Volleyball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Wild Gunman | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
+| Wild Gunman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Wrecking Crew | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Xevious | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 
