@@ -19,13 +19,15 @@ namespace R2NES::Core
     {
         std::fill(paletteTable.begin(), paletteTable.end(), 0x00);
         std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000); // Inicializa com preto opaco
-        std::fill(oamMemory.begin(), oamMemory.end(), 0x00);
+        std::fill(oamMemory.begin(), oamMemory.end(), 0xFF); // Inicializa fora da tela (Y=255)
 
         // Debug: Inicializa paletas com valores padrão para o Viewer funcionar sem ROM carregar paletas
         vramAddr = 0;
         tempAddr = 0;
         fineX = 0;
 
+        scanline = -1;
+        cycle = 0;
         sprite0HitDetectedThisScanline = false;
     }
 
@@ -479,7 +481,8 @@ namespace R2NES::Core
 
                         if (spriteHeight == 16)
                         {
-                            spPtBase = (spriteID & 0x01) ? 0x1000 : 0x0000;
+                            // No modo 8x16, o bit 0 do tile seleciona a Pattern Table
+                            spPtBase = (spriteID & 0x01) * 0x1000;
                             pattern = (spriteID & 0xFE);
 
                             if (spriteAttrib & 0x80) // Flip vertical
@@ -609,13 +612,14 @@ namespace R2NES::Core
         tempAddr = 0;
         fineX = 0;
         sprite0HitDetectedThisScanline = false;
-        scanline = 0;
+        scanline = -1;
         cycle = 0;
         scanlineSpriteCount = 0;
         frameCounter = 0;
         nmi = false;
 
         // Limpa o buffer de imagem para preto ao resetar/descarregar
+        std::fill(oamMemory.begin(), oamMemory.end(), 0xFF); // Move sprites para fora da tela
         std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000);
     }
 }
