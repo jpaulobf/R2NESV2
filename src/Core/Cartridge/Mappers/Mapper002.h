@@ -6,7 +6,7 @@ namespace R2NES::Core
     class Mapper002 : public Mapper
     {
     public:
-        Mapper002(uint8_t prgBanks, uint8_t chrBanks);
+        Mapper002(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror);
         ~Mapper002();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
@@ -18,5 +18,6 @@ namespace R2NES::Core
 
     private:
         uint8_t nPRGBankSelect = 0;
+        MirrorMode mirrorMode = MirrorMode::HORIZONTAL;
     };
 }
