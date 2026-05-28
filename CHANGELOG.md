@@ -2,6 +2,17 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.6.0] - 2026-05-27
+
+### Adicionado
+- Implementação do **Mapper 002 (UNROM)**, expandindo a biblioteca para clássicos como *Castlevania*, *Contra*, *DuckTales* e *Mega Man*.
+- Suporte funcional a **CHR-RAM**, permitindo que jogos sem CHR-ROM (como os de Mapper 2) carreguem seus próprios gráficos dinamicamente na memória da PPU.
+- Refatoração do sistema de **Mirroring (Espelhamento)**: agora o Mapper tem autoridade para definir o modo de espelhamento, respeitando as configurações fixas de hardware definidas no cabeçalho iNES.
+
+### Corrigido
+- Renderização de **Sprites 8x16**: correção na seleção da Pattern Table baseada no bit 0 (LSB) do índice do tile, eliminando falhas visuais e sprites invisíveis.
+- Correção crítica no Mapper 002 que impedia a escrita em CHR-RAM, resolvendo o problema de sprites ausentes em jogos de UNROM.
+
 ## [0.5.0] - 2026-05-26
 
 ### Adicionado
