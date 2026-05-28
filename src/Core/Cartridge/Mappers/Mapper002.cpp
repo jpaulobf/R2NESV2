@@ -2,9 +2,10 @@
 
 namespace R2NES::Core
 {
-    Mapper002::Mapper002(uint8_t prgBanks, uint8_t chrBanks) : Mapper(prgBanks, chrBanks)
+    Mapper002::Mapper002(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror) : Mapper(prgBanks, chrBanks)
     {
         nPRGBankSelect = 0;
+        mirrorMode = mirror;
     }
 
     Mapper002::~Mapper002() {}
@@ -54,18 +55,16 @@ namespace R2NES::Core
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {
-            if (nCHRBanks == 0) // Se for CHR RAM (comum no Mapper 2)
-            {
-                mapped_addr = addr;
-                return true;
-            }
+            // Mapper 2 (UNROM) sempre utiliza CHR-RAM de 8KB.
+            mapped_addr = addr;
+            return true;
         }
         return false;
     }
 
     MirrorMode Mapper002::getMirrorMode()
     {
-        // Mapper 2 usa o espelhamento definido no header da ROM (hardwired)
-        return MirrorMode::HORIZONTAL;
+        // Retorna o modo definido no hardware (passado via constructor)
+        return mirrorMode;
     }
 }
