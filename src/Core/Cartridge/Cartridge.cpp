@@ -206,7 +206,7 @@ namespace R2NES::Core
             pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks);
             break;
         case 2:
-            pMapper = std::make_shared<Mapper002>(prgBanks, chrBanks);
+            pMapper = std::make_shared<Mapper002>(prgBanks, chrBanks, mirror);
             break;
         default:
             std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet." << std::endl;
@@ -273,8 +273,8 @@ namespace R2NES::Core
     MirrorMode Cartridge::getMirrorMode() const
     {
         // Mappers avançados (como MMC1) controlam o Mirroring via software.
-        // Verificamos se o mapper atual suporta isso, caso contrário usamos o valor do cabeçalho.
-        if (pMapper && (mapperID == 1)) 
+        // Adicionamos o Mapper 2 para que ele também responda seu estado interno (hardwired).
+        if (pMapper && (mapperID == 1 || mapperID == 2)) 
         {
             return pMapper->getMirrorMode();
         }
