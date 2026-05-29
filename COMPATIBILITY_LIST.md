@@ -30,26 +30,26 @@ Mapper 000 (NROM)
 | Donkey Kong 3 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Donkey Kong Junior | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Donkey Kong Junior Math | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Duck Hunt | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
+| Duck Hunt | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Elevator Action | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Excitebike | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Galaga: Demons of Death | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Golf | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Gyromite | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Hogan's Alley | US | 000 | ⭐⭐⭐⭐⭐ | SFI - Zapper ainda não está implementada. |
+| Hogan's Alley | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Hydlide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ice Climber | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ice Hockey | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Kung Fu | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Lode Runner | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Lunar Pool | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| M.U.S.C.L.E. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| M.U.S.C.L.E. | US | 000 | ⭐ | Preso na seleção de personagens |
 | Mach Rider | US | 000 | ⭐⭐⭐⭐ | Small Glitches visuais |
-| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
 | Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Millipide | US | 000 | ⭐⭐⭐ | Os sprites estão errados |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Othello | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Othello | US | 000 | ⭐ | Preso na Tela Título |
 | Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
 | Pinball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Popeye | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -74,12 +74,11 @@ Mapper 000 (NROM)
 
 ### Resumo Estatístico - Mapper 000 (NROM)
 - **Total de Jogos Testados:** 53
-- ⭐⭐⭐⭐⭐ (Perfeito): 46 - 86.7%
-- ⭐⭐⭐⭐ (Jogável): 5 - 9.4%
-- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐⭐⭐⭐ (Perfeito): 44 - 83.0%
+- ⭐⭐⭐⭐ (Jogável): 4 - 7.5%
+- ⭐⭐⭐ (Médio): 1 - 1.9%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 2 - 3.7%
-
+- ⭐ (Não funciona): 4 - 7.5%
 
 
 
@@ -443,6 +442,90 @@ Mapper 002 (UNROM)
 ---
 
 ### Resumo Estatístico - Mapper 002 (UNROM)
+- **Total de Jogos Documentados:** 0
+- ⭐⭐⭐⭐⭐ (Perfeito): 0 - 0.0%
+- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 0 - 0.0%
+
+
+-------
+Mapper 003 (CNROM)
+-------
+
+** (nenhum jogo testado - WIP) **
+
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| ASO: Armored Scrum Object | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Adventure Island | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Dino Riki | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Alpha Mission | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Arkanoid | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Arkista's Ring | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Athletic World | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Back to the Future | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Bandai Golf: Challenge Pebble Beach | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Battle Tank, Garry Kitchen's | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Battleship | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Bubble Bath Babes | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Bump 'n' Jump | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Castlequest | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Championship Bowling | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| City Connection | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Cybernoid: The Fighting Machine | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Dash Galaxy in the Alien Asylum | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Destination Earthstar | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Donkey Kong Classics | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Exploding Fist | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Fisher-Price: Firehouse Rescue | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Fisher-Price: I Can Remember | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Fisher-Price: Perfect Fit | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Friday the 13th | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Ghostbusters | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Gotcha! The Sport! | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Gradius | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Gyruss | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Jaws | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| John Elway's Quarterback | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Joust | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Karate Champ | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Karate Kid, The | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| King's Knight | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Kings of the Beach | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Kung-Fu Heroes | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Last Starfighter, The | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Legend of Kage, The | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Major League Baseball | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Mickey Mousecapade | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Mighty Bomb Jack | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Milon's Secret Castle | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Monster Truck Rally | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Mystery Quest | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Ninja Kid | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Paperboy | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Pipe Dream | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Puzznic | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Q*bert | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Shooting Range | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Solomon's Key | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Spy Hunter | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Stadium Events | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Star Force | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Star Soldier | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Star Voyager | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Super Team Games | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| T&C Surf Designs: Wood and Water Rage | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Tetris | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Tiger-Heli | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Track & Field | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| World Class Track Meet | US | 003 | ⭐⭐⭐⭐⭐ | - |
+
+---
+
+### Resumo Estatístico - Mapper 003 (CNROM)
 - **Total de Jogos Documentados:** 0
 - ⭐⭐⭐⭐⭐ (Perfeito): 0 - 0.0%
 - ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
