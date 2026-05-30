@@ -24,6 +24,22 @@ namespace R2NES::Core
         window->setVSyncCallback([this](bool enabled)
                                  { this->vsyncEnabled = enabled; });
 
+        // Conecta o callback de Sound para sincronizar o estado do som
+        window->setSoundCallback([this](bool enabled)
+                                 { 
+                                     this->soundEnabled = enabled; 
+                                     if (nes) 
+                                     {
+                                         if (enabled)
+                                             nes->getApu().enableSound();
+                                         else
+                                         {
+                                             nes->getApu().disableSound();
+                                             if (audioDevice > 0) 
+                                                 SDL_ClearQueuedAudio(audioDevice);
+                                         }
+                                     } });
+
         window->setUnlimitedSpritesCallback([this](bool enabled)
                                             { 
                                                 this->unlimitedSprites = enabled; 
@@ -41,6 +57,13 @@ namespace R2NES::Core
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
         this->fastForwardEnabled = window->isFastForwardEnabled();
+        this->soundEnabled = window->isSoundEnabled();
+
+        // Sincroniza o estado inicial da APU
+        if (this->soundEnabled)
+            nes->getApu().enableSound();
+        else
+            nes->getApu().disableSound();
 
         // Inicializa o mapeamento de teclas padrão para o Player 1
         player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
@@ -432,10 +455,10 @@ namespace R2NES::Core
             // 3. Envia o buffer de áudio do frame inteiro para o SDL
             if (audioDevice > 0 && !samples.empty())
             {
-                if (!uncappedSpeed) 
+                if (!uncappedSpeed)
                 {
                     // Latência alvo de ~3 frames (~50ms)
-                    Uint32 maxSafeBytes = 44100 * sizeof(float) / 20; 
+                    Uint32 maxSafeBytes = 44100 * sizeof(float) / 20;
 
                     // Se o buffer engasgar e acumular áudio velho, limpamos
                     if (SDL_GetQueuedAudioSize(audioDevice) > maxSafeBytes)
@@ -448,7 +471,7 @@ namespace R2NES::Core
                 else
                 {
                     // Fast-Forward
-                    SDL_ClearQueuedAudio(audioDevice); 
+                    SDL_ClearQueuedAudio(audioDevice);
                 }
             }
         }
