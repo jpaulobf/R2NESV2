@@ -83,6 +83,7 @@ namespace R2NES::Core
         bool vsyncEnabled = false;
         bool fastForwardEnabled = false;
         bool runningFastForward = false;
+        bool soundEnabled = true;
         bool paused = false;
         bool oldUncappedSpeed = uncappedSpeed;
         bool oldVsyncEnabled = vsyncEnabled;
