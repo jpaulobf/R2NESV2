@@ -1,0 +1,2 @@
+- VRAM Viewer (Palette Table, OAM, e VRAM)
+- Menu - Adicionar opção de Som (som habilitado/desabilidado (done) e configurações extra, como volumes por canais, mono/stereo, sample-rate, etc).
