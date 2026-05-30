@@ -284,7 +284,6 @@ namespace R2NES::Core
         }
         triangle.clock(); // Triangle roda na frequência cheia
 
-        // --- NOVA LÓGICA DE RESAMPLING ---
         if (soundEnabled)
         {
             sampleSum += getRawMix();
