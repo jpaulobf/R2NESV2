@@ -32,6 +32,7 @@
 #define IDM_VIEW_WINDOW_4X 2003
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
+#define IDM_SOUND_SOUND 2010
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
 #define IDI_ICON 101
@@ -124,6 +125,35 @@ namespace R2NES::Core
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
+    }
+
+    void Window::windowCheckUncheckMenuItem(int menuItemId, bool isChecked)
+    {
+#ifdef _WIN32
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        if (SDL_GetWindowWMInfo(window, &wmInfo))
+        {
+            HMENU hMenu = GetMenu(wmInfo.info.win.window);
+            if (hMenu)
+                CheckMenuItem(hMenu, menuItemId, MF_BYCOMMAND | (isChecked ? MF_CHECKED : MF_UNCHECKED));
+        }
+#endif
+    }
+
+    void Window::toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback)
+    {
+#ifdef _WIN32
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        if (SDL_GetWindowWMInfo(window, &wmInfo))
+        {
+            HMENU hMenu = GetMenu(wmInfo.info.win.window);
+            UINT state = GetMenuState(hMenu, menuItemId, MF_BYCOMMAND);
+            CheckMenuItem(hMenu, menuItemId, MF_BYCOMMAND | ((state & MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED));
+            callback(state);
+        }
+#endif
     }
 
     void Window::pollEvents()
@@ -290,31 +320,27 @@ namespace R2NES::Core
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
                     {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, true);
                         openTileViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_DISASSEMBLER)
                     {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, true);
                         openDisassembler();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_RAM_VIEWER)
                     {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, true);
                         openRamViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
                     {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        UINT state = GetMenuState(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND);
-
-                        if (state & MF_CHECKED)
-                        {
-                            CheckMenuItem(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND | MF_UNCHECKED);
-                            this->vsyncOff();
-                        }
-                        else
-                        {
-                            CheckMenuItem(hMenu, IDM_VIEW_VSYNC, MF_BYCOMMAND | MF_CHECKED);
-                            this->vsyncOn();
-                        }
+                        toggleMarkMenuItem(IDM_VIEW_VSYNC, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->vsyncOff();
+                            else
+                                this->vsyncOn(); });
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_1X)
                     {
@@ -363,35 +389,32 @@ namespace R2NES::Core
 
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
                     {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        UINT state = GetMenuState(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND);
-
-                        if (state & MF_CHECKED)
-                        {
-                            CheckMenuItem(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND | MF_UNCHECKED);
-                            this->unlimitedSpritesOff();
-                        }
-                        else
-                        {
-                            CheckMenuItem(hMenu, IDM_HACKS_UNLIMITED_SPRITES, MF_BYCOMMAND | MF_CHECKED);
-                            this->unlimitedSpritesOn();
-                        }
+                        toggleMarkMenuItem(IDM_HACKS_UNLIMITED_SPRITES, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->unlimitedSpritesOff();
+                            else
+                                this->unlimitedSpritesOn(); });
                     }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_FAST_FORWARD)
                     {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        UINT state = GetMenuState(hMenu, IDM_HACKS_FAST_FORWARD, MF_BYCOMMAND);
+                        toggleMarkMenuItem(IDM_HACKS_FAST_FORWARD, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->fastForwardOff();
+                            else
+                                this->fastForwardOn(); });
+                    }
 
-                        if (state & MF_CHECKED)
-                        {
-                            CheckMenuItem(hMenu, IDM_HACKS_FAST_FORWARD, MF_BYCOMMAND | MF_UNCHECKED);
-                            this->fastForwardOff();
-                        }
-                        else
-                        {
-                            CheckMenuItem(hMenu, IDM_HACKS_FAST_FORWARD, MF_BYCOMMAND | MF_CHECKED);
-                            this->fastForwardOn();
-                        }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_SOUND)
+                    {
+                        toggleMarkMenuItem(IDM_SOUND_SOUND, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->soundOff();
+                            else
+                                this->soundOn(); });
                     }
                 }
 #endif
@@ -408,15 +431,21 @@ namespace R2NES::Core
                     }
                     else if (tileViewer.getWindowID() != 0 && e.window.windowID == tileViewer.getWindowID())
                     {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
                         tileViewer.close();
+                        this->tileViewerOpen = false;
                     }
                     else if (ramViewer.getWindowID() != 0 && e.window.windowID == ramViewer.getWindowID())
                     {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
                         ramViewer.close();
+                        this->ramViewerOpen = false;
                     }
                     else if (disassembler.getWindowID() != 0 && e.window.windowID == disassembler.getWindowID())
                     {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
                         disassembler.close();
+                        this->disassemblerOpen = false;
                     }
                 }
                 else if (e.window.event == SDL_WINDOWEVENT_MOVED)
@@ -470,6 +499,7 @@ namespace R2NES::Core
             HMENU hFileMenu = CreateMenu();
             HMENU hDebugMenu = CreateMenu();
             HMENU hDisplayMenu = CreateMenu();
+            HMENU hSoundMenu = CreateMenu();
             HMENU hHacksMenu = CreateMenu();
 
             // Adiciona a opção Open ao menu File
@@ -500,11 +530,35 @@ namespace R2NES::Core
             }
             AppendMenuW(hFileMenu, MF_POPUP, (UINT_PTR)hRecentFilesMenu, L"&Recent Files");
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
-            AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
+
+            if (this->tileViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
+            }
+
+            if (this->disassemblerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
+            }
+
+            if (this->ramViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
+            }
+
             if (this->vsyncEnabled)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_VSYNC, L"&VSync");
@@ -513,7 +567,9 @@ namespace R2NES::Core
             {
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
             }
+
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
+
             if (this->currentWindowX == 1)
             {
                 AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_1X, L"&1x");
@@ -554,6 +610,15 @@ namespace R2NES::Core
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
 
+            if (this->soundEnabled)
+            {
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_SOUND, L"&Sound Enabled");
+            }
+            else
+            {
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_SOUND, L"&Sound Disabled");
+            }
+
             if (this->unlimitedSprites)
             {
                 AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_UNLIMITED_SPRITES, L"&Enable Unlimited Sprites");
@@ -575,6 +640,7 @@ namespace R2NES::Core
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
+            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hSoundMenu, L"&Sound");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDebugMenu, L"&Debug");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hHacksMenu, L"&Hacks");
 
@@ -633,6 +699,7 @@ namespace R2NES::Core
 
     void Window::openDisassembler()
     {
+        this->disassemblerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
@@ -648,6 +715,7 @@ namespace R2NES::Core
 
     void Window::openTileViewer()
     {
+        this->tileViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
@@ -662,6 +730,7 @@ namespace R2NES::Core
 
     void Window::openRamViewer()
     {
+        this->ramViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
@@ -681,23 +750,28 @@ namespace R2NES::Core
     {
         unloadRequested = true;
         setPaused(false);
-
-        // Fecha as janelas de debug ao descarregar a ROM
-        tileViewer.close();
-
-        ramViewer.close();
-        disassembler.close();
+        this->uncheckAllDebugMenuItems();
     }
 
     void Window::reset()
     {
         resetRequested = true;
         setPaused(false);
+        this->uncheckAllDebugMenuItems();
+    }
 
-        // Fecha/Esconde as janelas de debug para um reset "limpo"
+    void Window::uncheckAllDebugMenuItems()
+    {
+        this->disassemblerOpen = false;
+        this->tileViewerOpen = false;
+        this->ramViewerOpen = false;
+
+        windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
+        windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
+        windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
+
         tileViewer.close();
         ramViewer.close();
-
         disassembler.close();
     }
 
@@ -714,6 +788,21 @@ namespace R2NES::Core
             ffCallback(fastForwardEnabled);
 
         std::cout << "Window: Fast Forward " << (fastForwardEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setSound(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (soundEnabled == enabled)
+            return;
+
+        soundEnabled = enabled;
+
+        // Notificar a Engine sobre a mudança para ajustar o áudio
+        if (soundCallback)
+            soundCallback(soundEnabled);
+
+        std::cout << "Window: Sound " << (soundEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setUnlimitedSprites(bool enabled)
