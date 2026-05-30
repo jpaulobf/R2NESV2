@@ -87,7 +87,7 @@ namespace R2NES::Core
             pulse1.timerReload = (pulse1.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
             if (pulse1.enabled)
                 pulse1.lengthCounter.load(data >> 3);
-            //pulse1.dutyValue = 0;
+            // pulse1.dutyValue = 0;
             pulse1.envelope.start = true;
             break;
 
@@ -113,7 +113,7 @@ namespace R2NES::Core
             pulse2.timerReload = (pulse2.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
             if (pulse2.enabled)
                 pulse2.lengthCounter.load(data >> 3);
-            //pulse2.dutyValue = 0;
+            // pulse2.dutyValue = 0;
             pulse2.envelope.start = true;
             break;
 
@@ -172,9 +172,9 @@ namespace R2NES::Core
         case 0x4017: // Frame Counter
             frameCounterMode = (data & 0x80) ? 5 : 4;
             irqEnabled = !(data & 0x40);
-            frameClockCounter = 0; 
+            frameClockCounter = 0;
             if (frameCounterMode == 5)
-            { 
+            {
                 pulse1.envelope.tick();
                 pulse2.envelope.tick();
                 noise.envelope.tick();
@@ -285,14 +285,24 @@ namespace R2NES::Core
         triangle.clock(); // Triangle roda na frequência cheia
 
         // --- NOVA LÓGICA DE RESAMPLING ---
-        sampleSum += getRawMix();
-        sampleCount++;
+        if (soundEnabled)
+        {
+            sampleSum += getRawMix();
+            sampleCount++;
+        }
         cycleCounter += 1.0;
 
         // Quando o clock da CPU atingir o tempo exato de 1 amostra de áudio (ex: ~40.5 ciclos)
         if (cycleCounter >= apuCyclesPerSample)
         {
             cycleCounter -= apuCyclesPerSample; // Subtrai para manter a precisão fracionária
+
+            if (!soundEnabled)
+            {
+                sampleSum = 0.0f;
+                sampleCount = 0;
+                return;
+            }
 
             float averageMix = sampleSum / static_cast<float>(sampleCount);
             sampleSum = 0.0f;
