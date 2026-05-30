@@ -23,6 +23,7 @@ namespace R2NES::Core
         // callbacks
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         using VSyncCallback = std::function<void(bool)>;
+        using SoundCallback = std::function<void(bool)>;
         using FFCallback = std::function<void(bool)>;
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         using PauseCallback = std::function<void(bool)>;
@@ -39,6 +40,8 @@ namespace R2NES::Core
 
         /* Define a função de callback para mudanças no estado do VSync. */
         void setVSyncCallback(VSyncCallback cb) { vsyncCallback = cb; }
+
+        void setSoundCallback(SoundCallback cb) { soundCallback = cb; }
 
         /* Define a função de callback para o estado de Fast Forward. */
         void setFFCallback(FFCallback cb) { ffCallback = cb; }
@@ -105,6 +108,9 @@ namespace R2NES::Core
         /* Verifica se o VSync está habilitado. */
         bool isVSyncEnabled() const { return vsyncEnabled; }
 
+        /* Verifica se o som está habilitado. */
+        bool isSoundEnabled() const { return soundEnabled; }
+
         /* Habilita ou desabilita o VSync, recriando o renderer para aplicar a mudança. */
         void setVSync(bool enabled);
 
@@ -140,6 +146,13 @@ namespace R2NES::Core
 
         /* Ativa o Fast Forward. */
         void fastForwardOn() { setFastForward(true); }
+
+        void setSound(bool enabled);
+
+        /* Ativa o Som */
+        void soundOn() { setSound(true); }
+
+        void soundOff() { setSound(false); }
 
         /* Verifica se a emulação está pausada. */
         bool isPaused() const { return paused; }
@@ -186,11 +199,17 @@ namespace R2NES::Core
         /* Inicializa e exibe a janela do RamViewer. */
         void openRamViewer();
 
+        void windowCheckUncheckMenuItem(int menuItemId, bool isChecked);
+
+        void toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback);
+
+        void uncheckAllDebugMenuItems();
+
     private:
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
-        ImGuiContext* imguiContext = nullptr;
+        ImGuiContext *imguiContext = nullptr;
         MouseState mouseState;
         std::string selectedPath = "";
 
@@ -213,6 +232,7 @@ namespace R2NES::Core
         UnlimitedSpritesCallback unlimitedSpritesCallback = nullptr;
         PauseCallback pauseCallback = nullptr;
         FFCallback ffCallback = nullptr;
+        SoundCallback soundCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -225,8 +245,12 @@ namespace R2NES::Core
         int currentWindowX = 3;
         bool unlimitedSprites = false;
         bool vsyncEnabled = true;
+        bool soundEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
         bool paused = false;
+        bool tileViewerOpen = false;
+        bool disassemblerOpen = false;
+        bool ramViewerOpen = false;
     };
 }
