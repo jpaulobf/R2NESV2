@@ -34,6 +34,10 @@ namespace R2NES::Core
 
         bool getIrqFlag() const { return irqFlag; }
 
+        void enableSound() { soundEnabled = true; }
+
+        void disableSound() { soundEnabled = false; }
+
     private:
         Bus *bus = nullptr;
 
@@ -185,6 +189,7 @@ namespace R2NES::Core
         uint8_t frameCounterMode = 0;
         bool irqEnabled = false;
         bool irqFlag = false;
+        bool soundEnabled = true;
 
         float getRawMix();
     };
