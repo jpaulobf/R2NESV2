@@ -33,6 +33,11 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_SOUND_SOUND 2010
+#define IDM_SOUND_PULSE1 2011
+#define IDM_SOUND_PULSE2 2012
+#define IDM_SOUND_TRIANGLE 2013
+#define IDM_SOUND_NOISE 2014
+#define IDM_SOUND_DMC 2015
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
 #define IDI_ICON 101
@@ -416,6 +421,56 @@ namespace R2NES::Core
                             else
                                 this->soundOn(); });
                     }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_PULSE1)
+                    {
+                        toggleMarkMenuItem(IDM_SOUND_PULSE1, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->pulse1Off();
+                            else
+                                this->pulse1On(); });
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_PULSE2)
+                    {
+                        toggleMarkMenuItem(IDM_SOUND_PULSE2, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->pulse2Off();
+                            else
+                                this->pulse2On(); });
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_TRIANGLE)
+                    {
+                        toggleMarkMenuItem(IDM_SOUND_TRIANGLE, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->triangleOff();
+                            else
+                                this->triangleOn(); });
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_NOISE)
+                    {
+                        toggleMarkMenuItem(IDM_SOUND_NOISE, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->noiseOff();
+                            else
+                                this->noiseOn(); });
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_DMC)
+                    {
+                        toggleMarkMenuItem(IDM_SOUND_DMC, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->dmcOff();
+                            else
+                                this->dmcOn(); });
+                    }
                 }
 #endif
             }
@@ -612,11 +667,58 @@ namespace R2NES::Core
 
             if (this->soundEnabled)
             {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_SOUND, L"&Sound Enabled");
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_SOUND, L"&Master Sound");
             }
             else
             {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_SOUND, L"&Sound Disabled");
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_SOUND, L"&Master Sound");
+            }
+
+            AppendMenuW(hSoundMenu, MF_SEPARATOR, 0, NULL);
+
+            if (this->pulse1Enabled)
+            {
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_PULSE1, L"&Pulse 1");
+            }
+            else
+            {
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_PULSE1, L"&Pulse 1");
+            }
+
+            if (this->pulse2Enabled)
+            {
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_PULSE2, L"&Pulse 2");
+            }
+            else
+            {
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_PULSE2, L"&Pulse 2");
+            }
+
+            if (this->triangleEnabled)
+            {
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_TRIANGLE, L"&Triangle");
+            }
+            else
+            {
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_TRIANGLE, L"&Triangle");
+            }
+
+            if (this->noiseEnabled)
+            {
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_NOISE, L"&Noise");
+            }
+            else
+            {
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_NOISE, L"&Noise");
+            }
+
+            if (this->dmcEnabled)
+            {
+                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_DMC, L"&DMC");
+            }
+            else
+            {
+                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_DMC, L"&DMC");
             }
 
             if (this->unlimitedSprites)
@@ -685,7 +787,6 @@ namespace R2NES::Core
             selectedPath = szFile;
             configManager.addRomToList(selectedPath);
 
-            // Update last_rom_path
             std::filesystem::path romFilePath(selectedPath);
             if (romFilePath.has_parent_path())
             {
@@ -803,6 +904,70 @@ namespace R2NES::Core
             soundCallback(soundEnabled);
 
         std::cout << "Window: Sound " << (soundEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setPulse1(bool enabled)
+    {
+        if (pulse1Enabled == enabled)
+            return;
+
+        pulse1Enabled = enabled;
+
+        if (pulse1Callback)
+            pulse1Callback(pulse1Enabled);
+        std::cout << "Sound: Pulse1 Channel " << (pulse1Enabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setPulse2(bool enabled)
+    {
+        if (pulse2Enabled == enabled)
+            return;
+
+        pulse2Enabled = enabled;
+
+        if (pulse2Callback)
+            pulse2Callback(pulse2Enabled);
+
+        std::cout << "Sound: Pulse2 Channel " << (pulse2Enabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setTriangle(bool enabled)
+    {
+        if (triangleEnabled == enabled)
+            return;
+
+        triangleEnabled = enabled;
+
+        if (triangleCallback)
+            triangleCallback(triangleEnabled);
+
+        std::cout << "Sound: Triangle Channel " << (triangleEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setNoise(bool enabled)
+    {
+        if (noiseEnabled == enabled)
+            return;
+
+        noiseEnabled = enabled;
+
+        if (noiseCallback)
+            noiseCallback(noiseEnabled);
+
+        std::cout << "Sound: Noise Channel " << (noiseEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setDMC(bool enabled)
+    {
+        if (dmcEnabled == enabled)
+            return;
+
+        dmcEnabled = enabled;
+
+        if (dmcCallback)
+            dmcCallback(dmcEnabled);
+
+        std::cout << "Sound: DMC Channel " << (dmcEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setUnlimitedSprites(bool enabled)
