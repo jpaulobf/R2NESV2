@@ -40,6 +40,23 @@ namespace R2NES::Core
                                          }
                                      } });
 
+        // Conecta os callbacks dos canais individuais da APU
+        window->setPulse1Callback([this](bool enabled)
+                                  { 
+            if (nes) nes->getApu().setPulse1Enabled(enabled); });
+        window->setPulse2Callback([this](bool enabled)
+                                  { 
+            if (nes) nes->getApu().setPulse2Enabled(enabled); });
+        window->setTriangleCallback([this](bool enabled)
+                                    { 
+            if (nes) nes->getApu().setTriangleEnabled(enabled); });
+        window->setNoiseCallback([this](bool enabled)
+                                 { 
+            if (nes) nes->getApu().setNoiseEnabled(enabled); });
+        window->setDMCCallback([this](bool enabled)
+                               { 
+            if (nes) nes->getApu().setDMCEnabled(enabled); });
+
         window->setUnlimitedSpritesCallback([this](bool enabled)
                                             { 
                                                 this->unlimitedSprites = enabled; 
@@ -64,6 +81,13 @@ namespace R2NES::Core
             nes->getApu().enableSound();
         else
             nes->getApu().disableSound();
+
+        // Sincroniza o estado inicial dos canais individuais
+        nes->getApu().setPulse1Enabled(window->isPulse1Enabled());
+        nes->getApu().setPulse2Enabled(window->isPulse2Enabled());
+        nes->getApu().setTriangleEnabled(window->isTriangleEnabled());
+        nes->getApu().setNoiseEnabled(window->isNoiseEnabled());
+        nes->getApu().setDMCEnabled(window->isDMCEnabled());
 
         // Inicializa o mapeamento de teclas padrão para o Player 1
         player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
