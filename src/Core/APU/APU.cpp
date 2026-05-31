@@ -351,11 +351,11 @@ namespace R2NES::Core
 
     float APU::getRawMix()
     {
-        float p1 = static_cast<float>(pulse1.sample());
-        float p2 = static_cast<float>(pulse2.sample());
-        float tri = static_cast<float>(triangle.sample());
-        float n = static_cast<float>(noise.sample());
-        float d = static_cast<float>(dmc.sample());
+        float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample()) : 0.0f;
+        float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample()) : 0.0f;
+        float tri = userTriangleEnabled ? static_cast<float>(triangle.sample()) : 0.0f;
+        float n = userNoiseEnabled ? static_cast<float>(noise.sample()) : 0.0f;
+        float d = userDMCEnabled ? static_cast<float>(dmc.sample()) : 0.0f;
 
         float pulseOut = 0.0f;
         float pulseSum = p1 + p2;
