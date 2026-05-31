@@ -43,13 +43,13 @@ Mapper 000 (NROM)
 | Kung Fu | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Lode Runner | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Lunar Pool | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| M.U.S.C.L.E. | US | 000 | ⭐ | Preso na seleção de personagens |
+| M.U.S.C.L.E. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Mach Rider | US | 000 | ⭐⭐⭐⭐ | Small Glitches visuais |
 | Magmax | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
 | Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Millipide | US | 000 | ⭐⭐⭐ | Os sprites estão errados |
+| Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Othello | US | 000 | ⭐ | Preso na Tela Título |
+| Othello | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
 | Pinball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Popeye | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -74,11 +74,11 @@ Mapper 000 (NROM)
 
 ### Resumo Estatístico - Mapper 000 (NROM)
 - **Total de Jogos Testados:** 53
-- ⭐⭐⭐⭐⭐ (Perfeito): 44 - 83.0%
+- ⭐⭐⭐⭐⭐ (Perfeito): 47 - 88.7%
 - ⭐⭐⭐⭐ (Jogável): 4 - 7.5%
-- ⭐⭐⭐ (Médio): 1 - 1.9%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 4 - 7.5%
+- ⭐ (Não funciona): 2 - 3.8%
 
 
 
@@ -337,40 +337,40 @@ Mapper 002 (UNROM)
 
 ** (não todos os jogos foram testados - WIP) **
 
-| Nome do Jogo | Região | Mapper | Nota | Comentários |
-| --- | --- | --- | --- | --- |
-| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
-| 1943: The Battle of Midway | US | 002 | ⭐⭐⭐⭐⭐ | - |
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| 1943: The Battle of Midway | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | 3-D Battles of Worldrunner, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Adventures of Dr. Franken, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Adventures of Gilligan's Island, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Alfred Chicken | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Amagon | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Archon | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Athena | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Best of the Best: Championship Karate | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| California Games | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| California Raisins, The: The Grape Escape | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Castelian | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Commando | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Conan | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Contra | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Dr. Franken, The | US | 002 | - | N/A |
+| Adventures of Gilligan's Island, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Alfred Chicken | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Amagon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Archon | US | 002 | ⭐ | Preso após o menu |
+| Athena | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Best of the Best: Championship Karate | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| California Games | US | 002 | ⭐⭐⭐ | Falhas nos sprites do surf e patinação |
+| California Raisins, The: The Grape Escape | US | 002 | - | N/A |
+| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Castelian | US | 002 | ⭐ | Erro na velocidade do jogo |
+| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Commando | US | 002 | ⭐⭐⭐ | Trava eventualmente + falhas gráficas |
+| Conan | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Contra | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Double Dribble | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Dr. Chaos | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Dragon's Lair | US | 002 | ⭐⭐⭐⭐⭐ | - |

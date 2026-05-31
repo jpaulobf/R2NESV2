@@ -318,18 +318,19 @@ namespace R2NES::Core
         // Lógica de atualização de Scroll baseada em ciclos
         bool renderingEnabled = (ppuMask & 0x08) || (ppuMask & 0x10);
 
+        // Reset de flags de status deve ocorrer independente de renderingEnabled
+        if (scanline == -1 && cycle == 1)
+        {
+            // Limpa flags de VBlank, Sprite 0 Hit e Overflow no início do pre-render
+            ppuStatus &= ~0xE0; 
+            sprite0HitDetectedThisScanline = false;
+        }
+
         if (renderingEnabled)
         {
             // O pre-render scanline (-1) prepara o scroll para o próximo frame
             if (scanline == -1)
             {
-                if (cycle == 1)
-                {
-                    // Limpa flags de VBlank, Sprite 0 Hit e Overflow no início do pre-render
-                    ppuStatus &= ~0xE0; 
-                    sprite0HitDetectedThisScanline = false;
-                }
-
                 if (cycle >= 280 && cycle <= 304)
                     transferAddressY();
             }
@@ -348,37 +349,31 @@ namespace R2NES::Core
         // No início de cada scanline visível (ciclo 0), avaliamos quais sprites serão desenhados.
         // No hardware real, isso acontece durante o scanline anterior, mas para fins de emulação,
         // fazer no ciclo 0 é eficiente e preciso o suficiente para a maioria dos casos.
-        if (cycle == 0 && scanline >= 0 && scanline < 240)
+        if (cycle == 0)
         {
             scanlineSpriteCount = 0;
             int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
 
-            for (int i = 0; i < 64; i++)
+            if (renderingEnabled && scanline >= 0 && scanline < 240)
             {
-                uint8_t spriteY = oamMemory[i * 4];
-                // No NES, spriteY é armazenado como Y-1, então para comparar com o scanline usamos Y+1
-                // (porque o sprite começa a ser desenhado uma linha após seu valor Y)
-                int diffY = scanline - (spriteY + 1);
-
-                if (diffY >= 0 && diffY < spriteHeight)
+                for (int i = 0; i < 64; i++)
                 {
-                    // No NES real, há um limite de 8 sprites por scanline.
-                    if (scanlineSpriteCount < 8)
-                    {
-                        scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
-                    }
-                    else
-                    {
-                        // Seta o bit de Sprite Overflow (bit 5) do PPUSTATUS
-                        ppuStatus |= 0x20;
+                    uint8_t spriteY = oamMemory[i * 4];
+                    int diffY = scanline - (spriteY + 1);
 
-                        if (unlimitedSprites)
+                    if (diffY >= 0 && diffY < spriteHeight)
+                    {
+                        if (scanlineSpriteCount < 8)
                         {
                             scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
                         }
                         else
                         {
-                            break; // Comportamento real: ignora os demais sprites da linha
+                            ppuStatus |= 0x20; // Sprite Overflow
+                            if (unlimitedSprites)
+                                scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
+                            else
+                                break;
                         }
                     }
                 }
