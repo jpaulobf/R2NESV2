@@ -38,6 +38,16 @@ namespace R2NES::Core
 
         void disableSound() { soundEnabled = false; }
 
+        void setPulse1Enabled(bool enabled) { userPulse1Enabled = enabled; }
+
+        void setPulse2Enabled(bool enabled) { userPulse2Enabled = enabled; }
+
+        void setTriangleEnabled(bool enabled) { userTriangleEnabled = enabled; }
+
+        void setNoiseEnabled(bool enabled) { userNoiseEnabled = enabled; }
+
+        void setDMCEnabled(bool enabled) { userDMCEnabled = enabled; }
+
     private:
         Bus *bus = nullptr;
 
@@ -190,6 +200,12 @@ namespace R2NES::Core
         bool irqEnabled = false;
         bool irqFlag = false;
         bool soundEnabled = true;
+
+        bool userPulse1Enabled = true;
+        bool userPulse2Enabled = true;
+        bool userTriangleEnabled = true;
+        bool userNoiseEnabled = true;
+        bool userDMCEnabled = true;
 
         float getRawMix();
     };
