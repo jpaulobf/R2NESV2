@@ -15,15 +15,16 @@ namespace R2NES::Core
     static bool extractNESFromZIP(const std::string &zipFileName, std::vector<uint8_t> &buffer)
     {
         std::ifstream zipFile(zipFileName, std::ios::binary);
-        if (!zipFile.is_open()) return false;
+        if (!zipFile.is_open())
+            return false;
 
         // Lê o arquivo ZIP completamente na memória
         zipFile.seekg(0, std::ios::end);
         std::streamsize zipSize = zipFile.tellg();
         zipFile.seekg(0, std::ios::beg);
-        
+
         std::vector<uint8_t> zipData(zipSize);
-        zipFile.read((char*)zipData.data(), zipSize);
+        zipFile.read((char *)zipData.data(), zipSize);
         zipFile.close();
 
         // Procura pela assinatura do Local File Header (0x04034b50)
@@ -32,18 +33,18 @@ namespace R2NES::Core
 
         while (pos < zipData.size() - 30)
         {
-            uint32_t header = *(uint32_t*)(zipData.data() + pos);
+            uint32_t header = *(uint32_t *)(zipData.data() + pos);
             if (header == signature)
             {
                 // Lê o header do arquivo local
-                uint16_t fileNameLength = *(uint16_t*)(zipData.data() + pos + 26);
-                uint16_t extraFieldLength = *(uint16_t*)(zipData.data() + pos + 28);
-                uint32_t compressedSize = *(uint32_t*)(zipData.data() + pos + 18);
-                uint32_t uncompressedSize = *(uint32_t*)(zipData.data() + pos + 22);
-                uint16_t compressionMethod = *(uint16_t*)(zipData.data() + pos + 8);
+                uint16_t fileNameLength = *(uint16_t *)(zipData.data() + pos + 26);
+                uint16_t extraFieldLength = *(uint16_t *)(zipData.data() + pos + 28);
+                uint32_t compressedSize = *(uint32_t *)(zipData.data() + pos + 18);
+                uint32_t uncompressedSize = *(uint32_t *)(zipData.data() + pos + 22);
+                uint16_t compressionMethod = *(uint16_t *)(zipData.data() + pos + 8);
 
                 // Lê o nome do arquivo
-                std::string fileName((char*)(zipData.data() + pos + 30), fileNameLength);
+                std::string fileName((char *)(zipData.data() + pos + 30), fileNameLength);
 
                 // Verifica se é um arquivo .nes
                 if (fileName.size() > 4)
@@ -70,7 +71,7 @@ namespace R2NES::Core
                                 return false;
 
                             stream.avail_in = compressedSize;
-                            stream.next_in = (Bytef*)(zipData.data() + fileDataPos);
+                            stream.next_in = (Bytef *)(zipData.data() + fileDataPos);
 
                             buffer.resize(uncompressedSize);
                             stream.avail_out = uncompressedSize;
@@ -159,13 +160,16 @@ namespace R2NES::Core
             char unused[5];
         } header;
 
-        if (buffer.size() < sizeof(Header)) return false;
+        if (buffer.size() < sizeof(Header))
+            return false;
         std::memcpy(&header, buffer.data(), sizeof(Header));
 
-        if (std::memcmp(header.name, "NES\x1a", 4) != 0) return false;
+        if (std::memcmp(header.name, "NES\x1a", 4) != 0)
+            return false;
 
         size_t offset = sizeof(Header);
-        if (header.mapper1 & 0x04) offset += 512;
+        if (header.mapper1 & 0x04)
+            offset += 512;
 
         if (header.mapper1 & 0x08)
             mirror = MirrorMode::FOUR_SCREEN;
@@ -176,8 +180,9 @@ namespace R2NES::Core
 
         prgBanks = header.prg_chunks;
         size_t prgSize = prgBanks * 16384;
-        if (offset + prgSize > buffer.size()) return false;
-        
+        if (offset + prgSize > buffer.size())
+            return false;
+
         std::vector<uint8_t> prgData(prgSize);
         std::memcpy(prgData.data(), buffer.data() + offset, prgSize);
         prgROM = std::make_unique<PRGROM>(std::move(prgData));
@@ -192,7 +197,8 @@ namespace R2NES::Core
         else
         {
             size_t chrSize = chrBanks * 8192;
-            if (offset + chrSize > buffer.size()) return false;
+            if (offset + chrSize > buffer.size())
+                return false;
             std::vector<uint8_t> chrData(chrSize);
             std::memcpy(chrData.data(), buffer.data() + offset, chrSize);
             chrROM = std::make_unique<CHRROM>(std::move(chrData));
@@ -225,8 +231,9 @@ namespace R2NES::Core
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->cpuMapRead(addr, mapped_addr, data))
         {
-            if (mapped_addr == 0xFFFFFFFF) return true; // Dado já preenchido pelo Mapper (ex: PRG RAM)
-            
+            if (mapped_addr == 0xFFFFFFFF)
+                return true; // Dado já preenchido pelo Mapper (ex: PRG RAM)
+
             data = prgROM->read(mapped_addr);
             return true;
         }
@@ -238,8 +245,9 @@ namespace R2NES::Core
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->cpuMapWrite(addr, mapped_addr, data))
         {
-            if (mapped_addr == 0xFFFFFFFF) return true; // Escrita tratada internamente pelo Mapper
-            
+            if (mapped_addr == 0xFFFFFFFF)
+                return true; // Escrita tratada internamente pelo Mapper
+
             return true;
         }
         return false;
@@ -250,7 +258,8 @@ namespace R2NES::Core
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->ppuMapRead(addr, mapped_addr, data))
         {
-            if (mapped_addr == 0xFFFFFFFF) return true;
+            if (mapped_addr == 0xFFFFFFFF)
+                return true;
 
             if (chrROM)
             {
@@ -266,7 +275,8 @@ namespace R2NES::Core
         uint32_t mapped_addr = 0;
         if (pMapper && pMapper->ppuMapWrite(addr, mapped_addr, data))
         {
-            if (mapped_addr == 0xFFFFFFFF) return true;
+            if (mapped_addr == 0xFFFFFFFF)
+                return true;
 
             chrROM->write(mapped_addr, data);
             return true;
@@ -278,7 +288,7 @@ namespace R2NES::Core
     {
         // Mappers avançados (como MMC1) controlam o Mirroring via software.
         // Adicionamos o Mapper 2 para que ele também responda seu estado interno (hardwired).
-        if (pMapper && (mapperID == 1 || mapperID == 2)) 
+        if (pMapper && (mapperID == 1 || mapperID == 2))
         {
             return pMapper->getMirrorMode();
         }
