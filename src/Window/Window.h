@@ -24,6 +24,11 @@ namespace R2NES::Core
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         using VSyncCallback = std::function<void(bool)>;
         using SoundCallback = std::function<void(bool)>;
+        using Pulse1Callback = std::function<void(bool)>;
+        using Pulse2Callback = std::function<void(bool)>;
+        using TriangleCallback = std::function<void(bool)>;
+        using NoiseCallback = std::function<void(bool)>;
+        using DMCCallback = std::function<void(bool)>;
         using FFCallback = std::function<void(bool)>;
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         using PauseCallback = std::function<void(bool)>;
@@ -41,7 +46,23 @@ namespace R2NES::Core
         /* Define a função de callback para mudanças no estado do VSync. */
         void setVSyncCallback(VSyncCallback cb) { vsyncCallback = cb; }
 
+        /* Define a função de callback para habilitar ou desabilitar o som */
         void setSoundCallback(SoundCallback cb) { soundCallback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar o canal pulse1 */
+        void setPulse1Callback(Pulse1Callback cb) { pulse1Callback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar o canal pulse2 */
+        void setPulse2Callback(Pulse2Callback cb) { pulse2Callback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar o canal triangle */
+        void setTriangleCallback(TriangleCallback cb) { triangleCallback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar o canal noise */
+        void setNoiseCallback(NoiseCallback cb) { noiseCallback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar o canal dmc */
+        void setDMCCallback(DMCCallback cb) { dmcCallback = cb; }
 
         /* Define a função de callback para o estado de Fast Forward. */
         void setFFCallback(FFCallback cb) { ffCallback = cb; }
@@ -108,9 +129,6 @@ namespace R2NES::Core
         /* Verifica se o VSync está habilitado. */
         bool isVSyncEnabled() const { return vsyncEnabled; }
 
-        /* Verifica se o som está habilitado. */
-        bool isSoundEnabled() const { return soundEnabled; }
-
         /* Habilita ou desabilita o VSync, recriando o renderer para aplicar a mudança. */
         void setVSync(bool enabled);
 
@@ -148,11 +166,35 @@ namespace R2NES::Core
         void fastForwardOn() { setFastForward(true); }
 
         void setSound(bool enabled);
+        void setPulse1(bool enabled);
+        void setPulse2(bool enabled);
+        void setTriangle(bool enabled);
+        void setNoise(bool enabled);
+        void setDMC(bool enabled);
+
+        /* Verifica se o som está habilitado. */
+        bool isSoundEnabled() const { return soundEnabled; }
+        bool isPulse1Enabled() const { return pulse1Enabled; }
+        bool isPulse2Enabled() const { return pulse2Enabled; }
+        bool isTriangleEnabled() const { return triangleEnabled; }
+        bool isNoiseEnabled() const { return noiseEnabled; }
+        bool isDMCEnabled() const { return dmcEnabled; }
 
         /* Ativa o Som */
         void soundOn() { setSound(true); }
+        void pulse1On() { setPulse1(true); }
+        void pulse2On() { setPulse2(true); }
+        void triangleOn() { setTriangle(true); }
+        void noiseOn() { setNoise(true); }
+        void dmcOn() { setDMC(true); }
 
+        /* Desativa o Som */
         void soundOff() { setSound(false); }
+        void pulse1Off() { setPulse1(false); }
+        void pulse2Off() { setPulse2(false); }
+        void triangleOff() { setTriangle(false); }
+        void noiseOff() { setNoise(false); }
+        void dmcOff() { setDMC(false); }
 
         /* Verifica se a emulação está pausada. */
         bool isPaused() const { return paused; }
@@ -224,7 +266,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.6.0 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.7.0 | FPS: %.2f";
 
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
@@ -233,6 +275,11 @@ namespace R2NES::Core
         PauseCallback pauseCallback = nullptr;
         FFCallback ffCallback = nullptr;
         SoundCallback soundCallback = nullptr;
+        Pulse1Callback pulse1Callback = nullptr;
+        Pulse2Callback pulse2Callback = nullptr;
+        TriangleCallback triangleCallback = nullptr;
+        NoiseCallback noiseCallback = nullptr;
+        DMCCallback dmcCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -252,5 +299,12 @@ namespace R2NES::Core
         bool tileViewerOpen = false;
         bool disassemblerOpen = false;
         bool ramViewerOpen = false;
+
+        // Configurações de áudio para cada canal
+        bool pulse1Enabled = true;
+        bool pulse2Enabled = true;
+        bool triangleEnabled = true;
+        bool noiseEnabled = true;
+        bool dmcEnabled = true;
     };
 }
