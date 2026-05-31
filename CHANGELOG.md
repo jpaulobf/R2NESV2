@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.7.0] - 2026-05-30
+
+### Adicionado
+- Implementação do **Mapper 003 (CNROM)**, adicionando suporte a clássicos como *Gradius*, *Arkanoid*, *Adventure Island* e *Tetris* (versão Nintendo).
+- **Controle de Canais de Áudio**: Adicionada funcionalidade para habilitar/desabilitar individualmente os canais Pulse 1, Pulse 2, Triangle, Noise e DMC via menu Sound.
+- **Sincronização de UI**: Melhoria de QoL onde os checkboxes dos menus (Sound e Debug) agora são atualizados corretamente para refletir o estado real das janelas e configurações ao serem acionados.
+- Implementação de "User Mute" na APU, garantindo que a preferência do usuário no menu não seja sobrescrita por comandos do jogo.
+
 ## [0.6.0] - 2026-05-27
 
 ### Adicionado
