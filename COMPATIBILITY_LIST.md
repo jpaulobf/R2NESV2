@@ -93,11 +93,11 @@ Mapper 001 (MMC1)
 | 720° | US | 001 | ⭐ | Travado no Menu |
 | Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐ | Não inicializa |
-| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐ | Pequenos problemas nas 8 primeiras linhas do scroll vertical (sujeira) |
+| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐ | Travado na tela inicial |
 | Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Adventures of Lolo 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures of Lolo | US | 001 | ⭐ | Não funciona |
+| Adventures of Lolo 3 | US | 001 | ⭐ | Não funciona |
 | Adventures of Rad Gravity, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Tom Sawyer | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Air Fortress | US | 001 | ⭐ | Não inicializa |
@@ -105,7 +105,7 @@ Mapper 001 (MMC1)
 | Al Unser Jr. Turbo Racing | US | 001 | ⭐ | Glitches Gráficos severos |
 | All-Pro Basketball | US | 001 | ⭐ | Não inicializa |
 | American Gladiators | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Anticipation | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Anticipation | US | 001 | ⭐ | Preso na tela inicial |
 | Attack of the Killer Tomatoes | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Back to the Future II & III | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -117,14 +117,13 @@ Mapper 001 (MMC1)
 | Baseball Stars | US | 001 | ⭐ | Não inicializa |
 | Bases Loaded | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bases Loaded II: Second Season | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bashi Bazook: Morphoid Masher | US | 001 |  | N/A |
 | Battle Chess | US | 001 | ⭐ | Não inicializa |
-| Battle of Olympus, The | US | 001 | ⭐⭐⭐⭐ | Glitches nas caixas de diálogo - jogável |
+| Battle of Olympus, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bigfoot | US | 001 | ⭐ | Não inicializa |
 | Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐ | Não inicializa |
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bomberman II | US | 001 | ⭐ | Não inicializa |
 | Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Break Time: The National Pool Tour | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -136,6 +135,7 @@ Mapper 001 (MMC1)
 | Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
 | Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
+
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -344,7 +344,7 @@ Mapper 002 (UNROM)
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
 | 1943: The Battle of Midway | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| 3-D Battles of Worldrunner, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| 3-D Battles of Worldrunner, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Dr. Franken, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Adventures of Gilligan's Island, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Alfred Chicken | US | 002 | ⭐⭐⭐⭐⭐ | - |
