@@ -32,6 +32,12 @@
 #define IDM_VIEW_WINDOW_4X 2003
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
+#define IDM_VIEW_SCANLINES 2006
+#define IDM_VIEW_SCANLINES_LEVEL_5  2105
+#define IDM_VIEW_SCANLINES_LEVEL_15 2115
+#define IDM_VIEW_SCANLINES_LEVEL_25 2125
+#define IDM_VIEW_SCANLINES_LEVEL_50 2150
+#define IDM_VIEW_SCANLINES_LEVEL_75 2175
 #define IDM_SOUND_SOUND 2010
 #define IDM_SOUND_PULSE1 2011
 #define IDM_SOUND_PULSE2 2012
@@ -392,6 +398,28 @@ namespace R2NES::Core
                         windowBorderlessFullscreen();
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_SCANLINES)
+                    {
+                        toggleMarkMenuItem(IDM_VIEW_SCANLINES, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->scanlinesOff();
+                            else
+                                this->scanlinesOn(); });
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 && 
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_75)
+                    {
+                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_5) scanlinesTransparency = 5;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_15) scanlinesTransparency = 15;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_25) scanlinesTransparency = 25;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_50) scanlinesTransparency = 50;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_75) scanlinesTransparency = 75;
+                        createMenu(); // Atualiza os checks no menu
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
                     {
                         toggleMarkMenuItem(IDM_HACKS_UNLIMITED_SPRITES, [this](bool currentlyChecked)
@@ -664,6 +692,26 @@ namespace R2NES::Core
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
             AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
+
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
+
+            if (this->scanlines)
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_SCANLINES, L"&Scanlines");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_SCANLINES, L"&Scanlines");
+            }
+
+            HMENU hScanlineLevelMenu = CreatePopupMenu();
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 5 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_5, L"5%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 15 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_15, L"15%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 25 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_25, L"25%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 50 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_50, L"50%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 75 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_75, L"75%");
+            
+            AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hScanlineLevelMenu, L"&Scanlines Level");
 
             if (this->soundEnabled)
             {
@@ -1082,6 +1130,16 @@ namespace R2NES::Core
         this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_ASPECT_8_7, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
+    void Window::setScanlines(bool enabled)
+    {
+        if (scanlines == enabled)
+            return;
+
+        scanlines = enabled;
+
+        std::cout << "Window: Scanlines " << (scanlines ? "Enabled" : "Disabled") << std::endl;
+    }
+
     void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                         bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status, float fps)
     {
@@ -1099,7 +1157,41 @@ namespace R2NES::Core
             lastPausedState = paused;
         }
 
-        SDL_UpdateTexture(texture, nullptr, pixels, width * sizeof(uint32_t));
+        const uint32_t *finalPixels = pixels;
+
+        if (scanlines)
+        {
+            if (postProcessBuffer.size() != width * height)
+                postProcessBuffer.resize(width * height);
+
+            float factor = 1.0f - (scanlinesTransparency / 100.0f);
+
+            for (int y = 0; y < height; ++y)
+            {
+                bool isScanlineRow = (y % 2 != 0);
+                for (int x = 0; x < width; ++x)
+                {
+                    int index = y * width + x;
+                    uint32_t pixel = pixels[index];
+
+                    if (isScanlineRow)
+                    {
+                        uint8_t r = (pixel >> 16) & 0xFF;
+                        uint8_t g = (pixel >> 8) & 0xFF;
+                        uint8_t b = pixel & 0xFF;
+
+                        r = static_cast<uint8_t>(r * factor);
+                        g = static_cast<uint8_t>(g * factor);
+                        b = static_cast<uint8_t>(b * factor);
+                        pixel = (0xFF000000) | (r << 16) | (g << 8) | b;
+                    }
+                    postProcessBuffer[index] = pixel;
+                }
+            }
+            finalPixels = postProcessBuffer.data();
+        }
+
+        SDL_UpdateTexture(texture, nullptr, finalPixels, width * sizeof(uint32_t));
         SDL_RenderClear(renderer);
 
         SDL_Rect dest_rect;
