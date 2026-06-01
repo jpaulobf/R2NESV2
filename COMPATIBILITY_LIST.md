@@ -16,7 +16,7 @@ Mapper 000 (NROM)
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | :--- | :---: | :---: | :---: | :--- |
 | 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
-| 1942 | US | 000 | ⭐⭐⭐⭐ | Bugs no HUD. Falhas gráficas nas transições. Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
+| 1942 | US | 000 | ⭐⭐⭐⭐⭐ | Bugs no HUD. Falhas gráficas nas transições. Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
 | Balloon Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman | US | 000 | ⭐ | Preso na Tela Título |
@@ -352,25 +352,25 @@ Mapper 002 (UNROM)
 | Archon | US | 002 | ⭐ | Preso após o menu |
 | Athena | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Best of the Best: Championship Karate | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| California Games | US | 002 | ⭐⭐⭐ | Falhas nos sprites do surf e patinação |
+| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| California Games | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | California Raisins, The: The Grape Escape | US | 002 | - | N/A |
-| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Castelian | US | 002 | ⭐ | Erro na velocidade do jogo |
-| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Commando | US | 002 | ⭐⭐⭐ | Trava eventualmente + falhas gráficas |
-| Conan | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Contra | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Castelian | US | 002 | ⭐ | Erro na velocidade da emulação |
+| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Commando | US | 002 | ⭐⭐⭐⭐ |  Falhas gráficas mínimas |
+| Conan | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Contra | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Double Dribble | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Dr. Chaos | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Dragon's Lair | US | 002 | ⭐⭐⭐⭐⭐ | - |
@@ -436,7 +436,7 @@ Mapper 002 (UNROM)
 | Wall Street Kid | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Wayne Gretzky Hockey | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Winter Games | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Zanac | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Zanac | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 
 
 ---
