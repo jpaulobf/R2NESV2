@@ -188,6 +188,10 @@ namespace R2NES::Core
         void noiseOn() { setNoise(true); }
         void dmcOn() { setDMC(true); }
 
+        void setScanlines(bool enabled);
+        void scanlinesOff() { setScanlines(false); }
+        void scanlinesOn() { setScanlines(true); }
+
         /* Desativa o Som */
         void soundOff() { setSound(false); }
         void pulse1Off() { setPulse1(false); }
@@ -267,6 +271,11 @@ namespace R2NES::Core
         int width, height, scale;
 
         std::string title = "R2NESV2 - build 0.7.0 | FPS: %.2f";
+
+        // Teste de Scanlines
+        bool scanlines = true;
+        int scanlinesTransparency = 5; // 0% a 100% (intensidade do preto)
+        std::vector<uint32_t> postProcessBuffer;
 
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
