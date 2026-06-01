@@ -34,10 +34,10 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_VIEW_SCANLINES 2006
 #define IDM_VIEW_SCANLINES_LEVEL_5  2105
-#define IDM_VIEW_SCANLINES_LEVEL_15 2115
-#define IDM_VIEW_SCANLINES_LEVEL_25 2125
-#define IDM_VIEW_SCANLINES_LEVEL_50 2150
-#define IDM_VIEW_SCANLINES_LEVEL_75 2175
+#define IDM_VIEW_SCANLINES_LEVEL_10 2115
+#define IDM_VIEW_SCANLINES_LEVEL_15 2125
+#define IDM_VIEW_SCANLINES_LEVEL_25 2150
+#define IDM_VIEW_SCANLINES_LEVEL_35 2175
 #define IDM_SOUND_SOUND 2010
 #define IDM_SOUND_PULSE1 2011
 #define IDM_SOUND_PULSE2 2012
@@ -409,14 +409,14 @@ namespace R2NES::Core
                     }
 
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 && 
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_75)
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_35)
                     {
                         int id = LOWORD(e.syswm.msg->msg.win.wParam);
                         if (id == IDM_VIEW_SCANLINES_LEVEL_5) scanlinesTransparency = 5;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_10) scanlinesTransparency = 10;
                         if (id == IDM_VIEW_SCANLINES_LEVEL_15) scanlinesTransparency = 15;
                         if (id == IDM_VIEW_SCANLINES_LEVEL_25) scanlinesTransparency = 25;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_50) scanlinesTransparency = 50;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_75) scanlinesTransparency = 75;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_35) scanlinesTransparency = 35;
                         createMenu(); // Atualiza os checks no menu
                     }
 
@@ -706,10 +706,10 @@ namespace R2NES::Core
 
             HMENU hScanlineLevelMenu = CreatePopupMenu();
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 5 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_5, L"5%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 10 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_10, L"10%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 15 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_15, L"15%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 25 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_25, L"25%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 50 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_50, L"50%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 75 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_75, L"75%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 35 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_35, L"35%");
             
             AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hScanlineLevelMenu, L"&Scanlines Level");
 
