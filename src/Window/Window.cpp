@@ -21,6 +21,12 @@
 #define IDM_FILE_EXIT 1002
 #define IDM_FILE_RESET 1003
 #define IDM_FILE_UNLOAD 1004
+#define IDM_FILE_SAVE 1101
+#define IDM_FILE_LOAD 1102
+#define IDM_FILE_SAVE_SLOT 1103
+#define IDM_FILE_SAVE_SLOT_1  1104
+#define IDM_FILE_SAVE_SLOT_2  1105
+#define IDM_FILE_SAVE_SLOT_3  1106
 #define IDM_RECENT_FILE_BASE_ID 10000
 #define IDM_DEBUG_TILE_VIEWER 1006
 #define IDM_DEBUG_DISASSEMBLER 1007
@@ -316,6 +322,29 @@ namespace R2NES::Core
                     {
                         unload();
                     }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_SAVE)
+                    {
+                        this->setLoad(false);
+                        this->setSave(true);
+                        std::cout << "Saving State - Slot " << this->getSaveSlot() << "..." << std::endl;
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_LOAD)
+                    {
+                        this->setSave(false);
+                        this->setLoad(true);
+                        std::cout << "Loading State - Slot " << this->getSaveSlot() << "..." << std::endl;
+                    }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_FILE_SAVE_SLOT_1 && 
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_FILE_SAVE_SLOT_3)
+                    {
+                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
+                        this->setSaveSlot(id - IDM_FILE_SAVE_SLOT_1 + 1);
+                        createMenu(); // Atualiza os radio buttons de slot no menu
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_RECENT_FILE_BASE_ID && LOWORD(e.syswm.msg->msg.win.wParam) < IDM_RECENT_FILE_BASE_ID + 10)
                     {
                         int index = LOWORD(e.syswm.msg->msg.win.wParam) - IDM_RECENT_FILE_BASE_ID;
@@ -589,6 +618,18 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_UNLOAD, L"&Unload");
+            AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
+
+            // Save/Load State
+            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_SAVE, L"&Save State");
+            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_LOAD, L"&Load State");
+
+            HMENU hSaveSlotLevelMenu = CreatePopupMenu();
+            AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 1 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_1, L"Slot 1");
+            AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 2 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_2, L"Slot 2");
+            AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 3 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_3, L"Slot 3");
+
+            AppendMenuW(hFileMenu, MF_POPUP, (UINT_PTR)hSaveSlotLevelMenu, L"&Save State Slot");
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
 
             // Cria o submenu para "Recent Files"
