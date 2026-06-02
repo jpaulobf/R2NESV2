@@ -33,6 +33,9 @@ namespace R2NES::Core
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         using PauseCallback = std::function<void(bool)>;
         using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
+        using SaveCallback = std::function<void(bool)>;
+        using LoadCallback = std::function<void(bool)>;
+        using SaveSlotCallback = std::function<void(int)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -73,8 +76,19 @@ namespace R2NES::Core
         /* Define a função de callback para o estado de Pause. */
         void setPauseCallback(PauseCallback cb) { pauseCallback = cb; }
 
+        /* Define a função de callback para eventos de salvar. */
+        void setSaveCallback(SaveCallback cb) { saveCallback = cb; }
+
+        /* Define a função de callback para eventos de carregar. */
+        void setLoadCallback(LoadCallback cb) { loadCallback = cb; }
+
+        /* Define a função de callback para eventos de slot de salvamento. */
+        void setSaveSlotCallback(SaveSlotCallback cb) { saveSlotCallback = cb; }
+
         /* Define a função de callback para eventos de botões do controle. */
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
+
+        // ---------------------------------
 
         /* Processa eventos do sistema (como o botão de fechar, entradas de teclado e mouse). */
         void pollEvents();
@@ -112,6 +126,7 @@ namespace R2NES::Core
         /* Verifica se a janela do RamViewer está aberta. */
         bool isRamViewerOpen() const { return ramViewer.isOpen(); }
 
+        /* Verifica se houve um pedido de reset via menu. */
         bool isResetRequested() const { return resetRequested; }
 
         /* Limpa a flag de solicitação de reset. */
@@ -165,6 +180,7 @@ namespace R2NES::Core
         /* Ativa o Fast Forward. */
         void fastForwardOn() { setFastForward(true); }
 
+        /* Funções para configurar os componentes de som. */
         void setSound(bool enabled);
         void setPulse1(bool enabled);
         void setPulse2(bool enabled);
@@ -188,6 +204,7 @@ namespace R2NES::Core
         void noiseOn() { setNoise(true); }
         void dmcOn() { setDMC(true); }
 
+        /* Funções para configurar o scanline. */
         void setScanlines(bool enabled);
         void scanlinesOff() { setScanlines(false); }
         void scanlinesOn() { setScanlines(true); }
@@ -209,6 +226,37 @@ namespace R2NES::Core
             paused = p;
             if (pauseCallback)
                 pauseCallback(paused);
+        }
+
+        bool getIsToSave() const { return isToSave; }
+        bool getIsToLoad() const { return isToLoad; }
+        int getSaveSlot() const { return saveSlot; }
+        void setSave(bool save) 
+        { 
+            isToSave = save; 
+            if (saveCallback)
+                saveCallback(isToSave);
+        }
+        
+        void setLoad(bool load) 
+        { 
+            isToLoad = load; 
+            if (loadCallback)
+                loadCallback(isToLoad);
+        }
+
+        /* Reseta as flags de solicitação de Save/Load. Chamado pela Engine após processar a operação. */
+        void resetSaveLoadFlags() 
+        { 
+            isToSave = false; 
+            isToLoad = false; 
+        }
+
+        void setSaveSlot(int slot) 
+        { 
+            saveSlot = slot;
+            if (saveSlotCallback)
+                saveSlotCallback(saveSlot);
         }
 
         /* Verifica se a janela principal foi fechada. */
@@ -245,10 +293,13 @@ namespace R2NES::Core
         /* Inicializa e exibe a janela do RamViewer. */
         void openRamViewer();
 
+        /* Funções para manipular os itens do menu de debug. */
         void windowCheckUncheckMenuItem(int menuItemId, bool isChecked);
 
+        /* Funções para manipular os itens do menu de debug. */
         void toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback);
 
+        /* Funções para manipular os itens do menu de debug. */
         void uncheckAllDebugMenuItems();
 
     private:
@@ -256,9 +307,9 @@ namespace R2NES::Core
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
         ImGuiContext *imguiContext = nullptr;
-        MouseState mouseState;
         std::string selectedPath = "";
 
+        MouseState mouseState;
         TileViewer tileViewer;
         RamViewer ramViewer;
         Disassembler disassembler;
@@ -289,6 +340,9 @@ namespace R2NES::Core
         TriangleCallback triangleCallback = nullptr;
         NoiseCallback noiseCallback = nullptr;
         DMCCallback dmcCallback = nullptr;
+        SaveCallback saveCallback = nullptr;
+        LoadCallback loadCallback = nullptr;
+        SaveSlotCallback saveSlotCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -315,5 +369,9 @@ namespace R2NES::Core
         bool triangleEnabled = true;
         bool noiseEnabled = true;
         bool dmcEnabled = true;
+
+        bool isToSave = false;
+        bool isToLoad = false;
+        int saveSlot = 1;
     };
 }
