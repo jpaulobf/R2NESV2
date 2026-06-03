@@ -32,7 +32,6 @@ namespace R2NES::Core
 
         APU &getApu() { return apu; }
 
-
         // Permite ler um byte de qualquer lugar do barramento (debug)
         uint8_t cpuRead(uint16_t addr) { return bus.cpuRead(addr); }
 
@@ -46,6 +45,10 @@ namespace R2NES::Core
         bool isCartridgeLoaded() const { return cartridgeLoaded; }
 
         IO::Joysticks &getJoysticks() { return joysticks; }
+
+        bool saveState(const std::string &filename);
+
+        bool loadState(const std::string &filename);
 
     private:
         Bus bus;
