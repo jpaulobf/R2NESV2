@@ -94,5 +94,7 @@ namespace R2NES::Core
 
         // Controle dos sprites ilimitados
         bool unlimitedSprites = false;
+
+        std::string currentRomPath;
     };
 }
