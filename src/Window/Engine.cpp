@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include <iostream>
 #include <map>
+#include <filesystem>
+#include <fstream>
 
 namespace R2NES::Core
 {
@@ -283,6 +285,7 @@ namespace R2NES::Core
             nes->unload();
             cachedDisassembly.clear();
 
+            this->currentRomPath = romPath;
             std::cout << "Engine: Loading ROM -> " << romPath << std::endl;
             nes->insertCartridge(romPath);
             nes->reset();
@@ -309,6 +312,35 @@ namespace R2NES::Core
             nes->unload();
             cachedDisassembly.clear(); // Limpa o cache do disassembler
             window->clearUnloadRequest();
+        }
+
+        // Lógica de Save/Load State
+        if (nes->isCartridgeLoaded())
+        {
+            if (window->getIsToSave() || window->getIsToLoad())
+            {
+                namespace fs = std::filesystem;
+
+                // 1. Prepara o nome do arquivo: [rom].[slot].sav
+                std::string romName = fs::path(currentRomPath).stem().string();
+                std::string slot = std::to_string(window->getSaveSlot());
+
+                fs::create_directories("savestates"); // Garante que a pasta existe
+                std::string filename = "savestates/" + romName + "." + slot + ".sav";
+
+                if (window->getIsToSave())
+                {
+                    if (nes->saveState(filename))
+                        std::cout << "Engine: State saved to " << filename << std::endl;
+                }
+                else if (window->getIsToLoad())
+                {
+                    if (nes->loadState(filename))
+                        std::cout << "Engine: State loaded from " << filename << std::endl;
+                }
+
+                window->resetSaveLoadFlags();
+            }
         }
     }
 
