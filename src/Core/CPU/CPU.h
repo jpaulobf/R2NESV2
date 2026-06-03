@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <iostream>
 
 namespace R2NES::Core
 {
@@ -37,6 +38,10 @@ namespace R2NES::Core
 
         // Retorna verdadeiro se a instrução atual terminou
         bool complete() const;
+
+        // Serialização para Savestates
+        void saveState(std::ostream &os);
+        void loadState(std::istream &is);
 
         // Reseta a CPU para um estado inicial conhecido
         void reset();
