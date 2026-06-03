@@ -407,6 +407,16 @@ namespace R2NES::Core
         return cycles == 0;
     }
 
+    void CPU::saveState(std::ostream &os)
+    {
+        //TODO
+    }
+
+    void CPU::loadState(std::istream &is)
+    {
+        //TODO
+    }
+
     // Busca o dado atual com base no modo de endereçamento calculado
     uint8_t CPU::fetch()
     {
