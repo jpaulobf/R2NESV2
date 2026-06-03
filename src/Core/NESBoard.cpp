@@ -1,12 +1,13 @@
 #include "Core/NESBoard.h"
 #include <iostream>
+#include <fstream>
 
 namespace R2NES::Core
 {
     NesBoard::NesBoard()
     {
         bus.connectCPU(&cpu);
-        
+
         bus.connectRam(&ram);
 
         bus.connectJoysticks(&joysticks);
@@ -100,7 +101,7 @@ namespace R2NES::Core
     {
         std::shared_ptr<Cartridge> newCart = std::make_shared<Cartridge>(path);
         if (newCart->isValid())
-        { // Usando o método público isValid()
+        {
             bus.setCartridge(newCart);
             cartridgeLoaded = true;
             std::cout << "Cartridge '" << path << "' loaded successfully." << std::endl;
@@ -110,5 +111,55 @@ namespace R2NES::Core
             cartridgeLoaded = false;
             std::cerr << "Failed to load cartridge '" << path << "'." << std::endl;
         }
+    }
+
+    bool NesBoard::saveState(const std::string &filename)
+    {
+        std::ofstream os(filename, std::ios::binary);
+        if (!os.is_open())
+            return false;
+
+        // 1. Identificador simples para validar o arquivo (Magic Number)
+        uint32_t magic = 0x52324E53; // "R2NS"
+        os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
+
+        // 2. Salva estado dos componentes
+        os.write(reinterpret_cast<char *>(&systemClockCounter), sizeof(systemClockCounter));
+
+        cpu.saveState(os);
+        // ram.saveState(os);
+        // ppu.saveState(os);
+        // apu.saveState(os);
+        // bus.cart->getMapper()->saveState(os);
+
+        os.close();
+        return true;
+    }
+
+    bool NesBoard::loadState(const std::string &filename)
+    {
+        std::ifstream is(filename, std::ios::binary);
+        if (!is.is_open())
+            return false;
+
+        uint32_t magic = 0;
+        is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
+        if (magic != 0x52324E53)
+        {
+            std::cerr << "Error: Invalid SaveState file!" << std::endl;
+            return false;
+        }
+
+        // 2. Lê estado dos componentes (Exatamente na mesma ordem do save)
+        is.read(reinterpret_cast<char *>(&systemClockCounter), sizeof(systemClockCounter));
+
+        cpu.loadState(is);
+        // ram.loadState(is);
+        // ppu.loadState(is);
+        // apu.loadState(is);
+        // bus.cart->getMapper()->loadState(is);
+
+        is.close();
+        return true;
     }
 }
