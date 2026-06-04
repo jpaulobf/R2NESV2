@@ -24,9 +24,9 @@
 #define IDM_FILE_SAVE 1101
 #define IDM_FILE_LOAD 1102
 #define IDM_FILE_SAVE_SLOT 1103
-#define IDM_FILE_SAVE_SLOT_1  1104
-#define IDM_FILE_SAVE_SLOT_2  1105
-#define IDM_FILE_SAVE_SLOT_3  1106
+#define IDM_FILE_SAVE_SLOT_1 1104
+#define IDM_FILE_SAVE_SLOT_2 1105
+#define IDM_FILE_SAVE_SLOT_3 1106
 #define IDM_RECENT_FILE_BASE_ID 10000
 #define IDM_DEBUG_TILE_VIEWER 1006
 #define IDM_DEBUG_DISASSEMBLER 1007
@@ -39,11 +39,11 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_VIEW_SCANLINES 2006
-#define IDM_VIEW_SCANLINES_LEVEL_5  2105
-#define IDM_VIEW_SCANLINES_LEVEL_10 2115
-#define IDM_VIEW_SCANLINES_LEVEL_15 2125
-#define IDM_VIEW_SCANLINES_LEVEL_25 2150
-#define IDM_VIEW_SCANLINES_LEVEL_35 2175
+#define IDM_VIEW_SCANLINES_LEVEL_5 2105
+#define IDM_VIEW_SCANLINES_LEVEL_10 2110
+#define IDM_VIEW_SCANLINES_LEVEL_15 2115
+#define IDM_VIEW_SCANLINES_LEVEL_20 2120
+#define IDM_VIEW_SCANLINES_LEVEL_25 2125
 #define IDM_SOUND_SOUND 2010
 #define IDM_SOUND_PULSE1 2011
 #define IDM_SOUND_PULSE2 2012
@@ -337,7 +337,7 @@ namespace R2NES::Core
                         std::cout << "Loading State - Slot " << this->getSaveSlot() << "..." << std::endl;
                     }
 
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_FILE_SAVE_SLOT_1 && 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_FILE_SAVE_SLOT_1 &&
                              LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_FILE_SAVE_SLOT_3)
                     {
                         int id = LOWORD(e.syswm.msg->msg.win.wParam);
@@ -437,15 +437,20 @@ namespace R2NES::Core
                                 this->scanlinesOn(); });
                     }
 
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 && 
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_35)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_25)
                     {
                         int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_5) scanlinesTransparency = 5;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_10) scanlinesTransparency = 10;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_15) scanlinesTransparency = 15;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_25) scanlinesTransparency = 25;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_35) scanlinesTransparency = 35;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_5)
+                            scanlinesTransparency = 5;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_10)
+                            scanlinesTransparency = 10;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_15)
+                            scanlinesTransparency = 15;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_20)
+                            scanlinesTransparency = 20;
+                        if (id == IDM_VIEW_SCANLINES_LEVEL_25)
+                            scanlinesTransparency = 25;
                         createMenu(); // Atualiza os checks no menu
                     }
 
@@ -617,19 +622,19 @@ namespace R2NES::Core
             // Adiciona a opção Open ao menu File
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
-            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_UNLOAD, L"&Unload");
+            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_UNLOAD, L"&Unload");
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
 
             // Save/Load State
-            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_SAVE, L"&Save State");
-            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_LOAD, L"&Load State");
+            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_SAVE, L"&Save State");
+            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_LOAD, L"&Load State");
 
             HMENU hSaveSlotLevelMenu = CreatePopupMenu();
             AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 1 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_1, L"Slot 1");
             AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 2 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_2, L"Slot 2");
             AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 3 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_3, L"Slot 3");
 
-            AppendMenuW(hFileMenu, MF_POPUP, (UINT_PTR)hSaveSlotLevelMenu, L"&Save State Slot");
+            AppendMenuW(hFileMenu, MF_POPUP | (cartLoaded ? MF_ENABLED : MF_DISABLED), (UINT_PTR)hSaveSlotLevelMenu, L"&Save State Slot");
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
 
             // Cria o submenu para "Recent Files"
@@ -749,9 +754,9 @@ namespace R2NES::Core
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 5 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_5, L"5%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 10 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_10, L"10%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 15 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_15, L"15%");
+            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 20 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_20, L"20%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 25 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_25, L"25%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 35 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_35, L"35%");
-            
+
             AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hScanlineLevelMenu, L"&Scanlines Level");
 
             if (this->soundEnabled)
