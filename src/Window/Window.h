@@ -231,29 +231,29 @@ namespace R2NES::Core
         bool getIsToSave() const { return isToSave; }
         bool getIsToLoad() const { return isToLoad; }
         int getSaveSlot() const { return saveSlot; }
-        void setSave(bool save) 
-        { 
-            isToSave = save; 
+        void setSave(bool save)
+        {
+            isToSave = save;
             if (saveCallback)
                 saveCallback(isToSave);
         }
-        
-        void setLoad(bool load) 
-        { 
-            isToLoad = load; 
+
+        void setLoad(bool load)
+        {
+            isToLoad = load;
             if (loadCallback)
                 loadCallback(isToLoad);
         }
 
         /* Reseta as flags de solicitação de Save/Load. Chamado pela Engine após processar a operação. */
-        void resetSaveLoadFlags() 
-        { 
-            isToSave = false; 
-            isToLoad = false; 
+        void resetSaveLoadFlags()
+        {
+            isToSave = false;
+            isToLoad = false;
         }
 
-        void setSaveSlot(int slot) 
-        { 
+        void setSaveSlot(int slot)
+        {
             saveSlot = slot;
             if (saveSlotCallback)
                 saveSlotCallback(saveSlot);
@@ -279,6 +279,12 @@ namespace R2NES::Core
 
         /* Função genérica para configurar o modo de tela cheia sem bordas. */
         void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode, Uint32 flags);
+
+        void setCartLoaded(bool loaded)
+        {
+            cartLoaded = loaded;
+            this->createMenu(); // Recria o menu para atualizar o estado do item Unload
+        }
 
     private:
         /* Abre a caixa de diálogo nativa do Windows para abrir arquivos .nes ou .zip. */
@@ -373,5 +379,7 @@ namespace R2NES::Core
         bool isToSave = false;
         bool isToLoad = false;
         int saveSlot = 1;
+
+        bool cartLoaded = false;
     };
 }
