@@ -295,6 +295,7 @@ namespace R2NES::Core
             cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
 
             window->clearSelectedPath();
+            window->setCartLoaded(true); // Informa a janela que um cartucho foi carregado para habilitar opções dependentes disso
         }
 
         // Verifica se o usuário clicou em "Reset" no menu
@@ -312,6 +313,7 @@ namespace R2NES::Core
             nes->unload();
             cachedDisassembly.clear(); // Limpa o cache do disassembler
             window->clearUnloadRequest();
+            window->setCartLoaded(false); // Informa a janela que o cartucho foi descarregado para desabilitar opções dependentes disso
         }
 
         // Lógica de Save/Load State
