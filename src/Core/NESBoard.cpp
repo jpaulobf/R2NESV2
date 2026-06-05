@@ -127,10 +127,10 @@ namespace R2NES::Core
         os.write(reinterpret_cast<char *>(&systemClockCounter), sizeof(systemClockCounter));
 
         cpu.saveState(os);
-        // ram.saveState(os);
-        // ppu.saveState(os);
-        // apu.saveState(os);
-        // bus.cart->getMapper()->saveState(os);
+        ram.saveState(os);
+        ppu.saveState(os);
+        apu.saveState(os);
+        bus.cart->getMapper()->saveState(os);
 
         os.close();
         return true;
@@ -154,10 +154,10 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&systemClockCounter), sizeof(systemClockCounter));
 
         cpu.loadState(is);
-        // ram.loadState(is);
-        // ppu.loadState(is);
-        // apu.loadState(is);
-        // bus.cart->getMapper()->loadState(is);
+        ram.loadState(is);
+        ppu.loadState(is);
+        apu.loadState(is);
+        bus.cart->getMapper()->loadState(is);
 
         is.close();
         return true;
