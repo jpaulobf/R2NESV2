@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <istream>
 
 namespace R2NES::Core
 {
@@ -39,7 +40,7 @@ namespace R2NES::Core
         // Retorna verdadeiro se a instrução atual terminou
         bool complete() const;
 
-        // Serialização para Savestates
+        // Serialização para Save / Load states
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
 
