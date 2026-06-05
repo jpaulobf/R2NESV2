@@ -24,4 +24,14 @@ namespace R2NES::Core
     {
         return (addr < data.size()) ? data[addr] : 0x00;
     }
+
+    void RAM::saveState(std::ostream &os)
+    {
+        os.write(reinterpret_cast<const char*>(data.data()), data.size());
+    }
+
+    void RAM::loadState(std::istream &is)
+    {
+        is.read(reinterpret_cast<char*>(data.data()), data.size());
+    }
 }
