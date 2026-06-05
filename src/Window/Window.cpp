@@ -626,8 +626,8 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
 
             // Save/Load State
-            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_SAVE, L"&Save State");
-            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_LOAD, L"&Load State");
+            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_SAVE, L"&Save State\tF5");
+            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_LOAD, L"&Load State\tF6");
 
             HMENU hSaveSlotLevelMenu = CreatePopupMenu();
             AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 1 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_1, L"Slot 1");
