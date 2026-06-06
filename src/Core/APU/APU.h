@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include <queue>
+#include <iostream>
 
 namespace R2NES::Core
 {
@@ -47,6 +48,10 @@ namespace R2NES::Core
         void setNoiseEnabled(bool enabled) { userNoiseEnabled = enabled; }
 
         void setDMCEnabled(bool enabled) { userDMCEnabled = enabled; }
+
+        void saveState(std::ostream &os);
+
+        void loadState(std::istream &is);
 
     private:
         Bus *bus = nullptr;
