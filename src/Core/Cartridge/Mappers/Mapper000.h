@@ -1,5 +1,7 @@
 #pragma once
 #include "Core/Cartridge/Mappers/Mapper.h"
+#include <iostream>
+#include <istream>
 
 namespace R2NES::Core
 {
@@ -13,5 +15,9 @@ namespace R2NES::Core
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) override;
+
+        // Serialização para Save / Load states
+        void saveState(std::ostream &os) override;
+        void loadState(std::istream &is) override;
     };
 }
