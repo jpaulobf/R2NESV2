@@ -408,6 +408,20 @@ namespace R2NES::Core
         // Atalhos da Engine
         switch (key)
         {
+        case SDLK_F5:
+            if (isPressed && nes->isCartridgeLoaded())
+            {
+                window->setLoad(false);
+                window->setSave(true);
+            }
+            break;
+        case SDLK_F6:
+            if (isPressed && nes->isCartridgeLoaded())
+            {
+                window->setSave(false);
+                window->setLoad(true);
+            }
+            break;
         case SDLK_F7:
             if (isPressed)
                 window->windowResize(1);
