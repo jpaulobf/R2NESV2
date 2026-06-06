@@ -8,7 +8,7 @@
 Still quite an early implementation of Nintendo Entertainment System (NES) emulation.
 R2NES is a high-performance Nintendo Entertainment System (NES) emulator written in modern C++, focused on accuracy and development tools.
 
-**Note**: This program contains no ROM or copyrighted data. You will need to provide the ROMs. Do not ask for ROMs.
+**Note**: This program contains no ROM or copyrighted data. You will need to provide your own ROMs to execute. Do not ask for ROMs.
 
 **Note 2**: Builds are performed by the GitHub Action itself. If your system flags any behavior of malware, you can disable your antivirus. You can download, examine, and compile your own version anytime.
 
