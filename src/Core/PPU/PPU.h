@@ -6,6 +6,7 @@
 #include <vector>
 #include "Common/Common.h"
 #include "Core/Memory/VRAM/VRAM.h"
+#include <iostream>
 
 namespace R2NES::Core
 {
@@ -41,6 +42,10 @@ namespace R2NES::Core
 
         void clearFrameComplete() { frameComplete = false; }
         void setUnlimitedSprites(bool enabled) { unlimitedSprites = enabled; }
+
+        // Serialização para Save / Load states
+        void saveState(std::ostream &os);
+        void loadState(std::istream &is);
 
         // Retorna um buffer de pixels ARGB para um Pattern Table específico
         // patternTableIndex: 0 para Pattern Table 0 ($0000-$0FFF), 1 para Pattern Table 1 ($1000-$1FFF)
