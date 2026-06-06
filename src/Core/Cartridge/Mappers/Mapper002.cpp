@@ -67,4 +67,16 @@ namespace R2NES::Core
         // Retorna o modo definido no hardware (passado via constructor)
         return mirrorMode;
     }
+
+    void Mapper002::saveState(std::ostream &os)
+    {
+        os.write(reinterpret_cast<const char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        os.write(reinterpret_cast<const char*>(&mirrorMode), sizeof(mirrorMode));
+    }
+
+    void Mapper002::loadState(std::istream &is)
+    {
+        is.read(reinterpret_cast<char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        is.read(reinterpret_cast<char*>(&mirrorMode), sizeof(mirrorMode));
+    }
 }
