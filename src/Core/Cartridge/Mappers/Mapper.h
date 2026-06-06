@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 #include "Common/Common.h" // Ou onde seu MirrorMode estiver definido
+#include <iostream>
+#include <istream>
 
 namespace R2NES::Core
 {
@@ -20,6 +22,10 @@ namespace R2NES::Core
 
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         virtual bool getIrqFlag() const { return false; }
+
+        // Serialização para Save / Load states
+        virtual void saveState(std::ostream &os) = 0;
+        virtual void loadState(std::istream &is) = 0;
 
         // Por padrão, mappers retornam HARDWARE (indicando o que está no iNES)
         virtual MirrorMode getMirrorMode() 
