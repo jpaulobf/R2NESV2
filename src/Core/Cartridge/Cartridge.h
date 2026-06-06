@@ -30,7 +30,11 @@ namespace R2NES::Core
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         bool getIrqFlag() const;
 
+        // Retorna o modo de espelhamento (Mirror Mode) definido pelo cartucho
         MirrorMode getMirrorMode() const;
+
+        // Retorna o ponteiro para o Mapper do cartucho
+        std::shared_ptr<Mapper> getMapper() { return pMapper; }
 
     private:
         bool loadFromBuffer(const std::vector<uint8_t> &buffer);
