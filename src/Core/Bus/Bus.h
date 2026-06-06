@@ -58,10 +58,13 @@ namespace R2NES::Core
         // Conecta o cartucho inserido
         void setCartridge(const std::shared_ptr<Cartridge> &cartridge);
 
+        // Conecta os joysticks ao barramento
         void connectJoysticks(IO::Joysticks *joysticks);
 
+        // Conecta a PPU ao barramento
         void connectPPU(PPU *pPpu);
 
+        // Verifica se a Pistola Zapper está sendo disparada
         void setZapperTrigger(bool pulled);
 
     public:
