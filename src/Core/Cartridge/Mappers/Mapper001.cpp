@@ -176,4 +176,26 @@ namespace R2NES::Core
         }
         return MirrorMode::HORIZONTAL;
     }
+
+    void Mapper001::saveState(std::ostream &os)
+    {
+        os.write(reinterpret_cast<const char*>(&nControlRegister), sizeof(nControlRegister));
+        os.write(reinterpret_cast<const char*>(&nCHRBankSelect0), sizeof(nCHRBankSelect0));
+        os.write(reinterpret_cast<const char*>(&nCHRBankSelect1), sizeof(nCHRBankSelect1));
+        os.write(reinterpret_cast<const char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        os.write(reinterpret_cast<const char*>(&nShiftRegister), sizeof(nShiftRegister));
+        os.write(reinterpret_cast<const char*>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
+        os.write(reinterpret_cast<const char*>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+    }
+
+    void Mapper001::loadState(std::istream &is)
+    {
+        is.read(reinterpret_cast<char*>(&nControlRegister), sizeof(nControlRegister));
+        is.read(reinterpret_cast<char*>(&nCHRBankSelect0), sizeof(nCHRBankSelect0));
+        is.read(reinterpret_cast<char*>(&nCHRBankSelect1), sizeof(nCHRBankSelect1));
+        is.read(reinterpret_cast<char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        is.read(reinterpret_cast<char*>(&nShiftRegister), sizeof(nShiftRegister));
+        is.read(reinterpret_cast<char*>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
+        is.read(reinterpret_cast<char*>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+    }
 }
