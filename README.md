@@ -10,7 +10,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 
 **Note**: This program contains no ROM or copyrighted data. You will need to provide your own ROMs to execute. Do not ask for ROMs.
 
-**Note 2**: Builds are performed by the GitHub Action itself. If your system flags any behavior of malware, you can disable your antivirus. You can download, examine, and compile your own version anytime.
+**Note 2**: Builds are performed by the GitHub Action itself. If your system flags any behavior of malware, you can disable your antivirus. You can download, examine, and compile your own version anytime. The code is 100% opensource and free to use/copy.
 
 
 ## Current Features
