@@ -19,6 +19,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
   - Mapper 002 (UNROM)
   - Mapper 003 (CNROM)
 - **File Formats**: Support for `.nes` (iNES) files and compressed `.zip` files.
+- **Save States**: Support for 3 independent slots with disk persistence in the `/savestates` folder.
 - **Debug Interface**:
   - **Tile Viewer**: Real-time visualization of Pattern Tables.
   - **Disassembler**: Assembly code debugging with execution highlighting.
@@ -56,6 +57,8 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 - **Select / Start**: `Backspace` / `Enter` keys.
 - **Zapper (Light Gun)**: Left Mouse Click.
 - **Fast Forward**: Hold down `TAB`.
+- **Save State**: `F5`
+- **Load State**: `F6`
 
 ---
 ## Screenshots:
