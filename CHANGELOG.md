@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.7.5] - 2026-06-06
+
+### Adicionado
+- **Save & Load States**: Implementação de sistema de salvamento e carregamento instantâneo de estado com suporte a **3 slots independentes**.
+- **Persistência de Estados**: Os estados são salvos em arquivos binários na pasta `/savestates`, permitindo continuar a jogatina mesmo após fechar o emulador.
+- **Atalhos de Teclado**: Configuração de teclas rápidas para produtividade: `F5` para salvar e `F6` para carregar os respectivos slots.
+- **Feedback Visual**: Notificações temporárias na console confirmando o sucesso do salvamento ou carregamento do estado.
+
 ## [0.7.0] - 2026-05-30
 
 ### Adicionado
