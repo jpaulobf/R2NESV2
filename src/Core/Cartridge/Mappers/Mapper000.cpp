@@ -22,11 +22,6 @@ namespace R2NES::Core
     {
         // Mapper 000 não suporta escrita na PRG ROM. Todas as escritas em $8000-$FFFF são ignoradas.
         // Retornamos false para não tratar a escrita.
-        // if (addr >= 0x8000 && addr <= 0xFFFF)
-        // {
-        //     mapped_addr = addr & (nPRGBanks > 1 ? 0x7FFF : 0x3FFF);
-        //     return true;
-        // }
         return false;
     }
 
@@ -49,5 +44,15 @@ namespace R2NES::Core
             return true;
         }
         return false;
+    }
+
+    void Mapper000::saveState(std::ostream &os)
+    {
+        // Mapper 000 (NROM) não possui estado interno (registradores ou bancos variáveis)
+    }
+
+    void Mapper000::loadState(std::istream &is)
+    {
+        // Mapper 000 (NROM) não possui estado interno
     }
 }
