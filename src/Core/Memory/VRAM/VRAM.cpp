@@ -54,4 +54,14 @@ namespace R2NES::Core
             return maskedAddr & 0x07FF;
         }
     }
+
+    void VRAM::saveState(std::ostream &os)
+    {
+        os.write(reinterpret_cast<const char*>(vram.data()), vram.size());
+    }
+
+    void VRAM::loadState(std::istream &is)
+    {
+        is.read(reinterpret_cast<char*>(vram.data()), vram.size());
+    }
 }
