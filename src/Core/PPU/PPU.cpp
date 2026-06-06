@@ -3,7 +3,6 @@
 #include "Core/Cartridge/Cartridge.h"
 #include "Common/Common.h"
 #include <algorithm>
-#include <iostream>
 
 namespace R2NES::Core
 {
@@ -616,5 +615,47 @@ namespace R2NES::Core
         // Limpa o buffer de imagem para preto ao resetar/descarregar
         std::fill(oamMemory.begin(), oamMemory.end(), 0xFF); // Move sprites para fora da tela
         std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000);
+    }
+
+    void PPU::saveState(std::ostream &os)
+    {
+        vram.saveState(os);
+        os.write(reinterpret_cast<const char*>(&ppuCtrl), sizeof(ppuCtrl));
+        os.write(reinterpret_cast<const char*>(&ppuMask), sizeof(ppuMask));
+        os.write(reinterpret_cast<const char*>(&ppuStatus), sizeof(ppuStatus));
+        os.write(reinterpret_cast<const char*>(&oamAddr), sizeof(oamAddr));
+        os.write(reinterpret_cast<const char*>(&addressLatch), sizeof(addressLatch));
+        os.write(reinterpret_cast<const char*>(&vramAddr), sizeof(vramAddr));
+        os.write(reinterpret_cast<const char*>(&tempAddr), sizeof(tempAddr));
+        os.write(reinterpret_cast<const char*>(&fineX), sizeof(fineX));
+        os.write(reinterpret_cast<const char*>(&dataBuffer), sizeof(dataBuffer));
+        os.write(reinterpret_cast<const char*>(&scanline), sizeof(scanline));
+        os.write(reinterpret_cast<const char*>(&cycle), sizeof(cycle));
+        os.write(reinterpret_cast<const char*>(&frameCounter), sizeof(frameCounter));
+        os.write(reinterpret_cast<const char*>(&nmi), sizeof(nmi));
+        os.write(reinterpret_cast<const char*>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
+        os.write(reinterpret_cast<const char*>(oamMemory.data()), oamMemory.size());
+        os.write(reinterpret_cast<const char*>(paletteTable.data()), paletteTable.size());
+    }
+
+    void PPU::loadState(std::istream &is)
+    {
+        vram.loadState(is);
+        is.read(reinterpret_cast<char*>(&ppuCtrl), sizeof(ppuCtrl));
+        is.read(reinterpret_cast<char*>(&ppuMask), sizeof(ppuMask));
+        is.read(reinterpret_cast<char*>(&ppuStatus), sizeof(ppuStatus));
+        is.read(reinterpret_cast<char*>(&oamAddr), sizeof(oamAddr));
+        is.read(reinterpret_cast<char*>(&addressLatch), sizeof(addressLatch));
+        is.read(reinterpret_cast<char*>(&vramAddr), sizeof(vramAddr));
+        is.read(reinterpret_cast<char*>(&tempAddr), sizeof(tempAddr));
+        is.read(reinterpret_cast<char*>(&fineX), sizeof(fineX));
+        is.read(reinterpret_cast<char*>(&dataBuffer), sizeof(dataBuffer));
+        is.read(reinterpret_cast<char*>(&scanline), sizeof(scanline));
+        is.read(reinterpret_cast<char*>(&cycle), sizeof(cycle));
+        is.read(reinterpret_cast<char*>(&frameCounter), sizeof(frameCounter));
+        is.read(reinterpret_cast<char*>(&nmi), sizeof(nmi));
+        is.read(reinterpret_cast<char*>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
+        is.read(reinterpret_cast<char*>(oamMemory.data()), oamMemory.size());
+        is.read(reinterpret_cast<char*>(paletteTable.data()), paletteTable.size());
     }
 }
