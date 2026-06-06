@@ -10,7 +10,6 @@ namespace R2NES::Core
 
     Mapper003::~Mapper003() {}
 
-
     bool Mapper003::cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
     {
         if (addr >= 0x8000 && addr <= 0xFFFF)
@@ -33,7 +32,7 @@ namespace R2NES::Core
         // Retornamos false porque não há escrita real em memória física (RAM/ROM) aqui
         return false;
     }
-    
+
     bool Mapper003::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
@@ -44,7 +43,7 @@ namespace R2NES::Core
         }
         return false;
     }
-    
+
     bool Mapper003::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
@@ -55,10 +54,21 @@ namespace R2NES::Core
         return false;
     }
 
-
     MirrorMode Mapper003::getMirrorMode()
     {
         // Retorna o modo definido no hardware (passado via constructor)
         return mirrorMode;
+    }
+
+    void Mapper003::saveState(std::ostream &os)
+    {
+        os.write(reinterpret_cast<const char*>(&nCHRBankSelect), sizeof(nCHRBankSelect));
+        os.write(reinterpret_cast<const char*>(&mirrorMode), sizeof(mirrorMode));
+    }
+
+    void Mapper003::loadState(std::istream &is)
+    {
+        is.read(reinterpret_cast<char*>(&nCHRBankSelect), sizeof(nCHRBankSelect));
+        is.read(reinterpret_cast<char*>(&mirrorMode), sizeof(mirrorMode));
     }
 }
