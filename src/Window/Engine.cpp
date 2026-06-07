@@ -26,6 +26,9 @@ namespace R2NES::Core
         window->setVSyncCallback([this](bool enabled)
                                  { this->vsyncEnabled = enabled; });
 
+        window->setPaletteCallback([this](PaletteType preset)
+                                   { this->nes->getPpu().setSystemPalette(preset); });
+
         // Conecta o callback de Sound para sincronizar o estado do som
         window->setSoundCallback([this](bool enabled)
                                  { 
