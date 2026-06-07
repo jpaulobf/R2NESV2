@@ -31,6 +31,7 @@
 #define IDM_DEBUG_TILE_VIEWER 1006
 #define IDM_DEBUG_DISASSEMBLER 1007
 #define IDM_DEBUG_PALETTE_VIEWER 1009
+#define IDM_DEBUG_OAM_VIEWER 1010
 #define IDM_DEBUG_RAM_VIEWER 1008
 #define IDM_VIEW_VSYNC 1999
 #define IDM_VIEW_WINDOW_1X 2000
@@ -196,6 +197,7 @@ namespace R2NES::Core
             tileViewer.handleEvent(&e);
             disassembler.handleEvent(&e);
             paletteViewer.handleEvent(&e);
+            oamViewer.handleEvent(&e);
             ramViewer.handleEvent(&e);
 
             if (e.type == SDL_QUIT)
@@ -385,6 +387,11 @@ namespace R2NES::Core
                     {
                         windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, true);
                         openRamViewer();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_OAM_VIEWER)
+                    {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, true);
+                        openOamViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
                     {
@@ -594,6 +601,12 @@ namespace R2NES::Core
                         ramViewer.close();
                         this->ramViewerOpen = false;
                     }
+                    else if (oamViewer.getWindowID() != 0 && e.window.windowID == oamViewer.getWindowID())
+                    {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, false);
+                        oamViewer.close();
+                        this->oamViewerOpen = false;
+                    }
                     else if (disassembler.getWindowID() != 0 && e.window.windowID == disassembler.getWindowID())
                     {
                         windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
@@ -613,6 +626,7 @@ namespace R2NES::Core
                         tileViewer.updatePosition(x, y, w_main);
                         paletteViewer.updatePosition(x, y, w_main);
                         ramViewer.updatePosition(x, y, w_main);
+                        oamViewer.updatePosition(x, y, w_main);
 
                         disassembler.updatePosition(x, y, w_main);
                     }
@@ -732,6 +746,15 @@ namespace R2NES::Core
             else
             {
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
+            }
+
+            if (this->oamViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_OAM_VIEWER, L"&OAM Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_OAM_VIEWER, L"&OAM Viewer");
             }
 
             if (this->vsyncEnabled)
@@ -1010,6 +1033,24 @@ namespace R2NES::Core
         }
     }
 
+    void Window::openOamViewer()
+    {
+        this->oamViewerOpen = true;
+        int x, y, w, h;
+        SDL_GetWindowPosition(window, &x, &y);
+        SDL_GetWindowSize(window, &w, &h);
+
+        oamViewer.open(x, y, w);
+    }
+
+    void Window::updateOamViewer(const std::array<uint8_t, 256> &oam)
+    {
+        if (oamViewer.isOpen())
+        {
+            oamViewer.render(oam);
+        }
+    }
+
     void Window::unload()
     {
         unloadRequested = true;
@@ -1030,11 +1071,13 @@ namespace R2NES::Core
         this->tileViewerOpen = false;
         this->paletteViewerOpen = false;
         this->ramViewerOpen = false;
+        this->oamViewerOpen = false;
 
         windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
+        windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, false);
 
         tileViewer.close();
         paletteViewer.close();
