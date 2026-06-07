@@ -467,6 +467,23 @@ namespace R2NES::Core
                         createMenu(); // Atualiza os checks no menu
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_PALETTE_DEFAULT &&
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_PALETTE_NEON)
+                    {
+                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
+                        if (id == IDM_VIEW_PALETTE_DEFAULT)
+                            setPalettePreset(PaletteType::DEFAULT);
+                        if (id == IDM_VIEW_PALETTE_SMOOTH)
+                            setPalettePreset(PaletteType::SMOOTH);
+                        if (id == IDM_VIEW_PALETTE_NESTOPIA)
+                            setPalettePreset(PaletteType::NESTOPIA);
+                        if (id == IDM_VIEW_PALETTE_WAVEBEAM)
+                            setPalettePreset(PaletteType::WAVEBEAM);
+                        if (id == IDM_VIEW_PALETTE_NEON)
+                            setPalettePreset(PaletteType::NEON);
+                        createMenu();
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
                     {
                         toggleMarkMenuItem(IDM_HACKS_UNLIMITED_SPRITES, [this](bool currentlyChecked)
