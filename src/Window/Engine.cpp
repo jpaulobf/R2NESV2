@@ -576,6 +576,12 @@ namespace R2NES::Core
             window->updateTileViewer(p0.data(), p1.data());
         }
 
+        // Se o Palette Viewer estiver aberto, envia os dados da PPU
+        if (window->isPaletteViewerOpen())
+        {
+            window->updatePaletteViewer(nes->getPpu().getPaletteTable(), nes->getPpu().getSystemPalette());
+        }
+
         // Se o RamViewer estiver aberto, atualiza-o
         if (window->isRamViewerOpen() && nes->isCartridgeLoaded())
         {
