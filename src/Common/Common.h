@@ -24,4 +24,13 @@ namespace R2NES::Core
         FULLSCREEN_STRETCH,
         FULLSCREEN_ASPECT_8_7
     };
+
+    // Tipos de paletas disponíveis
+    enum class PaletteType {
+        DEFAULT,
+        SMOOTH,
+        NESTOPIA,
+        WAVEBEAM,
+        NEON
+    };
 }
