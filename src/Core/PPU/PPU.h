@@ -47,6 +47,11 @@ namespace R2NES::Core
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
 
+        const std::array<uint8_t, 32> &getPaletteTable() const { return paletteTable; }
+        static const uint32_t *getSystemPalette();
+
+        static void setSystemPalette(PaletteType type);
+
         // Retorna um buffer de pixels ARGB para um Pattern Table específico
         // patternTableIndex: 0 para Pattern Table 0 ($0000-$0FFF), 1 para Pattern Table 1 ($1000-$1FFF)
         std::vector<uint32_t> getPatternTablePixels(uint8_t patternTableIndex, uint8_t paletteIndex = 0) const;
@@ -72,6 +77,9 @@ namespace R2NES::Core
         // Zapper State
         int zapperX = -1, zapperY = -1;
         bool zapperLightDetected = false;
+
+        // Paleta de cores do NES (64 cores ARGB)
+        static const uint32_t* currentPalette;
 
         // Registradores e buffers internos
         uint8_t ppuCtrl = 0x00; // PPUCTRL ($2000)
