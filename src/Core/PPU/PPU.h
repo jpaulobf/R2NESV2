@@ -48,6 +48,7 @@ namespace R2NES::Core
         void loadState(std::istream &is);
 
         const std::array<uint8_t, 32> &getPaletteTable() const { return paletteTable; }
+        const std::array<uint8_t, 256> &getOamMemory() const { return oamMemory; }
         static const uint32_t *getSystemPalette();
 
         static void setSystemPalette(PaletteType type);
@@ -79,7 +80,7 @@ namespace R2NES::Core
         bool zapperLightDetected = false;
 
         // Paleta de cores do NES (64 cores ARGB)
-        static const uint32_t* currentPalette;
+        static const uint32_t *currentPalette;
 
         // Registradores e buffers internos
         uint8_t ppuCtrl = 0x00; // PPUCTRL ($2000)
