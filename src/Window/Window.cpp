@@ -30,6 +30,7 @@
 #define IDM_RECENT_FILE_BASE_ID 10000
 #define IDM_DEBUG_TILE_VIEWER 1006
 #define IDM_DEBUG_DISASSEMBLER 1007
+#define IDM_DEBUG_PALETTE_VIEWER 1009
 #define IDM_DEBUG_RAM_VIEWER 1008
 #define IDM_VIEW_VSYNC 1999
 #define IDM_VIEW_WINDOW_1X 2000
@@ -44,6 +45,12 @@
 #define IDM_VIEW_SCANLINES_LEVEL_15 2115
 #define IDM_VIEW_SCANLINES_LEVEL_20 2120
 #define IDM_VIEW_SCANLINES_LEVEL_25 2125
+#define IDM_VIEW_PALETTES 2200
+#define IDM_VIEW_PALETTE_DEFAULT 2201
+#define IDM_VIEW_PALETTE_SMOOTH 2202
+#define IDM_VIEW_PALETTE_NESTOPIA 2203
+#define IDM_VIEW_PALETTE_WAVEBEAM 2204
+#define IDM_VIEW_PALETTE_NEON 2205
 #define IDM_SOUND_SOUND 2010
 #define IDM_SOUND_PULSE1 2011
 #define IDM_SOUND_PULSE2 2012
@@ -188,6 +195,7 @@ namespace R2NES::Core
             // Só processa eventos do ImGui se a janela de debug estiver ativa
             tileViewer.handleEvent(&e);
             disassembler.handleEvent(&e);
+            paletteViewer.handleEvent(&e);
             ramViewer.handleEvent(&e);
 
             if (e.type == SDL_QUIT)
@@ -362,6 +370,11 @@ namespace R2NES::Core
                     {
                         windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, true);
                         openTileViewer();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_PALETTE_VIEWER)
+                    {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, true);
+                        openPaletteViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_DISASSEMBLER)
                     {
@@ -552,6 +565,12 @@ namespace R2NES::Core
                         tileViewer.close();
                         this->tileViewerOpen = false;
                     }
+                    else if (paletteViewer.getWindowID() != 0 && e.window.windowID == paletteViewer.getWindowID())
+                    {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, false);
+                        paletteViewer.close();
+                        this->paletteViewerOpen = false;
+                    }
                     else if (ramViewer.getWindowID() != 0 && e.window.windowID == ramViewer.getWindowID())
                     {
                         windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
@@ -575,6 +594,7 @@ namespace R2NES::Core
                         SDL_GetWindowSize(window, &w_main, &h_main);
 
                         tileViewer.updatePosition(x, y, w_main);
+                        paletteViewer.updatePosition(x, y, w_main);
                         ramViewer.updatePosition(x, y, w_main);
 
                         disassembler.updatePosition(x, y, w_main);
@@ -670,6 +690,15 @@ namespace R2NES::Core
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
             }
 
+            if (this->paletteViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
+            }
+
             if (this->disassemblerOpen)
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
@@ -756,8 +785,17 @@ namespace R2NES::Core
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 15 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_15, L"15%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 20 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_20, L"20%");
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 25 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_25, L"25%");
-
             AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hScanlineLevelMenu, L"&Scanlines Level");
+
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
+
+            HMENU hPalettesLevelMenu = CreatePopupMenu();
+            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::DEFAULT ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_DEFAULT, L"Default");
+            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::SMOOTH ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_SMOOTH, L"Smooth");
+            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::NESTOPIA ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_NESTOPIA, L"Nestopia Emulator");
+            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::WAVEBEAM ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_WAVEBEAM, L"WaveBeam");
+            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::NEON ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_NEON, L"Neon");
+            AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hPalettesLevelMenu, L"&Palettes Preset");
 
             if (this->soundEnabled)
             {
@@ -918,9 +956,23 @@ namespace R2NES::Core
         tileViewer.open(x, y, w);
     }
 
+    void Window::openPaletteViewer()
+    {
+        this->paletteViewerOpen = true;
+        int x, y, w, h;
+        SDL_GetWindowPosition(window, &x, &y);
+        SDL_GetWindowSize(window, &w, &h);
+        paletteViewer.open(x, y, w);
+    }
+
     void Window::updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1)
     {
         tileViewer.render(pixels0, pixels1);
+    }
+
+    void Window::updatePaletteViewer(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette)
+    {
+        paletteViewer.render(paletteTable, systemPalette);
     }
 
     void Window::openRamViewer()
@@ -959,13 +1011,16 @@ namespace R2NES::Core
     {
         this->disassemblerOpen = false;
         this->tileViewerOpen = false;
+        this->paletteViewerOpen = false;
         this->ramViewerOpen = false;
 
         windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
+        windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
 
         tileViewer.close();
+        paletteViewer.close();
         ramViewer.close();
         disassembler.close();
     }
