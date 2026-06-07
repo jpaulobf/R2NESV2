@@ -2,6 +2,12 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.7.6] - 2026-06-07
+
+### Adicionado
+- **Palette Viewer**: Nova ferramenta de debug para visualizar e inspecionar a Palette RAM da PPU em tempo real.
+- **Seleção de Paletas**: Adicionada a funcionalidade de trocar entre diferentes presets de paletas de cores (Default, Smooth, Nestopia, Wavebeam, Cyber Neon) em tempo real.
+
 ## [0.7.5] - 2026-06-06
 
 ### Adicionado
