@@ -59,7 +59,7 @@ namespace R2NES::Core
         0xFF9CD9DE, 0xFF9CE3C9, 0xABE9B9FF, 0xCCE9AEFF, 0xF2E5ACFF, 0xFFAEAEAE, 0xFF000000, 0xFF000000};
 
     // Inicialização da variável estática (feita uma única vez no escopo global)
-    const uint32_t *PPU::currentPalette = PALETTE_CYBER_NEON;
+    const uint32_t *PPU::currentPalette = nesSystemPalette;
 
     PPU::PPU()
     {
