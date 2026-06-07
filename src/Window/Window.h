@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include "TileViewer.h"
+#include "PaletteViewer.h"
 #include "RamViewer.h"
 #include "Disassembler.h"
 #include "Util/ConfigManager.h"
@@ -104,6 +105,9 @@ namespace R2NES::Core
         /* Atualiza os pixels das Pattern Tables na janela do Tile Viewer. */
         void updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1);
 
+        /* Atualiza os dados e renderiza a janela do Palette Viewer. */
+        void updatePaletteViewer(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette);
+
         /* Atualiza os dados e renderiza a janela do RamViewer se estiver aberta. */
         void updateRamViewer(RAM *ram);
 
@@ -121,6 +125,9 @@ namespace R2NES::Core
 
         /* Verifica se a janela do Tile Viewer está aberta. */
         bool isTileViewerOpen() const { return tileViewer.isOpen(); }
+
+        /* Verifica se a janela do Palette Viewer está aberta. */
+        bool isPaletteViewerOpen() const { return paletteViewer.isOpen(); }
 
         /* Verifica se houve um pedido de reset via menu. */
         /* Verifica se a janela do RamViewer está aberta. */
@@ -296,6 +303,9 @@ namespace R2NES::Core
         /* Inicializa e exibe a janela do desensamblador de CPU. */
         void openDisassembler();
 
+        /* Inicializa e exibe a janela do visualizador de paletas. */
+        void openPaletteViewer();
+
         /* Inicializa e exibe a janela do RamViewer. */
         void openRamViewer();
 
@@ -317,6 +327,7 @@ namespace R2NES::Core
 
         MouseState mouseState;
         TileViewer tileViewer;
+        PaletteViewer paletteViewer;
         RamViewer ramViewer;
         Disassembler disassembler;
 
@@ -329,8 +340,8 @@ namespace R2NES::Core
 
         std::string title = "R2NESV2 - build 0.7.5 | FPS: %.2f";
 
-        // Teste de Scanlines
-        bool scanlines = true;
+        // Valores Default Scanlines
+        bool scanlines = false;
         int scanlinesTransparency = 5; // 0% a 100% (intensidade do preto)
         std::vector<uint32_t> postProcessBuffer;
 
@@ -356,16 +367,20 @@ namespace R2NES::Core
         // Membros para gerenciamento do modo de exibição
         DisplayMode currentDisplayMode = DisplayMode::WINDOWED;
 
+        // Configurações de paleta
+        PaletteType palettePreset = PaletteType::DEFAULT;
+
         // Armazena o último estado da janela para restauração
         int lastWindowedX = SDL_WINDOWPOS_CENTERED, lastWindowedY = SDL_WINDOWPOS_CENTERED, lastWindowedW = 0, lastWindowedH = 0;
         int currentWindowX = 3;
-        bool unlimitedSprites = false;
+        bool unlimitedSprites = true;
         bool vsyncEnabled = true;
         bool soundEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
         bool paused = false;
         bool tileViewerOpen = false;
+        bool paletteViewerOpen = false;
         bool disassemblerOpen = false;
         bool ramViewerOpen = false;
 
