@@ -37,6 +37,7 @@ namespace R2NES::Core
         using SaveCallback = std::function<void(bool)>;
         using LoadCallback = std::function<void(bool)>;
         using SaveSlotCallback = std::function<void(int)>;
+        using PaletteCallback = std::function<void(PaletteType)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -88,6 +89,9 @@ namespace R2NES::Core
 
         /* Define a função de callback para eventos de botões do controle. */
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
+
+        /* Define a função de callback para eventos de paleta. */
+        void setPaletteCallback(PaletteCallback cb) { paletteCallback = cb; }
 
         // ---------------------------------
 
@@ -266,6 +270,13 @@ namespace R2NES::Core
                 saveSlotCallback(saveSlot);
         }
 
+        void setPalettePreset(PaletteType preset)
+        {
+            palettePreset = preset;
+            if (paletteCallback)
+                paletteCallback(palettePreset);
+        }
+
         /* Verifica se a janela principal foi fechada. */
         bool shouldClose() const { return closed; }
 
@@ -360,6 +371,7 @@ namespace R2NES::Core
         SaveCallback saveCallback = nullptr;
         LoadCallback loadCallback = nullptr;
         SaveSlotCallback saveSlotCallback = nullptr;
+        PaletteCallback paletteCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -391,10 +403,12 @@ namespace R2NES::Core
         bool noiseEnabled = true;
         bool dmcEnabled = true;
 
+        // Flags para gerenciamento de Save/Load
         bool isToSave = false;
         bool isToLoad = false;
         int saveSlot = 1;
 
+        // Verifica se o cartucho foi introduzido e lido
         bool cartLoaded = false;
     };
 }
