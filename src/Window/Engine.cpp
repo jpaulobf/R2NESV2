@@ -565,6 +565,12 @@ namespace R2NES::Core
         window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested,
                        cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status, currentFPS);
 
+        // Se o OAM Viewer estiver aberto, envia os dados da PPU
+        if (window->isOamViewerOpen() && nes->isCartridgeLoaded())
+        {
+            window->updateOamViewer(nes->getPpu().getOamMemory());
+        }
+
         // Se o Disassembler estiver aberto, atualiza-o
         if (window->isDisassemblerOpen())
         {
