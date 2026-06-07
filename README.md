@@ -25,10 +25,12 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
   - Mapper 003 (CNROM)
 - **File Formats**: Support for `.nes` (iNES) files and compressed `.zip` files.
 - **Save States**: Support for 3 independent slots with disk persistence in the `/savestates` folder.
-- **Debug Interface**:
+- **Debug Interface**: 
+  - **Palette Viewer**: Real-time visualization and inspection of the PPU's Palette RAM.
   - **Tile Viewer**: Real-time visualization of Pattern Tables.
   - **Disassembler**: Assembly code debugging with execution highlighting.
 - **Quality of Life (QoL)**:
+  - **Real-time Palette Switching**: Ability to switch between different color palette presets (Default, Smooth, Nestopia, Wavebeam, Cyber Neon) on the fly.
   - **Recent Files**: Menu with history of the last 10 loaded ROMs for quick access.
   - **Directory Persistence**: Automatic memorization of the last opened folder, facilitating navigation.
 - **Input**: Native support for Keyboard and Controllers (XInput/DirectInput via SDL2) with Hot-plugging.
