@@ -10,6 +10,7 @@
 #include "PaletteViewer.h"
 #include "RamViewer.h"
 #include "Disassembler.h"
+#include "OamViewer.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 #include "imgui.h"
@@ -115,6 +116,12 @@ namespace R2NES::Core
         /* Atualiza os dados e renderiza a janela do RamViewer se estiver aberta. */
         void updateRamViewer(RAM *ram);
 
+        /* Inicializa e exibe a janela do OAM Viewer. */
+        void openOamViewer();
+
+        /* Atualiza os dados da OAM RAM na janela de debug. */
+        void updateOamViewer(const std::array<uint8_t, 256> &oam);
+
         /* Cria e configura o menu nativo do Windows (File, Display, Debug, etc). */
         void createMenu();
 
@@ -132,6 +139,9 @@ namespace R2NES::Core
 
         /* Verifica se a janela do Palette Viewer está aberta. */
         bool isPaletteViewerOpen() const { return paletteViewer.isOpen(); }
+
+        /* Verifica se a janela do OAM Viewer está aberta. */
+        bool isOamViewerOpen() const { return oamViewer.isOpen(); }
 
         /* Verifica se houve um pedido de reset via menu. */
         /* Verifica se a janela do RamViewer está aberta. */
@@ -341,6 +351,7 @@ namespace R2NES::Core
         PaletteViewer paletteViewer;
         RamViewer ramViewer;
         Disassembler disassembler;
+        OamViewer oamViewer;
 
         Util::ConfigManager configManager;
 
@@ -395,6 +406,7 @@ namespace R2NES::Core
         bool paletteViewerOpen = false;
         bool disassemblerOpen = false;
         bool ramViewerOpen = false;
+        bool oamViewerOpen = false;
 
         // Configurações de áudio para cada canal
         bool pulse1Enabled = true;
