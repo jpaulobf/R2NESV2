@@ -14,6 +14,11 @@ namespace R2NES::Core
     {
     }
 
+    void VRAM::reset()
+    {
+        std::fill(vram.begin(), vram.end(), 0x00);
+    }
+
     uint8_t VRAM::read(uint16_t addr, MirrorMode mode) const
     {
         return vram[getMirroredAddress(addr, mode)];
