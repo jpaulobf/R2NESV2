@@ -27,6 +27,10 @@ namespace R2NES::Core
         virtual void saveState(std::ostream &os) = 0;
         virtual void loadState(std::istream &is) = 0;
 
+        // Define o estado inicial do mapper. Virtual puro não é necessário aqui,
+        // permitindo que mappers simples não precisem implementá-lo.
+        virtual void reset() {}
+
         // Por padrão, mappers retornam HARDWARE (indicando o que está no iNES)
         virtual MirrorMode getMirrorMode() 
         { 
