@@ -7,7 +7,6 @@
 #include "imgui_impl_sdlrenderer2.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
-#include "Core/Memory/RAM/RAM.h"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -32,6 +31,7 @@
 #define IDM_DEBUG_DISASSEMBLER 1007
 #define IDM_DEBUG_PALETTE_VIEWER 1009
 #define IDM_DEBUG_OAM_VIEWER 1010
+#define IDM_DEBUG_VRAM_VIEWER 1011
 #define IDM_DEBUG_RAM_VIEWER 1008
 #define IDM_VIEW_VSYNC 1999
 #define IDM_VIEW_WINDOW_1X 2000
@@ -198,6 +198,7 @@ namespace R2NES::Core
             disassembler.handleEvent(&e);
             paletteViewer.handleEvent(&e);
             oamViewer.handleEvent(&e);
+            vramViewer.handleEvent(&e);
             ramViewer.handleEvent(&e);
 
             if (e.type == SDL_QUIT)
@@ -392,6 +393,11 @@ namespace R2NES::Core
                     {
                         windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, true);
                         openOamViewer();
+                    }
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_VRAM_VIEWER)
+                    {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_VRAM_VIEWER, true);
+                        openVramViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
                     {
@@ -607,6 +613,12 @@ namespace R2NES::Core
                         oamViewer.close();
                         this->oamViewerOpen = false;
                     }
+                    else if (vramViewer.getWindowID() != 0 && e.window.windowID == vramViewer.getWindowID())
+                    {
+                        windowCheckUncheckMenuItem(IDM_DEBUG_VRAM_VIEWER, false);
+                        vramViewer.close();
+                        this->vramViewerOpen = false;
+                    }
                     else if (disassembler.getWindowID() != 0 && e.window.windowID == disassembler.getWindowID())
                     {
                         windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
@@ -712,24 +724,6 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
 
-            if (this->tileViewerOpen)
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            }
-
-            if (this->paletteViewerOpen)
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
-            }
-
             if (this->disassemblerOpen)
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
@@ -746,6 +740,35 @@ namespace R2NES::Core
             else
             {
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
+            }
+
+            AppendMenuW(hDebugMenu, MF_SEPARATOR, 0, NULL);
+
+            if (this->tileViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
+            }
+
+            if (this->vramViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_VRAM_VIEWER, L"&VRAM Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_VRAM_VIEWER, L"&VRAM Viewer");
+            }
+
+            if (this->paletteViewerOpen)
+            {
+                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
+            }
+            else
+            {
+                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
             }
 
             if (this->oamViewerOpen)
@@ -1033,6 +1056,24 @@ namespace R2NES::Core
         }
     }
 
+    void Window::openVramViewer()
+    {
+        this->vramViewerOpen = true;
+        int x, y, w, h;
+        SDL_GetWindowPosition(window, &x, &y);
+        SDL_GetWindowSize(window, &w, &h);
+
+        vramViewer.open(x, y, w);
+    }
+
+    void Window::updateVramViewer(VRAM *vram)
+    {
+        if (vramViewer.isOpen())
+        {
+            vramViewer.render(vram);
+        }
+    }
+
     void Window::openOamViewer()
     {
         this->oamViewerOpen = true;
@@ -1072,12 +1113,14 @@ namespace R2NES::Core
         this->paletteViewerOpen = false;
         this->ramViewerOpen = false;
         this->oamViewerOpen = false;
+        this->vramViewerOpen = false;
 
         windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
         windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, false);
+        windowCheckUncheckMenuItem(IDM_DEBUG_VRAM_VIEWER, false);
 
         tileViewer.close();
         paletteViewer.close();
@@ -1301,8 +1344,7 @@ namespace R2NES::Core
         std::cout << "Window: Scanlines " << (scanlines ? "Enabled" : "Disabled") << std::endl;
     }
 
-    void Window::render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
-                        bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status, float fps)
+    void Window::render(const uint32_t *pixels, float fps)
     {
         // Atualiza o título da janela com o FPS
         static float lastFps = -1.0f;
