@@ -398,7 +398,7 @@ namespace R2NES::Core
         if (scanline == -1 && cycle == 1)
         {
             // Limpa flags de VBlank, Sprite 0 Hit e Overflow no início do pre-render
-            ppuStatus &= ~0xE0;
+            ppuStatus &= 0x1F; // Limpa os 3 bits superiores (7, 6, 5)
             sprite0HitDetectedThisScanline = false;
         }
 
@@ -674,6 +674,9 @@ namespace R2NES::Core
 
     void PPU::reset()
     {
+        vram.reset();
+        std::fill(paletteTable.begin(), paletteTable.end(), 0x00);
+
         ppuCtrl = 0x00;
         ppuMask = 0x00;
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
