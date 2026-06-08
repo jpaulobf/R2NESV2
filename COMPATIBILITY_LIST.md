@@ -96,8 +96,8 @@ Mapper 001 (MMC1)
 | Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐ | Travado na tela inicial |
 | Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Adventures of Lolo | US | 001 | ⭐ | Não funciona |
-| Adventures of Lolo 3 | US | 001 | ⭐ | Não funciona |
+| Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Adventures of Lolo 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Rad Gravity, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Tom Sawyer | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Air Fortress | US | 001 | ⭐ | Não inicializa |
@@ -105,7 +105,7 @@ Mapper 001 (MMC1)
 | Al Unser Jr. Turbo Racing | US | 001 | ⭐ | Glitches Gráficos severos |
 | All-Pro Basketball | US | 001 | ⭐ | Não inicializa |
 | American Gladiators | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Anticipation | US | 001 | ⭐ | Preso na tela inicial |
+| Anticipation | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Attack of the Killer Tomatoes | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Back to the Future II & III | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -123,7 +123,7 @@ Mapper 001 (MMC1)
 | Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐ | Não inicializa |
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bomberman II | US | 001 | ⭐ | Não inicializa |
+| Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Break Time: The National Pool Tour | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -135,7 +135,6 @@ Mapper 001 (MMC1)
 | Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
 | Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
-
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -164,10 +163,10 @@ Mapper 001 (MMC1)
 | Dr. Jekyll and Mr. Hyde | US | 001 |  | ... |
 | Dr. Mario | US | 001 |  | ... |
 | Dragon Fighter | US | 001 |  | ... |
-| Dragon Warrior | US | 001 |  | ... |
-| Dragon Warrior II | US | 001 |  | ... |
-| Dragon Warrior III | US | 001 |  | ... |
-| Dragon Warrior IV | US | 001 |  | ... |
+| Dragon Warrior | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Dragon Warrior III | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior IV | US | 001 |  | ⭐ | Não abre |
 | Dungeon Magic: Sword of the Elements | US | 001 |  | ... |
 | Dusty Diamond's All-Star Softball | US | 001 |  | ... |
 | Dynowarz: The Destruction of Spondylus | US | 001 |  | ... |
@@ -285,8 +284,8 @@ Mapper 001 (MMC1)
 | Strider | US | 001 |  | ... |
 | Super Dodge Ball | US | 001 |  | ... |
 | Super Jeopardy! | US | 001 |  | ... |
-| Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 |  | ... |
-| Superman | US | 001 |  | ... |
+| Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Superman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Swamp Thing | US | 001 |  | ... |
 | Taboo: The Sixth Sense | US | 001 |  | ... |
 | TaleSpin, Disney's | US | 001 |  | ... |
@@ -296,7 +295,7 @@ Mapper 001 (MMC1)
 | Tecmo Bowl | US | 001 |  | ... |
 | Tecmo Cup: Soccer Game | US | 001 |  | ... |
 | Tecmo World Wrestling | US | 001 |  | ... |
-| Teenage Mutant Ninja Turtles | US | 001 |  | ... |
+| Teenage Mutant Ninja Turtles | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Tetris | US | 001 |  | ... |
 | Three Stooges, The | US | 001 |  | ... |
 | Thunderbirds | US | 001 |  | ... |
@@ -337,10 +336,6 @@ Mapper 002 (UNROM)
 
 ** (não todos os jogos foram testados - WIP) **
 
-| --- | --- | --- | --- | --- |
-| Games not tested yet | --- | --- | --- | --- |
-| --- | --- | --- | --- | --- |
-
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | --- | --- | --- | --- | --- |
 | 1943: The Battle of Midway | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
@@ -352,38 +347,41 @@ Mapper 002 (UNROM)
 | Archon | US | 002 | ⭐ | Preso após o menu |
 | Athena | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Best of the Best: Championship Karate | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Blades of Steel | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Blues Brothers, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Caesars Palace | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | California Games | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | California Raisins, The: The Grape Escape | US | 002 | - | N/A |
-| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Castelian | US | 002 | ⭐ | Erro na velocidade da emulação |
-| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Commando | US | 002 | ⭐⭐⭐⭐ |  Falhas gráficas mínimas |
-| Conan | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Contra | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Double Dribble | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Dr. Chaos | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Dragon's Lair | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| DuckTales 2, Disney's | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| DuckTales, Disney's | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Fist of the North Star | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Flight of the Intruder | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Flying Dragon: The Secret Scroll | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Fun House | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Ghosts 'n Goblins | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Goonies II, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Guardian Legend, The | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Gun.Smoke | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Classic Concentration | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Color A Dinosaur | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Commando | US | 002 | ⭐⭐⭐⭐ |  Falhas gráficas mínimas, eventuais travamentos. |
+| Conan | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Contra | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| CrackOut | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Dick Tracy | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Double Dribble | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Dr. Chaos | US | 002 | ⭐⭐⭐⭐⭐ | O som parece um pouco estranho. |
+| Dragon's Lair | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| DuckTales 2, Disney's | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| DuckTales, Disney's | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Fist of the North Star | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Flight of the Intruder | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Flying Dragon: The Secret Scroll | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Fun House | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Ghosts 'n Goblins | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Goonies II, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Guardian Legend, The | US | 002 | ⭐⭐⭐⭐ | Flickerings no HUD |
+| Gun.Smoke | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| --- | --- | --- | --- | --- |
+| Games not tested yet | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Hollywood Squares | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Ikari Warriors | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Indiana Jones and The Last Crusade | US | 002 | ⭐⭐⭐⭐⭐ | - |
@@ -460,7 +458,7 @@ Mapper 003 (CNROM)
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | --- | --- | --- | --- | --- |
 | ASO: Armored Scrum Object | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Adventure Island | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Adventure Island | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Dino Riki | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Alpha Mission | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Arkanoid | US | 003 | ⭐⭐⭐⭐⭐ | - |
@@ -478,7 +476,7 @@ Mapper 003 (CNROM)
 | Cybernoid: The Fighting Machine | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Dash Galaxy in the Alien Asylum | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Destination Earthstar | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Donkey Kong Classics | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Donkey Kong Classics | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Exploding Fist | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Fisher-Price: Firehouse Rescue | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Fisher-Price: I Can Remember | US | 003 | ⭐⭐⭐⭐⭐ | - |
