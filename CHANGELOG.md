@@ -2,6 +2,19 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.7.7] - 2026-06-07
+
+### Adicionado
+- **VRAM Viewer**: Nova ferramenta de debug para visualizar e editar os 2KB de memória física das Name Tables em tempo real, com suporte a visualização ASCII.
+- **OAM Viewer**: Visualizador para a Object Attribute Memory (OAM), permitindo inspecionar posição, índice de tile, paleta e atributos de todos os 64 sprites.
+- **Mapper 066 (GxROM)**: Implementação do suporte para troca de bancos PRG (32KB) e CHR (8KB), habilitando jogos como *Super Mario Bros. + Duck Hunt*.
+- **Mapper 090**: Implementação inicial do suporte ao Mapper 090.
+
+### Melhorado
+- **Precisão da CPU**: Refatoração do tratamento das flags de status (B e U) durante o empilhamento em interrupções (NMI, IRQ, BRK), alinhando o comportamento com o hardware real do 6502.
+- **Interface de Debug**: Simplificação da janela de Disassembler para um visual mais limpo e atualização automática do cache de instruções ao detectar trocas de banco.
+- **Arquitetura de Janelas**: Refatoração do método `Window::render` para separar a renderização principal da lógica de depuração, melhorando a performance e clareza do código.
+
 ## [0.7.6] - 2026-06-07
 
 ### Adicionado
