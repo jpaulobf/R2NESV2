@@ -14,6 +14,9 @@
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 #include "imgui.h"
+#include "Core/Memory/RAM/RAM.h"
+#include "Core/Memory/VRAM/VRAM.h"
+#include "VRamViewer.h"
 
 namespace R2NES::Core
 {
@@ -100,8 +103,7 @@ namespace R2NES::Core
         void pollEvents();
 
         /* Atualiza a textura principal com os pixels da PPU e renderiza na tela. */
-        void render(const uint32_t *pixels, uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
-                    bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status, float fps);
+        void render(const uint32_t *pixels, float fps);
 
         /* Atualiza os dados e renderiza a janela do Disassembler se estiver aberta. */
         void updateDisassembler(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
@@ -115,6 +117,12 @@ namespace R2NES::Core
 
         /* Atualiza os dados e renderiza a janela do RamViewer se estiver aberta. */
         void updateRamViewer(RAM *ram);
+
+        /* Inicializa e exibe a janela do VRAM Viewer. */
+        void openVramViewer();
+
+        /* Atualiza os dados da VRAM na janela de debug. */
+        void updateVramViewer(VRAM *vram);
 
         /* Inicializa e exibe a janela do OAM Viewer. */
         void openOamViewer();
@@ -139,6 +147,9 @@ namespace R2NES::Core
 
         /* Verifica se a janela do Palette Viewer está aberta. */
         bool isPaletteViewerOpen() const { return paletteViewer.isOpen(); }
+
+        /* Verifica se a janela do VRAM Viewer está aberta. */
+        bool isVramViewerOpen() const { return vramViewer.isOpen(); }
 
         /* Verifica se a janela do OAM Viewer está aberta. */
         bool isOamViewerOpen() const { return oamViewer.isOpen(); }
@@ -352,6 +363,7 @@ namespace R2NES::Core
         RamViewer ramViewer;
         Disassembler disassembler;
         OamViewer oamViewer;
+        VRamViewer vramViewer;
 
         Util::ConfigManager configManager;
 
@@ -360,7 +372,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.7.6 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.7.7 | FPS: %.2f";
 
         // Valores Default Scanlines
         bool scanlines = false;
@@ -407,6 +419,7 @@ namespace R2NES::Core
         bool disassemblerOpen = false;
         bool ramViewerOpen = false;
         bool oamViewerOpen = false;
+        bool vramViewerOpen = false;
 
         // Configurações de áudio para cada canal
         bool pulse1Enabled = true;
