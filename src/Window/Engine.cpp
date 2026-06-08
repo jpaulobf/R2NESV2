@@ -561,14 +561,28 @@ namespace R2NES::Core
         auto &cpu = nes->getCpu();
         uint16_t currentPC = cpu.pc;
 
-        // Pega o buffer de pixels da PPU e manda para a Window
-        window->render(nes->getPpu().getFrameBuffer(), currentPC, cachedDisassembly, stepByStep, stepRequested,
-                       cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status, currentFPS);
+        // Renderiza apenas a tela do NES e o FPS
+        window->render(nes->getPpu().getFrameBuffer(), currentFPS);
 
         // Se o OAM Viewer estiver aberto, envia os dados da PPU
         if (window->isOamViewerOpen() && nes->isCartridgeLoaded())
         {
             window->updateOamViewer(nes->getPpu().getOamMemory());
+        }
+
+        // Se o Disassembler estiver aberto, verifica se precisamos atualizar o cache por causa de bank switch
+        if (window->isDisassemblerOpen() && nes->isCartridgeLoaded())
+        {
+            // Se o PC atual não está no cache, provavelmente mudamos de banco de PRG
+            if (cachedDisassembly.find(currentPC) == cachedDisassembly.end()) {
+                cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
+            }
+        }
+
+        // Se o VRAM Viewer estiver aberto, envia os dados da PPU
+        if (window->isVramViewerOpen() && nes->isCartridgeLoaded())
+        {
+            window->updateVramViewer(&nes->getPpu().getVram());
         }
 
         // Se o Disassembler estiver aberto, atualiza-o
