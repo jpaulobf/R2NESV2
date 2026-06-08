@@ -3,6 +3,7 @@
 #include "Core/Cartridge/Mappers/Mapper001.h"
 #include "Core/Cartridge/Mappers/Mapper002.h"
 #include "Core/Cartridge/Mappers/Mapper003.h"
+#include "Core/Cartridge/Mappers/Mapper066.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
 #include <fstream>
 #include <cstring>
@@ -219,6 +220,9 @@ namespace R2NES::Core
         case 3:
             pMapper = std::make_shared<Mapper003>(prgBanks, chrBanks, mirror);
             break;
+        case 66:
+            pMapper = std::make_shared<Mapper066>(prgBanks, chrBanks, mirror);
+            break;
         case 90:
             pMapper = std::make_shared<Mapper090>(prgBanks, chrBanks);
             break;
@@ -291,8 +295,8 @@ namespace R2NES::Core
     MirrorMode Cartridge::getMirrorMode() const
     {
         // Mappers avançados (como MMC1) controlam o Mirroring via software.
-        // Adicionamos o Mapper 2 para que ele também responda seu estado interno (hardwired).
-        if (pMapper && (mapperID == 1 || mapperID == 2))
+        // Verificamos se o Mapper implementa getMirrorMode (IDs 1, 2, 66, etc)
+        if (pMapper && (mapperID == 1 || mapperID == 2 || mapperID == 66))
         {
             return pMapper->getMirrorMode();
         }
