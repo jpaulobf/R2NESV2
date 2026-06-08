@@ -322,10 +322,13 @@ namespace R2NES::Core
             push((pc >> 8) & 0x00FF);
             push(pc & 0x00FF);
 
-            SetFlag(B, false);
-            SetFlag(U, true);
-            SetFlag(I, true);
-            push(status);
+            // No hardware real, interrupções de hardware (IRQ/NMI) empurram o status com Bit 4=0 e Bit 5=1.
+            uint8_t status_to_push = status;
+            status_to_push &= ~B; // Bit 4 (Break) deve ser 0
+            status_to_push |= U;  // Bit 5 (Unused) deve ser 1
+            push(status_to_push);
+
+            SetFlag(I, true); // O processador entra em modo de interrupção desabilitada
 
             uint16_t lo = bus->cpuRead(0xFFFE);
             uint16_t hi = bus->cpuRead(0xFFFF);
@@ -340,10 +343,13 @@ namespace R2NES::Core
         push((pc >> 8) & 0x00FF);
         push(pc & 0x00FF);
 
-        SetFlag(B, false);
-        SetFlag(U, true);
-        SetFlag(I, true);
-        push(status);
+        // NMIs funcionam igual ao IRQ em relação aos bits 4 e 5
+        uint8_t status_to_push = status;
+        status_to_push &= ~B;
+        status_to_push |= U;
+        push(status_to_push);
+
+        SetFlag(I, true); // NMI também desabilita IRQs
 
         uint16_t lo = bus->cpuRead(0xFFFA);
         uint16_t hi = bus->cpuRead(0xFFFB);
@@ -358,7 +364,7 @@ namespace R2NES::Core
         a = 0x00;
         x = 0x00;
         y = 0x00;
-        stkp = 0xFD;   // Stack Pointer inicializa em 0xFD
+        stkp = 0xFD;
         status = 0x24; // U e I flags setadas (00100100)
 
         // Lê o vetor de Reset (0xFFFC e 0xFFFD) para saber por onde começar
@@ -684,14 +690,17 @@ namespace R2NES::Core
     {
         pc++; // BRK pula o byte seguinte (padding)
 
-        SetFlag(I, true);
         push((pc >> 8) & 0x00FF);
         push(pc & 0x00FF);
 
-        // BRK empilha o status com o bit B (Break) e U (Unused) setados
-        SetFlag(B, true);
-        push(status);
-        SetFlag(B, false); // O bit B não existe fisicamente no registrador status
+        // Ao contrário da interrupção de hardware, a interrupção por software (BRK) 
+        // empilha o status com os bits 4 e 5 (B e U) setados.
+        uint8_t status_to_push = status;
+        status_to_push |= B;
+        status_to_push |= U;
+        push(status_to_push);
+
+        SetFlag(I, true); // Desabilita interrupções após o salto
 
         uint16_t lo = bus->cpuRead(0xFFFE);
         uint16_t hi = bus->cpuRead(0xFFFF);
@@ -1370,6 +1379,7 @@ namespace R2NES::Core
             std::string sInst = "$" + hex(line_addr, 4) + ": ";
             uint8_t opcode = bus->cpuRead(addr);
             addr++;
+
             sInst += lookup[opcode].name + " ";
 
             if (lookup[opcode].addrmode == &CPU::IMP)
@@ -1378,76 +1388,61 @@ namespace R2NES::Core
             }
             else if (lookup[opcode].addrmode == &CPU::IMM)
             {
-                value = bus->cpuRead(addr);
-                addr++;
+                value = bus->cpuRead(addr++);
                 sInst += "#$" + hex(value, 2) + " {IMM}";
             }
             else if (lookup[opcode].addrmode == &CPU::ZP0)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
                 sInst += "$" + hex(lo, 2) + " {ZP0}";
             }
             else if (lookup[opcode].addrmode == &CPU::ZPX)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
                 sInst += "$" + hex(lo, 2) + ", X {ZPX}";
             }
             else if (lookup[opcode].addrmode == &CPU::ZPY)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
                 sInst += "$" + hex(lo, 2) + ", Y {ZPY}";
             }
             else if (lookup[opcode].addrmode == &CPU::IZX)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
                 sInst += "($" + hex(lo, 2) + ", X) {IZX}";
             }
             else if (lookup[opcode].addrmode == &CPU::IZY)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
                 sInst += "($" + hex(lo, 2) + "), Y {IZY}";
             }
             else if (lookup[opcode].addrmode == &CPU::ABS)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
-                hi = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
+                hi = bus->cpuRead(addr++);
                 sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + " {ABS}";
             }
             else if (lookup[opcode].addrmode == &CPU::ABX)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
-                hi = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
+                hi = bus->cpuRead(addr++);
                 sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", X {ABX}";
             }
             else if (lookup[opcode].addrmode == &CPU::ABY)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
-                hi = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
+                hi = bus->cpuRead(addr++);
                 sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", Y {ABY}";
             }
             else if (lookup[opcode].addrmode == &CPU::IND)
             {
-                lo = bus->cpuRead(addr);
-                addr++;
-                hi = bus->cpuRead(addr);
-                addr++;
+                lo = bus->cpuRead(addr++);
+                hi = bus->cpuRead(addr++);
                 sInst += "($" + hex((uint16_t)(hi << 8) | lo, 4) + ") {IND}";
             }
             else if (lookup[opcode].addrmode == &CPU::REL)
             {
-                value = bus->cpuRead(addr);
-                addr++;
+                value = bus->cpuRead(addr++);
                 sInst += "$" + hex(value, 2) + " [$" + hex(addr + (int8_t)value, 4) + "] {REL}";
             }
 
