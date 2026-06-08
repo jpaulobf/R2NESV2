@@ -34,4 +34,9 @@ namespace R2NES::Core
     {
         is.read(reinterpret_cast<char*>(data.data()), data.size());
     }
+
+    void RAM::reset()
+    {
+        std::fill(data.begin(), data.end(), 0x00);
+    }
 }
