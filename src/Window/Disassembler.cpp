@@ -2,6 +2,8 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
+#include <iostream>
+#include <iomanip>
 
 namespace R2NES::Core
 {
@@ -100,24 +102,51 @@ namespace R2NES::Core
         ImGui::Checkbox("Step-by-Step", &stepByStep);
         ImGui::SameLine();
         if (ImGui::Button("Next Instruction"))
+        {
             stepRequested = true;
+
+            // Localiza a string da instrução atual no mapa de disassembly
+            auto it = disassembly.find(pc);
+            std::string instStr = (it != disassembly.end()) ? it->second : "??? (Address not in disassembly range)";
+
+            // Imprime o estado detalhado no console (Log de Execução)
+            std::cout << "[DEBUG-STEP] " << instStr 
+                      << " | A:$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << (int)a
+                      << " X:$" << std::setw(2) << (int)x 
+                      << " Y:$" << std::setw(2) << (int)y
+                      << " PC:$" << std::setw(4) << (int)pc
+                      << " SP:$" << std::setw(2) << (int)stkp
+                      << " | Flags: "
+                      << ((status & 0x80) ? 'N' : '.')
+                      << ((status & 0x40) ? 'V' : '.')
+                      << ((status & 0x20) ? 'U' : '.')
+                      << ((status & 0x10) ? 'B' : '.')
+                      << ((status & 0x08) ? 'D' : '.')
+                      << ((status & 0x04) ? 'I' : '.')
+                      << ((status & 0x02) ? 'Z' : '.')
+                      << ((status & 0x01) ? 'C' : '.')
+                      << " | P (HEX): $" << std::setw(2) << (int)status << std::dec << std::setfill(' ') << std::endl;
+        }
         ImGui::Separator();
 
-        ImGui::Columns(2, nullptr, false);
-        ImGui::SetColumnWidth(0, 360.0f);
+        ImGui::Columns(2, nullptr, true);
+        ImGui::SetColumnWidth(0, 350.0f);
 
         ImGui::BeginChild("CodeScroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
         static uint16_t lastPC = 0;
         bool pcChanged = (pc != lastPC);
+
         for (auto const &[addr, line] : disassembly)
         {
+            // Destaca a linha do PC
             if (addr == pc)
             {
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), ">> %s", line.c_str());
                 if (pcChanged)
                     ImGui::SetScrollHereY(0.5f);
             }
-            else
+            // Mostra apenas um range em volta do PC para não travar a UI se o mapa for gigante
+            else if (addr > pc - 50 && addr < pc + 50)
             {
                 ImGui::Text("   %s", line.c_str());
             }
