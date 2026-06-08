@@ -48,6 +48,7 @@ namespace R2NES::Core
         void loadState(std::istream &is);
 
         const std::array<uint8_t, 32> &getPaletteTable() const { return paletteTable; }
+        VRAM& getVram() { return vram; }
         const std::array<uint8_t, 256> &getOamMemory() const { return oamMemory; }
         static const uint32_t *getSystemPalette();
 
