@@ -29,7 +29,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper002::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    bool Mapper002::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
