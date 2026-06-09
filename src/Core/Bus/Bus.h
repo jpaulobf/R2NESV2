@@ -74,6 +74,7 @@ namespace R2NES::Core
         CPU *cpu = nullptr;
         IO::Joysticks *joysticks = nullptr;
         std::shared_ptr<Cartridge> cart;
+        uint32_t systemClockCounter = 0;
 
     private:
         bool zapperTrigger = false;
