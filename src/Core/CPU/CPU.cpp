@@ -355,7 +355,7 @@ namespace R2NES::Core
         uint16_t hi = bus->cpuRead(0xFFFB);
         pc = (hi << 8) | lo;
 
-        cycles = 8;
+        cycles = 7;
     }
 
     void CPU::reset()
