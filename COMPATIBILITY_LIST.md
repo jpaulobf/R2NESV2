@@ -93,16 +93,16 @@ Mapper 001 (MMC1)
 | 720° | US | 001 | ⭐ | Travado no Menu |
 | Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐ | Travado na tela inicial |
+| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐ | Não inicializa |
+| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐ | Sujeira nas 8 primeiras linhas (totalmente jogável) |
 | Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Lolo 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Rad Gravity, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Tom Sawyer | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Air Fortress | US | 001 | ⭐ | Não inicializa |
+| Air Fortress | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Airwolf | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Al Unser Jr. Turbo Racing | US | 001 | ⭐ | Glitches Gráficos severos |
+| Al Unser Jr. Turbo Racing | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | All-Pro Basketball | US | 001 | ⭐ | Não inicializa |
 | American Gladiators | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Anticipation | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -113,7 +113,7 @@ Mapper 001 (MMC1)
 | Barbie | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐ | Não inicializa |
 | Barker Bill's Trick Shooting | US | 001 | ⭐ | Não inicializa |
-| Baseball Simulator 1.000 | US | 001 | ⭐ | Trava na seleção de estádios |
+| Baseball Simulator 1.000 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball Stars | US | 001 | ⭐ | Não inicializa |
 | Bases Loaded | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bases Loaded II: Second Season | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -126,28 +126,36 @@ Mapper 001 (MMC1)
 | Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Break Time: The National Pool Tour | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Break Time: The National Pool Tour | US | 001 | ⭐ | Não inicializa |
 | BreakThru | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bubble Bobble | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Bugs Bunny Crazy Castle, The | US | 001 | ⭐ | Não inicializa |
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Caveman Games | US | 001 | ⭐ | Trava após o menu |
 | Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! |
+| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! Use Savestate. |
 | Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Clash At Demonhead | US | 001 | ⭐⭐⭐⭐ | Última coluna de 8 pixels preta (totalmente jogável) |
 | Cobra Command | US | 001 | ⭐ | Não abre |
-| Conflict | US | 001 | ⭐ | Não abre |
+| Conflict | US | 001 | ⭐⭐⭐⭐ | Sujeira nas 8 primeiras linhas (totalmente jogável) |
 | Cool World | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dance Aerobics | US | 001 | ⭐ | Não abre |
 | Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Dragon Warrior | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Dragon Warrior III | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior IV | US | 001 |  | ⭐ | Não abre |
+| Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | RoboCop 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | RoboCop 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Superman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Teenage Mutant Ninja Turtles | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
 | Yoshi | US | 001 | ⭐ | Não abre |
 | Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -163,10 +171,6 @@ Mapper 001 (MMC1)
 | Dr. Jekyll and Mr. Hyde | US | 001 |  | ... |
 | Dr. Mario | US | 001 |  | ... |
 | Dragon Fighter | US | 001 |  | ... |
-| Dragon Warrior | US | 001 |  | ⭐ | Não abre |
-| Dragon Warrior II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Dragon Warrior III | US | 001 |  | ⭐ | Não abre |
-| Dragon Warrior IV | US | 001 |  | ⭐ | Não abre |
 | Dungeon Magic: Sword of the Elements | US | 001 |  | ... |
 | Dusty Diamond's All-Star Softball | US | 001 |  | ... |
 | Dynowarz: The Destruction of Spondylus | US | 001 |  | ... |
@@ -199,7 +203,6 @@ Mapper 001 (MMC1)
 | Heavy Shreddin' | US | 001 |  | ... |
 | Heroes of the Lance, Advanced Dungeons & Dragons | US | 001 |  | ... |
 | Hillsfar, Advanced Dungeons & Dragons | US | 001 |  | ... |
-| Hook | US | 001 |  | ... |
 | Hoops | US | 001 |  | ... |
 | Hudson Hawk | US | 001 |  | ... |
 | Ikari Warriors II: Victory Road | US | 001 |  | ... |
@@ -284,8 +287,6 @@ Mapper 001 (MMC1)
 | Strider | US | 001 |  | ... |
 | Super Dodge Ball | US | 001 |  | ... |
 | Super Jeopardy! | US | 001 |  | ... |
-| Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Superman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Swamp Thing | US | 001 |  | ... |
 | Taboo: The Sixth Sense | US | 001 |  | ... |
 | TaleSpin, Disney's | US | 001 |  | ... |
@@ -295,7 +296,6 @@ Mapper 001 (MMC1)
 | Tecmo Bowl | US | 001 |  | ... |
 | Tecmo Cup: Soccer Game | US | 001 |  | ... |
 | Tecmo World Wrestling | US | 001 |  | ... |
-| Teenage Mutant Ninja Turtles | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Tetris | US | 001 |  | ... |
 | Three Stooges, The | US | 001 |  | ... |
 | Thunderbirds | US | 001 |  | ... |
@@ -322,12 +322,12 @@ Mapper 001 (MMC1)
 ---
 
 ### Resumo Estatístico - Mapper 001 (MMC1)
-- **Total de Jogos Documentados:** 45
-- ⭐⭐⭐⭐⭐ (Perfeito): 29 - 64.4%
-- ⭐⭐⭐⭐ (Jogável): 2 - 4.4%
+- **Total de Jogos Documentados:** 69
+- ⭐⭐⭐⭐⭐ (Perfeito): 45 - 65.2%
+- ⭐⭐⭐⭐ (Jogável): 4 - 5.8%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 14 - 31.2%
+- ⭐ (Não funciona): 20 - 29.0%
 
 
 -------
