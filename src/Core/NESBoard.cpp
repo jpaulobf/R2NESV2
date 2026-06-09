@@ -40,7 +40,7 @@ namespace R2NES::Core
         ram.reset(); 
 
         apu.reset();
-        systemClockCounter = 0;
+        bus.systemClockCounter = 0;
 
         if (bus.cart && bus.cart->getMapper())
             bus.cart->getMapper()->reset();
@@ -84,7 +84,7 @@ namespace R2NES::Core
 
         // Clocka a CPU uma vez. A CPU gerencia seus próprios ciclos internos por instrução.
         cpu.clock();
-        systemClockCounter++;
+        bus.systemClockCounter++;
     }
 
     void NesBoard::insertCartridge(const std::string &path)
@@ -114,7 +114,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // 2. Salva estado dos componentes
-        os.write(reinterpret_cast<char *>(&systemClockCounter), sizeof(systemClockCounter));
+        os.write(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
 
         cpu.saveState(os);
         ram.saveState(os);
@@ -141,7 +141,7 @@ namespace R2NES::Core
         }
 
         // 2. Lê estado dos componentes (Exatamente na mesma ordem do save)
-        is.read(reinterpret_cast<char *>(&systemClockCounter), sizeof(systemClockCounter));
+        is.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
 
         cpu.loadState(is);
         ram.loadState(is);
