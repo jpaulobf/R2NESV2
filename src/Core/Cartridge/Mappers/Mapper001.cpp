@@ -16,7 +16,7 @@ namespace R2NES::Core
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
             // PRG RAM (8KB) - verificar se está habilitada (bit 4 do Control Register)
-            if ((nControlRegister & 0x10) == 0) // RAM habilitada quando bit 4 é 0
+            if ((nPRGBankSelect & 0x10) == 0)
             {
                 data = nPRGStaticRAM[addr & 0x1FFF];
                 mapped_addr = 0xFFFFFFFF;
@@ -47,6 +47,30 @@ namespace R2NES::Core
                 else
                     mapped_addr = (nPRGBankSelect & 0x0F) * 0x4000 + (addr & 0x3FFF);
             }
+            // else if (prgMode == 3)
+            // {
+            //     // 1. O banco variável ($8000-$BFFF) usa a seleção do Mapper + o banco alto da SUROM
+            //     uint32_t finalBank = (nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F);
+
+            //     if (addr >= 0x8000 && addr <= 0xBFFF)
+            //     {
+            //         // Usa o banco selecionado, garantindo que não ultrapassamos o total de bancos da ROM
+            //         mapped_addr = (finalBank & 0x1F) * 0x4000 + (addr & 0x3FFF);
+            //     }
+            //     else
+            //     {
+            //         // 2. O banco fixo ($C000-$FFFF) deve ser o ÚLTIMO banco de 16KB
+            //         // dentro da região de 256KB selecionada pelo nPRGBankHigh.
+            //         // O índice do último banco de 16KB nesse bloco é (nPRGBankHigh << 4) | 0x0F
+            //         uint32_t lastBank = (nPRGBankHigh << 4) | 0x0F;
+
+            //         // Proteção: Garante que nunca tentaremos acessar um banco que não existe na ROM
+            //         if (lastBank >= nPRGBanks)
+            //             lastBank = nPRGBanks - 1;
+
+            //         mapped_addr = lastBank * 0x4000 + (addr & 0x3FFF);
+            //     }
+            // }
             else // prgMode == 3
             {
                 // Modo 3: Troca 16KB em $8000-$BFFF, fixa último banco em $C000-$FFFF
@@ -60,12 +84,12 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper001::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    bool Mapper001::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
             // PRG RAM (8KB) - verificar se está habilitada (bit 4 do Control Register)
-            if ((nControlRegister & 0x10) == 0) // RAM habilitada quando bit 4 é 0
+            if ((nPRGBankSelect & 0x10) == 0)
             {
                 nPRGStaticRAM[addr & 0x1FFF] = data;
                 mapped_addr = 0xFFFFFFFF;
@@ -76,6 +100,13 @@ namespace R2NES::Core
 
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
+            if (systemClockCounter - nLastWriteCycle <= 1)
+            {
+                nLastWriteCycle = systemClockCounter;
+                return false;
+            }
+            nLastWriteCycle = systemClockCounter;
+
             if (data & 0x80) // Bit 7 = Reset do Shift Register
             {
                 nShiftRegister = 0x00;
@@ -100,10 +131,13 @@ namespace R2NES::Core
                         nControlRegister = nShiftRegister & 0x1F;
                     else if (targetRegister == 1) // CHR Bank 0 ($A000-$BFFF)
                         nCHRBankSelect0 = nShiftRegister & 0x1F;
-                    else if (targetRegister == 2) // CHR Bank 1 ($C000-$DFFF)
+                    else if (targetRegister == 2)
+                    {
                         nCHRBankSelect1 = nShiftRegister & 0x1F;
+                        nPRGBankHigh = (nShiftRegister & 0x10) >> 4; // Extrai o bit 4 para o banco alto
+                    }
                     else if (targetRegister == 3) // PRG Bank ($E000-$FFFF)
-                        nPRGBankSelect = nShiftRegister & 0x0F;
+                        nPRGBankSelect = nShiftRegister & 0x1F;
 
                     nShiftRegister = 0x00;
                     nShiftRegisterCount = 0;
@@ -177,25 +211,35 @@ namespace R2NES::Core
         return MirrorMode::HORIZONTAL;
     }
 
+    void Mapper001::reset()
+    {
+        nPRGBankSelect = 0;
+        nPRGBankHigh = 0;
+    }
+
     void Mapper001::saveState(std::ostream &os)
     {
-        os.write(reinterpret_cast<const char*>(&nControlRegister), sizeof(nControlRegister));
-        os.write(reinterpret_cast<const char*>(&nCHRBankSelect0), sizeof(nCHRBankSelect0));
-        os.write(reinterpret_cast<const char*>(&nCHRBankSelect1), sizeof(nCHRBankSelect1));
-        os.write(reinterpret_cast<const char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        os.write(reinterpret_cast<const char*>(&nShiftRegister), sizeof(nShiftRegister));
-        os.write(reinterpret_cast<const char*>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
-        os.write(reinterpret_cast<const char*>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+        os.write(reinterpret_cast<const char *>(&nControlRegister), sizeof(nControlRegister));
+        os.write(reinterpret_cast<const char *>(&nCHRBankSelect0), sizeof(nCHRBankSelect0));
+        os.write(reinterpret_cast<const char *>(&nCHRBankSelect1), sizeof(nCHRBankSelect1));
+        os.write(reinterpret_cast<const char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        os.write(reinterpret_cast<const char *>(&nShiftRegister), sizeof(nShiftRegister));
+        os.write(reinterpret_cast<const char *>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
+        os.write(reinterpret_cast<const char *>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+        os.write(reinterpret_cast<const char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
+        os.write(reinterpret_cast<const char *>(&nPRGBankHigh), sizeof(nPRGBankHigh));
     }
 
     void Mapper001::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char*>(&nControlRegister), sizeof(nControlRegister));
-        is.read(reinterpret_cast<char*>(&nCHRBankSelect0), sizeof(nCHRBankSelect0));
-        is.read(reinterpret_cast<char*>(&nCHRBankSelect1), sizeof(nCHRBankSelect1));
-        is.read(reinterpret_cast<char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        is.read(reinterpret_cast<char*>(&nShiftRegister), sizeof(nShiftRegister));
-        is.read(reinterpret_cast<char*>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
-        is.read(reinterpret_cast<char*>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+        is.read(reinterpret_cast<char *>(&nControlRegister), sizeof(nControlRegister));
+        is.read(reinterpret_cast<char *>(&nCHRBankSelect0), sizeof(nCHRBankSelect0));
+        is.read(reinterpret_cast<char *>(&nCHRBankSelect1), sizeof(nCHRBankSelect1));
+        is.read(reinterpret_cast<char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        is.read(reinterpret_cast<char *>(&nShiftRegister), sizeof(nShiftRegister));
+        is.read(reinterpret_cast<char *>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
+        is.read(reinterpret_cast<char *>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+        is.read(reinterpret_cast<char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
+        is.read(reinterpret_cast<char *>(&nPRGBankHigh), sizeof(nPRGBankHigh));
     }
 }
