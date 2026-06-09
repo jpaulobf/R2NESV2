@@ -41,7 +41,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper090::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    bool Mapper090::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
         // Bancos PRG ($8000-$8003)
         if (addr >= 0x8000 && addr <= 0x8003)
