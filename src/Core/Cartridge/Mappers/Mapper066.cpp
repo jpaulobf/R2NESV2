@@ -30,7 +30,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper066::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    bool Mapper066::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
@@ -41,21 +41,21 @@ namespace R2NES::Core
             // PRG: Bancos de 32KB. Como nPRGBanks está em 16KB, dividimos por 2.
             uint8_t nPRG32kChunks = nPRGBanks / 2;
             if (nPRG32kChunks > 0)
-                nPRGBankSelect = (data & 0x03) % nPRG32kChunks;
+                nPRGBankSelect = ((data >> 4) & 0x03) % nPRG32kChunks;
             else
                 nPRGBankSelect = 0;
 
-            // CHR: Bancos de 8KB.
+            // CHR: Bancos de 8KB. Extrai os bits 0-1
             if (nCHRBanks > 0)
-                nCHRBankSelect = ((data >> 4) & 0x03) % nCHRBanks;
+                nCHRBankSelect = (data & 0x03) % nCHRBanks;
             else
                 nCHRBankSelect = 0;
 
-            if (nPRGBankSelect != oldPRG || nCHRBankSelect != oldCHR)
-            {
-                // Nota: addr aqui é o endereço da escrita. Usamos um valor arbitrário ou passamos o PC se quiser.
-                std::cout << "Mapper66: Bank Switch! PRG:" << (int)oldPRG << "->" << (int)nPRGBankSelect << " | CHR:" << (int)oldCHR << "->" << (int)nCHRBankSelect << std::endl;
-            }
+            // if (nPRGBankSelect != oldPRG || nCHRBankSelect != oldCHR)
+            // {
+            //     // Nota: addr aqui é o endereço da escrita. Usamos um valor arbitrário ou passamos o PC se quiser.
+            //     std::cout << "Mapper66: Bank Switch! PRG:" << (int)oldPRG << "->" << (int)nPRGBankSelect << " | CHR:" << (int)oldCHR << "->" << (int)nCHRBankSelect << std::endl;
+            // }
 
             return true; // Importante: Indica que o mapper tratou a escrita
         }
