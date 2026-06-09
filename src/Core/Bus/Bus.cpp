@@ -55,7 +55,7 @@ namespace R2NES::Core
 
     void Bus::cpuWrite(uint16_t addr, uint8_t data)
     {
-        if (cart && cart->cpuWrite(addr, data))
+        if (cart && cart->cpuWrite(addr, data, systemClockCounter))
         {
             // Cartucho tratou a escrita (Mappers podem interceptar isso)
         }
