@@ -35,9 +35,10 @@ namespace R2NES::Core
         ~Mapper001();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
-        bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) override;
+        bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) override;
+        void reset() override;
 
         MirrorMode getMirrorMode() override;
 
@@ -58,5 +59,9 @@ namespace R2NES::Core
         uint8_t nShiftRegisterCount = 0x00;
 
         uint8_t nPRGStaticRAM[32768]; // PRG RAM (8KB) - alguns cartuchos (como Metroid) usam isso
+
+        uint32_t nLastWriteCycle = 0; // Para evitar múltiplas escritas no mesmo ciclo
+
+        uint8_t nPRGBankHigh = 0; // Último banco PRG selecionado para leitura (para modos 2 e 3)
     };
 }
