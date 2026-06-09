@@ -36,7 +36,7 @@ namespace R2NES::Core
         uint8_t cpuRead(uint16_t addr) { return bus.cpuRead(addr); }
 
         // Retorna o total de ciclos executados pelo sistema
-        uint32_t getSystemClockCounter() const { return systemClockCounter; }
+        uint32_t getSystemClockCounter() const { return bus.systemClockCounter; }
 
         bool isFrameComplete() const { return ppu.isFrameComplete(); }
 
@@ -57,9 +57,6 @@ namespace R2NES::Core
         PPU ppu;
         APU apu;
         IO::Joysticks joysticks;
-
-        // Controle de timing
-        uint32_t systemClockCounter = 0;
 
         bool cartridgeLoaded = false;
     };
