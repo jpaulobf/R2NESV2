@@ -14,7 +14,7 @@ namespace R2NES::Core
 
         // Transforma o endereço virtual da CPU em um endereço físico na PRG-ROM
         virtual bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) = 0;
-        virtual bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) = 0;
+        virtual bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
         // Transforma o endereço virtual da PPU em um endereço físico na CHR-ROM
         virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) = 0;
