@@ -18,7 +18,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper000::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    bool Mapper000::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
         // Mapper 000 não suporta escrita na PRG ROM. Todas as escritas em $8000-$FFFF são ignoradas.
         // Retornamos false para não tratar a escrita.
