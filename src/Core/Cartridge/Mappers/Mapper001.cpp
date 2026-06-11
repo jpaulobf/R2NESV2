@@ -33,51 +33,32 @@ namespace R2NES::Core
             if (prgMode <= 1)
             {
                 // Modo 0 ou 1: Switch 32KB (2 bancos de 16KB, bit 0 de nPRGBankSelect é ignorado)
-                uint8_t baseBank = nPRGBankSelect & 0x0E;
+                uint8_t baseBank = (nPRGBankHigh << 4) | (nPRGBankSelect & 0x0E);
                 if (addr >= 0x8000 && addr <= 0xBFFF)
-                    mapped_addr = baseBank * 0x4000 + (addr & 0x3FFF);
+                    mapped_addr = (baseBank % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
                 else
-                    mapped_addr = (baseBank | 0x01) * 0x4000 + (addr & 0x3FFF);
+                    mapped_addr = ((baseBank | 0x01) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
             }
             else if (prgMode == 2)
             {
                 // Modo 2: Fixa banco 0 em $8000-$BFFF, troca 16KB em $C000-$FFFF
                 if (addr >= 0x8000 && addr <= 0xBFFF)
-                    mapped_addr = 0x0000 + (addr & 0x3FFF); // Sempre banco 0
+                    mapped_addr = (nPRGBankHigh << 4) * 0x4000 + (addr & 0x3FFF); // Primeiro banco da região de 256KB
                 else
-                    mapped_addr = (nPRGBankSelect & 0x0F) * 0x4000 + (addr & 0x3FFF);
+                    mapped_addr = (((nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
             }
-            // else if (prgMode == 3)
-            // {
-            //     // 1. O banco variável ($8000-$BFFF) usa a seleção do Mapper + o banco alto da SUROM
-            //     uint32_t finalBank = (nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F);
-
-            //     if (addr >= 0x8000 && addr <= 0xBFFF)
-            //     {
-            //         // Usa o banco selecionado, garantindo que não ultrapassamos o total de bancos da ROM
-            //         mapped_addr = (finalBank & 0x1F) * 0x4000 + (addr & 0x3FFF);
-            //     }
-            //     else
-            //     {
-            //         // 2. O banco fixo ($C000-$FFFF) deve ser o ÚLTIMO banco de 16KB
-            //         // dentro da região de 256KB selecionada pelo nPRGBankHigh.
-            //         // O índice do último banco de 16KB nesse bloco é (nPRGBankHigh << 4) | 0x0F
-            //         uint32_t lastBank = (nPRGBankHigh << 4) | 0x0F;
-
-            //         // Proteção: Garante que nunca tentaremos acessar um banco que não existe na ROM
-            //         if (lastBank >= nPRGBanks)
-            //             lastBank = nPRGBanks - 1;
-
-            //         mapped_addr = lastBank * 0x4000 + (addr & 0x3FFF);
-            //     }
-            // }
             else // prgMode == 3
             {
                 // Modo 3: Troca 16KB em $8000-$BFFF, fixa último banco em $C000-$FFFF
                 if (addr >= 0x8000 && addr <= 0xBFFF)
-                    mapped_addr = (nPRGBankSelect & 0x0F) * 0x4000 + (addr & 0x3FFF);
+                    mapped_addr = (((nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
                 else
-                    mapped_addr = ((nPRGBanks - 1) & 0x0F) * 0x4000 + (addr & 0x3FFF);
+                {
+                    // Banco fixo: último banco da região de 256KB (SUROM) ou último banco absoluto
+                    uint32_t lastBank = (nPRGBankHigh << 4) | 0x0F;
+                    if (lastBank >= nPRGBanks) lastBank = nPRGBanks - 1;
+                    mapped_addr = (lastBank * 0x4000) + (addr & 0x3FFF);
+                }
             }
             return true;
         }
@@ -130,11 +111,15 @@ namespace R2NES::Core
                     if (targetRegister == 0) // Control Register ($8000-$9FFF)
                         nControlRegister = nShiftRegister & 0x1F;
                     else if (targetRegister == 1) // CHR Bank 0 ($A000-$BFFF)
+                    {
                         nCHRBankSelect0 = nShiftRegister & 0x1F;
+                        // Em placas SUROM/SXROM, o bit 4 do banco CHR controla o PRG A18
+                        if (nCHRBanks == 0) nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
+                    }
                     else if (targetRegister == 2)
                     {
                         nCHRBankSelect1 = nShiftRegister & 0x1F;
-                        nPRGBankHigh = (nShiftRegister & 0x10) >> 4; // Extrai o bit 4 para o banco alto
+                        if (nCHRBanks == 0) nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
                     }
                     else if (targetRegister == 3) // PRG Bank ($E000-$FFFF)
                         nPRGBankSelect = nShiftRegister & 0x1F;
@@ -213,8 +198,18 @@ namespace R2NES::Core
 
     void Mapper001::reset()
     {
-        nPRGBankSelect = 0;
+        nCHRBankSelect0 = 0x00;
+        nCHRBankSelect1 = 0x00;
+        nPRGBankSelect = 0x00;
+        nControlRegister = 0x1C;
+        nShiftRegister = 0x00;
+        nShiftRegisterCount = 0x00;
+        nLastWriteCycle = 0;
         nPRGBankHigh = 0;
+        
+        // Inicializa PRG RAM com zeros
+        for (int i = 0; i < 0x2000; i++)
+            nPRGStaticRAM[i] = 0x00;
     }
 
     void Mapper001::saveState(std::ostream &os)
