@@ -439,17 +439,17 @@ namespace R2NES::Core
 
                     if (diffY >= 0 && diffY < spriteHeight)
                     {
-                        if (scanlineSpriteCount < 8)
+                        if (unlimitedSprites)
                         {
-                            scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
+                            if (scanlineSpriteCount < 64)
+                                scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
                         }
                         else
                         {
-                            ppuStatus |= 0x20; // Sprite Overflow
-                            if (unlimitedSprites)
+                            if (scanlineSpriteCount < 8)
                                 scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
                             else
-                                break;
+                                ppuStatus |= 0x20; // Sprite Overflow
                         }
                     }
                 }
