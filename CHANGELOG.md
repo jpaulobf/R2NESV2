@@ -2,6 +2,15 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.7.8] - 2026-06-11
+
+### Adicionado
+- **Crop Overscan**: Adicionada a funcionalidade de ocultar as bordas superior e inferior (8px cada). O emulador agora recalcula dinamicamente o tamanho da janela e a proporção de aspecto (60:49 para o modo 8:7) para eliminar artefatos de scroll ("sujeira") sem distorcer a imagem.
+
+### Corrigido
+- **PPU**: Melhorias na estabilidade da renderização e correções de precisão no ciclo de quadros.
+- **Visual Scanlines**: Correção na lógica de aplicação do efeito de scanlines para garantir o alinhamento dos pixels após o redimensionamento da janela.
+
 ## [0.7.7] - 2026-06-07
 
 ### Adicionado
