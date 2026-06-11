@@ -467,7 +467,7 @@ namespace R2NES::Core
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_CROP_OVERSCAN)
                     {
                         toggleMarkMenuItem(IDM_VIEW_CROP_OVERSCAN, [this](bool currentlyChecked)
-                        {
+                                           {
                             // Inverte o estado atual (atribuindo a uma variável membro)
                             this->cropOverscan = !currentlyChecked;
 
@@ -476,8 +476,7 @@ namespace R2NES::Core
                                 this->windowResize(this->currentWindowX);
                             }
 
-                            std::cout << "Window: Crop Overscan " << (this->cropOverscan ? "On" : "Off") << std::endl;
-                        });
+                            std::cout << "Window: Crop Overscan " << (this->cropOverscan ? "On" : "Off") << std::endl; });
                     }
 
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
@@ -1401,7 +1400,7 @@ namespace R2NES::Core
             {
                 bool isScanlineRow = (y % 2 != 0);
                 uint32_t rowOffset = y * width;
-                
+
                 for (int x = 0; x < width; ++x)
                 {
                     uint32_t index = rowOffset + x;
@@ -1426,7 +1425,7 @@ namespace R2NES::Core
 
         // Define a área de origem da textura (Source Rect)
         // Se o Crop estiver ativado, pulamos os primeiros 8 scanlines e reduzimos a altura em 16 (8 topo + 8 base)
-        SDL_Rect src_rect = { 0, 0, width, height };
+        SDL_Rect src_rect = {0, 0, width, height};
         if (cropOverscan)
         {
             src_rect.y = 8;
@@ -1439,7 +1438,7 @@ namespace R2NES::Core
             int current_window_w, current_window_h;
             SDL_GetWindowSize(window, &current_window_w, &current_window_h);
 
-            // Se cortamos 16 pixels de altura (8 topo + 8 base), para manter o mesmo "look" dos pixels 
+            // Se cortamos 16 pixels de altura (8 topo + 8 base), para manter o mesmo "look" dos pixels
             // (Pixel Aspect Ratio), precisamos ajustar a proporção da tela (Display Aspect Ratio).
             // 8:7 original assume 240 linhas. Para 224 linhas, a nova proporção é 60:49.
             double target_aspect_ratio = cropOverscan ? (60.0 / 49.0) : (8.0 / 7.0);
