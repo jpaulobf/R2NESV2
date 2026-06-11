@@ -372,7 +372,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.7.7 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.7.8 | FPS: %.2f";
 
         // Valores Default Scanlines
         bool scanlines = false;
@@ -432,6 +432,7 @@ namespace R2NES::Core
         bool isToSave = false;
         bool isToLoad = false;
         int saveSlot = 1;
+        bool cropOverscan = true; // Configuração para crop de overscan (8 pixels topo e base)
 
         // Verifica se o cartucho foi introduzido e lido
         bool cartLoaded = false;
