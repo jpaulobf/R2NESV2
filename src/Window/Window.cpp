@@ -41,6 +41,7 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_VIEW_SCANLINES 2006
+#define IDM_VIEW_CROP_OVERSCAN 2007
 #define IDM_VIEW_SCANLINES_LEVEL_5 2105
 #define IDM_VIEW_SCANLINES_LEVEL_10 2110
 #define IDM_VIEW_SCANLINES_LEVEL_15 2115
@@ -463,6 +464,22 @@ namespace R2NES::Core
                                 this->scanlinesOn(); });
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_CROP_OVERSCAN)
+                    {
+                        toggleMarkMenuItem(IDM_VIEW_CROP_OVERSCAN, [this](bool currentlyChecked)
+                        {
+                            // Inverte o estado atual (atribuindo a uma variável membro)
+                            this->cropOverscan = !currentlyChecked;
+
+                            // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
+                            if (this->currentDisplayMode == DisplayMode::WINDOWED) {
+                                this->windowResize(this->currentWindowX);
+                            }
+
+                            std::cout << "Window: Crop Overscan " << (this->cropOverscan ? "On" : "Off") << std::endl;
+                        });
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
                              LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_25)
                     {
@@ -840,6 +857,15 @@ namespace R2NES::Core
             else
             {
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_SCANLINES, L"&Scanlines");
+            }
+
+            if (this->cropOverscan)
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_CROP_OVERSCAN, L"&Crop Overscan (8px)");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_CROP_OVERSCAN, L"&Crop Overscan (8px)");
             }
 
             HMENU hScanlineLevelMenu = CreatePopupMenu();
@@ -1291,7 +1317,9 @@ namespace R2NES::Core
             SDL_SetWindowBordered(window, SDL_TRUE); // Restore border
             createMenu();                            // Restaura o menu nativo
         }
-        SDL_SetWindowSize(window, width * times * scale, height * times * scale);
+
+        int currentH = cropOverscan ? (height - 16) : height;
+        SDL_SetWindowSize(window, width * times * scale, currentH * times * scale);
         SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
         // Update last known windowed size
@@ -1372,21 +1400,20 @@ namespace R2NES::Core
             for (int y = 0; y < height; ++y)
             {
                 bool isScanlineRow = (y % 2 != 0);
+                uint32_t rowOffset = y * width;
+                
                 for (int x = 0; x < width; ++x)
                 {
-                    int index = y * width + x;
+                    uint32_t index = rowOffset + x;
                     uint32_t pixel = pixels[index];
 
                     if (isScanlineRow)
                     {
-                        uint8_t r = (pixel >> 16) & 0xFF;
-                        uint8_t g = (pixel >> 8) & 0xFF;
-                        uint8_t b = pixel & 0xFF;
-
-                        r = static_cast<uint8_t>(r * factor);
-                        g = static_cast<uint8_t>(g * factor);
-                        b = static_cast<uint8_t>(b * factor);
-                        pixel = (0xFF000000) | (r << 16) | (g << 8) | b;
+                        // Aplica o fator de escurecimento mantendo o canal Alpha
+                        pixel = (pixel & 0xFF000000) |
+                                (static_cast<uint32_t>(((pixel >> 16) & 0xFF) * factor) << 16) |
+                                (static_cast<uint32_t>(((pixel >> 8) & 0xFF) * factor) << 8) |
+                                (static_cast<uint32_t>((pixel & 0xFF) * factor));
                     }
                     postProcessBuffer[index] = pixel;
                 }
@@ -1397,13 +1424,25 @@ namespace R2NES::Core
         SDL_UpdateTexture(texture, nullptr, finalPixels, width * sizeof(uint32_t));
         SDL_RenderClear(renderer);
 
+        // Define a área de origem da textura (Source Rect)
+        // Se o Crop estiver ativado, pulamos os primeiros 8 scanlines e reduzimos a altura em 16 (8 topo + 8 base)
+        SDL_Rect src_rect = { 0, 0, width, height };
+        if (cropOverscan)
+        {
+            src_rect.y = 8;
+            src_rect.h = height - 16;
+        }
+
         SDL_Rect dest_rect;
         if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
         {
             int current_window_w, current_window_h;
             SDL_GetWindowSize(window, &current_window_w, &current_window_h);
 
-            double target_aspect_ratio = 8.0 / 7.0; // Desired 8:7 aspect ratio for NES
+            // Se cortamos 16 pixels de altura (8 topo + 8 base), para manter o mesmo "look" dos pixels 
+            // (Pixel Aspect Ratio), precisamos ajustar a proporção da tela (Display Aspect Ratio).
+            // 8:7 original assume 240 linhas. Para 224 linhas, a nova proporção é 60:49.
+            double target_aspect_ratio = cropOverscan ? (60.0 / 49.0) : (8.0 / 7.0);
 
             int render_w, render_h;
             double potential_h = current_window_w / target_aspect_ratio;
@@ -1425,11 +1464,11 @@ namespace R2NES::Core
             dest_rect.x = (current_window_w - render_w) / 2;
             dest_rect.y = (current_window_h - render_h) / 2;
 
-            SDL_RenderCopy(renderer, texture, nullptr, &dest_rect);
+            SDL_RenderCopy(renderer, texture, &src_rect, &dest_rect);
         }
         else
         {
-            SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+            SDL_RenderCopy(renderer, texture, &src_rect, nullptr);
         }
 
         // Renderiza o overlay de PAUSE em modo Fullscreen
