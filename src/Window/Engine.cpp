@@ -574,7 +574,8 @@ namespace R2NES::Core
         if (window->isDisassemblerOpen() && nes->isCartridgeLoaded())
         {
             // Se o PC atual não está no cache, provavelmente mudamos de banco de PRG
-            if (cachedDisassembly.find(currentPC) == cachedDisassembly.end()) {
+            if (cachedDisassembly.find(currentPC) == cachedDisassembly.end())
+            {
                 cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
             }
         }
