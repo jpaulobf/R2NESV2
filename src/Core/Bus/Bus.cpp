@@ -18,7 +18,7 @@ namespace R2NES::Core
     {
     }
 
-    void Bus::connectCPU(CPU *pCpu) 
+    void Bus::connectCPU(CPU *pCpu)
     {
         this->cpu = pCpu;
     }
@@ -79,15 +79,19 @@ namespace R2NES::Core
             // OAM DMA: Inicia a transferência de 256 bytes para a PPU
             uint16_t page = static_cast<uint16_t>(data) << 8;
 
-            if (page < 0x2000 && ram) {
+            if (page < 0x2000 && ram)
+            {
                 for (uint16_t i = 0; i < 256; i++)
                     ppu->cpuWrite(0x2004, ram->read((page | i) & 0x07FF));
-            } else {
+            }
+            else
+            {
                 for (uint16_t i = 0; i < 256; i++)
                     ppu->cpuWrite(0x2004, cpuRead(page | i));
             }
 
-            if (cpu) cpu->cycles += 513;
+            if (cpu)
+                cpu->cycles += 513;
         }
         else if (addr == 0x4016)
         {
