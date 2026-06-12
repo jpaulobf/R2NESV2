@@ -27,12 +27,12 @@ namespace R2NES::Core
 
     void RAM::saveState(std::ostream &os)
     {
-        os.write(reinterpret_cast<const char*>(data.data()), data.size());
+        os.write(reinterpret_cast<const char *>(data.data()), data.size());
     }
 
     void RAM::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char*>(data.data()), data.size());
+        is.read(reinterpret_cast<char *>(data.data()), data.size());
     }
 
     void RAM::reset()
