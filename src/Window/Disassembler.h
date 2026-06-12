@@ -28,7 +28,7 @@ namespace R2NES::Core
         void updatePosition(int parentX, int parentY, int parentW);
 
         bool isOpen() const { return visible; }
-        
+
         uint32_t getWindowID() const;
 
     private:
