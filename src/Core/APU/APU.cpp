@@ -532,132 +532,134 @@ namespace R2NES::Core
     void APU::saveState(std::ostream &os)
     {
         // Estado Global do Frame Counter e Sync
-        os.write(reinterpret_cast<const char*>(&frameClockCounter), sizeof(frameClockCounter));
-        os.write(reinterpret_cast<const char*>(&frameCounterMode), sizeof(frameCounterMode));
-        os.write(reinterpret_cast<const char*>(&irqEnabled), sizeof(irqEnabled));
-        os.write(reinterpret_cast<const char*>(&irqFlag), sizeof(irqFlag));
-        os.write(reinterpret_cast<const char*>(&cycleCounter), sizeof(cycleCounter));
-        os.write(reinterpret_cast<const char*>(&sampleSum), sizeof(sampleSum));
-        os.write(reinterpret_cast<const char*>(&sampleCount), sizeof(sampleCount));
+        os.write(reinterpret_cast<const char *>(&frameClockCounter), sizeof(frameClockCounter));
+        os.write(reinterpret_cast<const char *>(&frameCounterMode), sizeof(frameCounterMode));
+        os.write(reinterpret_cast<const char *>(&irqEnabled), sizeof(irqEnabled));
+        os.write(reinterpret_cast<const char *>(&irqFlag), sizeof(irqFlag));
+        os.write(reinterpret_cast<const char *>(&cycleCounter), sizeof(cycleCounter));
+        os.write(reinterpret_cast<const char *>(&sampleSum), sizeof(sampleSum));
+        os.write(reinterpret_cast<const char *>(&sampleCount), sizeof(sampleCount));
 
         // Helper para salvar canais Pulse
-        auto savePulse = [&](const PulseChannel& p) {
-            os.write(reinterpret_cast<const char*>(&p.enabled), sizeof(p.enabled));
-            os.write(reinterpret_cast<const char*>(&p.timer), sizeof(p.timer));
-            os.write(reinterpret_cast<const char*>(&p.timerReload), sizeof(p.timerReload));
-            os.write(reinterpret_cast<const char*>(&p.dutyMode), sizeof(p.dutyMode));
-            os.write(reinterpret_cast<const char*>(&p.dutyValue), sizeof(p.dutyValue));
-            os.write(reinterpret_cast<const char*>(&p.lengthCounter.count), sizeof(p.lengthCounter.count));
-            os.write(reinterpret_cast<const char*>(&p.lengthCounter.halt), sizeof(p.lengthCounter.halt));
-            os.write(reinterpret_cast<const char*>(&p.envelope.start), sizeof(p.envelope.start));
-            os.write(reinterpret_cast<const char*>(&p.envelope.decayCount), sizeof(p.envelope.decayCount));
-            os.write(reinterpret_cast<const char*>(&p.envelope.dividerCount), sizeof(p.envelope.dividerCount));
-            os.write(reinterpret_cast<const char*>(&p.envelope.volume), sizeof(p.envelope.volume));
-            os.write(reinterpret_cast<const char*>(&p.envelope.constantVolume), sizeof(p.envelope.constantVolume));
-            os.write(reinterpret_cast<const char*>(&p.envelope.loop), sizeof(p.envelope.loop));
-            os.write(reinterpret_cast<const char*>(&p.sweep.enabled), sizeof(p.sweep.enabled));
-            os.write(reinterpret_cast<const char*>(&p.sweep.period), sizeof(p.sweep.period));
-            os.write(reinterpret_cast<const char*>(&p.sweep.timer), sizeof(p.sweep.timer));
-            os.write(reinterpret_cast<const char*>(&p.sweep.shift), sizeof(p.sweep.shift));
-            os.write(reinterpret_cast<const char*>(&p.sweep.down), sizeof(p.sweep.down));
-            os.write(reinterpret_cast<const char*>(&p.sweep.reload), sizeof(p.sweep.reload));
+        auto savePulse = [&](const PulseChannel &p)
+        {
+            os.write(reinterpret_cast<const char *>(&p.enabled), sizeof(p.enabled));
+            os.write(reinterpret_cast<const char *>(&p.timer), sizeof(p.timer));
+            os.write(reinterpret_cast<const char *>(&p.timerReload), sizeof(p.timerReload));
+            os.write(reinterpret_cast<const char *>(&p.dutyMode), sizeof(p.dutyMode));
+            os.write(reinterpret_cast<const char *>(&p.dutyValue), sizeof(p.dutyValue));
+            os.write(reinterpret_cast<const char *>(&p.lengthCounter.count), sizeof(p.lengthCounter.count));
+            os.write(reinterpret_cast<const char *>(&p.lengthCounter.halt), sizeof(p.lengthCounter.halt));
+            os.write(reinterpret_cast<const char *>(&p.envelope.start), sizeof(p.envelope.start));
+            os.write(reinterpret_cast<const char *>(&p.envelope.decayCount), sizeof(p.envelope.decayCount));
+            os.write(reinterpret_cast<const char *>(&p.envelope.dividerCount), sizeof(p.envelope.dividerCount));
+            os.write(reinterpret_cast<const char *>(&p.envelope.volume), sizeof(p.envelope.volume));
+            os.write(reinterpret_cast<const char *>(&p.envelope.constantVolume), sizeof(p.envelope.constantVolume));
+            os.write(reinterpret_cast<const char *>(&p.envelope.loop), sizeof(p.envelope.loop));
+            os.write(reinterpret_cast<const char *>(&p.sweep.enabled), sizeof(p.sweep.enabled));
+            os.write(reinterpret_cast<const char *>(&p.sweep.period), sizeof(p.sweep.period));
+            os.write(reinterpret_cast<const char *>(&p.sweep.timer), sizeof(p.sweep.timer));
+            os.write(reinterpret_cast<const char *>(&p.sweep.shift), sizeof(p.sweep.shift));
+            os.write(reinterpret_cast<const char *>(&p.sweep.down), sizeof(p.sweep.down));
+            os.write(reinterpret_cast<const char *>(&p.sweep.reload), sizeof(p.sweep.reload));
         };
 
         savePulse(pulse1);
         savePulse(pulse2);
 
         // Triangle
-        os.write(reinterpret_cast<const char*>(&triangle.enabled), sizeof(triangle.enabled));
-        os.write(reinterpret_cast<const char*>(&triangle.timer), sizeof(triangle.timer));
-        os.write(reinterpret_cast<const char*>(&triangle.timerReload), sizeof(triangle.timerReload));
-        os.write(reinterpret_cast<const char*>(&triangle.dutyValue), sizeof(triangle.dutyValue));
-        os.write(reinterpret_cast<const char*>(&triangle.lengthCounter.count), sizeof(triangle.lengthCounter.count));
-        os.write(reinterpret_cast<const char*>(&triangle.lengthCounter.halt), sizeof(triangle.lengthCounter.halt));
-        os.write(reinterpret_cast<const char*>(&triangle.linearCount), sizeof(triangle.linearCount));
-        os.write(reinterpret_cast<const char*>(&triangle.linearControl), sizeof(triangle.linearControl));
-        os.write(reinterpret_cast<const char*>(&triangle.linearReload), sizeof(triangle.linearReload));
-        os.write(reinterpret_cast<const char*>(&triangle.linearReloadFlag), sizeof(triangle.linearReloadFlag));
+        os.write(reinterpret_cast<const char *>(&triangle.enabled), sizeof(triangle.enabled));
+        os.write(reinterpret_cast<const char *>(&triangle.timer), sizeof(triangle.timer));
+        os.write(reinterpret_cast<const char *>(&triangle.timerReload), sizeof(triangle.timerReload));
+        os.write(reinterpret_cast<const char *>(&triangle.dutyValue), sizeof(triangle.dutyValue));
+        os.write(reinterpret_cast<const char *>(&triangle.lengthCounter.count), sizeof(triangle.lengthCounter.count));
+        os.write(reinterpret_cast<const char *>(&triangle.lengthCounter.halt), sizeof(triangle.lengthCounter.halt));
+        os.write(reinterpret_cast<const char *>(&triangle.linearCount), sizeof(triangle.linearCount));
+        os.write(reinterpret_cast<const char *>(&triangle.linearControl), sizeof(triangle.linearControl));
+        os.write(reinterpret_cast<const char *>(&triangle.linearReload), sizeof(triangle.linearReload));
+        os.write(reinterpret_cast<const char *>(&triangle.linearReloadFlag), sizeof(triangle.linearReloadFlag));
 
         // Noise
-        os.write(reinterpret_cast<const char*>(&noise.enabled), sizeof(noise.enabled));
-        os.write(reinterpret_cast<const char*>(&noise.timer), sizeof(noise.timer));
-        os.write(reinterpret_cast<const char*>(&noise.timerReload), sizeof(noise.timerReload));
-        os.write(reinterpret_cast<const char*>(&noise.shiftRegister), sizeof(noise.shiftRegister));
-        os.write(reinterpret_cast<const char*>(&noise.mode), sizeof(noise.mode));
-        os.write(reinterpret_cast<const char*>(&noise.lengthCounter.count), sizeof(noise.lengthCounter.count));
-        os.write(reinterpret_cast<const char*>(&noise.lengthCounter.halt), sizeof(noise.lengthCounter.halt));
-        os.write(reinterpret_cast<const char*>(&noise.envelope.start), sizeof(noise.envelope.start));
-        os.write(reinterpret_cast<const char*>(&noise.envelope.decayCount), sizeof(noise.envelope.decayCount));
-        os.write(reinterpret_cast<const char*>(&noise.envelope.dividerCount), sizeof(noise.envelope.dividerCount));
-        os.write(reinterpret_cast<const char*>(&noise.envelope.volume), sizeof(noise.envelope.volume));
-        os.write(reinterpret_cast<const char*>(&noise.envelope.constantVolume), sizeof(noise.envelope.constantVolume));
-        os.write(reinterpret_cast<const char*>(&noise.envelope.loop), sizeof(noise.envelope.loop));
+        os.write(reinterpret_cast<const char *>(&noise.enabled), sizeof(noise.enabled));
+        os.write(reinterpret_cast<const char *>(&noise.timer), sizeof(noise.timer));
+        os.write(reinterpret_cast<const char *>(&noise.timerReload), sizeof(noise.timerReload));
+        os.write(reinterpret_cast<const char *>(&noise.shiftRegister), sizeof(noise.shiftRegister));
+        os.write(reinterpret_cast<const char *>(&noise.mode), sizeof(noise.mode));
+        os.write(reinterpret_cast<const char *>(&noise.lengthCounter.count), sizeof(noise.lengthCounter.count));
+        os.write(reinterpret_cast<const char *>(&noise.lengthCounter.halt), sizeof(noise.lengthCounter.halt));
+        os.write(reinterpret_cast<const char *>(&noise.envelope.start), sizeof(noise.envelope.start));
+        os.write(reinterpret_cast<const char *>(&noise.envelope.decayCount), sizeof(noise.envelope.decayCount));
+        os.write(reinterpret_cast<const char *>(&noise.envelope.dividerCount), sizeof(noise.envelope.dividerCount));
+        os.write(reinterpret_cast<const char *>(&noise.envelope.volume), sizeof(noise.envelope.volume));
+        os.write(reinterpret_cast<const char *>(&noise.envelope.constantVolume), sizeof(noise.envelope.constantVolume));
+        os.write(reinterpret_cast<const char *>(&noise.envelope.loop), sizeof(noise.envelope.loop));
 
         // DMC
-        os.write(reinterpret_cast<const char*>(&dmc.sampleValue), sizeof(dmc.sampleValue));
+        os.write(reinterpret_cast<const char *>(&dmc.sampleValue), sizeof(dmc.sampleValue));
     }
 
     void APU::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char*>(&frameClockCounter), sizeof(frameClockCounter));
-        is.read(reinterpret_cast<char*>(&frameCounterMode), sizeof(frameCounterMode));
-        is.read(reinterpret_cast<char*>(&irqEnabled), sizeof(irqEnabled));
-        is.read(reinterpret_cast<char*>(&irqFlag), sizeof(irqFlag));
-        is.read(reinterpret_cast<char*>(&cycleCounter), sizeof(cycleCounter));
-        is.read(reinterpret_cast<char*>(&sampleSum), sizeof(sampleSum));
-        is.read(reinterpret_cast<char*>(&sampleCount), sizeof(sampleCount));
+        is.read(reinterpret_cast<char *>(&frameClockCounter), sizeof(frameClockCounter));
+        is.read(reinterpret_cast<char *>(&frameCounterMode), sizeof(frameCounterMode));
+        is.read(reinterpret_cast<char *>(&irqEnabled), sizeof(irqEnabled));
+        is.read(reinterpret_cast<char *>(&irqFlag), sizeof(irqFlag));
+        is.read(reinterpret_cast<char *>(&cycleCounter), sizeof(cycleCounter));
+        is.read(reinterpret_cast<char *>(&sampleSum), sizeof(sampleSum));
+        is.read(reinterpret_cast<char *>(&sampleCount), sizeof(sampleCount));
 
-        auto loadPulse = [&](PulseChannel& p) {
-            is.read(reinterpret_cast<char*>(&p.enabled), sizeof(p.enabled));
-            is.read(reinterpret_cast<char*>(&p.timer), sizeof(p.timer));
-            is.read(reinterpret_cast<char*>(&p.timerReload), sizeof(p.timerReload));
-            is.read(reinterpret_cast<char*>(&p.dutyMode), sizeof(p.dutyMode));
-            is.read(reinterpret_cast<char*>(&p.dutyValue), sizeof(p.dutyValue));
-            is.read(reinterpret_cast<char*>(&p.lengthCounter.count), sizeof(p.lengthCounter.count));
-            is.read(reinterpret_cast<char*>(&p.lengthCounter.halt), sizeof(p.lengthCounter.halt));
-            is.read(reinterpret_cast<char*>(&p.envelope.start), sizeof(p.envelope.start));
-            is.read(reinterpret_cast<char*>(&p.envelope.decayCount), sizeof(p.envelope.decayCount));
-            is.read(reinterpret_cast<char*>(&p.envelope.dividerCount), sizeof(p.envelope.dividerCount));
-            is.read(reinterpret_cast<char*>(&p.envelope.volume), sizeof(p.envelope.volume));
-            is.read(reinterpret_cast<char*>(&p.envelope.constantVolume), sizeof(p.envelope.constantVolume));
-            is.read(reinterpret_cast<char*>(&p.envelope.loop), sizeof(p.envelope.loop));
-            is.read(reinterpret_cast<char*>(&p.sweep.enabled), sizeof(p.sweep.enabled));
-            is.read(reinterpret_cast<char*>(&p.sweep.period), sizeof(p.sweep.period));
-            is.read(reinterpret_cast<char*>(&p.sweep.timer), sizeof(p.sweep.timer));
-            is.read(reinterpret_cast<char*>(&p.sweep.shift), sizeof(p.sweep.shift));
-            is.read(reinterpret_cast<char*>(&p.sweep.down), sizeof(p.sweep.down));
-            is.read(reinterpret_cast<char*>(&p.sweep.reload), sizeof(p.sweep.reload));
+        auto loadPulse = [&](PulseChannel &p)
+        {
+            is.read(reinterpret_cast<char *>(&p.enabled), sizeof(p.enabled));
+            is.read(reinterpret_cast<char *>(&p.timer), sizeof(p.timer));
+            is.read(reinterpret_cast<char *>(&p.timerReload), sizeof(p.timerReload));
+            is.read(reinterpret_cast<char *>(&p.dutyMode), sizeof(p.dutyMode));
+            is.read(reinterpret_cast<char *>(&p.dutyValue), sizeof(p.dutyValue));
+            is.read(reinterpret_cast<char *>(&p.lengthCounter.count), sizeof(p.lengthCounter.count));
+            is.read(reinterpret_cast<char *>(&p.lengthCounter.halt), sizeof(p.lengthCounter.halt));
+            is.read(reinterpret_cast<char *>(&p.envelope.start), sizeof(p.envelope.start));
+            is.read(reinterpret_cast<char *>(&p.envelope.decayCount), sizeof(p.envelope.decayCount));
+            is.read(reinterpret_cast<char *>(&p.envelope.dividerCount), sizeof(p.envelope.dividerCount));
+            is.read(reinterpret_cast<char *>(&p.envelope.volume), sizeof(p.envelope.volume));
+            is.read(reinterpret_cast<char *>(&p.envelope.constantVolume), sizeof(p.envelope.constantVolume));
+            is.read(reinterpret_cast<char *>(&p.envelope.loop), sizeof(p.envelope.loop));
+            is.read(reinterpret_cast<char *>(&p.sweep.enabled), sizeof(p.sweep.enabled));
+            is.read(reinterpret_cast<char *>(&p.sweep.period), sizeof(p.sweep.period));
+            is.read(reinterpret_cast<char *>(&p.sweep.timer), sizeof(p.sweep.timer));
+            is.read(reinterpret_cast<char *>(&p.sweep.shift), sizeof(p.sweep.shift));
+            is.read(reinterpret_cast<char *>(&p.sweep.down), sizeof(p.sweep.down));
+            is.read(reinterpret_cast<char *>(&p.sweep.reload), sizeof(p.sweep.reload));
         };
 
         loadPulse(pulse1);
         loadPulse(pulse2);
 
-        is.read(reinterpret_cast<char*>(&triangle.enabled), sizeof(triangle.enabled));
-        is.read(reinterpret_cast<char*>(&triangle.timer), sizeof(triangle.timer));
-        is.read(reinterpret_cast<char*>(&triangle.timerReload), sizeof(triangle.timerReload));
-        is.read(reinterpret_cast<char*>(&triangle.dutyValue), sizeof(triangle.dutyValue));
-        is.read(reinterpret_cast<char*>(&triangle.lengthCounter.count), sizeof(triangle.lengthCounter.count));
-        is.read(reinterpret_cast<char*>(&triangle.lengthCounter.halt), sizeof(triangle.lengthCounter.halt));
-        is.read(reinterpret_cast<char*>(&triangle.linearCount), sizeof(triangle.linearCount));
-        is.read(reinterpret_cast<char*>(&triangle.linearControl), sizeof(triangle.linearControl));
-        is.read(reinterpret_cast<char*>(&triangle.linearReload), sizeof(triangle.linearReload));
-        is.read(reinterpret_cast<char*>(&triangle.linearReloadFlag), sizeof(triangle.linearReloadFlag));
+        is.read(reinterpret_cast<char *>(&triangle.enabled), sizeof(triangle.enabled));
+        is.read(reinterpret_cast<char *>(&triangle.timer), sizeof(triangle.timer));
+        is.read(reinterpret_cast<char *>(&triangle.timerReload), sizeof(triangle.timerReload));
+        is.read(reinterpret_cast<char *>(&triangle.dutyValue), sizeof(triangle.dutyValue));
+        is.read(reinterpret_cast<char *>(&triangle.lengthCounter.count), sizeof(triangle.lengthCounter.count));
+        is.read(reinterpret_cast<char *>(&triangle.lengthCounter.halt), sizeof(triangle.lengthCounter.halt));
+        is.read(reinterpret_cast<char *>(&triangle.linearCount), sizeof(triangle.linearCount));
+        is.read(reinterpret_cast<char *>(&triangle.linearControl), sizeof(triangle.linearControl));
+        is.read(reinterpret_cast<char *>(&triangle.linearReload), sizeof(triangle.linearReload));
+        is.read(reinterpret_cast<char *>(&triangle.linearReloadFlag), sizeof(triangle.linearReloadFlag));
 
-        is.read(reinterpret_cast<char*>(&noise.enabled), sizeof(noise.enabled));
-        is.read(reinterpret_cast<char*>(&noise.timer), sizeof(noise.timer));
-        is.read(reinterpret_cast<char*>(&noise.timerReload), sizeof(noise.timerReload));
-        is.read(reinterpret_cast<char*>(&noise.shiftRegister), sizeof(noise.shiftRegister));
-        is.read(reinterpret_cast<char*>(&noise.mode), sizeof(noise.mode));
-        is.read(reinterpret_cast<char*>(&noise.lengthCounter.count), sizeof(noise.lengthCounter.count));
-        is.read(reinterpret_cast<char*>(&noise.lengthCounter.halt), sizeof(noise.lengthCounter.halt));
-        is.read(reinterpret_cast<char*>(&noise.envelope.start), sizeof(noise.envelope.start));
-        is.read(reinterpret_cast<char*>(&noise.envelope.decayCount), sizeof(noise.envelope.decayCount));
-        is.read(reinterpret_cast<char*>(&noise.envelope.dividerCount), sizeof(noise.envelope.dividerCount));
-        is.read(reinterpret_cast<char*>(&noise.envelope.volume), sizeof(noise.envelope.volume));
-        is.read(reinterpret_cast<char*>(&noise.envelope.constantVolume), sizeof(noise.envelope.constantVolume));
-        is.read(reinterpret_cast<char*>(&noise.envelope.loop), sizeof(noise.envelope.loop));
+        is.read(reinterpret_cast<char *>(&noise.enabled), sizeof(noise.enabled));
+        is.read(reinterpret_cast<char *>(&noise.timer), sizeof(noise.timer));
+        is.read(reinterpret_cast<char *>(&noise.timerReload), sizeof(noise.timerReload));
+        is.read(reinterpret_cast<char *>(&noise.shiftRegister), sizeof(noise.shiftRegister));
+        is.read(reinterpret_cast<char *>(&noise.mode), sizeof(noise.mode));
+        is.read(reinterpret_cast<char *>(&noise.lengthCounter.count), sizeof(noise.lengthCounter.count));
+        is.read(reinterpret_cast<char *>(&noise.lengthCounter.halt), sizeof(noise.lengthCounter.halt));
+        is.read(reinterpret_cast<char *>(&noise.envelope.start), sizeof(noise.envelope.start));
+        is.read(reinterpret_cast<char *>(&noise.envelope.decayCount), sizeof(noise.envelope.decayCount));
+        is.read(reinterpret_cast<char *>(&noise.envelope.dividerCount), sizeof(noise.envelope.dividerCount));
+        is.read(reinterpret_cast<char *>(&noise.envelope.volume), sizeof(noise.envelope.volume));
+        is.read(reinterpret_cast<char *>(&noise.envelope.constantVolume), sizeof(noise.envelope.constantVolume));
+        is.read(reinterpret_cast<char *>(&noise.envelope.loop), sizeof(noise.envelope.loop));
 
-        is.read(reinterpret_cast<char*>(&dmc.sampleValue), sizeof(dmc.sampleValue));
+        is.read(reinterpret_cast<char *>(&dmc.sampleValue), sizeof(dmc.sampleValue));
 
         // Importante: Limpar o buffer de áudio antigo para evitar estalidos ao carregar o estado
         audioBuffer = std::queue<float>();
