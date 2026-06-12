@@ -300,7 +300,7 @@ namespace R2NES::Core
     {
         // Mappers avançados (como MMC1) controlam o Mirroring via software.
         // Verificamos se o Mapper implementa getMirrorMode (IDs 1, 2, 66, etc)
-        if (pMapper && (mapperID == 1 || mapperID == 2 || mapperID == 66))
+        if (pMapper && (mapperID == 1 || mapperID == 2 || mapperID == 4 || mapperID == 66))
         {
             return pMapper->getMirrorMode();
         }
