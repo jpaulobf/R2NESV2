@@ -81,7 +81,15 @@ namespace R2NES::Core
             }
             else // Bank Data ($8001)
             {
-                pRegister[nTargetRegister] = data;
+                // CRÍTICO: Registros 0-1 (CHR pairs) devem ser forçados a pares
+                if (nTargetRegister <= 1)
+                {
+                    pRegister[nTargetRegister] = data & 0xFE; // Força par
+                }
+                else
+                {
+                    pRegister[nTargetRegister] = data;
+                }
                 updateBanks();
             }
             return false;
@@ -91,7 +99,8 @@ namespace R2NES::Core
         {
             if (!(addr & 0x0001))
             {
-                mirrorMode = (data & 0x01) ? MirrorMode::HORIZONTAL : MirrorMode::VERTICAL;
+                // Bit 0: 0 = Horizontal, 1 = Vertical (iNES convention)
+                mirrorMode = (data & 0x01) ? MirrorMode::VERTICAL : MirrorMode::HORIZONTAL;
             }
             else
             {
@@ -184,53 +193,44 @@ namespace R2NES::Core
         uint32_t nPRG8 = nPRGBanks * 2;
         uint32_t nCHR1 = (nCHRBanks == 0) ? 8 : (nCHRBanks * 8);
 
-        // Mapeamento PRG
+        // Mapeamento PRG com clamping de banda
         if (bPRGBankMode)
         {
-            pPRGMode[0] = nPRG8 - 2;
-            pPRGMode[1] = pRegister[7];
-            pPRGMode[2] = pRegister[6];
-            pPRGMode[3] = nPRG8 - 1;
+            pPRGMode[0] = (nPRG8 - 2) % nPRG8;
+            pPRGMode[1] = pRegister[7] % nPRG8;
+            pPRGMode[2] = pRegister[6] % nPRG8;
+            pPRGMode[3] = (nPRG8 - 1) % nPRG8;
         }
         else
         {
-            pPRGMode[0] = pRegister[6];
-            pPRGMode[1] = pRegister[7];
-            pPRGMode[2] = nPRG8 - 2;
-            pPRGMode[3] = nPRG8 - 1;
+            pPRGMode[0] = pRegister[6] % nPRG8;
+            pPRGMode[1] = pRegister[7] % nPRG8;
+            pPRGMode[2] = (nPRG8 - 2) % nPRG8;
+            pPRGMode[3] = (nPRG8 - 1) % nPRG8;
         }
-
-        for (int i = 0; i < 4; i++)
-            pPRGMode[i] %= nPRG8;
 
         // Mapeamento CHR com mascaramento correto de bits
         if (bCHRInversion)
         {
-            pCHRMode[0] = pRegister[2];
-            pCHRMode[1] = pRegister[3];
-            pCHRMode[2] = pRegister[4];
-            pCHRMode[3] = pRegister[5];
-            pCHRMode[4] = pRegister[0] & 0xFE;
-            pCHRMode[5] = pRegister[0] | 0x01;
-            pCHRMode[6] = pRegister[1] & 0xFE;
-            pCHRMode[7] = pRegister[1] | 0x01;
+            pCHRMode[0] = pRegister[2] % nCHR1;
+            pCHRMode[1] = pRegister[3] % nCHR1;
+            pCHRMode[2] = pRegister[4] % nCHR1;
+            pCHRMode[3] = pRegister[5] % nCHR1;
+            pCHRMode[4] = (pRegister[0] & 0xFE) % nCHR1;
+            pCHRMode[5] = ((pRegister[0] & 0xFE) + 1) % nCHR1;
+            pCHRMode[6] = (pRegister[1] & 0xFE) % nCHR1;
+            pCHRMode[7] = ((pRegister[1] & 0xFE) + 1) % nCHR1;
         }
         else
         {
-            pCHRMode[0] = pRegister[0] & 0xFE;
-            pCHRMode[1] = pRegister[0] | 0x01;
-            pCHRMode[2] = pRegister[1] & 0xFE;
-            pCHRMode[3] = pRegister[1] | 0x01;
-            pCHRMode[4] = pRegister[2];
-            pCHRMode[5] = pRegister[3];
-            pCHRMode[6] = pRegister[4];
-            pCHRMode[7] = pRegister[5];
-        }
-
-        // Proteção contra overflow de bancos (essencial para CHR-RAM e ROMs pequenas)
-        for (int i = 0; i < 8; i++)
-        {
-            pCHRMode[i] %= nCHR1;
+            pCHRMode[0] = (pRegister[0] & 0xFE) % nCHR1;
+            pCHRMode[1] = ((pRegister[0] & 0xFE) + 1) % nCHR1;
+            pCHRMode[2] = (pRegister[1] & 0xFE) % nCHR1;
+            pCHRMode[3] = ((pRegister[1] & 0xFE) + 1) % nCHR1;
+            pCHRMode[4] = pRegister[2] % nCHR1;
+            pCHRMode[5] = pRegister[3] % nCHR1;
+            pCHRMode[6] = pRegister[4] % nCHR1;
+            pCHRMode[7] = pRegister[5] % nCHR1;
         }
     }
 
