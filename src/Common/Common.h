@@ -26,7 +26,8 @@ namespace R2NES::Core
     };
 
     // Tipos de paletas disponíveis
-    enum class PaletteType {
+    enum class PaletteType
+    {
         DEFAULT,
         SMOOTH,
         NESTOPIA,
