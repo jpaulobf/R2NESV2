@@ -14,18 +14,26 @@ namespace R2NES::Core
     {
         if (window)
         {
-            if (imguiContext) ImGui::SetCurrentContext(imguiContext);
+            if (imguiContext)
+                ImGui::SetCurrentContext(imguiContext);
             ImGui_ImplSDLRenderer2_Shutdown();
             ImGui_ImplSDL2_Shutdown();
-            if (imguiContext) ImGui::DestroyContext(imguiContext);
-            if (renderer) SDL_DestroyRenderer(renderer);
+            if (imguiContext)
+                ImGui::DestroyContext(imguiContext);
+            if (renderer)
+                SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
         }
     }
 
     void VRamViewer::open(int parentX, int parentY, int parentW)
     {
-        if (window) { SDL_ShowWindow(window); visible = true; return; }
+        if (window)
+        {
+            SDL_ShowWindow(window);
+            visible = true;
+            return;
+        }
 
         window = SDL_CreateWindow("R2NES v2 - VRAM Viewer", parentX - 512, parentY + 300, 512, 400, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
         if (window)
@@ -43,7 +51,14 @@ namespace R2NES::Core
         }
     }
 
-    void VRamViewer::close() { if (window) { SDL_HideWindow(window); visible = false; } }
+    void VRamViewer::close()
+    {
+        if (window)
+        {
+            SDL_HideWindow(window);
+            visible = false;
+        }
+    }
 
     uint32_t VRamViewer::getWindowID() const { return window ? SDL_GetWindowID(window) : 0; }
 
@@ -58,12 +73,14 @@ namespace R2NES::Core
 
     void VRamViewer::updatePosition(int parentX, int parentY, int parentW)
     {
-        if (window) SDL_SetWindowPosition(window, parentX - 512, parentY + 300);
+        if (window)
+            SDL_SetWindowPosition(window, parentX - 512, parentY + 300);
     }
 
     void VRamViewer::render(VRAM *vram)
     {
-        if (!visible || !renderer || !vram || !imguiContext) return;
+        if (!visible || !renderer || !vram || !imguiContext)
+            return;
 
         ImGui::SetCurrentContext(imguiContext);
         ImGui_ImplSDLRenderer2_NewFrame();
@@ -80,12 +97,14 @@ namespace R2NES::Core
 
         for (uint16_t addr = 0; addr < vram->getSize(); addr += 16)
         {
-            ImGui::Text("%04X |", addr); ImGui::SameLine();
+            ImGui::Text("%04X |", addr);
+            ImGui::SameLine();
             std::string ascii_line;
             for (int i = 0; i < 16; ++i)
             {
                 uint8_t byte_value = vram->readRaw(addr + i);
-                ImGui::Text("%02X", byte_value); ImGui::SameLine();
+                ImGui::Text("%02X", byte_value);
+                ImGui::SameLine();
                 ascii_line += (byte_value >= 0x20 && byte_value <= 0x7E) ? (char)byte_value : '.';
             }
             ImGui::Text("| %s", ascii_line.c_str());
