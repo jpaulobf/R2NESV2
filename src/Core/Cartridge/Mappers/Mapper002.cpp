@@ -70,13 +70,13 @@ namespace R2NES::Core
 
     void Mapper002::saveState(std::ostream &os)
     {
-        os.write(reinterpret_cast<const char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        os.write(reinterpret_cast<const char*>(&mirrorMode), sizeof(mirrorMode));
+        os.write(reinterpret_cast<const char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        os.write(reinterpret_cast<const char *>(&mirrorMode), sizeof(mirrorMode));
     }
 
     void Mapper002::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char*>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        is.read(reinterpret_cast<char*>(&mirrorMode), sizeof(mirrorMode));
+        is.read(reinterpret_cast<char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
+        is.read(reinterpret_cast<char *>(&mirrorMode), sizeof(mirrorMode));
     }
 }
