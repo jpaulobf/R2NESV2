@@ -56,7 +56,8 @@ namespace R2NES::Core
                 {
                     // Banco fixo: último banco da região de 256KB (SUROM) ou último banco absoluto
                     uint32_t lastBank = (nPRGBankHigh << 4) | 0x0F;
-                    if (lastBank >= nPRGBanks) lastBank = nPRGBanks - 1;
+                    if (lastBank >= nPRGBanks)
+                        lastBank = nPRGBanks - 1;
                     mapped_addr = (lastBank * 0x4000) + (addr & 0x3FFF);
                 }
             }
@@ -114,12 +115,14 @@ namespace R2NES::Core
                     {
                         nCHRBankSelect0 = nShiftRegister & 0x1F;
                         // Em placas SUROM/SXROM, o bit 4 do banco CHR controla o PRG A18
-                        if (nCHRBanks == 0) nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
+                        if (nCHRBanks == 0)
+                            nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
                     }
                     else if (targetRegister == 2)
                     {
                         nCHRBankSelect1 = nShiftRegister & 0x1F;
-                        if (nCHRBanks == 0) nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
+                        if (nCHRBanks == 0)
+                            nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
                     }
                     else if (targetRegister == 3) // PRG Bank ($E000-$FFFF)
                         nPRGBankSelect = nShiftRegister & 0x1F;
@@ -206,7 +209,7 @@ namespace R2NES::Core
         nShiftRegisterCount = 0x00;
         nLastWriteCycle = 0;
         nPRGBankHigh = 0;
-        
+
         // Inicializa PRG RAM com zeros
         for (int i = 0; i < 0x2000; i++)
             nPRGStaticRAM[i] = 0x00;
