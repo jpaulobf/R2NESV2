@@ -415,32 +415,32 @@ namespace R2NES::Core
 
     void CPU::saveState(std::ostream &os)
     {
-        os.write(reinterpret_cast<const char*>(&a), sizeof(a));
-        os.write(reinterpret_cast<const char*>(&x), sizeof(x));
-        os.write(reinterpret_cast<const char*>(&y), sizeof(y));
-        os.write(reinterpret_cast<const char*>(&stkp), sizeof(stkp));
-        os.write(reinterpret_cast<const char*>(&pc), sizeof(pc));
-        os.write(reinterpret_cast<const char*>(&status), sizeof(status));
-        os.write(reinterpret_cast<const char*>(&opcode), sizeof(opcode));
-        os.write(reinterpret_cast<const char*>(&cycles), sizeof(cycles));
-        os.write(reinterpret_cast<const char*>(&fetched), sizeof(fetched));
-        os.write(reinterpret_cast<const char*>(&addr_abs), sizeof(addr_abs));
-        os.write(reinterpret_cast<const char*>(&addr_rel), sizeof(addr_rel));
+        os.write(reinterpret_cast<const char *>(&a), sizeof(a));
+        os.write(reinterpret_cast<const char *>(&x), sizeof(x));
+        os.write(reinterpret_cast<const char *>(&y), sizeof(y));
+        os.write(reinterpret_cast<const char *>(&stkp), sizeof(stkp));
+        os.write(reinterpret_cast<const char *>(&pc), sizeof(pc));
+        os.write(reinterpret_cast<const char *>(&status), sizeof(status));
+        os.write(reinterpret_cast<const char *>(&opcode), sizeof(opcode));
+        os.write(reinterpret_cast<const char *>(&cycles), sizeof(cycles));
+        os.write(reinterpret_cast<const char *>(&fetched), sizeof(fetched));
+        os.write(reinterpret_cast<const char *>(&addr_abs), sizeof(addr_abs));
+        os.write(reinterpret_cast<const char *>(&addr_rel), sizeof(addr_rel));
     }
 
     void CPU::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char*>(&a), sizeof(a));
-        is.read(reinterpret_cast<char*>(&x), sizeof(x));
-        is.read(reinterpret_cast<char*>(&y), sizeof(y));
-        is.read(reinterpret_cast<char*>(&stkp), sizeof(stkp));
-        is.read(reinterpret_cast<char*>(&pc), sizeof(pc));
-        is.read(reinterpret_cast<char*>(&status), sizeof(status));
-        is.read(reinterpret_cast<char*>(&opcode), sizeof(opcode));
-        is.read(reinterpret_cast<char*>(&cycles), sizeof(cycles));
-        is.read(reinterpret_cast<char*>(&fetched), sizeof(fetched));
-        is.read(reinterpret_cast<char*>(&addr_abs), sizeof(addr_abs));
-        is.read(reinterpret_cast<char*>(&addr_rel), sizeof(addr_rel));
+        is.read(reinterpret_cast<char *>(&a), sizeof(a));
+        is.read(reinterpret_cast<char *>(&x), sizeof(x));
+        is.read(reinterpret_cast<char *>(&y), sizeof(y));
+        is.read(reinterpret_cast<char *>(&stkp), sizeof(stkp));
+        is.read(reinterpret_cast<char *>(&pc), sizeof(pc));
+        is.read(reinterpret_cast<char *>(&status), sizeof(status));
+        is.read(reinterpret_cast<char *>(&opcode), sizeof(opcode));
+        is.read(reinterpret_cast<char *>(&cycles), sizeof(cycles));
+        is.read(reinterpret_cast<char *>(&fetched), sizeof(fetched));
+        is.read(reinterpret_cast<char *>(&addr_abs), sizeof(addr_abs));
+        is.read(reinterpret_cast<char *>(&addr_rel), sizeof(addr_rel));
     }
 
     // Busca o dado atual com base no modo de endereçamento calculado
@@ -693,7 +693,7 @@ namespace R2NES::Core
         push((pc >> 8) & 0x00FF);
         push(pc & 0x00FF);
 
-        // Ao contrário da interrupção de hardware, a interrupção por software (BRK) 
+        // Ao contrário da interrupção de hardware, a interrupção por software (BRK)
         // empilha o status com os bits 4 e 5 (B e U) setados.
         uint8_t status_to_push = status;
         status_to_push |= B;
