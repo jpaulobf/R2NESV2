@@ -23,7 +23,7 @@ namespace R2NES::Core
         // Serialização para Save / Load states
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
-        
+
         // Limpa toda a memória RAM
         void reset();
 
