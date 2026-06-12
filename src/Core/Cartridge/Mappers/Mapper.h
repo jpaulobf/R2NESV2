@@ -32,8 +32,8 @@ namespace R2NES::Core
         virtual void reset() {}
 
         // Por padrão, mappers retornam HARDWARE (indicando o que está no iNES)
-        virtual MirrorMode getMirrorMode() 
-        { 
+        virtual MirrorMode getMirrorMode()
+        {
             return MirrorMode::HORIZONTAL; // Fallback padrão
         }
 
