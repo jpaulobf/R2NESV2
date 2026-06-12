@@ -16,12 +16,12 @@ Mapper 000 (NROM)
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | :--- | :---: | :---: | :---: | :--- |
 | 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
-| 1942 | US | 000 | ⭐⭐⭐⭐⭐ | Bugs no HUD. Falhas gráficas nas transições. Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
+| 1942 | US | 000 | ⭐⭐⭐⭐⭐ | Bugs no HUD |
 | Balloon Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman | US | 000 | ⭐ | Preso na Tela Título |
 | Burgertime | US | 000 | ⭐ | Preso na Tela Título |
-| Chubby Cherub | US | 000 | ⭐⭐⭐⭐ | SFI |
+| Chubby Cherub | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Clu Clu Land | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Defender 2 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Dig Dug | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -50,10 +50,10 @@ Mapper 000 (NROM)
 | Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Othello | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Pacman | US | 000 | ⭐⭐⭐⭐⭐ | Pequeno Glitch de Sprite 8x8 no canto superior esquerdo |
+| Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Pinball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Popeye | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Raid on Bungeling Bay | US | 000 | ⭐⭐⭐⭐ | Sujeira nas primeiras linhas do scroll vertical (8 primeiras linhas) |
+| Raid on Bungeling Bay | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Seicross | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Slalom | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Soccer | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -74,11 +74,11 @@ Mapper 000 (NROM)
 
 ### Resumo Estatístico - Mapper 000 (NROM)
 - **Total de Jogos Testados:** 53
-- ⭐⭐⭐⭐⭐ (Perfeito): 47 - 88.7%
-- ⭐⭐⭐⭐ (Jogável): 4 - 7.5%
-- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐⭐⭐⭐ (Perfeito): 50 - 94.3%
+- ⭐⭐⭐⭐ (Muito Jogável): 1 - 1.8%
+- ⭐⭐⭐ (Jogável): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 2 - 3.8%
+- ⭐ (Não funciona): 2 - 3.7%
 
 
 
