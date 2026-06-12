@@ -67,7 +67,7 @@ namespace R2NES::Core
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {
-            if (nCHRBanks == 0) 
+            if (nCHRBanks == 0)
             {
                 // Caso o mapper seja forçado em uma ROM com CHR-RAM
                 mapped_addr = addr;
