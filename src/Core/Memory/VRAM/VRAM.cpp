@@ -52,7 +52,7 @@ namespace R2NES::Core
 
         case MirrorMode::FOUR_SCREEN:
             // Proteção contra overflow enquanto não houver 4KB reais
-            return maskedAddr & 0x07FF; 
+            return maskedAddr & 0x07FF;
 
         default:
             // Fallback para Vertical (comum em muitos jogos)
@@ -62,11 +62,11 @@ namespace R2NES::Core
 
     void VRAM::saveState(std::ostream &os)
     {
-        os.write(reinterpret_cast<const char*>(vram.data()), vram.size());
+        os.write(reinterpret_cast<const char *>(vram.data()), vram.size());
     }
 
     void VRAM::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char*>(vram.data()), vram.size());
+        is.read(reinterpret_cast<char *>(vram.data()), vram.size());
     }
 }
