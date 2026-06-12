@@ -110,9 +110,9 @@ namespace R2NES::Core
             std::string instStr = (it != disassembly.end()) ? it->second : "??? (Address not in disassembly range)";
 
             // Imprime o estado detalhado no console (Log de Execução)
-            std::cout << "[DEBUG-STEP] " << instStr 
+            std::cout << "[DEBUG-STEP] " << instStr
                       << " | A:$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << (int)a
-                      << " X:$" << std::setw(2) << (int)x 
+                      << " X:$" << std::setw(2) << (int)x
                       << " Y:$" << std::setw(2) << (int)y
                       << " PC:$" << std::setw(4) << (int)pc
                       << " SP:$" << std::setw(2) << (int)stkp
