@@ -16,7 +16,7 @@ namespace R2NES::Core
         ~RamViewer();
 
         void open(int parentX, int parentY, int parentW);
-        
+
         void close();
 
         void render(RAM *ram);
