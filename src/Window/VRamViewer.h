@@ -28,7 +28,7 @@ namespace R2NES::Core
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         ImGuiContext *imguiContext = nullptr;
-        
+
         bool visible = false;
     };
 }
