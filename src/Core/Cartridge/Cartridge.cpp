@@ -3,6 +3,7 @@
 #include "Core/Cartridge/Mappers/Mapper001.h"
 #include "Core/Cartridge/Mappers/Mapper002.h"
 #include "Core/Cartridge/Mappers/Mapper003.h"
+#include "Core/Cartridge/Mappers/Mapper004.h"
 #include "Core/Cartridge/Mappers/Mapper066.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
 #include <fstream>
@@ -219,6 +220,9 @@ namespace R2NES::Core
             break;
         case 3:
             pMapper = std::make_shared<Mapper003>(prgBanks, chrBanks, mirror);
+            break;
+        case 4:
+            pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror);
             break;
         case 66:
             pMapper = std::make_shared<Mapper066>(prgBanks, chrBanks, mirror);
