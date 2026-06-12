@@ -37,7 +37,7 @@ namespace R2NES::Core
     void NesBoard::reset()
     {
         // Limpa a RAM interna da CPU (2KB) para garantir um estado limpo (Cold Boot simulation)
-        ram.reset(); 
+        ram.reset();
 
         apu.reset();
         bus.systemClockCounter = 0;
@@ -48,7 +48,7 @@ namespace R2NES::Core
         // CPU deve ser a ÚLTIMA a resetar, para ler os vetores com o Mapper já configurado
         cpu.reset();
         ppu.reset();
-        
+
         std::cout << "NesBoard: Reset complete. CPU PC at 0x" << std::hex << cpu.pc << std::endl;
     }
 
