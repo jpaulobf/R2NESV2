@@ -265,10 +265,10 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::ppuRead(uint16_t addr, uint8_t &data) const
+    bool Cartridge::ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const
     {
         uint32_t mapped_addr = 0;
-        if (pMapper && pMapper->ppuMapRead(addr, mapped_addr, data))
+        if (pMapper && pMapper->ppuMapRead(addr, mapped_addr, data, systemClockCounter))
         {
             if (mapped_addr == 0xFFFFFFFF)
                 return true;
@@ -282,10 +282,10 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::ppuWrite(uint16_t addr, uint8_t data)
+    bool Cartridge::ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter)
     {
         uint32_t mapped_addr = 0;
-        if (pMapper && pMapper->ppuMapWrite(addr, mapped_addr, data))
+        if (pMapper && pMapper->ppuMapWrite(addr, mapped_addr, data, systemClockCounter))
         {
             if (mapped_addr == 0xFFFFFFFF)
                 return true;
