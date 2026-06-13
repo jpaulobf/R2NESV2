@@ -6,7 +6,7 @@
 
 namespace R2NES::Core
 {
-    NESTest::NESTest(NesBoard &board) : nes(board)
+    NESTest::NESTest(NES &board) : nes(board)
     {
     }
 
