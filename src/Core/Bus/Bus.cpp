@@ -153,14 +153,14 @@ namespace R2NES::Core
     bool Bus::ppuRead(uint16_t addr, uint8_t &data) const
     {
         if (cart)
-            return cart->ppuRead(addr, data);
+            return cart->ppuRead(addr, data, systemClockCounter);
         return false;
     }
 
     bool Bus::ppuWrite(uint16_t addr, uint8_t data)
     {
         if (cart)
-            return cart->ppuWrite(addr, data);
+            return cart->ppuWrite(addr, data, systemClockCounter);
         return false;
     }
 
