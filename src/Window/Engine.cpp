@@ -12,7 +12,7 @@ namespace R2NES::Core
         // Inicializa os componentes principais
         window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
         window->createMenu();
-        nes = std::make_unique<NesBoard>();
+        nes = std::make_unique<NES>();
 
         // Conecta o callback da janela à função da Engine
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
@@ -110,8 +110,8 @@ namespace R2NES::Core
 
         // Mapeamento Padrão para Controles (Xbox/8BitDo layout)
         // Player 1
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_A;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_B;
+        player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_B;
+        player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_BACK] = R2NES::Core::IO::BUTTON_SELECT;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_START] = R2NES::Core::IO::BUTTON_START;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_UP] = R2NES::Core::IO::BUTTON_UP;
@@ -120,8 +120,8 @@ namespace R2NES::Core
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = R2NES::Core::IO::BUTTON_RIGHT;
 
         // Mapeamento de Turbo (Controle)
-        player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
         player1TurboControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
+        player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
 
         // Player 2 (mesmo mapeamento, controles diferentes)
         player2ControllerMap = player1ControllerMap;
@@ -198,7 +198,7 @@ namespace R2NES::Core
                 fpsTimer = 0.0f;
             }
 
-            // Só processa o timing e a atualização se houver um cartucho carregado no NesBoard
+            // Só processa o timing e a atualização se houver um cartucho carregado no NES
             if (nes->isCartridgeLoaded())
             {
                 if (!paused)
