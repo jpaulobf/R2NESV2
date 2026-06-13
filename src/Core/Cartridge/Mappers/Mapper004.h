@@ -13,8 +13,9 @@ namespace R2NES::Core
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
-        bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
-        bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) override;
+        bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
+        bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+        void handleA12Edge(uint16_t addr, uint32_t systemClockCounter);
 
         MirrorMode getMirrorMode() override;
 
@@ -43,6 +44,8 @@ namespace R2NES::Core
         uint16_t nLastA12 = 0x0000;
 
         uint8_t vPRGRAM[8192];
+
+        uint32_t nLastA12Clock = 0;
 
         void updateBanks();
     };
