@@ -25,8 +25,9 @@ namespace R2NES::Core
         nIRQLatch = 0x00;
         nIRQCounter = 0x00;
         nLastA12 = 0x0000;
+        nLastA12Clock = 0; // Inicializado com segurança
 
-        // Inicialização padrão segura do MMC3 para evitar apontar para bancos inexistentes
+        // Inicialização padrão segura do MMC3
         pRegister[0] = 0;
         pRegister[1] = 2;
         pRegister[2] = 4;
@@ -72,19 +73,16 @@ namespace R2NES::Core
         {
             if (!(addr & 0x0001))
             {
-                // Bank Select ($8000)
                 nTargetRegister = data & 0x07;
                 bPRGBankMode = (data & 0x40);
                 bCHRInversion = (data & 0x80);
-                // Importante: Atualizar os bancos imediatamente se o modo mudar
                 updateBanks();
             }
-            else // Bank Data ($8001)
+            else
             {
-                // CRÍTICO: Registros 0-1 (CHR pairs) devem ser forçados a pares
                 if (nTargetRegister <= 1)
                 {
-                    pRegister[nTargetRegister] = data & 0xFE; // Força par
+                    pRegister[nTargetRegister] = data & 0xFE;
                 }
                 else
                 {
@@ -99,12 +97,7 @@ namespace R2NES::Core
         {
             if (!(addr & 0x0001))
             {
-                // Bit 0: 0 = Horizontal, 1 = Vertical (iNES convention)
                 mirrorMode = (data & 0x01) ? MirrorMode::VERTICAL : MirrorMode::HORIZONTAL;
-            }
-            else
-            {
-                // PRG RAM Protect ($A001) - Ignorado para compatibilidade básica
             }
             return false;
         }
@@ -134,27 +127,46 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper004::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
+    // Método auxiliar interno para centralizar o comportamento do contador de IRQ
+    void Mapper004::handleA12Edge(uint16_t addr, uint32_t systemClockCounter)
     {
-        // Detector de borda de subida na linha A12 da PPU
         uint16_t currentA12 = addr & 0x1000;
+
+        // Se o clock do sistema avançou consideravelmente desde o último acesso,
+        // significa que mudamos de ciclo de instrução/pixel. Forçamos o decaimento
+        // da linha A12 para simular o período em que a PPU ficou ociosa ou lendo Nametables.
+        if ((systemClockCounter - nLastA12Clock) > 100)
+        {
+            nLastA12 = 0;
+        }
+
         if (nLastA12 == 0 && currentA12 != 0)
         {
-            if (nIRQCounter == 0 || bIRQReload)
+            if ((systemClockCounter - nLastA12Clock) > 15)
             {
-                nIRQCounter = nIRQLatch;
-            }
-            else
-            {
-                nIRQCounter--;
-            }
+                if (nIRQCounter == 0 || bIRQReload)
+                {
+                    nIRQCounter = nIRQLatch;
+                }
+                else
+                {
+                    nIRQCounter--;
+                }
 
-            if (nIRQCounter == 0 && bIRQEnabled)
-                bIRQActive = true;
+                if (nIRQCounter == 0 && bIRQEnabled)
+                    bIRQActive = true;
 
-            bIRQReload = false;
+                bIRQReload = false;
+            }
+            nLastA12Clock = systemClockCounter;
         }
+
         nLastA12 = currentA12;
+    }
+
+    bool Mapper004::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter)
+    {
+        handleA12Edge(addr, systemClockCounter);
 
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {
@@ -166,8 +178,11 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper004::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    // Atualizado para receber e processar o relógio do sistema também em escritas
+    bool Mapper004::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
+        handleA12Edge(addr, systemClockCounter);
+
         if (addr >= 0x0000 && addr <= 0x1FFF && nCHRBanks == 0)
         {
             uint16_t offset = addr & 0x03FF;
@@ -193,7 +208,6 @@ namespace R2NES::Core
         uint32_t nPRG8 = nPRGBanks * 2;
         uint32_t nCHR1 = (nCHRBanks == 0) ? 8 : (nCHRBanks * 8);
 
-        // Mapeamento PRG com clamping de banda
         if (bPRGBankMode)
         {
             pPRGMode[0] = (nPRG8 - 2) % nPRG8;
@@ -209,7 +223,6 @@ namespace R2NES::Core
             pPRGMode[3] = (nPRG8 - 1) % nPRG8;
         }
 
-        // Mapeamento CHR com mascaramento correto de bits
         if (bCHRInversion)
         {
             pCHRMode[0] = pRegister[2] % nCHR1;
@@ -247,6 +260,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&nIRQLatch), sizeof(nIRQLatch));
         os.write(reinterpret_cast<const char *>(&nIRQCounter), sizeof(nIRQCounter));
         os.write(reinterpret_cast<const char *>(&nLastA12), sizeof(nLastA12));
+        os.write(reinterpret_cast<const char *>(&nLastA12Clock), sizeof(nLastA12Clock));
         os.write(reinterpret_cast<const char *>(vPRGRAM), sizeof(vPRGRAM));
     }
 
@@ -263,6 +277,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&nIRQLatch), sizeof(nIRQLatch));
         is.read(reinterpret_cast<char *>(&nIRQCounter), sizeof(nIRQCounter));
         is.read(reinterpret_cast<char *>(&nLastA12), sizeof(nLastA12));
+        is.read(reinterpret_cast<char *>(&nLastA12Clock), sizeof(nLastA12Clock));
         is.read(reinterpret_cast<char *>(vPRGRAM), sizeof(vPRGRAM));
         updateBanks();
     }
