@@ -17,8 +17,8 @@ namespace R2NES::Core
         virtual bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
         // Transforma o endereço virtual da PPU em um endereço físico na CHR-ROM
-        virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) = 0;
-        virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data) = 0;
+        virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) = 0;
+        virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         virtual bool getIrqFlag() const { return false; }
