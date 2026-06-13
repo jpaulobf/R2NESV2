@@ -82,7 +82,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper090::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
+    bool Mapper090::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter)
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {
@@ -93,7 +93,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Mapper090::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data)
+    bool Mapper090::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
     {
         if (addr >= 0x0000 && addr <= 0x1FFF && nCHRBanks == 0) // CHR-RAM
         {
