@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Window.h"
-#include "Core/NESBoard.h"
+#include "Core/NES.h"
 #include <memory>
 #include <map>
 #include <string>
@@ -41,7 +41,7 @@ namespace R2NES::Core
 
         // Ponteiros
         std::unique_ptr<Window> window;
-        std::unique_ptr<NesBoard> nes;
+        std::unique_ptr<NES> nes;
 
         // Gerenciamento de Áudio
         SDL_AudioDeviceID audioDevice = 0;
