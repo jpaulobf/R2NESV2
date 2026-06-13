@@ -21,8 +21,8 @@ namespace R2NES::Core
         bool cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
 
         // Leitura/Escrita do lado da PPU (Gráficos)
-        bool ppuRead(uint16_t addr, uint8_t &data) const;
-        bool ppuWrite(uint16_t addr, uint8_t data);
+        bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
+        bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
 
         // Retorna se o cartucho foi carregado com sucesso
         bool isValid() const { return imageValid; }
