@@ -4,6 +4,7 @@
 #include <map>
 #include <filesystem>
 #include <fstream>
+#include "Engine.h"
 
 namespace R2NES::Core
 {
@@ -68,6 +69,11 @@ namespace R2NES::Core
                                                 if (nes) 
                                                     nes->getPpu().setUnlimitedSprites(enabled); });
 
+        window->setInvertBAYBCallback([this](bool enabled)
+                                      { 
+                                         this->invertBAYB = enabled; 
+                                         configureABBAButtonsController1(); });
+
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
                               { this->fastForwardEnabled = enabled; });
@@ -108,10 +114,8 @@ namespace R2NES::Core
         player1TurboKeyMap[SDLK_i] = R2NES::Core::IO::BUTTON_A;
         player1TurboKeyMap[SDLK_u] = R2NES::Core::IO::BUTTON_B;
 
-        // Mapeamento Padrão para Controles (Xbox/8BitDo layout)
-        // Player 1
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_B;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
+        configureABBAButtonsController1();
+
         player1ControllerMap[SDL_CONTROLLER_BUTTON_BACK] = R2NES::Core::IO::BUTTON_SELECT;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_START] = R2NES::Core::IO::BUTTON_START;
         player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_UP] = R2NES::Core::IO::BUTTON_UP;
@@ -150,6 +154,34 @@ namespace R2NES::Core
         }
     }
 
+    void Engine::configureABBAButtonsController1()
+    {
+        // Mapeamento Padrão para Controles (Xbox/8BitDo layout)
+        // Limpa mapeamentos de Turbo anteriores para evitar estados residuais ao alternar
+        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_A);
+        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_B);
+        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_X);
+        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_Y);
+
+        if (window->isInvertBAYBEnabled())
+        {
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_A;
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_B;
+            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_B;
+            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
+        }
+        else
+        {
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_B;
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
+            player1ControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
+            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
+            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
+        }
+    }
     void Engine::toggleVSync()
     {
         // A Engine solicita a mudança para a Window
@@ -511,8 +543,6 @@ namespace R2NES::Core
         }
         else
         {
-            std::vector<float> samples;
-
             // 1. Roda a CPU e a APU até o final do quadro de vídeo (Frame)
             while (!nes->isFrameComplete())
             {
@@ -522,13 +552,14 @@ namespace R2NES::Core
             nes->clearFrameComplete();
 
             // 2. Coleta todo o áudio que a APU gerou durante este frame
+            audioBuffer.clear();
             while (nes->getApu().hasSamples())
             {
-                samples.push_back(nes->getApu().getOutputSample());
+                audioBuffer.push_back(nes->getApu().getOutputSample());
             }
 
             // 3. Envia o buffer de áudio do frame inteiro para o SDL
-            if (audioDevice > 0 && !samples.empty())
+            if (audioDevice > 0 && !audioBuffer.empty())
             {
                 if (!uncappedSpeed)
                 {
@@ -541,7 +572,7 @@ namespace R2NES::Core
                         SDL_ClearQueuedAudio(audioDevice);
                     }
 
-                    SDL_QueueAudio(audioDevice, samples.data(), samples.size() * sizeof(float));
+                    SDL_QueueAudio(audioDevice, audioBuffer.data(), audioBuffer.size() * sizeof(float));
                 }
                 else
                 {
