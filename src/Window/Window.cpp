@@ -62,6 +62,7 @@
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
 #define IDI_ICON 101
+#define IDM_HACKS_INVERT_BAYB 4000
 
 namespace R2NES::Core
 {
@@ -592,6 +593,16 @@ namespace R2NES::Core
                             else
                                 this->dmcOn(); });
                     }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_INVERT_BAYB)
+                    {
+                        toggleMarkMenuItem(IDM_HACKS_INVERT_BAYB, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->invertBAYBOff();
+                            else
+                                this->invertBAYBOn(); });
+                    }
                 }
 #endif
             }
@@ -693,6 +704,7 @@ namespace R2NES::Core
 
             HMENU hMenuBar = CreateMenu();
             HMENU hFileMenu = CreateMenu();
+            HMENU hInputMenu = CreateMenu();
             HMENU hDebugMenu = CreateMenu();
             HMENU hDisplayMenu = CreateMenu();
             HMENU hSoundMenu = CreateMenu();
@@ -941,6 +953,15 @@ namespace R2NES::Core
                 AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_DMC, L"&DMC");
             }
 
+            if (this->invertBAYB)
+            {
+                AppendMenuW(hInputMenu, MF_STRING | MF_CHECKED, IDM_HACKS_INVERT_BAYB, L"&Invert BA/YB Buttons");
+            }
+            else
+            {
+                AppendMenuW(hInputMenu, MF_STRING, IDM_HACKS_INVERT_BAYB, L"&Invert BA/YB Buttons");
+            }
+
             if (this->unlimitedSprites)
             {
                 AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_UNLIMITED_SPRITES, L"&Enable Unlimited Sprites");
@@ -963,6 +984,7 @@ namespace R2NES::Core
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hSoundMenu, L"&Sound");
+            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hInputMenu, L"&Input");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDebugMenu, L"&Debug");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hHacksMenu, L"&Hacks");
 
@@ -1260,6 +1282,21 @@ namespace R2NES::Core
             unlimitedSpritesCallback(unlimitedSprites);
 
         std::cout << "Window: Unlimited Sprites " << (unlimitedSprites ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setInvertBAYB(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (invertBAYB == enabled)
+            return;
+
+        invertBAYB = enabled;
+
+        // Notificar a Engine sobre a mudança para ajustar a lógica de renderização
+        if (invertBAYBCallback)
+            invertBAYBCallback(invertBAYB);
+
+        std::cout << "Window: Inverted BA/YB " << (invertBAYB ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setVSync(bool enabled)
