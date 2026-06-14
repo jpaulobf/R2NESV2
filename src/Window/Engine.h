@@ -5,6 +5,7 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <vector>
 #include "Core/IO/NESButtons.h"
 #include <SDL.h>
 
@@ -14,6 +15,7 @@ namespace R2NES::Core
     {
     public:
         Engine();
+        
         ~Engine();
 
         void run();
@@ -23,6 +25,9 @@ namespace R2NES::Core
         void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
 
     private:
+
+        void configureABBAButtonsController1();
+
         void processEmulatorInput();
 
         void handleKeyboard(SDL_Keycode key, bool isPressed);
@@ -47,6 +52,7 @@ namespace R2NES::Core
         SDL_AudioDeviceID audioDevice = 0;
         double audioCycleAccumulator = 0.0;
         float lastApuSample = 0.0f;
+        std::vector<float> audioBuffer;
 
         // Mapeamento de teclas para o Player 1 e 2
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
@@ -94,6 +100,8 @@ namespace R2NES::Core
 
         // Controle dos sprites ilimitados
         bool unlimitedSprites = false;
+
+        bool invertBAYB = false;
 
         std::string currentRomPath;
     };
