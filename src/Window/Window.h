@@ -42,6 +42,7 @@ namespace R2NES::Core
         using LoadCallback = std::function<void(bool)>;
         using SaveSlotCallback = std::function<void(int)>;
         using PaletteCallback = std::function<void(PaletteType)>;
+        using InvertBAYBCallback = std::function<void(bool)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -96,6 +97,9 @@ namespace R2NES::Core
 
         /* Define a função de callback para eventos de paleta. */
         void setPaletteCallback(PaletteCallback cb) { paletteCallback = cb; }
+
+        /* Define a função de callback para o estado de inversão dos botões A e B. */
+        void setInvertBAYBCallback(InvertBAYBCallback cb) { invertBAYBCallback = cb; }
 
         // ---------------------------------
 
@@ -199,6 +203,21 @@ namespace R2NES::Core
 
         /* Habilita o recurso de Unlimited Sprites. */
         void unlimitedSpritesOn() { setUnlimitedSprites(true); }
+
+        /* Verifica se a inversão dos botões A e B está habilitada. */
+        bool invertBAYBEnabled() const { return invertBAYB; }
+
+        /* Ativa ou desativa a inversão dos botões A e B. */
+        void setInvertBAYB(bool enabled);
+
+        /* Desabilita a inversão dos botões A e B. */
+        void invertBAYBOff() { setInvertBAYB(false); }
+
+        /* Habilita a inversão dos botões A e B. */
+        void invertBAYBOn() { setInvertBAYB(true); }
+
+        /* Verifica se a inversão dos botões A e B está habilitada. */
+        bool isInvertBAYBEnabled() const { return invertBAYB; }
 
         /* Verifica se o Fast Forward está habilitado nas configurações. */
         bool isFastForwardEnabled() const { return fastForwardEnabled; }
@@ -372,7 +391,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.7.8 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.7.9 | FPS: %.2f";
 
         // Valores Default Scanlines
         bool scanlines = false;
@@ -395,6 +414,7 @@ namespace R2NES::Core
         LoadCallback loadCallback = nullptr;
         SaveSlotCallback saveSlotCallback = nullptr;
         PaletteCallback paletteCallback = nullptr;
+        InvertBAYBCallback invertBAYBCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -436,5 +456,8 @@ namespace R2NES::Core
 
         // Verifica se o cartucho foi introduzido e lido
         bool cartLoaded = false;
+
+        // Configuração para inversão dos botões A e B
+        bool invertBAYB = false;
     };
 }
