@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.7.9] - 2026-06-13
+
+### Adicionado
+- **Inversão de Botões (QoL)**: Implementada a funcionalidade de inversão dos botões A/B para o layout X/A nos controles, facilitando a ergonomia para diferentes perfis de jogadores. O sistema agora realiza o remapeamento automático das funções de Turbo para os botões secundários correspondentes.
+
+### Melhorado
+- **Mapper 004 (MMC3)**: Diversas melhorias na lógica do Mapper 004, aumentando a compatibilidade com títulos que utilizam trocas complexas de bancos de memória e interrupções de IRQ.
+
 ## [0.7.8] - 2026-06-11
 
 ### Adicionado
