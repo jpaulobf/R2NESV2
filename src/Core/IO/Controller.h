@@ -27,19 +27,16 @@ namespace R2NES::Core::IO
 
         uint8_t readNextBit()
         {
-            uint8_t data;
             if (strobe)
             {
-                data = (state & 0x80) > 0;
+                shift = state;
+                return (state & 0x80) > 0;
             }
-            else
-            {
-                data = (shift & 0x80) > 0;
-                shift <<= 1;
 
-                if (shift == 0)
-                    shift = 0x00; // lógica de "open bus"
-            }
+            uint8_t data = (shift & 0x80) > 0;
+            shift <<= 1;
+            shift |= 0x01;
+
             return data;
         }
 
