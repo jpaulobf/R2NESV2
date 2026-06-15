@@ -94,7 +94,7 @@ Mapper 001 (MMC1)
 | Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐ | Não inicializa |
-| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐ | Sujeira nas 8 primeiras linhas (totalmente jogável) |
+| Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Lolo 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -112,7 +112,7 @@ Mapper 001 (MMC1)
 | Bad Street Brawler | US | 001 | ⭐ | Trava após o menu |
 | Barbie | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐ | Não inicializa |
-| Barker Bill's Trick Shooting | US | 001 | ⭐ | Não inicializa |
+| Barker Bill's Trick Shooting | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball Simulator 1.000 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball Stars | US | 001 | ⭐ | Não inicializa |
 | Bases Loaded | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -124,6 +124,7 @@ Mapper 001 (MMC1)
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+
 | Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Break Time: The National Pool Tour | US | 001 | ⭐ | Não inicializa |
