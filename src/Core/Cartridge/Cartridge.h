@@ -1,52 +1,54 @@
 #pragma once
-#include <cstdint>
-#include <vector>
-#include <string>
-#include <memory>
 #include "Common/Common.h"
 #include "Core/Cartridge/Mappers/Mapper.h"
-#include "Core/Cartridge/ROM/PRGROM.h"
 #include "Core/Cartridge/ROM/CHRROM.h"
+#include "Core/Cartridge/ROM/PRGROM.h"
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace R2NES::Core
 {
-    class Cartridge
-    {
-    public:
-        Cartridge(const std::string &fileName);
-        virtual ~Cartridge() = default;
+  class Cartridge
+  {
+  public:
+    Cartridge(const std::string &fileName);
+    virtual ~Cartridge() = default;
 
-        // Leitura/Escrita do lado da CPU
-        bool cpuRead(uint16_t addr, uint8_t &data) const;
-        bool cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
+    // Leitura/Escrita do lado da CPU
+    bool cpuRead(uint16_t addr, uint8_t &data) const;
+    bool cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
 
-        // Leitura/Escrita do lado da PPU (Gráficos)
-        bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
-        bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
+    // Leitura/Escrita do lado da PPU (Gráficos)
+    bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
+    bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
 
-        // Retorna se o cartucho foi carregado com sucesso
-        bool isValid() const { return imageValid; }
+    // Retorna se o cartucho foi carregado com sucesso
+    bool isValid() const { return imageValid; }
 
-        // Retorna se o Mapper está solicitando uma interrupção (IRQ)
-        bool getIrqFlag() const;
+    void clearIrqFlag();
 
-        // Retorna o modo de espelhamento (Mirror Mode) definido pelo cartucho
-        MirrorMode getMirrorMode() const;
+    // Retorna se o Mapper está solicitando uma interrupção (IRQ)
+    bool getIrqFlag() const;
 
-        // Retorna o ponteiro para o Mapper do cartucho
-        std::shared_ptr<Mapper> getMapper() { return pMapper; }
+    // Retorna o modo de espelhamento (Mirror Mode) definido pelo cartucho
+    MirrorMode getMirrorMode() const;
 
-    private:
-        bool loadFromBuffer(const std::vector<uint8_t> &buffer);
-        std::unique_ptr<PRGROM> prgROM;
-        std::unique_ptr<CHRROM> chrROM;
-        std::shared_ptr<Mapper> pMapper;
+    // Retorna o ponteiro para o Mapper do cartucho
+    std::shared_ptr<Mapper> getMapper() { return pMapper; }
 
-        MirrorMode mirror = MirrorMode::HORIZONTAL;
-        uint8_t mapperID = 0;
-        uint8_t prgBanks = 0;
-        uint8_t chrBanks = 0;
+  private:
+    bool loadFromBuffer(const std::vector<uint8_t> &buffer);
+    std::unique_ptr<PRGROM> prgROM;
+    std::unique_ptr<CHRROM> chrROM;
+    std::shared_ptr<Mapper> pMapper;
 
-        bool imageValid = false;
-    };
-}
+    MirrorMode mirror = MirrorMode::HORIZONTAL;
+    uint8_t mapperID = 0;
+    uint8_t prgBanks = 0;
+    uint8_t chrBanks = 0;
+
+    bool imageValid = false;
+  };
+} // namespace R2NES::Core
