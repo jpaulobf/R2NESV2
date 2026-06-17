@@ -20,6 +20,7 @@ namespace R2NES::Core
         MirrorMode getMirrorMode() override;
 
         bool getIrqFlag() const override;
+        void clearIrqFlag() override;
         void reset() override;
 
         // Serialização para Save / Load states
@@ -31,6 +32,7 @@ namespace R2NES::Core
         bool bPRGBankMode = false;
         bool bCHRInversion = false;
         MirrorMode mirrorMode = MirrorMode::HORIZONTAL;
+        MirrorMode ogMirrorMode = MirrorMode::HORIZONTAL;
 
         uint32_t pRegister[8] = {0};
         uint32_t pPRGMode[4] = {0};
