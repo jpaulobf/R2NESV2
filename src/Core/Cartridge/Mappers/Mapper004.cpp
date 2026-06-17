@@ -5,6 +5,7 @@ namespace R2NES::Core
     Mapper004::Mapper004(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror) : Mapper(prgBanks, chrBanks)
     {
         mirrorMode = mirror;
+        ogMirrorMode = mirror; // Armazena o modo de espelhamento original para reset
         for (int i = 0; i < 8192; i++)
             vPRGRAM[i] = 0x00;
         reset();
@@ -17,7 +18,7 @@ namespace R2NES::Core
         nTargetRegister = 0;
         bPRGBankMode = false;
         bCHRInversion = false;
-        mirrorMode = MirrorMode::HORIZONTAL;
+        mirrorMode = ogMirrorMode;
 
         bIRQEnabled = false;
         bIRQActive = false;
@@ -201,6 +202,11 @@ namespace R2NES::Core
     bool Mapper004::getIrqFlag() const
     {
         return bIRQActive;
+    }
+
+    void Mapper004::clearIrqFlag()
+    {
+        bIRQActive = false;
     }
 
     void Mapper004::updateBanks()
