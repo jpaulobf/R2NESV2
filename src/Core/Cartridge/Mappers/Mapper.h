@@ -23,6 +23,9 @@ namespace R2NES::Core
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         virtual bool getIrqFlag() const { return false; }
 
+        // Limpa o flag de IRQ após ele ter sido servido (acknowledge)
+        virtual void clearIrqFlag() {}
+
         // Serialização para Save / Load states
         virtual void saveState(std::ostream &os) = 0;
         virtual void loadState(std::istream &is) = 0;
