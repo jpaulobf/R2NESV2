@@ -124,20 +124,22 @@ Mapper 001 (MMC1)
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-
 | Boulder Dash | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Boy and His Blob, A: Trouble on Blobolonia, David Crane's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Break Time: The National Pool Tour | US | 001 | ⭐ | Não inicializa |
 | BreakThru | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bubble Bobble | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bugs Bunny Crazy Castle, The | US | 001 | ⭐ | Não inicializa |
+| Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Caveman Games | US | 001 | ⭐ | Trava após o menu |
 | Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! Use Savestate. |
 | Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Ferrari Grand Prix Challenge | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Ninja Gaiden | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Nigel Mansell's World Championship Racing | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+
 | Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Clash At Demonhead | US | 001 | ⭐⭐⭐⭐ | Última coluna de 8 pixels preta (totalmente jogável) |
 | Cobra Command | US | 001 | ⭐ | Não abre |
@@ -151,6 +153,7 @@ Mapper 001 (MMC1)
 | Dragon Warrior III | US | 001 |  | ⭐ | Não abre |
 | Dragon Warrior IV | US | 001 |  | ⭐ | Não abre |
 | Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! Use Savestate. |
 | Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | RoboCop 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | RoboCop 3 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -179,7 +182,6 @@ Mapper 001 (MMC1)
 | Family Feud, The All New | US | 001 |  | ... |
 | Faria | US | 001 |  | ... |
 | Faxanadu | US | 001 |  | ... |
-| Ferrari Grand Prix Challenge | US | 001 |  | ... |
 | Fester's Quest | US | 001 |  | ... |
 | Final Fantasy | US | 001 |  | ... |
 | Final Fantasy II | US | 001 |  | ... |
@@ -236,8 +238,6 @@ Mapper 001 (MMC1)
 | Mutant Virus, The: Crisis in a Computer World | US | 001 |  | ... |
 | NES Open Tournament Golf | US | 001 |  | ... |
 | NTF2 System Cartridge | US | 001 |  | ... |
-| Nigel Mansell's World Championship Racing | US | 001 |  | ... |
-| Ninja Gaiden | US | 001 |  | ... |
 | Nobunaga's Ambition | US | 001 |  | ... |
 | Operation Wolf: Take no Prisoners | US | 001 |  | ... |
 | Orb 3-D | US | 001 |  | ... |
