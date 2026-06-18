@@ -10,6 +10,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <zlib.h>
 
 namespace R2NES::Core
@@ -150,6 +151,10 @@ namespace R2NES::Core
     if (!buffer.empty())
     {
       imageValid = loadFromBuffer(buffer);
+      if (imageValid)
+      {
+        romHash = calculateRomHash(buffer);
+      }
     }
   }
 
@@ -329,4 +334,13 @@ namespace R2NES::Core
       return pMapper->getIrqFlag();
     return false;
   }
-} // namespace R2NES::Core
+
+  std::string Cartridge::calculateRomHash(const std::vector<uint8_t> &buffer)
+  {
+    uLong crc = crc32(0L, Z_NULL, 0);
+    crc = crc32(crc, buffer.data() + 16, buffer.size() - 16);
+    std::stringstream ss;
+    ss << std::hex << std::uppercase << std::setw(8) << std::setfill('0') << crc;
+    return ss.str();
+  }
+}
