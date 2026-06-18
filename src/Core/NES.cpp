@@ -109,7 +109,8 @@ namespace R2NES::Core
     {
       bus.setCartridge(newCart);
       cartridgeLoaded = true;
-      std::cout << "Cartridge '" << path << "' loaded successfully." << std::endl;
+      std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: "
+                << newCart->getRomHash() << std::endl;
     }
     else
     {
