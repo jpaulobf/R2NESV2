@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <sstream>
 
 namespace R2NES::Core
 {
@@ -27,6 +28,9 @@ namespace R2NES::Core
     // Retorna se o cartucho foi carregado com sucesso
     bool isValid() const { return imageValid; }
 
+    // Retorna o hash CRC32 da ROM (excluindo o cabeçalho iNES)
+    std::string getRomHash() const { return romHash; }
+
     void clearIrqFlag();
 
     // Retorna se o Mapper está solicitando uma interrupção (IRQ)
@@ -39,6 +43,7 @@ namespace R2NES::Core
     std::shared_ptr<Mapper> getMapper() { return pMapper; }
 
   private:
+    std::string calculateRomHash(const std::vector<uint8_t> &buffer);
     bool loadFromBuffer(const std::vector<uint8_t> &buffer);
     std::unique_ptr<PRGROM> prgROM;
     std::unique_ptr<CHRROM> chrROM;
@@ -48,6 +53,7 @@ namespace R2NES::Core
     uint8_t mapperID = 0;
     uint8_t prgBanks = 0;
     uint8_t chrBanks = 0;
+    std::string romHash;
 
     bool imageValid = false;
   };
