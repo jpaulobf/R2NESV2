@@ -91,7 +91,7 @@ namespace R2NES::Core
             }
 
             if (cpu)
-                cpu->cycles += 513;
+                cpu->cycles += (cpu->cycles % 2 == 0) ? 514 : 513;
         }
         else if (addr == 0x4016)
         {
