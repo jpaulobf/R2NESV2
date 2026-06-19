@@ -1,10 +1,6 @@
 #include "Window/Engine.h"
 #include <SDL.h>
 #include <iostream>
-#include <map>
-#include <filesystem>
-#include <fstream>
-#include "Engine.h"
 
 namespace R2NES::Core
 {
@@ -15,13 +11,17 @@ namespace R2NES::Core
         window->createMenu();
         nes = std::make_unique<NES>();
 
+        audioManager = std::make_unique<R2NES::System::AudioManager>();
+        inputManager = std::make_unique<R2NES::System::InputManager>();
+        stateManager = std::make_unique<R2NES::System::GameStateManager>();
+
         // Conecta o callback da janela à função da Engine
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
                                { this->handleKeyboard(key, isPressed); });
 
         // Conecta o callback de controle
         window->setControllerCallback([this](int player, SDL_GameControllerButton button, bool isPressed)
-                                      { this->handleJoystick(player, button, isPressed); });
+                                      { this->inputManager->handleJoystick(player, button, isPressed, *nes); });
 
         // Conecta o callback de VSync para sincronizar o loop da Engine
         window->setVSyncCallback([this](bool enabled)
@@ -41,8 +41,7 @@ namespace R2NES::Core
                                          else
                                          {
                                              nes->getApu().disableSound();
-                                             if (audioDevice > 0) 
-                                                 SDL_ClearQueuedAudio(audioDevice);
+                                             audioManager->clearQueuedAudio();
                                          }
                                      } });
 
@@ -71,8 +70,7 @@ namespace R2NES::Core
 
         window->setInvertBAYBCallback([this](bool enabled)
                                       { 
-                                         this->invertBAYB = enabled; 
-                                         configureABBAButtonsController1(); });
+                                         this->inputManager->configureABBAButtons(enabled); });
 
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
@@ -100,88 +98,12 @@ namespace R2NES::Core
         nes->getApu().setNoiseEnabled(window->isNoiseEnabled());
         nes->getApu().setDMCEnabled(window->isDMCEnabled());
 
-        // Inicializa o mapeamento de teclas padrão para o Player 1
-        player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
-        player1KeyMap[SDLK_k] = R2NES::Core::IO::BUTTON_A;
-        player1KeyMap[SDLK_BACKSPACE] = R2NES::Core::IO::BUTTON_SELECT;
-        player1KeyMap[SDLK_RETURN] = R2NES::Core::IO::BUTTON_START;
-        player1KeyMap[SDLK_w] = R2NES::Core::IO::BUTTON_UP;
-        player1KeyMap[SDLK_s] = R2NES::Core::IO::BUTTON_DOWN;
-        player1KeyMap[SDLK_a] = R2NES::Core::IO::BUTTON_LEFT;
-        player1KeyMap[SDLK_d] = R2NES::Core::IO::BUTTON_RIGHT;
-
-        // Mapeamento de Turbo (Teclado)
-        player1TurboKeyMap[SDLK_i] = R2NES::Core::IO::BUTTON_A;
-        player1TurboKeyMap[SDLK_u] = R2NES::Core::IO::BUTTON_B;
-
-        configureABBAButtonsController1();
-
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_BACK] = R2NES::Core::IO::BUTTON_SELECT;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_START] = R2NES::Core::IO::BUTTON_START;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_UP] = R2NES::Core::IO::BUTTON_UP;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_DOWN] = R2NES::Core::IO::BUTTON_DOWN;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_LEFT] = R2NES::Core::IO::BUTTON_LEFT;
-        player1ControllerMap[SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = R2NES::Core::IO::BUTTON_RIGHT;
-
-        // Mapeamento de Turbo (Controle)
-        player1TurboControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
-        player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
-
-        // Player 2 (mesmo mapeamento, controles diferentes)
-        player2ControllerMap = player1ControllerMap;
-
         // Inicializa o estado da PPU com a configuração da janela
         nes->getPpu().setUnlimitedSprites(this->unlimitedSprites);
-
-        // Inicialização do Áudio SDL
-        SDL_AudioSpec want, have;
-        SDL_zero(want);
-        want.freq = 44100;
-        want.format = AUDIO_F32SYS;
-        want.channels = 1;
-        want.samples = 512;
-
-        audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-        if (audioDevice > 0)
-        {
-            std::cout << "Audio: Device opened successfully (ID: " << audioDevice << ")" << std::endl;
-            SDL_PauseAudioDevice(audioDevice, 0);
-            nes->getApu().setAudioSampleRate(static_cast<float>(have.freq));
-        }
-        else
-        {
-            std::cerr << "Audio: Failed to open device! SDL_Error: " << SDL_GetError() << std::endl;
-        }
+        
+        nes->getApu().setAudioSampleRate(static_cast<float>(audioManager->getSampleRate()));
     }
 
-    void Engine::configureABBAButtonsController1()
-    {
-        // Mapeamento Padrão para Controles (Xbox/8BitDo layout)
-        // Limpa mapeamentos de Turbo anteriores para evitar estados residuais ao alternar
-        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_A);
-        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_B);
-        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_X);
-        player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_Y);
-
-        if (window->isInvertBAYBEnabled())
-        {
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_A;
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_B;
-            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_B;
-            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
-        }
-        else
-        {
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_B;
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
-            player1ControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
-            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
-            player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
-        }
-    }
     void Engine::toggleVSync()
     {
         // A Engine solicita a mudança para a Window
@@ -190,22 +112,8 @@ namespace R2NES::Core
         window->toggleVSync();
     }
 
-    void Engine::handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed)
-    {
-        if (playerNum == 1)
-        {
-            handleJoystick1(button, isPressed);
-        }
-        else if (playerNum == 2)
-        {
-            handleJoystick2(button, isPressed);
-        }
-    }
-
     Engine::~Engine()
     {
-        if (audioDevice > 0)
-            SDL_CloseAudioDevice(audioDevice);
     }
 
     void Engine::run()
@@ -312,133 +220,30 @@ namespace R2NES::Core
             nes->getBus().setZapperTrigger(mouse.leftButton);
         }
 
-        // Verifica se uma ROM foi selecionada via menu
         std::string romPath = window->getSelectedPath();
         if (!romPath.empty())
         {
-            // Garante que o sistema seja descarregado e limpo antes de carregar a nova ROM
-            nes->unload();
-            cachedDisassembly.clear();
-
-            this->currentRomPath = romPath;
-            std::cout << "Engine: Loading ROM -> " << romPath << std::endl;
-            nes->insertCartridge(romPath);
-            nes->reset();
-            window->setPaused(false); // Garante que comece despausado ao carregar novo jogo
-
-            // Gera o disassembly apenas uma vez no carregamento
-            cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
-
-            window->clearSelectedPath();
-            window->setCartLoaded(true); // Informa a janela que um cartucho foi carregado para habilitar opções dependentes disso
+            stateManager->loadRom(romPath, *nes, *window);
         }
 
-        // Verifica se o usuário clicou em "Reset" no menu
         if (window->isResetRequested())
         {
-            std::cout << "Engine: Resetting NES..." << std::endl;
-            nes->reset();
-            window->clearResetRequest();
+            stateManager->reset(*nes, *window);
         }
 
-        // Verifica se o usuário clicou em "Unload"
         if (window->isUnloadRequested())
         {
-            std::cout << "Engine: Unloading ROM..." << std::endl;
-            nes->unload();
-            cachedDisassembly.clear(); // Limpa o cache do disassembler
-            window->clearUnloadRequest();
-            window->setCartLoaded(false); // Informa a janela que o cartucho foi descarregado para desabilitar opções dependentes disso
+            stateManager->unloadRom(*nes, *window);
         }
 
-        // Lógica de Save/Load State
-        if (nes->isCartridgeLoaded())
-        {
-            if (window->getIsToSave() || window->getIsToLoad())
-            {
-                namespace fs = std::filesystem;
-
-                // 1. Prepara o nome do arquivo: [rom].[slot].sav
-                std::string romName = fs::path(currentRomPath).stem().string();
-                std::string slot = std::to_string(window->getSaveSlot());
-
-                fs::create_directories("savestates"); // Garante que a pasta existe
-                std::string filename = "savestates/" + romName + "." + slot + ".sav";
-
-                if (window->getIsToSave())
-                {
-                    if (nes->saveState(filename))
-                        std::cout << "Engine: State saved to " << filename << std::endl;
-                }
-                else if (window->getIsToLoad())
-                {
-                    if (nes->loadState(filename))
-                        std::cout << "Engine: State loaded from " << filename << std::endl;
-                }
-
-                window->resetSaveLoadFlags();
-            }
-        }
+        stateManager->handleSaveLoadState(*nes, *window);
     }
 
-    void Engine::handleJoystick1(SDL_GameControllerButton button, bool isPressed)
-    {
-        auto &joy1 = nes->getJoysticks().controller1;
-        auto it = player1ControllerMap.find(button);
-        if (it != player1ControllerMap.end())
-        {
-            joy1.setButton(it->second, isPressed);
-        }
 
-        // Verifica botões de Turbo no controle
-        auto itTurbo = player1TurboControllerMap.find(button);
-        if (itTurbo != player1TurboControllerMap.end())
-        {
-            if (itTurbo->second == R2NES::Core::IO::BUTTON_A)
-                turboA = isPressed;
-            if (itTurbo->second == R2NES::Core::IO::BUTTON_B)
-                turboB = isPressed;
-
-            // Garante que o botão seja solto no Core se o turbo for liberado
-            if (!isPressed)
-                joy1.setButton(itTurbo->second, false);
-        }
-    }
-
-    void Engine::handleJoystick2(SDL_GameControllerButton button, bool isPressed)
-    {
-        auto &joy2 = nes->getJoysticks().controller2;
-        auto it = player2ControllerMap.find(button);
-        if (it != player2ControllerMap.end())
-        {
-            joy2.setButton(it->second, isPressed);
-        }
-    }
 
     void Engine::handleKeyboard(SDL_Keycode key, bool isPressed)
     {
-        // Exemplo de mapeamento simples para o Controller 1
-        auto &joy1 = nes->getJoysticks().controller1;
-
-        // Procura a tecla no mapeamento do Player 1
-        auto it = player1KeyMap.find(key);
-        if (it != player1KeyMap.end())
-        {
-            joy1.setButton(it->second, isPressed);
-        }
-
-        // Verifica teclas de Turbo no teclado
-        auto itTurbo = player1TurboKeyMap.find(key);
-        if (itTurbo != player1TurboKeyMap.end())
-        {
-            if (itTurbo->second == R2NES::Core::IO::BUTTON_A)
-                turboA = isPressed;
-            if (itTurbo->second == R2NES::Core::IO::BUTTON_B)
-                turboB = isPressed;
-
-            if (!isPressed)
-                joy1.setButton(itTurbo->second, false);
-        }
+        inputManager->handleKeyboard(key, isPressed, *nes);
 
         // Atalhos da Engine
         switch (key)
@@ -518,15 +323,7 @@ namespace R2NES::Core
 
     void Engine::update()
     {
-        // Lógica de Turbo: Oscila o estado dos botões a cada 2 frames (15Hz em 60FPS)
-        // Isso garante que o jogo registre tanto o pressionamento quanto a liberação.
-        auto &joy1 = nes->getJoysticks().controller1;
-        bool turboPulse = (frameCount % 4 > 2); // Fica 'true' por 2 frames, 'false' por 2 frames
-
-        if (turboA)
-            joy1.setButton(R2NES::Core::IO::BUTTON_A, turboPulse);
-        if (turboB)
-            joy1.setButton(R2NES::Core::IO::BUTTON_B, turboPulse);
+        inputManager->update(*nes, frameCount);
 
         if (stepByStep)
         {
@@ -552,34 +349,13 @@ namespace R2NES::Core
             nes->clearFrameComplete();
 
             // 2. Coleta todo o áudio que a APU gerou durante este frame
-            audioBuffer.clear();
             while (nes->getApu().hasSamples())
             {
-                audioBuffer.push_back(nes->getApu().getOutputSample());
+                audioManager->pushSample(nes->getApu().getOutputSample());
             }
 
             // 3. Envia o buffer de áudio do frame inteiro para o SDL
-            if (audioDevice > 0 && !audioBuffer.empty())
-            {
-                if (!uncappedSpeed)
-                {
-                    // Latência alvo de ~3 frames (~50ms)
-                    Uint32 maxSafeBytes = 44100 * sizeof(float) / 20;
-
-                    // Se o buffer engasgar e acumular áudio velho, limpamos
-                    if (SDL_GetQueuedAudioSize(audioDevice) > maxSafeBytes)
-                    {
-                        SDL_ClearQueuedAudio(audioDevice);
-                    }
-
-                    SDL_QueueAudio(audioDevice, audioBuffer.data(), audioBuffer.size() * sizeof(float));
-                }
-                else
-                {
-                    // Fast-Forward
-                    SDL_ClearQueuedAudio(audioDevice);
-                }
-            }
+            audioManager->queueAudio(uncappedSpeed);
         }
 
         if (!uncappedSpeed)
@@ -604,11 +380,7 @@ namespace R2NES::Core
         // Se o Disassembler estiver aberto, verifica se precisamos atualizar o cache por causa de bank switch
         if (window->isDisassemblerOpen() && nes->isCartridgeLoaded())
         {
-            // Se o PC atual não está no cache, provavelmente mudamos de banco de PRG
-            if (cachedDisassembly.find(currentPC) == cachedDisassembly.end())
-            {
-                cachedDisassembly = nes->getCpu().disassemble(0x8000, 0xFFFF);
-            }
+            stateManager->updateDisassemblyCache(*nes, currentPC);
         }
 
         // Se o VRAM Viewer estiver aberto, envia os dados da PPU
@@ -620,7 +392,7 @@ namespace R2NES::Core
         // Se o Disassembler estiver aberto, atualiza-o
         if (window->isDisassemblerOpen())
         {
-            window->updateDisassembler(currentPC, cachedDisassembly, stepByStep, stepRequested, cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status);
+            window->updateDisassembler(currentPC, stateManager->getCachedDisassembly(), stepByStep, stepRequested, cpu.a, cpu.x, cpu.y, cpu.stkp, cpu.status);
         }
 
         // Se o Tile Viewer estiver aberto, gera os dados e envia para a janela secundária

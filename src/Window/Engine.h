@@ -8,6 +8,9 @@
 #include <vector>
 #include "Core/IO/NESButtons.h"
 #include <SDL.h>
+#include "System/AudioManager.h"
+#include "System/InputManager.h"
+#include "System/GameStateManager.h"
 
 namespace R2NES::Core
 {
@@ -26,17 +29,9 @@ namespace R2NES::Core
 
     private:
 
-        void configureABBAButtonsController1();
-
         void processEmulatorInput();
 
         void handleKeyboard(SDL_Keycode key, bool isPressed);
-
-        void handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed);
-
-        void handleJoystick1(SDL_GameControllerButton button, bool isPressed);
-
-        void handleJoystick2(SDL_GameControllerButton button, bool isPressed);
 
         void update();
 
@@ -48,24 +43,9 @@ namespace R2NES::Core
         std::unique_ptr<Window> window;
         std::unique_ptr<NES> nes;
 
-        // Gerenciamento de Áudio
-        SDL_AudioDeviceID audioDevice = 0;
-        double audioCycleAccumulator = 0.0;
-        float lastApuSample = 0.0f;
-        std::vector<float> audioBuffer;
-
-        // Mapeamento de teclas para o Player 1 e 2
-        std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
-        std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player2KeyMap;
-        std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1TurboKeyMap;
-
-        // Mapeamento de botões de controle
-        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1ControllerMap;
-        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player2ControllerMap;
-        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1TurboControllerMap;
-
-        // Cache para armazenar o código traduzido da ROM
-        std::map<uint16_t, std::string> cachedDisassembly;
+        std::unique_ptr<R2NES::System::AudioManager> audioManager;
+        std::unique_ptr<R2NES::System::InputManager> inputManager;
+        std::unique_ptr<R2NES::System::GameStateManager> stateManager;
 
         // Controle
         bool stepByStep = false;
@@ -94,15 +74,7 @@ namespace R2NES::Core
         bool oldUncappedSpeed = uncappedSpeed;
         bool oldVsyncEnabled = vsyncEnabled;
 
-        // Controle dos botões turbo
-        bool turboA = false;
-        bool turboB = false;
-
         // Controle dos sprites ilimitados
         bool unlimitedSprites = false;
-
-        bool invertBAYB = false;
-
-        std::string currentRomPath;
     };
 }
