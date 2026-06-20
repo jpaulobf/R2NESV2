@@ -8,13 +8,24 @@ namespace R2NES::Core
     {
         // Inicializa os componentes principais
         window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
-        window->createMenu();
         nes = std::make_unique<NES>();
-
         audioManager = std::make_unique<R2NES::System::AudioManager>();
         inputManager = std::make_unique<R2NES::System::InputManager>();
         stateManager = std::make_unique<R2NES::System::GameStateManager>();
 
+        this->init();
+    }
+
+    Engine::~Engine()
+    {
+    }
+
+    void Engine::init()
+    {
+        // Cria o menu
+        window->createMenu();
+
+        // ----------------------  Callbacks ------------------------------------//
         // Conecta o callback da janela à função da Engine
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
                                { this->handleKeyboard(key, isPressed); });
@@ -69,8 +80,7 @@ namespace R2NES::Core
                                                     nes->getPpu().setUnlimitedSprites(enabled); });
 
         window->setInvertBAYBCallback([this](bool enabled)
-                                      { 
-                                         this->inputManager->configureABBAButtons(enabled); });
+                                      { this->inputManager->configureABBAButtons(enabled); });
 
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
@@ -80,6 +90,7 @@ namespace R2NES::Core
         window->setPauseCallback([this](bool p)
                                  { this->paused = p; });
 
+        // Verifica os estados iniciais das opções
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
         this->fastForwardEnabled = window->isFastForwardEnabled();
@@ -100,7 +111,7 @@ namespace R2NES::Core
 
         // Inicializa o estado da PPU com a configuração da janela
         nes->getPpu().setUnlimitedSprites(this->unlimitedSprites);
-        
+
         nes->getApu().setAudioSampleRate(static_cast<float>(audioManager->getSampleRate()));
     }
 
@@ -110,10 +121,6 @@ namespace R2NES::Core
         // O callback configurado no construtor atualizará o vsyncEnabled da Engine
         // garantindo que ambos fiquem sincronizados.
         window->toggleVSync();
-    }
-
-    Engine::~Engine()
-    {
     }
 
     void Engine::run()
@@ -238,8 +245,6 @@ namespace R2NES::Core
 
         stateManager->handleSaveLoadState(*nes, *window);
     }
-
-
 
     void Engine::handleKeyboard(SDL_Keycode key, bool isPressed)
     {

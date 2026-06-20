@@ -18,7 +18,7 @@ namespace R2NES::Core
     {
     public:
         Engine();
-        
+
         ~Engine();
 
         void run();
@@ -28,10 +28,11 @@ namespace R2NES::Core
         void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
 
     private:
-
         void processEmulatorInput();
 
         void handleKeyboard(SDL_Keycode key, bool isPressed);
+
+        void init();
 
         void update();
 
