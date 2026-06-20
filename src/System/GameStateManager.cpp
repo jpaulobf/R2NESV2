@@ -6,7 +6,7 @@
 
 namespace R2NES::System
 {
-    void GameStateManager::loadRom(const std::string& path, Core::NES& nes, Core::Window& window)
+    void GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
     {
         nes.unload();
         cachedDisassembly.clear();
@@ -15,17 +15,17 @@ namespace R2NES::System
         std::cout << "GameStateManager: Loading ROM -> " << path << std::endl;
         nes.insertCartridge(path);
         nes.reset();
-        
-        window.setPaused(false); 
+
+        window.setPaused(false);
 
         // Gera o disassembly apenas uma vez no carregamento
         cachedDisassembly = nes.getCpu().disassemble(0x8000, 0xFFFF);
 
         window.clearSelectedPath();
-        window.setCartLoaded(true); 
+        window.setCartLoaded(true);
     }
 
-    void GameStateManager::unloadRom(Core::NES& nes, Core::Window& window)
+    void GameStateManager::unloadRom(Core::NES &nes, Core::Window &window)
     {
         std::cout << "GameStateManager: Unloading ROM..." << std::endl;
         nes.unload();
@@ -34,14 +34,14 @@ namespace R2NES::System
         window.setCartLoaded(false);
     }
 
-    void GameStateManager::reset(Core::NES& nes, Core::Window& window)
+    void GameStateManager::reset(Core::NES &nes, Core::Window &window)
     {
         std::cout << "GameStateManager: Resetting NES..." << std::endl;
         nes.reset();
         window.clearResetRequest();
     }
 
-    void GameStateManager::handleSaveLoadState(Core::NES& nes, Core::Window& window)
+    void GameStateManager::handleSaveLoadState(Core::NES &nes, Core::Window &window)
     {
         if (nes.isCartridgeLoaded() && (window.getIsToSave() || window.getIsToLoad()))
         {
@@ -69,7 +69,7 @@ namespace R2NES::System
         }
     }
 
-    void GameStateManager::updateDisassemblyCache(Core::NES& nes, uint16_t currentPC)
+    void GameStateManager::updateDisassemblyCache(Core::NES &nes, uint16_t currentPC)
     {
         if (cachedDisassembly.find(currentPC) == cachedDisassembly.end())
         {
