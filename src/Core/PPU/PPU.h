@@ -121,5 +121,19 @@ namespace R2NES::Core
         void incrementScrollY();
         void transferAddressX();
         void transferAddressY();
+        void loadBackgroundShifters();
+        void updateShifters();
+
+        // Background Latches
+        uint8_t bgNextTileId = 0x00;
+        uint8_t bgNextTileAttr = 0x00;
+        uint8_t bgNextTileLsb = 0x00;
+        uint8_t bgNextTileMsb = 0x00;
+
+        // Background Shift Registers
+        uint16_t bgShifterPatternLow = 0x0000;
+        uint16_t bgShifterPatternHigh = 0x0000;
+        uint16_t bgShifterAttrLow = 0x0000;
+        uint16_t bgShifterAttrHigh = 0x0000;
     };
 }
