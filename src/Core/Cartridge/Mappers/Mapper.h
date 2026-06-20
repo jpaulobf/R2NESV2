@@ -26,6 +26,9 @@ namespace R2NES::Core
         // Limpa o flag de IRQ após ele ter sido servido (acknowledge)
         virtual void clearIrqFlag() {}
 
+        // Realiza o tick
+        virtual void tick() {}
+
         // Serialização para Save / Load states
         virtual void saveState(std::ostream &os) = 0;
         virtual void loadState(std::istream &is) = 0;
