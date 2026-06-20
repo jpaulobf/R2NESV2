@@ -8,3 +8,4 @@ target/*
 .vscode/*
 bin/*
 build/*
+analysis_results.md
