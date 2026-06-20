@@ -40,8 +40,13 @@ namespace R2NES::Core
     {
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {
-            mapped_addr = addr;
-            return true;
+            if (nCHRBanks == 0) // É CHR RAM
+            {
+                mapped_addr = addr;
+                return true;
+            }
+            // É CHR ROM, ignora a escrita
+            return false;
         }
         return false;
     }
