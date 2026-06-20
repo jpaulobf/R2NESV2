@@ -4,7 +4,10 @@
 #include <SDL.h>
 #include <map>
 
-namespace R2NES::Core { class NES; }
+namespace R2NES::Core
+{
+    class NES;
+}
 
 namespace R2NES::System
 {
@@ -14,16 +17,16 @@ namespace R2NES::System
         InputManager();
         ~InputManager() = default;
 
-        void handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES& nes);
-        void handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES& nes);
-        
+        void handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES &nes);
+        void handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
+
         void configureABBAButtons(bool invert);
-        
-        void update(Core::NES& nes, int frameCount);
+
+        void update(Core::NES &nes, int frameCount);
 
     private:
-        void handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES& nes);
-        void handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES& nes);
+        void handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
+        void handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
 
         // Mapeamento de teclas para o Player 1 e 2
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
