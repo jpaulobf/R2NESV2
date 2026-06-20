@@ -12,9 +12,12 @@ namespace R2NES::Core
         ~Mapper004();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
-        bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
-        bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
-        bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+        bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data,
+                         uint32_t systemClockCounter) override;
+        bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data,
+                        uint32_t systemClockCounter) override;
+        bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data,
+                         uint32_t systemClockCounter) override;
         void handleA12Edge(uint16_t addr, uint32_t systemClockCounter);
 
         MirrorMode getMirrorMode() override;
@@ -34,7 +37,7 @@ namespace R2NES::Core
         MirrorMode mirrorMode = MirrorMode::HORIZONTAL;
         MirrorMode ogMirrorMode = MirrorMode::HORIZONTAL;
 
-        uint32_t pRegister[8] = {0};
+        uint8_t pRegister[8] = {0};
         uint32_t pPRGMode[4] = {0};
         uint32_t pCHRMode[8] = {0};
 
@@ -51,4 +54,4 @@ namespace R2NES::Core
 
         void updateBanks();
     };
-}
+} // namespace R2NES::Core
