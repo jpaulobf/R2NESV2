@@ -16,7 +16,7 @@ namespace R2NES::System
 
         void pushSample(float sample);
         void queueAudio(bool isFastForwarding);
-        
+
         void clearQueuedAudio();
 
         int getSampleRate() const { return sampleRate; }
