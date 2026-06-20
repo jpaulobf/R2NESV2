@@ -1,6 +1,14 @@
 # Changelog
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
+ 
+## [0.8.1] - 2026-06-20
+
+### Melhorado
+- Melhorias na classe Engine: Separação de Responsabilidades (pacote System foi criado)
+
+### Adicionado
+- Suporte ao Mapper040 - Super Mario Bros 2 The Lost Levels funcionando.
 
 ## [0.7.9] - 2026-06-13
 
