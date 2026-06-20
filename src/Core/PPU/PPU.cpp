@@ -389,6 +389,25 @@ namespace R2NES::Core
         vramAddr = (vramAddr & 0x841F) | (tempAddr & 0x7BE0);
     }
 
+    void PPU::loadBackgroundShifters()
+    {
+        bgShifterPatternLow = (bgShifterPatternLow & 0xFF00) | bgNextTileLsb;
+        bgShifterPatternHigh = (bgShifterPatternHigh & 0xFF00) | bgNextTileMsb;
+        bgShifterAttrLow = (bgShifterAttrLow & 0xFF00) | ((bgNextTileAttr & 0b01) ? 0xFF : 0x00);
+        bgShifterAttrHigh = (bgShifterAttrHigh & 0xFF00) | ((bgNextTileAttr & 0b10) ? 0xFF : 0x00);
+    }
+
+    void PPU::updateShifters()
+    {
+        if (ppuMask & 0x08) // Background enabled
+        {
+            bgShifterPatternLow <<= 1;
+            bgShifterPatternHigh <<= 1;
+            bgShifterAttrLow <<= 1;
+            bgShifterAttrHigh <<= 1;
+        }
+    }
+
     void PPU::clock()
     {
         // Lógica de atualização de Scroll baseada em ciclos
@@ -404,21 +423,67 @@ namespace R2NES::Core
 
         if (renderingEnabled)
         {
-            // O pre-render scanline (-1) prepara o scroll para o próximo frame
-            if (scanline == -1)
-            {
-                if (cycle >= 280 && cycle <= 304)
-                    transferAddressY();
-            }
-
             if (scanline >= -1 && scanline < 240)
             {
-                if (cycle > 0 && cycle <= 256 && (cycle % 8 == 0))
-                    incrementScrollX();
+                if (scanline == -1 && cycle == 1)
+                {
+                    bgShifterPatternLow = 0;
+                    bgShifterPatternHigh = 0;
+                    bgShifterAttrLow = 0;
+                    bgShifterAttrHigh = 0;
+                }
+
+                if ((cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336))
+                {
+                    switch ((cycle - 1) % 8)
+                    {
+                    case 0:
+                        loadBackgroundShifters();
+                        bgNextTileId = ppuRead(0x2000 | (vramAddr & 0x0FFF));
+                        break;
+                    case 2:
+                        bgNextTileAttr = ppuRead(0x23C0 | (vramAddr & 0x0C00) | ((vramAddr >> 4) & 0x38) | ((vramAddr >> 2) & 0x07));
+                        if (vramAddr & 0x0040)
+                            bgNextTileAttr >>= 4;
+                        if (vramAddr & 0x0002)
+                            bgNextTileAttr >>= 2;
+                        bgNextTileAttr &= 0x03;
+                        break;
+                    case 4:
+                        bgNextTileLsb = ppuRead(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07));
+                        break;
+                    case 6:
+                        bgNextTileMsb = ppuRead(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07) + 8);
+                        break;
+                    case 7:
+                        incrementScrollX();
+                        break;
+                    }
+                }
+
                 if (cycle == 256)
+                {
                     incrementScrollY();
+                }
+
                 if (cycle == 257)
+                {
+                    loadBackgroundShifters();
                     transferAddressX();
+                }
+
+                if (cycle == 337 || cycle == 339)
+                {
+                    if (cycle == 337)
+                        loadBackgroundShifters();
+                    bgNextTileId = ppuRead(0x2000 | (vramAddr & 0x0FFF));
+                }
+
+                // O pre-render scanline (-1) prepara o scroll para o próximo frame
+                if (scanline == -1 && cycle >= 280 && cycle <= 304)
+                {
+                    transferAddressY();
+                }
             }
         }
 
@@ -456,64 +521,41 @@ namespace R2NES::Core
             }
         }
 
-        // Só processamos renderização nos ciclos visíveis (0-255) e scanlines visíveis (0-239)
-        if (scanline >= 0 && scanline < 240 && cycle >= 0 && cycle < 256)
+        // Só processamos renderização nos ciclos visíveis (1-256) e scanlines visíveis (0-239)
+        if (scanline >= 0 && scanline < 240 && cycle >= 1 && cycle <= 256)
         {
             uint8_t bgPixelColor = 0;
             uint8_t bgPaletteIndex = 0;
 
             // Renderiza background se habilitado (PPUMASK bit 3)
-            // Nos primeiros 8 pixels (ciclos 0-7), verifica bit 1 (show background in leftmost 8 pixels)
+            // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 1 (show background in leftmost 8 pixels)
             bool bgRenderingEnabled = (ppuMask & 0x08) != 0;
-            if (cycle < 8 && !(ppuMask & 0x02))
+            if (cycle <= 8 && !(ppuMask & 0x02))
                 bgRenderingEnabled = false;
 
             if (bgRenderingEnabled)
             {
-                // Cálculo do endereço de busca levando em conta o fineX (Scroll Fino Horizontal)
-                // Se (ciclo atual + fineX) passar de 8, precisamos buscar dados do PRÓXIMO tile
-                uint16_t currentV = vramAddr;
-                uint8_t fX = (cycle + fineX) % 8;
+                uint16_t bitMux = 0x8000 >> fineX;
 
-                if ((cycle % 8) + fineX >= 8)
-                {
-                    // Incremento horizontal temporário para a busca do tile adjacente
-                    if ((currentV & 0x001F) == 31)
-                        currentV = (currentV & ~0x001F) ^ 0x0400;
-                    else
-                        currentV++;
-                }
+                uint8_t p0_pixel = (bgShifterPatternLow & bitMux) > 0;
+                uint8_t p1_pixel = (bgShifterPatternHigh & bitMux) > 0;
+                bgPixelColor = (p1_pixel << 1) | p0_pixel;
 
-                uint16_t tileX = currentV & 0x001F;
-                uint16_t tileY = (currentV & 0x03E0) >> 5;
-                uint16_t ntBase = 0x2000 | (currentV & 0x0C00);
-                uint8_t fY = (currentV & 0x7000) >> 12;
-
-                uint8_t tileID = ppuRead(ntBase + tileY * 32 + tileX);
-
-                uint16_t bgPtBase = (ppuCtrl & 0x10) ? 0x1000 : 0x0000;
-                uint8_t bgLsb = ppuRead(bgPtBase + tileID * 16 + fY);
-                uint8_t bgMsb = ppuRead(bgPtBase + tileID * 16 + fY + 8);
-
-                bgPixelColor = ((bgLsb >> (7 - fX)) & 0x01) | (((bgMsb >> (7 - fX)) & 0x01) << 1);
-
-                // 7. Busca a paleta na Attribute Table
-                uint16_t attrAddr = ntBase + 0x3C0 + ((tileY / 4) * 8) + (tileX / 4); // A tabela de atributos começa em 0x3C0 dentro de cada nametable
-                uint8_t attrByte = ppuRead(attrAddr);
-                uint8_t paletteShift = ((tileY % 4) / 2 * 2 + (tileX % 4) / 2) * 2;
-                bgPaletteIndex = (attrByte >> paletteShift) & 0x03;
+                uint8_t bg_pal0 = (bgShifterAttrLow & bitMux) > 0;
+                uint8_t bg_pal1 = (bgShifterAttrHigh & bitMux) > 0;
+                bgPaletteIndex = (bg_pal1 << 1) | bg_pal0;
             }
 
             // Resolve a cor do background
             uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
             if (bgPixelColor == 0)
                 bgPaletteAddr = 0x3F00;
-            frameBuffer[scanline * 256 + cycle] = currentPalette[ppuRead(bgPaletteAddr) & 0x3F];
+            frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(bgPaletteAddr) & 0x3F];
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
             bool spriteRenderingEnabled = (ppuMask & 0x10) != 0;
-            // Nos primeiros 8 pixels (ciclos 0-7), verifica bit 2 (show sprites in leftmost 8 pixels)
-            if (cycle < 8 && !(ppuMask & 0x04))
+            // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 2 (show sprites in leftmost 8 pixels)
+            if (cycle <= 8 && !(ppuMask & 0x04))
                 spriteRenderingEnabled = false;
 
             bool spritePixelDrawn = false;
@@ -529,7 +571,7 @@ namespace R2NES::Core
 
                     uint8_t spriteX = oamMemory[i * 4 + 3];
                     // diffX pode ser negativo (sprite ainda não começou) ou > 7 (sprite já terminou)
-                    int diffX = cycle - spriteX;
+                    int diffX = (cycle - 1) - spriteX;
 
                     // Debug: se Sprite 0 mudou de posição, avisa
                     if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
@@ -591,10 +633,10 @@ namespace R2NES::Core
                         {
                             // ========== SPRITE 0 HIT DETECTION ==========
                             bool bgHasPixel = (bgPixelColor != 0);
-                            bool cycleInValidRange = (cycle >= 1 && cycle <= 254);
+                            bool cycleInValidRange = ((cycle - 1) >= 0 && (cycle - 1) <= 254);
                             bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
 
-                            if (cycle < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
+                            if ((cycle - 1) < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
                                 cycleInValidRange = false;
 
                             if (i == 0 && bgHasPixel && renderingEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
@@ -611,9 +653,9 @@ namespace R2NES::Core
 
                                 // Debug: Pintar o Sprite 0 de Lilás (Magenta) para facilitar o rastreio do Sprite 0 Hit
                                 if (i == 0 && usedDebugColors)
-                                    frameBuffer[scanline * 256 + cycle] = 0xFFFF00FF;
+                                    frameBuffer[scanline * 256 + (cycle - 1)] = 0xFFFF00FF;
                                 else
-                                    frameBuffer[scanline * 256 + cycle] = currentPalette[ppuRead(palAddr) & 0x3F];
+                                    frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(palAddr) & 0x3F];
 
                                 spritePixelDrawn = true;
                             }
@@ -627,15 +669,23 @@ namespace R2NES::Core
 
             // ZAPPER
             // Verifica uma área de 5x5 em volta da mira para facilitar o acerto (emula a lente da pistola)
-            if (cycle >= zapperX - 2 && cycle <= zapperX + 2 &&
+            if ((cycle - 1) >= zapperX - 2 && (cycle - 1) <= zapperX + 2 &&
                 scanline >= zapperY - 2 && scanline <= zapperY + 2)
             {
                 // Pegamos a cor final que foi parar no framebuffer para este pixel
-                uint32_t finalPixelColor = frameBuffer[scanline * 256 + cycle];
+                uint32_t finalPixelColor = frameBuffer[scanline * 256 + (cycle - 1)];
                 // Se o brilho for alto (ex: branco do flash do pato), detecta luz.
                 // No seu palette, branco é 0xFFFCFCFC. Vamos checar se o canal R é alto.
                 if (((finalPixelColor >> 16) & 0xFF) > 0xEE)
                     zapperLightDetected = true;
+            }
+        }
+
+        if (renderingEnabled)
+        {
+            if ((cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336))
+            {
+                updateShifters();
             }
         }
 
@@ -692,6 +742,15 @@ namespace R2NES::Core
         frameCounter = 0;
         nmi = false;
 
+        bgNextTileId = 0x00;
+        bgNextTileAttr = 0x00;
+        bgNextTileLsb = 0x00;
+        bgNextTileMsb = 0x00;
+        bgShifterPatternLow = 0x0000;
+        bgShifterPatternHigh = 0x0000;
+        bgShifterAttrLow = 0x0000;
+        bgShifterAttrHigh = 0x0000;
+
         // Limpa o buffer de imagem para preto ao resetar/descarregar
         std::fill(oamMemory.begin(), oamMemory.end(), 0xFF); // Move sprites para fora da tela
         std::fill(frameBuffer.begin(), frameBuffer.end(), 0xFF000000);
@@ -713,6 +772,17 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&cycle), sizeof(cycle));
         os.write(reinterpret_cast<const char *>(&frameCounter), sizeof(frameCounter));
         os.write(reinterpret_cast<const char *>(&nmi), sizeof(nmi));
+
+        // Save pipeline state
+        os.write(reinterpret_cast<const char *>(&bgNextTileId), sizeof(bgNextTileId));
+        os.write(reinterpret_cast<const char *>(&bgNextTileAttr), sizeof(bgNextTileAttr));
+        os.write(reinterpret_cast<const char *>(&bgNextTileLsb), sizeof(bgNextTileLsb));
+        os.write(reinterpret_cast<const char *>(&bgNextTileMsb), sizeof(bgNextTileMsb));
+        os.write(reinterpret_cast<const char *>(&bgShifterPatternLow), sizeof(bgShifterPatternLow));
+        os.write(reinterpret_cast<const char *>(&bgShifterPatternHigh), sizeof(bgShifterPatternHigh));
+        os.write(reinterpret_cast<const char *>(&bgShifterAttrLow), sizeof(bgShifterAttrLow));
+        os.write(reinterpret_cast<const char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
+
         os.write(reinterpret_cast<const char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
         os.write(reinterpret_cast<const char *>(oamMemory.data()), oamMemory.size());
         os.write(reinterpret_cast<const char *>(paletteTable.data()), paletteTable.size());
@@ -734,6 +804,17 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&cycle), sizeof(cycle));
         is.read(reinterpret_cast<char *>(&frameCounter), sizeof(frameCounter));
         is.read(reinterpret_cast<char *>(&nmi), sizeof(nmi));
+
+        // Load pipeline state
+        is.read(reinterpret_cast<char *>(&bgNextTileId), sizeof(bgNextTileId));
+        is.read(reinterpret_cast<char *>(&bgNextTileAttr), sizeof(bgNextTileAttr));
+        is.read(reinterpret_cast<char *>(&bgNextTileLsb), sizeof(bgNextTileLsb));
+        is.read(reinterpret_cast<char *>(&bgNextTileMsb), sizeof(bgNextTileMsb));
+        is.read(reinterpret_cast<char *>(&bgShifterPatternLow), sizeof(bgShifterPatternLow));
+        is.read(reinterpret_cast<char *>(&bgShifterPatternHigh), sizeof(bgShifterPatternHigh));
+        is.read(reinterpret_cast<char *>(&bgShifterAttrLow), sizeof(bgShifterAttrLow));
+        is.read(reinterpret_cast<char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
+
         is.read(reinterpret_cast<char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
         is.read(reinterpret_cast<char *>(oamMemory.data()), oamMemory.size());
         is.read(reinterpret_cast<char *>(paletteTable.data()), paletteTable.size());
