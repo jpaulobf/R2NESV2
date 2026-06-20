@@ -1,57 +1,37 @@
 #include "Core/Bus/Bus.h"
-#include "Core/Memory/RAM/RAM.h"
-#include "Core/Cartridge/Cartridge.h"
-#include "Core/PPU/PPU.h"
-#include "Core/IO/Joysticks.h"
 #include "Core/APU/APU.h"
+#include "Core/Cartridge/Cartridge.h"
+#include "Core/IO/Joysticks.h"
+#include "Core/Memory/RAM/RAM.h"
+#include "Core/PPU/PPU.h"
 #include <algorithm>
 
 namespace R2NES::Core
 {
 
-    Bus::Bus()
-    {
-        zapperTrigger = false;
-    }
+    Bus::Bus() { zapperTrigger = false; }
 
-    Bus::~Bus()
-    {
-    }
+    Bus::~Bus() {}
 
-    void Bus::connectCPU(CPU *pCpu)
-    {
-        this->cpu = pCpu;
-    }
+    void Bus::connectCPU(CPU *pCpu) { this->cpu = pCpu; }
 
-    void Bus::connectRam(RAM *pRam)
-    {
-        this->ram = pRam;
-    }
+    void Bus::connectRam(RAM *pRam) { this->ram = pRam; }
 
     void Bus::setCartridge(const std::shared_ptr<Cartridge> &cartridge)
     {
         this->cart = cartridge;
     }
 
-    void Bus::connectPPU(PPU *pPpu)
-    {
-        this->ppu = pPpu;
-    }
+    void Bus::connectPPU(PPU *pPpu) { this->ppu = pPpu; }
 
-    void Bus::connectAPU(APU *pApu)
-    {
-        this->apu = pApu;
-    }
+    void Bus::connectAPU(APU *pApu) { this->apu = pApu; }
 
     void Bus::connectJoysticks(IO::Joysticks *joysticks)
     {
         this->joysticks = joysticks;
     }
 
-    void Bus::setZapperTrigger(bool pulled)
-    {
-        this->zapperTrigger = pulled;
-    }
+    void Bus::setZapperTrigger(bool pulled) { this->zapperTrigger = pulled; }
 
     void Bus::cpuWrite(uint16_t addr, uint8_t data)
     {
@@ -59,7 +39,8 @@ namespace R2NES::Core
         {
             // Cartucho tratou a escrita (Mappers podem interceptar isso)
         }
-        else if (addr >= 0x4000 && addr <= 0x4013 || addr == 0x4015 || addr == 0x4017)
+        else if (addr >= 0x4000 && addr <= 0x4013 || addr == 0x4015 ||
+                 addr == 0x4017)
         {
             if (apu)
                 apu->cpuWrite(addr, data);
@@ -91,7 +72,7 @@ namespace R2NES::Core
             }
 
             if (cpu)
-                cpu->cycles += (cpu->cycles % 2 == 0) ? 514 : 513;
+                cpu->cycles += (systemClockCounter % 2 == 1) ? 514 : 513;
         }
         else if (addr == 0x4016)
         {
@@ -170,4 +151,4 @@ namespace R2NES::Core
             return cart->getMirrorMode();
         return MirrorMode::HORIZONTAL;
     }
-}
+} // namespace R2NES::Core
