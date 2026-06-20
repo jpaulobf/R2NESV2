@@ -35,7 +35,7 @@ namespace R2NES::System
     void InputManager::configureABBAButtons(bool invert)
     {
         invertBAYB = invert;
-        
+
         // Limpa mapeamentos de Turbo anteriores para evitar estados residuais ao alternar
         player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_A);
         player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_B);
@@ -62,7 +62,7 @@ namespace R2NES::System
         }
     }
 
-    void InputManager::handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES& nes)
+    void InputManager::handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
 
@@ -85,7 +85,7 @@ namespace R2NES::System
         }
     }
 
-    void InputManager::handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES& nes)
+    void InputManager::handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
     {
         if (playerNum == 1)
         {
@@ -97,7 +97,7 @@ namespace R2NES::System
         }
     }
 
-    void InputManager::handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES& nes)
+    void InputManager::handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
         auto it = player1ControllerMap.find(button);
@@ -119,7 +119,7 @@ namespace R2NES::System
         }
     }
 
-    void InputManager::handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES& nes)
+    void InputManager::handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
     {
         auto &joy2 = nes.getJoysticks().controller2;
         auto it = player2ControllerMap.find(button);
@@ -129,7 +129,7 @@ namespace R2NES::System
         }
     }
 
-    void InputManager::update(Core::NES& nes, int frameCount)
+    void InputManager::update(Core::NES &nes, int frameCount)
     {
         auto &joy1 = nes.getJoysticks().controller1;
         bool turboPulse = (frameCount % 4 > 2); // Fica 'true' por 2 frames, 'false' por 2 frames
