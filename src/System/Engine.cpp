@@ -82,6 +82,9 @@ namespace R2NES::Core
         window->setInvertBAYBCallback([this](bool enabled)
                                       { this->inputManager->configureABBAButtons(enabled); });
 
+        window->setUseZapperCallback([this](bool enabled)
+                                      { this->inputManager->configureUseZapper(enabled, *nes); });
+
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
                               { this->fastForwardEnabled = enabled; });
