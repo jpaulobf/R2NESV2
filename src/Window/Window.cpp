@@ -62,7 +62,8 @@
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
 #define IDI_ICON 101
-#define IDM_HACKS_INVERT_BAYB 4000
+#define IDM_INPUT_INVERT_BAYB 4000
+#define IDM_INPUT_USE_ZAPPER 4001
 
 namespace R2NES::Core
 {
@@ -594,15 +595,26 @@ namespace R2NES::Core
                                 this->dmcOn(); });
                     }
 
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_INVERT_BAYB)
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_INPUT_INVERT_BAYB)
                     {
-                        toggleMarkMenuItem(IDM_HACKS_INVERT_BAYB, [this](bool currentlyChecked)
+                        toggleMarkMenuItem(IDM_INPUT_INVERT_BAYB, [this](bool currentlyChecked)
                                            {
                             if (currentlyChecked)
                                 this->invertBAYBOff();
                             else
                                 this->invertBAYBOn(); });
                     }
+
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_INPUT_USE_ZAPPER)
+                    {
+                        toggleMarkMenuItem(IDM_INPUT_USE_ZAPPER, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->useZapperOff();
+                            else
+                                this->useZapperOn(); });
+                    }
+
                 }
 #endif
             }
@@ -955,11 +967,20 @@ namespace R2NES::Core
 
             if (this->invertBAYB)
             {
-                AppendMenuW(hInputMenu, MF_STRING | MF_CHECKED, IDM_HACKS_INVERT_BAYB, L"&Invert BA/YB Buttons");
+                AppendMenuW(hInputMenu, MF_STRING | MF_CHECKED, IDM_INPUT_INVERT_BAYB, L"&Invert BA/YB Buttons");
             }
             else
             {
-                AppendMenuW(hInputMenu, MF_STRING, IDM_HACKS_INVERT_BAYB, L"&Invert BA/YB Buttons");
+                AppendMenuW(hInputMenu, MF_STRING, IDM_INPUT_INVERT_BAYB, L"&Invert BA/YB Buttons");
+            }
+
+            if (this->useZapper)
+            {
+                AppendMenuW(hInputMenu, MF_STRING | MF_CHECKED, IDM_INPUT_USE_ZAPPER, L"&Enable Zapper");
+            }
+            else
+            {
+                AppendMenuW(hInputMenu, MF_STRING, IDM_INPUT_USE_ZAPPER, L"&Enable Zapper");
             }
 
             if (this->unlimitedSprites)
@@ -1144,6 +1165,7 @@ namespace R2NES::Core
         unloadRequested = true;
         setPaused(false);
         this->uncheckAllDebugMenuItems();
+        this->uncheckZapperMenu();
     }
 
     void Window::reset()
@@ -1151,6 +1173,12 @@ namespace R2NES::Core
         resetRequested = true;
         setPaused(false);
         this->uncheckAllDebugMenuItems();
+    }
+
+    void Window::uncheckZapperMenu() 
+    {
+        this->useZapper = false;
+        windowCheckUncheckMenuItem(IDM_INPUT_USE_ZAPPER, false);
     }
 
     void Window::uncheckAllDebugMenuItems()
@@ -1297,6 +1325,18 @@ namespace R2NES::Core
             invertBAYBCallback(invertBAYB);
 
         std::cout << "Window: Inverted BA/YB " << (invertBAYB ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setUseZapper(bool enabled)
+    {
+        if (useZapper == enabled)
+            return;
+
+        useZapper = enabled;
+
+        if (useZapperCallback)
+            useZapperCallback(useZapper);
+        std::cout << "Input: Use Zapper " << (pulse1Enabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setVSync(bool enabled)

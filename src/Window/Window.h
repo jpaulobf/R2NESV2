@@ -43,6 +43,7 @@ namespace R2NES::Core
         using SaveSlotCallback = std::function<void(int)>;
         using PaletteCallback = std::function<void(PaletteType)>;
         using InvertBAYBCallback = std::function<void(bool)>;
+        using UseZapperCallback = std::function<void(bool)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -100,6 +101,8 @@ namespace R2NES::Core
 
         /* Define a função de callback para o estado de inversão dos botões A e B. */
         void setInvertBAYBCallback(InvertBAYBCallback cb) { invertBAYBCallback = cb; }
+
+        void setUseZapperCallback(UseZapperCallback cb) { useZapperCallback = cb; }
 
         // ---------------------------------
 
@@ -260,6 +263,11 @@ namespace R2NES::Core
         void scanlinesOff() { setScanlines(false); }
         void scanlinesOn() { setScanlines(true); }
 
+        /* Funções para configurar o uso da Zapper. */
+        void setUseZapper(bool enabled);
+        void useZapperOff() { setUseZapper(false); }
+        void useZapperOn() { setUseZapper(true); }
+
         /* Desativa o Som */
         void soundOff() { setSound(false); }
         void pulse1Off() { setPulse1(false); }
@@ -369,6 +377,8 @@ namespace R2NES::Core
         /* Funções para manipular os itens do menu de debug. */
         void uncheckAllDebugMenuItems();
 
+        void uncheckZapperMenu();
+
     private:
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
@@ -415,6 +425,7 @@ namespace R2NES::Core
         SaveSlotCallback saveSlotCallback = nullptr;
         PaletteCallback paletteCallback = nullptr;
         InvertBAYBCallback invertBAYBCallback = nullptr;
+        UseZapperCallback useZapperCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -440,6 +451,7 @@ namespace R2NES::Core
         bool ramViewerOpen = false;
         bool oamViewerOpen = false;
         bool vramViewerOpen = false;
+        bool useZapper = false;
 
         // Configurações de áudio para cada canal
         bool pulse1Enabled = true;
