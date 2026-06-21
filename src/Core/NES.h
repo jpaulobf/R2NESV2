@@ -59,5 +59,6 @@ namespace R2NES::Core
         IO::Joysticks joysticks;
 
         bool cartridgeLoaded = false;
+        uint8_t nmi_delay = 0;
     };
 }
