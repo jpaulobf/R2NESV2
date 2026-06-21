@@ -43,7 +43,6 @@ namespace R2NES::Core
         // Ponteiros
         std::unique_ptr<Window> window;
         std::unique_ptr<NES> nes;
-
         std::unique_ptr<R2NES::System::AudioManager> audioManager;
         std::unique_ptr<R2NES::System::InputManager> inputManager;
         std::unique_ptr<R2NES::System::GameStateManager> stateManager;
