@@ -109,22 +109,33 @@ namespace R2NES::Core
         }
         else if (addr == 0x4017)
         {
-            // O bit 0 continua vindo do controle padrão (entrada serial)
-            uint8_t data = (joysticks ? joysticks->controller2.readNextBit() : 0x00);
+            uint8_t data = 0x00;
 
-            // Suporte à Zapper (Pistola) no Port 2
+            if (joysticks)
+            {
+                if (joysticks->port2Device == IO::DeviceType::Gamepad)
+                {
+                    data = joysticks->controller2.readNextBit();
+                }
+                else if (joysticks->port2Device == IO::DeviceType::Zapper)
+                {
+                    // No NES, a Zapper vai na porta 2 substituindo o controle.
+                    // O bit 0 costuma ler 0, os bits 3 e 4 trazem os dados da pistola.
+                    data = 0x00;
 
-            // Bit 3: Sensor de Luz (0 = Luz detectada, 1 = Nenhuma luz)
-            if (ppu && ppu->getZapperLightSense())
-                data &= ~0x08; // Limpa o bit 3 (detectado)
-            else
-                data |= 0x08; // Seta o bit 3 (não detectado)
+                    // Bit 3: Sensor de Luz (0 = Luz detectada, 1 = Nenhuma luz)
+                    if (ppu && ppu->getZapperLightSense())
+                        data &= ~0x08; // Limpa o bit 3 (detectado)
+                    else
+                        data |= 0x08; // Seta o bit 3 (não detectado)
 
-            // Bit 4: Gatilho (1 = Puxado / 0 = Solto)
-            if (zapperTrigger)
-                data |= 0x10;
-            else
-                data &= ~0x10;
+                    // Bit 4: Gatilho (1 = Puxado / 0 = Solto)
+                    if (zapperTrigger)
+                        data |= 0x10;
+                    else
+                        data &= ~0x10;
+                }
+            }
 
             return data;
         }
