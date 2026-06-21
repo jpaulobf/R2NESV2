@@ -62,6 +62,20 @@ namespace R2NES::System
         }
     }
 
+    void InputManager::configureUseZapper(bool enabled, Core::NES &nes)
+    {
+        useZapper = enabled;
+
+        if (enabled)
+        {
+            nes.getJoysticks().port2Device = R2NES::Core::IO::DeviceType::Zapper;
+        }
+        else
+        {
+            nes.getJoysticks().port2Device = R2NES::Core::IO::DeviceType::Gamepad;
+        }
+    }
+
     void InputManager::handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
