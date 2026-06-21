@@ -21,6 +21,7 @@ namespace R2NES::System
         void handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
 
         void configureABBAButtons(bool invert);
+        void configureUseZapper(bool enabled, Core::NES &nes);
 
         void update(Core::NES &nes, int frameCount);
 
@@ -41,5 +42,6 @@ namespace R2NES::System
         bool turboA = false;
         bool turboB = false;
         bool invertBAYB = false;
+        bool useZapper = false;
     };
 }
