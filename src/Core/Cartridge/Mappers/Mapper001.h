@@ -52,7 +52,7 @@ namespace R2NES::Core
         uint8_t nCHRBankSelect1 = 0x00; // Banco CHR para $1000-$1FFF (modo 1 apenas)
         uint8_t nPRGBankSelect = 0x00;  // Seletor de banco PRG (seletivo dependendo do modo)
 
-        uint8_t nControlRegister = 0x1C; // Valor inicial padrão (PRG Mode 3, Vertical Mirroring)
+        uint8_t nControlRegister = 0x1E; // Valor inicial padrão (PRG Mode 3, Vertical Mirroring)
 
         // Shift register para serial writing dos registros
         uint8_t nShiftRegister = 0x00;

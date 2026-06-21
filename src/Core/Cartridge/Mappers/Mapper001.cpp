@@ -43,7 +43,7 @@ namespace R2NES::Core
             {
                 // Modo 2: Fixa banco 0 em $8000-$BFFF, troca 16KB em $C000-$FFFF
                 if (addr >= 0x8000 && addr <= 0xBFFF)
-                    mapped_addr = (nPRGBankHigh << 4) * 0x4000 + (addr & 0x3FFF); // Primeiro banco da região de 256KB
+                    mapped_addr = ((nPRGBankHigh << 4) % nPRGBanks) * 0x4000 + (addr & 0x3FFF); // Primeiro banco da região de 256KB com módulo seguro
                 else
                     mapped_addr = (((nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
             }
@@ -84,7 +84,7 @@ namespace R2NES::Core
         {
             if (systemClockCounter - nLastWriteCycle <= 1)
             {
-                nLastWriteCycle = systemClockCounter;
+                // Ignora escritas muito próximas, mas NÃO atualiza o ciclo da última escrita.
                 return false;
             }
             nLastWriteCycle = systemClockCounter;
@@ -139,26 +139,22 @@ namespace R2NES::Core
     {
         if (addr <= 0x1FFF)
         {
-            if (nCHRBanks == 0) // CHR RAM (cartuchos com CHR RAM em vez de CHR ROM)
-            {
-                mapped_addr = addr;
-                return true;
-            }
-
+            uint32_t totalChrSize = nCHRBanks == 0 ? 8192 : nCHRBanks * 8192;
             uint8_t chrMode = (nControlRegister >> 4) & 0x01;
+
             if (chrMode == 0)
             {
                 // Modo 0: 8KB switch (um banco de 8KB cobre $0000-$1FFF)
                 // Bit 0 de nCHRBankSelect0 é ignorado neste modo
-                mapped_addr = (nCHRBankSelect0 & 0x1E) * 0x1000 + (addr & 0x1FFF);
+                mapped_addr = ((nCHRBankSelect0 & 0x1E) * 0x1000 + (addr & 0x1FFF)) % totalChrSize;
             }
             else
             {
                 // Modo 1: 4KB + 4KB (dois bancos de 4KB: $0000-$0FFF e $1000-$1FFF)
                 if (addr <= 0x0FFF)
-                    mapped_addr = (nCHRBankSelect0 & 0x1F) * 0x1000 + (addr & 0x0FFF);
+                    mapped_addr = ((nCHRBankSelect0 & 0x1F) * 0x1000 + (addr & 0x0FFF)) % totalChrSize;
                 else
-                    mapped_addr = (nCHRBankSelect1 & 0x1F) * 0x1000 + (addr & 0x0FFF);
+                    mapped_addr = ((nCHRBankSelect1 & 0x1F) * 0x1000 + (addr & 0x0FFF)) % totalChrSize;
             }
             return true;
         }
@@ -171,7 +167,18 @@ namespace R2NES::Core
         {
             if (nCHRBanks == 0) // Permite escrita se for CHR RAM
             {
-                mapped_addr = addr;
+                uint32_t totalChrSize = 8192; // Base de 8KB padrão, adaptado se houver headers modernos
+                uint8_t chrMode = (nControlRegister >> 4) & 0x01;
+
+                if (chrMode == 0)
+                    mapped_addr = ((nCHRBankSelect0 & 0x1E) * 0x1000 + (addr & 0x1FFF)) % totalChrSize;
+                else
+                {
+                    if (addr <= 0x0FFF)
+                        mapped_addr = ((nCHRBankSelect0 & 0x1F) * 0x1000 + (addr & 0x0FFF)) % totalChrSize;
+                    else
+                        mapped_addr = ((nCHRBankSelect1 & 0x1F) * 0x1000 + (addr & 0x0FFF)) % totalChrSize;
+                }
                 return true;
             }
         }
@@ -204,7 +211,7 @@ namespace R2NES::Core
         nCHRBankSelect0 = 0x00;
         nCHRBankSelect1 = 0x00;
         nPRGBankSelect = 0x00;
-        nControlRegister = 0x1C;
+        nControlRegister = 0x1E;
         nShiftRegister = 0x00;
         nShiftRegisterCount = 0x00;
         nLastWriteCycle = 0;
