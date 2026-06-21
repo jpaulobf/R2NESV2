@@ -47,6 +47,8 @@ namespace R2NES::Core
         if (bus.cart && bus.cart->getMapper())
             bus.cart->getMapper()->reset();
 
+        nmi_delay = 0;
+
         // CPU deve ser a ÚLTIMA a resetar, para ler os vetores com o Mapper já
         // configurado
         cpu.reset();
