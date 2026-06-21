@@ -19,13 +19,13 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 - **PPU (Graphics)**: Cycle-accurate rendering with support for Loopy's Registers (v, t, x, w) for precise scrolling, Sprite 0 Hit, and Unlimited Sprites (flicker reduction).
 - **APU**: Sound support with individual channel control (Pulse 1/2, Triangle, Noise, DMC) and non-linear mixing.
 - **Mapper Support**: 
-  - Mapper 000 (NROM) (almost perfect)
+  - Mapper 000 (NROM) (100% perfect)
   - Mapper 001 (MMC1) * Still Buggy!! (in progress) Read the COMPATIBILITY_LIST.
   - Mapper 002 (UNROM) (almost perfect)
   - Mapper 003 (CNROM) (almost perfect)
   - Mapper 004 (MMC3) (initial support) * very buggy !
-  - Mapper 040 (NTDEC) (almost perfect)
-  - Mapper 066 (GNROM) (almost perfect)
+  - Mapper 040 (NTDEC) (100% perfect)
+  - Mapper 066 (GNROM) (100% perfect)
   - Mapper 090 (GxROM) Buggy !!! (in progress)
 - **File Formats**: Support for `.nes` (iNES) files and compressed `.zip` files.
 - **Save States**: Support for 3 independent slots with disk persistence in the `/savestates` folder.
