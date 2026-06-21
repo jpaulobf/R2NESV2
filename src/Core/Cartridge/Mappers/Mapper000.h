@@ -15,6 +15,7 @@ namespace R2NES::Core
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+        void reset() override;
 
         // Serialização para Save / Load states
         void saveState(std::ostream &os) override;
