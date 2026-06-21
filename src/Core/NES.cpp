@@ -29,6 +29,7 @@ namespace R2NES::Core
 
     void NES::unload()
     {
+        joysticks.port2Device = R2NES::Core::IO::DeviceType::Gamepad;
         bus.setCartridge(nullptr);
         cartridgeLoaded = false;
         reset();
@@ -74,13 +75,22 @@ namespace R2NES::Core
         ppu.clock();
 
         // Verifica se a PPU disparou um sinal de NMI (VBlank).
-        // A interrupção só deve ser processada quando a CPU terminar a instrução
-        // atual para não corromper o estado de execução (Address Latch,
-        // registradores, etc).
-        if (ppu.nmi && cpu.complete())
+        // Emuladores com execução instantânea de instruções precisam de um pequeno
+        // atraso (delay) na NMI para evitar o bug de "NMI Hijacking" (onde o NMI
+        // rouba a flag de VBLANK do loop principal, como no jogo Burgertime).
+        if (ppu.nmi)
         {
             ppu.nmi = false;
-            cpu.nmi();
+            nmi_delay = 2; // Espera algumas instruções antes de disparar
+        }
+
+        if (nmi_delay > 0)
+        {
+            if (cpu.complete())
+                nmi_delay--;
+            
+            if (nmi_delay == 0 && cpu.complete())
+                cpu.nmi();
         }
 
         // APU clock (mesma velocidade da CPU)
