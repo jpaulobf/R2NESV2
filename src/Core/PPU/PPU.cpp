@@ -521,6 +521,14 @@ namespace R2NES::Core
             }
         }
 
+        if (renderingEnabled)
+        {
+            if ((cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336))
+            {
+                updateShifters();
+            }
+        }
+
         // Só processamos renderização nos ciclos visíveis (1-256) e scanlines visíveis (0-239)
         if (scanline >= 0 && scanline < 240 && cycle >= 1 && cycle <= 256)
         {
@@ -568,6 +576,17 @@ namespace R2NES::Core
                     uint8_t spriteY = oamMemory[i * 4];
                     int diffY = scanline - (spriteY + 1);
                     int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+
+                    if (i == 0)
+                    { // Sprite 0
+                        int diffY = scanline - (oamMemory[0] + 1);
+                        if (diffY >= 0 && diffY < spriteHeight)
+                        {
+                            // Sprite 0 está na tela!
+                            // Onde ele está horizontalmente?
+                            // std::cout << "[DEBUG] Sprite 0 em X: " << (int)oamMemory[3] << " Y: " << (int)oamMemory[0] << std::endl;
+                        }
+                    }
 
                     uint8_t spriteX = oamMemory[i * 4 + 3];
                     // diffX pode ser negativo (sprite ainda não começou) ou > 7 (sprite já terminou)
@@ -678,14 +697,6 @@ namespace R2NES::Core
                 // No seu palette, branco é 0xFFFCFCFC. Vamos checar se o canal R é alto.
                 if (((finalPixelColor >> 16) & 0xFF) > 0xEE)
                     zapperLightDetected = true;
-            }
-        }
-
-        if (renderingEnabled)
-        {
-            if ((cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336))
-            {
-                updateShifters();
             }
         }
 
