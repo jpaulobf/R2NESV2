@@ -352,6 +352,8 @@ namespace R2NES::Core
             this->createMenu(); // Recria o menu para atualizar o estado do item Unload
         }
 
+        void uncheckZapperMenu();
+
     private:
         /* Abre a caixa de diálogo nativa do Windows para abrir arquivos .nes ou .zip. */
         void openFileDialog();
@@ -377,8 +379,6 @@ namespace R2NES::Core
         /* Funções para manipular os itens do menu de debug. */
         void uncheckAllDebugMenuItems();
 
-        void uncheckZapperMenu();
-
     private:
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
@@ -401,7 +401,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.8.1 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.8.2 | FPS: %.2f";
 
         // Valores Default Scanlines
         bool scanlines = false;
