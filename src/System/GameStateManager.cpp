@@ -8,6 +8,7 @@ namespace R2NES::System
 {
     void GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
     {
+        window.uncheckZapperMenu();
         nes.unload();
         cachedDisassembly.clear();
 
@@ -31,6 +32,7 @@ namespace R2NES::System
         nes.unload();
         cachedDisassembly.clear();
         window.clearUnloadRequest();
+        window.uncheckZapperMenu();
         window.setCartLoaded(false);
     }
 
