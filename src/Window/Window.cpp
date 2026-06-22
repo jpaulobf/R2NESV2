@@ -1177,6 +1177,7 @@ namespace R2NES::Core
 
     void Window::uncheckZapperMenu() 
     {
+        std::cout << "uncheck zapper menu";
         this->useZapper = false;
         windowCheckUncheckMenuItem(IDM_INPUT_USE_ZAPPER, false);
     }
@@ -1336,7 +1337,7 @@ namespace R2NES::Core
 
         if (useZapperCallback)
             useZapperCallback(useZapper);
-        std::cout << "Input: Use Zapper " << (pulse1Enabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "Input: Use Zapper " << (useZapper ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setVSync(bool enabled)
