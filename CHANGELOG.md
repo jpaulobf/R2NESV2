@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
  
+## [0.8.2] - 2026-06-21
+
+### Adicionado
+- Suporte inicial ao Mapper007 - Battletoads funciona, mas crasha no estágio 2. Use o Warpzone da fase 1 para pular.
+
 ## [0.8.1] - 2026-06-20
 
 ### Melhorado
