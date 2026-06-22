@@ -67,6 +67,8 @@ namespace R2NES::Core
         // Verifica se a Pistola Zapper está sendo disparada
         void setZapperTrigger(bool pulled);
 
+        void ppuAddressUpdated(uint16_t addr);
+
     public:
         RAM *ram = nullptr;
         PPU *ppu = nullptr;
@@ -75,6 +77,12 @@ namespace R2NES::Core
         IO::Joysticks *joysticks = nullptr;
         std::shared_ptr<Cartridge> cart;
         uint32_t systemClockCounter = 0;
+
+        uint8_t dma_page = 0x00;
+        uint8_t dma_addr = 0x00;
+        uint8_t dma_data = 0x00;
+        bool dma_transfer = false;
+        bool dma_dummy = true;
 
     private:
         bool zapperTrigger = false;
