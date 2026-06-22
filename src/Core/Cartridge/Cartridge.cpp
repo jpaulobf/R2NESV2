@@ -4,21 +4,21 @@
 #include "Core/Cartridge/Mappers/Mapper002.h"
 #include "Core/Cartridge/Mappers/Mapper003.h"
 #include "Core/Cartridge/Mappers/Mapper004.h"
+#include "Core/Cartridge/Mappers/Mapper007.h"
 #include "Core/Cartridge/Mappers/Mapper040.h"
 #include "Core/Cartridge/Mappers/Mapper066.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <zlib.h>
 
 namespace R2NES::Core
 {
     // Função auxiliar para extrair arquivo .nes de um ZIP usando zlib
-    static bool extractNESFromZIP(const std::string &zipFileName,
-                                  std::vector<uint8_t> &buffer)
+    static bool extractNESFromZIP(const std::string &zipFileName, std::vector<uint8_t> &buffer)
     {
         std::ifstream zipFile(zipFileName, std::ios::binary);
         if (!zipFile.is_open())
@@ -159,7 +159,10 @@ namespace R2NES::Core
         }
     }
 
-    void Cartridge::clearIrqFlag() { pMapper->clearIrqFlag(); }
+    void Cartridge::clearIrqFlag()
+    {
+        pMapper->clearIrqFlag();
+    }
 
     void Cartridge::tick()
     {
@@ -246,6 +249,9 @@ namespace R2NES::Core
         case 4:
             pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror);
             break;
+        case 7:
+            pMapper = std::make_shared<Mapper007>(prgBanks, chrBanks, mirror);
+            break;
         case 40:
             pMapper = std::make_shared<Mapper040>(prgBanks, chrBanks);
             break;
@@ -278,8 +284,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::cpuWrite(uint16_t addr, uint8_t data,
-                             uint32_t systemClockCounter)
+    bool Cartridge::cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter)
     {
         uint32_t mapped_addr = 0;
         if (pMapper &&
@@ -293,8 +298,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::ppuRead(uint16_t addr, uint8_t &data,
-                            uint32_t systemClockCounter) const
+    bool Cartridge::ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const
     {
         uint32_t mapped_addr = 0;
         if (pMapper &&
@@ -312,8 +316,7 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::ppuWrite(uint16_t addr, uint8_t data,
-                             uint32_t systemClockCounter)
+    bool Cartridge::ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter)
     {
         uint32_t mapped_addr = 0;
         if (pMapper &&
@@ -333,9 +336,9 @@ namespace R2NES::Core
         // Mappers avançados (como MMC1) controlam o Mirroring via software.
         // Verificamos se o Mapper implementa getMirrorMode
         if (pMapper &&
-            (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 19 ||
-             mapperID == 21 || mapperID == 22 || mapperID == 23 || mapperID == 24 ||
-             mapperID == 26 || mapperID == 85))
+            (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 ||
+             mapperID == 19 || mapperID == 21 || mapperID == 22 || mapperID == 23 ||
+             mapperID == 24 || mapperID == 26 || mapperID == 85))
         {
             return pMapper->getMirrorMode();
         }
