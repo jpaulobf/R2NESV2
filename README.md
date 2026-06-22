@@ -24,6 +24,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
   - Mapper 002 (UNROM) (almost perfect)
   - Mapper 003 (CNROM) (almost perfect)
   - Mapper 004 (MMC3) (initial support) * very buggy !
+  - Mapper 007 (MMC3) (initial support) Battletoads works, but stage 2 crash after a while (use warpzone in stage 1)
   - Mapper 040 (NTDEC) (100% perfect)
   - Mapper 066 (GNROM) (100% perfect)
   - Mapper 090 (GxROM) Buggy !!! (in progress)
