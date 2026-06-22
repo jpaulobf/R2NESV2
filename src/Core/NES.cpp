@@ -60,18 +60,53 @@ namespace R2NES::Core
 
     void NES::step()
     {
-        // Clocka a CPU uma vez. A CPU gerencia seus próprios ciclos internos por
-        // instrução.
-        cpu.clock();
+        // 1. OAM DMA ou Execução Normal da CPU
+        if (bus.dma_transfer)
+        {
+            // A CPU está suspensa, mas o ciclo de DMA consome tempo
+            if (bus.dma_dummy)
+            {
+                // O DMA sempre espera um ciclo de clock par para alinhar
+                if (bus.systemClockCounter % 2 == 1)
+                    bus.dma_dummy = false;
+            }
+            else
+            {
+                // Em ciclos pares, o DMA lê um byte da memória (CPU)
+                if (bus.systemClockCounter % 2 == 0)
+                {
+                    bus.dma_data = bus.cpuRead((bus.dma_page << 8) | bus.dma_addr);
+                }
+                // Em ciclos ímpares, o DMA escreve o byte na PPU através do registrador $2004
+                else
+                {
+                    // O hardware de DMA apenas executa uma gravação repetida em $2004
+                    ppu.cpuWrite(0x2004, bus.dma_data);
 
-        // Incrementa o contador de ciclos do sistema (CPU + PPU + APU)
+                    bus.dma_addr++;
+
+                    // Se terminou de copiar os 256 bytes
+                    if (bus.dma_addr == 0x00)
+                    {
+                        bus.dma_transfer = false;
+                        bus.dma_dummy = true;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Se não há DMA, a CPU roda normalmente!
+            cpu.clock();
+        }
+
+        // 2. O resto do hardware avança o tempo independentemente do DMA
         bus.systemClockCounter++;
 
-        // Executa o tick nos cartuchos que suportam.
-        bus.cart->tick();
+        if (bus.cart)
+            bus.cart->tick();
 
-        // A PPU roda 3 vezes mais rápido que a CPU.
-        // Então, para cada ciclo da CPU, a PPU deve ser clockada 3 vezes.
+        // A PPU sempre roda 3 vezes para cada passo de sistema (CPU)
         ppu.clock();
         ppu.clock();
         ppu.clock();
@@ -90,7 +125,7 @@ namespace R2NES::Core
         {
             if (cpu.complete())
                 nmi_delay--;
-            
+
             if (nmi_delay == 0 && cpu.complete())
                 cpu.nmi();
         }
