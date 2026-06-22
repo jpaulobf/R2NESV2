@@ -16,11 +16,11 @@ Mapper 000 (NROM)
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | :--- | :---: | :---: | :---: | :--- |
 | 10-Yard Fight | US | 000 | ⭐⭐⭐⭐⭐ | Sem falhas identificadas (SFI). |
-| 1942 | US | 000 | ⭐⭐⭐⭐⭐ | Bugs no HUD |
+| 1942 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Balloon Fight | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Bomberman | US | 000 | ⭐ | Preso na Tela Título |
-| Burgertime | US | 000 | ⭐ | Preso na Tela Título |
+| Bomberman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
+| Burgertime | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Chubby Cherub | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Clu Clu Land | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Defender 2 | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -69,16 +69,15 @@ Mapper 000 (NROM)
 | Wrecking Crew | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Xevious | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 
-
 ---
 
 ### Resumo Estatístico - Mapper 000 (NROM)
 - **Total de Jogos Testados:** 53
-- ⭐⭐⭐⭐⭐ (Perfeito): 50 - 94.3%
-- ⭐⭐⭐⭐ (Muito Jogável): 1 - 1.8%
+- ⭐⭐⭐⭐⭐ (Perfeito): 53 - 100%
+- ⭐⭐⭐⭐ (Muito Jogável): 0 - 0.0%
 - ⭐⭐⭐ (Jogável): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 2 - 3.7%
+- ⭐ (Não funciona): 0 - 0.0%
 
 
 
@@ -90,10 +89,10 @@ Mapper 001 (MMC1)
 
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | --- | --- | --- | --- | --- |
-| 720° | US | 001 | ⭐ | Travado no Menu |
+| 720° | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Abadox: The Deadly Inner War | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Addams Family, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐ | Não inicializa |
+| Addams Family, The: Pugsley's Scavenger Hunt | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures in the Magic Kingdom, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Bayou Billy, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Adventures of Lolo | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -103,23 +102,23 @@ Mapper 001 (MMC1)
 | Air Fortress | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Airwolf | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Al Unser Jr. Turbo Racing | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| All-Pro Basketball | US | 001 | ⭐ | Não inicializa |
+| All-Pro Basketball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | American Gladiators | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Anticipation | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Attack of the Killer Tomatoes | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Back to the Future II & III | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bad Street Brawler | US | 001 | ⭐ | Trava após o menu |
+| Bad Street Brawler | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Barbie | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐ | Não inicializa |
 | Barker Bill's Trick Shooting | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball Simulator 1.000 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Baseball Stars | US | 001 | ⭐ | Não inicializa |
+| Baseball Stars | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bases Loaded | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bases Loaded II: Second Season | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Battle Chess | US | 001 | ⭐ | Não inicializa |
+| Battle Chess | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Battle of Olympus, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bigfoot | US | 001 | ⭐ | Não inicializa |
+| Bigfoot | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐ | Não inicializa |
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -131,21 +130,20 @@ Mapper 001 (MMC1)
 | Bubble Bobble | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Caveman Games | US | 001 | ⭐ | Trava após o menu |
+| Caveman Games | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Chessmaster, The | US | 001 | ⭐ | Travado na tela inicial |
+| Chessmaster, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Ferrari Grand Prix Challenge | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Ninja Gaiden | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Nigel Mansell's World Championship Racing | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-
 | Circus Caper | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Clash At Demonhead | US | 001 | ⭐⭐⭐⭐ | Última coluna de 8 pixels preta (totalmente jogável) |
-| Cobra Command | US | 001 | ⭐ | Não abre |
+| Cobra Command | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Conflict | US | 001 | ⭐⭐⭐⭐ | Sujeira nas 8 primeiras linhas (totalmente jogável) |
 | Cool World | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Dance Aerobics | US | 001 | ⭐ | Não abre |
+| Dance Aerobics | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dragon Warrior | US | 001 |  | ⭐ | Não abre |
@@ -174,19 +172,19 @@ Mapper 001 (MMC1)
 | Die Hard | US | 001 |  | ... |
 | Dr. Jekyll and Mr. Hyde | US | 001 |  | ... |
 | Dr. Mario | US | 001 |  | ... |
-| Dragon Fighter | US | 001 |  | ... |
+| Dragon Fighter | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dungeon Magic: Sword of the Elements | US | 001 |  | ... |
 | Dusty Diamond's All-Star Softball | US | 001 |  | ... |
 | Dynowarz: The Destruction of Spondylus | US | 001 |  | ... |
 | Eliminator Boat Duel | US | 001 |  | ... |
 | Family Feud, The All New | US | 001 |  | ... |
-| Faria | US | 001 |  | ... |
+| Faria | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Faxanadu | US | 001 |  | ... |
 | Fester's Quest | US | 001 |  | ... |
 | Final Fantasy | US | 001 |  | ... |
 | Final Fantasy II | US | 001 |  | ... |
 | Flying Warriors | US | 001 |  | ... |
-| Formula One: Built to Win | US | 001 |  | ... |
+| Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI ||
 | Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 |  | ... |
 | Frankenstein: The Monster Returns | US | 001 |  | ... |
 | Freedom Force | US | 001 |  | ... |
@@ -272,32 +270,32 @@ Mapper 001 (MMC1)
 | Shingen The Ruler | US | 001 |  | ... |
 | Short Order / Eggsplode! | US | 001 |  | ... |
 | Silkworm | US | 001 |  | ... |
-| Simpsons, The: Bart vs. The Space Mutants | US | 001 |  | ... |
+| Simpsons, The: Bart vs. The Space Mutants | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Skate or Die 2: The Search for Double Trouble | US | 001 |  | ... |
 | Ski or Die | US | 001 |  | ... |
 | Sky Kid | US | 001 |  | ... |
 | Sky Shark | US | 001 |  | ... |
 | Snake Rattle 'n Roll | US | 001 |  | ... |
-| Snake's Revenge | US | 001 |  | ... |
+| Snake's Revenge | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Snoopy's Silly Sports Spectacular! | US | 001 |  | ... |
-| Snow Brothers | US | 001 |  | ... |
+| Snow Brothers | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Space Shuttle Project | US | 001 |  | ... |
 | Spot | US | 001 |  | ... |
 | Stealth ATF | US | 001 |  | ... |
 | Street Cop | US | 001 |  | ... |
-| Strider | US | 001 |  | ... |
+| Strider | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Super Dodge Ball | US | 001 |  | ... |
 | Super Jeopardy! | US | 001 |  | ... |
 | Swamp Thing | US | 001 |  | ... |
 | Taboo: The Sixth Sense | US | 001 |  | ... |
-| TaleSpin, Disney's | US | 001 |  | ... |
+| TaleSpin, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Target: Renegade | US | 001 |  | ... |
 | Taro's Quest | US | 001 |  | ... |
 | Tecmo Baseball | US | 001 |  | ... |
 | Tecmo Bowl | US | 001 |  | ... |
 | Tecmo Cup: Soccer Game | US | 001 |  | ... |
 | Tecmo World Wrestling | US | 001 |  | ... |
-| Tetris | US | 001 |  | ... |
+| Tetris | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Three Stooges, The | US | 001 |  | ... |
 | Thunderbirds | US | 001 |  | ... |
 | Tombs and Treasure | US | 001 |  | ... |
@@ -317,7 +315,7 @@ Mapper 001 (MMC1)
 | Wizardry: Proving Grounds of the Mad Overlord | US | 001 |  | ... |
 | Wrath of the Black Manta | US | 001 |  | ... |
 | Xenophobe | US | 001 |  | ... |
-| Xexyz | US | 001 |  | ... |
+| Xexyz | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 
 
 ---
