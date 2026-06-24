@@ -169,20 +169,20 @@ Mapper 001 (MMC1)
 | Demon Sword | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Desert Commander | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Destiny of an Emperor | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Die Hard | US | 001 |  | ... |
-| Dr. Jekyll and Mr. Hyde | US | 001 |  | ... |
-| Dr. Mario | US | 001 |  | ... |
+| Die Hard | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Dr. Jekyll and Mr. Hyde | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Dr. Mario | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dragon Fighter | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Dungeon Magic: Sword of the Elements | US | 001 |  | ... |
-| Dusty Diamond's All-Star Softball | US | 001 |  | ... |
-| Dynowarz: The Destruction of Spondylus | US | 001 |  | ... |
-| Eliminator Boat Duel | US | 001 |  | ... |
-| Family Feud, The All New | US | 001 |  | ... |
+| Dungeon Magic: Sword of the Elements | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Dusty Diamond's All-Star Softball | US | 001 | ⭐ | Trava após seleção do Estádio |
+| Dynowarz: The Destruction of Spondylus | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Eliminator Boat Duel | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Family Feud, The All New | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Faria | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Faxanadu | US | 001 |  | ... |
-| Fester's Quest | US | 001 |  | ... |
-| Final Fantasy | US | 001 |  | ... |
-| Final Fantasy II | US | 001 |  | ... |
+| Faxanadu | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Fester's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Final Fantasy | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Final Fantasy II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Flying Warriors | US | 001 |  | ... |
 | Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI ||
 | Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 |  | ... |
