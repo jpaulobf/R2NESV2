@@ -161,9 +161,6 @@ Mapper 001 (MMC1)
 | Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
 | Yoshi | US | 001 | ⭐ | Não abre |
 | Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| --- | --- | --- | --- | --- |
-| Games not tested yet | --- | --- | --- | --- |
-| --- | --- | --- | --- | --- |
 | Day Dreamin' Davey | US | 001 |  | ... |
 | Defender of the Crown | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Demon Sword | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -183,8 +180,11 @@ Mapper 001 (MMC1)
 | Fester's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Final Fantasy | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Final Fantasy II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Flying Warriors | US | 001 |  | ... |
-| Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI ||
+| Flying Warriors | US | 001 | ⭐ | Não abre |
+| Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| --- | --- | --- | --- | --- |
+| Games not tested yet | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 |  | ... |
 | Frankenstein: The Monster Returns | US | 001 |  | ... |
 | Freedom Force | US | 001 |  | ... |
