@@ -165,10 +165,10 @@ Mapper 001 (MMC1)
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
 | Day Dreamin' Davey | US | 001 |  | ... |
-| Defender of the Crown | US | 001 |  | ... |
-| Demon Sword | US | 001 |  | ... |
-| Desert Commander | US | 001 |  | ... |
-| Destiny of an Emperor | US | 001 |  | ... |
+| Defender of the Crown | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Demon Sword | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Desert Commander | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Destiny of an Emperor | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Die Hard | US | 001 |  | ... |
 | Dr. Jekyll and Mr. Hyde | US | 001 |  | ... |
 | Dr. Mario | US | 001 |  | ... |
