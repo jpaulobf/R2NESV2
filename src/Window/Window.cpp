@@ -495,9 +495,7 @@ namespace R2NES::Core
                             }
 
                             std::cout << "Window: Full Crop Overscan " << (this->fullCropOverscan ? "On" : "Off") << std::endl; });
-                    }
-
-                    
+                    }                  
 
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
                              LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_25)
