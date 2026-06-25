@@ -1,7 +1,12 @@
 # Changelog
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
- 
+
+## [0.8.2.1] - 2026-06-25
+
+### Adicionado
+- Suporte a Full Crop para recorde de 8px em cada lado da tela (simulando o espaço oculto das CRTs)
+
 ## [0.8.2] - 2026-06-21
 
 ### Adicionado
