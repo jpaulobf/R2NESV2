@@ -188,8 +188,8 @@ Mapper 001 (MMC1)
 | Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Frankenstein: The Monster Returns | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Freedom Force | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Genghis Khan | US | 001 |  | ... |
-| Ghostbusters II | US | 001 |  | ... |
+| Genghis Khan | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Ghostbusters II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Ghoul School | US | 001 |  | ... |
 | Goal! | US | 001 |  | ... |
 | Godzilla 2: War of the Monsters | US | 001 |  | ... |
