@@ -185,9 +185,9 @@ Mapper 001 (MMC1)
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
-| Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 |  | ... |
-| Frankenstein: The Monster Returns | US | 001 |  | ... |
-| Freedom Force | US | 001 |  | ... |
+| Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Frankenstein: The Monster Returns | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Freedom Force | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Genghis Khan | US | 001 |  | ... |
 | Ghostbusters II | US | 001 |  | ... |
 | Ghoul School | US | 001 |  | ... |
