@@ -472,7 +472,13 @@ namespace R2NES::Core
                         toggleMarkMenuItem(IDM_VIEW_CROP_OVERSCAN, [this](bool currentlyChecked)
                                            {
                             // Inverte o estado atual (atribuindo a uma variável membro)
-                            this->cropOverscan = !currentlyChecked;
+                            this->cropOverscan = !this->cropOverscan; // Usa o estado atual da variável
+
+                            // Se ativou o crop normal, desativa o full crop
+                            if (this->cropOverscan) {
+                                this->fullCropOverscan = false;
+                                windowCheckUncheckMenuItem(IDM_VIEW_FULLCROP_OVERSCAN, false);
+                            }
 
                             // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
                             if (this->currentDisplayMode == DisplayMode::WINDOWED) {
@@ -487,7 +493,13 @@ namespace R2NES::Core
                         toggleMarkMenuItem(IDM_VIEW_FULLCROP_OVERSCAN, [this](bool currentlyChecked)
                                            {
                             // Inverte o estado atual (atribuindo a uma variável membro)
-                            this->fullCropOverscan = !currentlyChecked;
+                            this->fullCropOverscan = !this->fullCropOverscan; // Usa o estado atual da variável
+
+                            // Se ativou o full crop, desativa o crop normal
+                            if (this->fullCropOverscan) {
+                                this->cropOverscan = false;
+                                windowCheckUncheckMenuItem(IDM_VIEW_CROP_OVERSCAN, false);
+                            }
 
                             // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
                             if (this->currentDisplayMode == DisplayMode::WINDOWED) {
@@ -495,7 +507,7 @@ namespace R2NES::Core
                             }
 
                             std::cout << "Window: Full Crop Overscan " << (this->fullCropOverscan ? "On" : "Off") << std::endl; });
-                    }                  
+                    }
 
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
                              LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_25)
@@ -900,11 +912,11 @@ namespace R2NES::Core
 
             if (this->cropOverscan)
             {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_CROP_OVERSCAN, L"&Crop Overscan (8px)");
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_CROP_OVERSCAN, L"&Top Crop Overscan (8px)");
             }
             else
             {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_CROP_OVERSCAN, L"&Crop Overscan (8px)");
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_CROP_OVERSCAN, L"&Top Crop Overscan (8px)");
             }
 
             if (this->fullCropOverscan)
@@ -1419,9 +1431,16 @@ namespace R2NES::Core
             SDL_SetWindowBordered(window, SDL_TRUE); // Restore border
             createMenu();                            // Restaura o menu nativo
         }
-
-        int currentH = cropOverscan ? (height - 16) : height;
-        SDL_SetWindowSize(window, width * times * scale, currentH * times * scale);
+        
+        int currentW = width;
+        int currentH = height;
+        if (fullCropOverscan) {
+            currentW -= 16;
+            currentH -= 16;
+        } else if (cropOverscan) {
+            currentH -= 16;
+        }
+        SDL_SetWindowSize(window, currentW * times * scale, currentH * times * scale);
         SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
         // Update last known windowed size
@@ -1529,11 +1548,19 @@ namespace R2NES::Core
         // Define a área de origem da textura (Source Rect)
         // Se o Crop estiver ativado, pulamos os primeiros 8 scanlines e reduzimos a altura em 16 (8 topo + 8 base)
         SDL_Rect src_rect = {0, 0, width, height};
-        if (cropOverscan)
+        if (fullCropOverscan)
+        {
+            src_rect.x = 8;
+            src_rect.y = 8;
+            src_rect.w = width - 16;
+            src_rect.h = height - 16;
+        }
+        else if (cropOverscan)
         {
             src_rect.y = 8;
             src_rect.h = height - 16;
         }
+
 
         SDL_Rect dest_rect;
         if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
@@ -1544,7 +1571,16 @@ namespace R2NES::Core
             // Se cortamos 16 pixels de altura (8 topo + 8 base), para manter o mesmo "look" dos pixels
             // (Pixel Aspect Ratio), precisamos ajustar a proporção da tela (Display Aspect Ratio).
             // 8:7 original assume 240 linhas. Para 224 linhas, a nova proporção é 60:49.
-            double target_aspect_ratio = cropOverscan ? (60.0 / 49.0) : (8.0 / 7.0);
+            double target_aspect_ratio;
+            if (fullCropOverscan) {
+                // 240x224 -> 60:49
+                target_aspect_ratio = 60.0 / 49.0;
+            } else if (cropOverscan) {
+                // 256x224 -> 8:7
+                target_aspect_ratio = 8.0 / 7.0;
+            } else {
+                target_aspect_ratio = 8.0 / 7.0;
+            }
 
             int render_w, render_h;
             double potential_h = current_window_w / target_aspect_ratio;
