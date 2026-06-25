@@ -42,6 +42,7 @@
 #define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
 #define IDM_VIEW_SCANLINES 2006
 #define IDM_VIEW_CROP_OVERSCAN 2007
+#define IDM_VIEW_FULLCROP_OVERSCAN 2008
 #define IDM_VIEW_SCANLINES_LEVEL_5 2105
 #define IDM_VIEW_SCANLINES_LEVEL_10 2110
 #define IDM_VIEW_SCANLINES_LEVEL_15 2115
@@ -481,6 +482,23 @@ namespace R2NES::Core
                             std::cout << "Window: Crop Overscan " << (this->cropOverscan ? "On" : "Off") << std::endl; });
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_FULLCROP_OVERSCAN)
+                    {
+                        toggleMarkMenuItem(IDM_VIEW_FULLCROP_OVERSCAN, [this](bool currentlyChecked)
+                                           {
+                            // Inverte o estado atual (atribuindo a uma variável membro)
+                            this->fullCropOverscan = !currentlyChecked;
+
+                            // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
+                            if (this->currentDisplayMode == DisplayMode::WINDOWED) {
+                                this->windowResize(this->currentWindowX);
+                            }
+
+                            std::cout << "Window: Full Crop Overscan " << (this->fullCropOverscan ? "On" : "Off") << std::endl; });
+                    }
+
+                    
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
                              LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_25)
                     {
@@ -889,6 +907,15 @@ namespace R2NES::Core
             else
             {
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_CROP_OVERSCAN, L"&Crop Overscan (8px)");
+            }
+
+            if (this->fullCropOverscan)
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_FULLCROP_OVERSCAN, L"&Full Crop Overscan (8px, 8px, 8px, 8px)");
+            }
+            else
+            {
+                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_FULLCROP_OVERSCAN, L"&Full Crop Overscan (8px, 8px, 8px, 8px)");
             }
 
             HMENU hScanlineLevelMenu = CreatePopupMenu();
