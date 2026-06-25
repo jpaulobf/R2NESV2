@@ -521,14 +521,6 @@ namespace R2NES::Core
             }
         }
 
-        if (renderingEnabled)
-        {
-            if ((cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336))
-            {
-                updateShifters();
-            }
-        }
-
         // Só processamos renderização nos ciclos visíveis (1-256) e scanlines visíveis (0-239)
         if (scanline >= 0 && scanline < 240 && cycle >= 1 && cycle <= 256)
         {
@@ -697,6 +689,14 @@ namespace R2NES::Core
                 // No seu palette, branco é 0xFFFCFCFC. Vamos checar se o canal R é alto.
                 if (((finalPixelColor >> 16) & 0xFF) > 0xEE)
                     zapperLightDetected = true;
+            }
+        }
+
+        if (renderingEnabled)
+        {
+            if ((cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336))
+            {
+                updateShifters();
             }
         }
 
