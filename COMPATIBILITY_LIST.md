@@ -131,7 +131,7 @@ Mapper 001 (MMC1)
 | Bugs Bunny Crazy Castle, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Castlevania II: Simon's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Caveman Games | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Double Dragon | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Double Dragon | US | 001 | ⭐ | Travando na Fase 1 |
 | Chessmaster, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers 2, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Chip 'n Dale Rescue Rangers, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
