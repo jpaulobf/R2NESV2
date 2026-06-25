@@ -464,8 +464,8 @@ namespace R2NES::Core
         bool isToSave = false;
         bool isToLoad = false;
         int saveSlot = 1;
-        bool cropOverscan = true; // Configuração para crop de overscan (8 pixels topo e base)
-        bool fullCropOverscan = false;
+        bool cropOverscan = false;
+        bool fullCropOverscan = true;
 
         // Verifica se o cartucho foi introduzido e lido
         bool cartLoaded = false;
