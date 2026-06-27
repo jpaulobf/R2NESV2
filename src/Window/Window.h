@@ -401,7 +401,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.8.2 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.8.4 | FPS: %.2f";
 
         // Valores Default Scanlines
         bool scanlines = false;
