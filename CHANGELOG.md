@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.8.4] - 2026-06-27
+
+### Adicionado
+- Suporte ao Mapper009 - Punch-out funciona!
+
 ## [0.8.2.1] - 2026-06-25
 
 ### Adicionado
