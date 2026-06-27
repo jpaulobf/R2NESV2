@@ -5,6 +5,7 @@
 #include "Core/Cartridge/Mappers/Mapper003.h"
 #include "Core/Cartridge/Mappers/Mapper004.h"
 #include "Core/Cartridge/Mappers/Mapper007.h"
+#include "Core/Cartridge/Mappers/Mapper009.h"
 #include "Core/Cartridge/Mappers/Mapper040.h"
 #include "Core/Cartridge/Mappers/Mapper066.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
@@ -252,6 +253,9 @@ namespace R2NES::Core
         case 7:
             pMapper = std::make_shared<Mapper007>(prgBanks, chrBanks, mirror);
             break;
+        case 9:
+            pMapper = std::make_shared<Mapper009>(prgBanks, chrBanks, mirror);
+            break;
         case 40:
             pMapper = std::make_shared<Mapper040>(prgBanks, chrBanks);
             break;
@@ -337,8 +341,8 @@ namespace R2NES::Core
         // Verificamos se o Mapper implementa getMirrorMode
         if (pMapper &&
             (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 ||
-             mapperID == 19 || mapperID == 21 || mapperID == 22 || mapperID == 23 ||
-             mapperID == 24 || mapperID == 26 || mapperID == 85))
+             mapperID == 9 || mapperID == 19 || mapperID == 21 || mapperID == 22 ||
+             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 85))
         {
             return pMapper->getMirrorMode();
         }
