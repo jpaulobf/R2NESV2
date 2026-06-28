@@ -529,3 +529,26 @@ Mapper 003 (CNROM)
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
 - ⭐ (Não funciona): 0 - 0.0%
+
+
+-------
+Mapper 066 (NES-MH)
+-------
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| Dragon Power | US | 066 | ⭐⭐⭐⭐⭐ | SFI |
+| Gumshoe | US | 066 | ⭐⭐⭐⭐⭐ | SFI |
+| Super Mario Bros. / Duck Hunt | US | 066 | ⭐⭐⭐⭐⭐ | SFI |
+| Thunder & Lightning | US | 066 | ⭐⭐⭐⭐⭐ | SFI |
+| U-Force Power Games | US | 066 | ⭐⭐⭐⭐⭐ | SFI |
+
+---
+
+### Resumo Estatístico - Mapper 066 (NES-MH)
+- **Total de Jogos Documentados:** 5
+- ⭐⭐⭐⭐⭐ (Perfeito): 0 - 100.0%
+- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 0 - 0.0%
