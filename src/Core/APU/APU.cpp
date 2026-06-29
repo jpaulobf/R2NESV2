@@ -87,7 +87,7 @@ namespace R2NES::Core
             pulse1.timerReload = (pulse1.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
             if (pulse1.enabled)
                 pulse1.lengthCounter.load(data >> 3);
-            // pulse1.dutyValue = 0;
+            pulse1.dutyValue = 0;
             pulse1.envelope.start = true;
             break;
 
@@ -113,7 +113,7 @@ namespace R2NES::Core
             pulse2.timerReload = (pulse2.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
             if (pulse2.enabled)
                 pulse2.lengthCounter.load(data >> 3);
-            // pulse2.dutyValue = 0;
+            pulse2.dutyValue = 0;
             pulse2.envelope.start = true;
             break;
 
@@ -178,6 +178,16 @@ namespace R2NES::Core
                 pulse1.envelope.tick();
                 pulse2.envelope.tick();
                 noise.envelope.tick();
+
+                // Comportamento do Linear Counter do Triangle no clock imediato
+                if (triangle.linearReloadFlag)
+                    triangle.linearCount = triangle.linearReload;
+                else if (triangle.linearCount > 0)
+                    triangle.linearCount--;
+                if (!triangle.linearControl)
+                    triangle.linearReloadFlag = false;
+
+                // Clocks de Half Frame (Length Counters + Sweeps)
                 pulse1.lengthCounter.tick();
                 pulse2.lengthCounter.tick();
                 triangle.lengthCounter.tick();
@@ -303,7 +313,11 @@ namespace R2NES::Core
                 return;
             }
 
-            float averageMix = sampleSum / static_cast<float>(sampleCount);
+            float averageMix = 0.0f;
+            if (sampleCount > 0)
+            {
+                averageMix = sampleSum / static_cast<float>(sampleCount);
+            }
             sampleSum = 0.0f;
             sampleCount = 0;
 
@@ -351,8 +365,8 @@ namespace R2NES::Core
 
     float APU::getRawMix()
     {
-        float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample()) : 0.0f;
-        float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample()) : 0.0f;
+        float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample(true)) : 0.0f;
+        float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample(false)) : 0.0f;
         float tri = userTriangleEnabled ? static_cast<float>(triangle.sample()) : 0.0f;
         float n = userNoiseEnabled ? static_cast<float>(noise.sample()) : 0.0f;
         float d = userDMCEnabled ? static_cast<float>(dmc.sample()) : 0.0f;
@@ -481,10 +495,10 @@ namespace R2NES::Core
             timer--;
     }
 
-    uint8_t APU::PulseChannel::sample() const
+    uint8_t APU::PulseChannel::sample(bool isPulse1) const
     {
         // Muting por: Enabled flag, Length Counter ou Unidade de Sweep
-        if (!enabled || lengthCounter.count == 0 || sweep.isSilencing(timerReload, true))
+        if (!enabled || lengthCounter.count == 0 || sweep.isSilencing(timerReload, isPulse1))
             return 0;
         if (dutySequences[dutyMode][dutyValue] == 0)
             return 0;
