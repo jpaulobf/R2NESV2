@@ -99,7 +99,7 @@ namespace R2NES::Core
             Sweep sweep;
             LengthCounter lengthCounter;
             void clock();
-            uint8_t sample() const;
+            uint8_t sample(bool isPulse1) const;
         } pulse1, pulse2;
 
         struct TriangleChannel
