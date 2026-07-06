@@ -291,13 +291,34 @@ namespace R2NES::Core
     bool Cartridge::cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter)
     {
         uint32_t mapped_addr = 0;
-        if (pMapper &&
-            pMapper->cpuMapWrite(addr, mapped_addr, data, systemClockCounter))
+        if (pMapper)
         {
-            if (mapped_addr == 0xFFFFFFFF)
-                return true; // Escrita tratada internamente pelo Mapper
+            // Simulação de conflitos de barramento (Bus Conflicts) em mappers discretos.
+            // No NES real, a ROM não é desabilitada durante a escrita, fazendo com que o valor
+            // escrito seja o AND lógico entre o valor da CPU e o valor armazenado na ROM naquele endereço.
+            if (addr >= 0x8000 && addr <= 0xFFFF)
+            {
+                if (mapperID == 2 || mapperID == 3 || mapperID == 7 || mapperID == 66)
+                {
+                    uint32_t read_mapped_addr = 0;
+                    uint8_t dummy_data = 0;
+                    if (pMapper->cpuMapRead(addr, read_mapped_addr, dummy_data))
+                    {
+                        if (read_mapped_addr != 0xFFFFFFFF && read_mapped_addr < prgROM->size())
+                        {
+                            data &= prgROM->read(read_mapped_addr);
+                        }
+                    }
+                }
+            }
 
-            return true;
+            if (pMapper->cpuMapWrite(addr, mapped_addr, data, systemClockCounter))
+            {
+                if (mapped_addr == 0xFFFFFFFF)
+                    return true; // Escrita tratada internamente pelo Mapper
+
+                return true;
+            }
         }
         return false;
     }
