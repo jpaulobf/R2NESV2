@@ -34,4 +34,14 @@ namespace R2NES::Core
         WAVEBEAM,
         NEON
     };
+
+    enum class ShaderType
+    {
+        NONE,
+        SCANLINES,
+        CRT,
+        CRT3D,
+        SCALEFX,
+        XBRZMULTI
+    };
 }
