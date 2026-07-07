@@ -35,7 +35,7 @@ namespace R2NES::Core
         void connectBus(Bus *n);
 
         // Executa um ciclo de clock da CPU
-        void clock();
+        uint16_t clock();
 
         // Retorna verdadeiro se a instrução atual terminou
         bool complete() const;
