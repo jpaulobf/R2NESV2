@@ -379,6 +379,8 @@ namespace R2NES::Core
         /* Funções para manipular os itens do menu de debug. */
         void uncheckAllDebugMenuItems();
 
+        void setShader(ShaderType shaderType);
+
     private:
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
@@ -472,5 +474,8 @@ namespace R2NES::Core
 
         // Configuração para inversão dos botões A e B
         bool invertBAYB = false;
+
+        //Current Shader
+        ShaderType shader = ShaderType::NONE;
     };
 }
