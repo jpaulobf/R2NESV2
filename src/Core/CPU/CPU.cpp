@@ -376,14 +376,16 @@ namespace R2NES::Core
         cycles = 8;
     }
 
-    void CPU::clock()
+    uint16_t CPU::clock()
     {
+        uint16_t cycles_executed = 0;
+
         if (cycles == 0)
         {
             // Garante que a flag Unused esteja sempre 1
             SetFlag(U, true);
 
-            // 1. Fetch: Lê o opcode no endereço apontado pelo PC
+            // 1. Fetch
             opcode = bus->cpuRead(pc);
             pc++;
 
@@ -391,21 +393,23 @@ namespace R2NES::Core
             cycles = lookup[opcode].cycles;
 
             // 2. Decode & Execute
-            // Chama o modo de endereçamento. Pode retornar 1 ciclo extra (ex: cross-page)
             uint8_t additional_cycle1 = (this->*lookup[opcode].addrmode)();
-
-            // Chama a operação propriamente dita. Também pode retornar 1 ciclo extra
             uint8_t additional_cycle2 = (this->*lookup[opcode].operate)();
 
-            // Soma ciclos extras apenas se ambos pedirem (lógica específica do 6502 para certas instruções)
+            // Soma ciclos extras
             cycles += (additional_cycle1 & additional_cycle2);
 
-            // Garante novamente a flag Unused
             SetFlag(U, true);
+
+            // Guardamos o total real que ESSA instrução gastou para retornar ao NES::step
+            cycles_executed = cycles;
         }
 
         // Decrementa o contador de ciclos
         cycles--;
+                
+        // Retorna exatamente quantos ciclos o sistema (PPU/APU/Mappers) precisa avançar
+        return cycles_executed;
     }
 
     bool CPU::complete() const
