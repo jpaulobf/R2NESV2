@@ -60,13 +60,13 @@
 #define IDM_SOUND_TRIANGLE 2013
 #define IDM_SOUND_NOISE 2014
 #define IDM_SOUND_DMC 2015
-
-#define IDM_SHADER_SCANLINES 2100
-#define IDM_SHADER_CRT 2101
-#define IDM_SHADER_CRT3D 2102
-#define IDM_SHADER_SCALEFX 2103
-#define IDM_SHADER_XBRZMULTI 2104
-
+#define IDM_VIEW_SHADERS 2300
+#define IDM_VIEW_SHADERS_NONE 2301
+#define IDM_VIEW_SHADERS_SCANLINES 2302
+#define IDM_VIEW_SHADERS_CRT 2303
+#define IDM_VIEW_SHADERS_CRT3D 2304
+#define IDM_VIEW_SHADERS_SCALEFX 2305
+#define IDM_VIEW_SHADERS_XBRZMULTI 2306
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
 #define IDI_ICON 101
@@ -550,6 +550,24 @@ namespace R2NES::Core
                         createMenu();
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SHADERS_NONE &&
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SHADERS_XBRZMULTI)
+                    {
+                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
+                        if (id == IDM_VIEW_SHADERS_NONE)
+                            setShader(ShaderType::NONE);
+                        if (id == IDM_VIEW_SHADERS_SCANLINES)
+                            setShader(ShaderType::SCANLINES);
+                        if (id == IDM_VIEW_SHADERS_CRT)
+                            setShader(ShaderType::CRT);
+                        if (id == IDM_VIEW_SHADERS_CRT3D)
+                            setShader(ShaderType::CRT3D);
+                        if (id == IDM_VIEW_SHADERS_SCALEFX)
+                            setShader(ShaderType::SCALEFX);
+                        if (id == IDM_VIEW_SHADERS_XBRZMULTI)
+                            setShader(ShaderType::XBRZMULTI);
+                        createMenu();
+                    }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
                     {
                         toggleMarkMenuItem(IDM_HACKS_UNLIMITED_SPRITES, [this](bool currentlyChecked)
@@ -725,6 +743,11 @@ namespace R2NES::Core
                 }
             }
         }
+    }
+
+    void Window::setShader(ShaderType shader)
+    {
+        this->shader = shader;
     }
 
     void Window::createMenu()
@@ -952,6 +975,16 @@ namespace R2NES::Core
             AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::WAVEBEAM ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_WAVEBEAM, L"WaveBeam");
             AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::NEON ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_NEON, L"Neon");
             AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hPalettesLevelMenu, L"&Palettes Preset");
+
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
+            HMENU hShadersLevelMenu = CreatePopupMenu();
+            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::NONE ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_NONE, L"None");
+            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::SCANLINES ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_SCANLINES, L"Scanlines");
+            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::CRT ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_CRT, L"CRT");
+            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::CRT3D ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_CRT3D, L"CRT 3D");
+            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::SCALEFX ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_SCALEFX, L"ScaleFX");
+            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::XBRZMULTI ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_XBRZMULTI, L"xBRZ Multi");
+            AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hShadersLevelMenu, L"&Shaders");
 
             if (this->soundEnabled)
             {
