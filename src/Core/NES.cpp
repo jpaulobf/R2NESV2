@@ -121,13 +121,16 @@ namespace R2NES::Core
             nmi_delay = 2; // Espera algumas instruções antes de disparar
         }
 
-        if (nmi_delay > 0)
+        if (!bus.dma_transfer)
         {
-            if (cpu.complete())
-                nmi_delay--;
+            if (nmi_delay > 0)
+            {
+                if (cpu.complete())
+                    nmi_delay--;
 
-            if (nmi_delay == 0 && cpu.complete())
-                cpu.nmi();
+                if (nmi_delay == 0 && cpu.complete())
+                    cpu.nmi();
+            }
         }
 
         // APU clock (mesma velocidade da CPU)
