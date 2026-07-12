@@ -98,7 +98,7 @@ namespace R2NES::Core
         {
             if (!(addr & 0x0001))
             {
-                mirrorMode = (data & 0x01) ? MirrorMode::VERTICAL : MirrorMode::HORIZONTAL;
+                mirrorMode = (data & 0x01) ? MirrorMode::HORIZONTAL : MirrorMode::VERTICAL;
             }
             return false;
         }
@@ -145,6 +145,7 @@ namespace R2NES::Core
         {
             if ((systemClockCounter - nLastA12Clock) > 15)
             {
+                bool bDecremented = false;
                 if (nIRQCounter == 0 || bIRQReload)
                 {
                     nIRQCounter = nIRQLatch;
@@ -152,9 +153,10 @@ namespace R2NES::Core
                 else
                 {
                     nIRQCounter--;
+                    bDecremented = true;
                 }
 
-                if (nIRQCounter == 0 && bIRQEnabled)
+                if (bDecremented && nIRQCounter == 0 && bIRQEnabled)
                     bIRQActive = true;
 
                 bIRQReload = false;
