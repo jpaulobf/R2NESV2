@@ -45,7 +45,7 @@ Mapper 000 (NROM)
 | Lunar Pool | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | M.U.S.C.L.E. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Mach Rider | US | 000 | ⭐⭐⭐⭐ | Small Glitches visuais |
-| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | Small Glitches visuais |
+| Magmax | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Ms. Pacman | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
