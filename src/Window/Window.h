@@ -352,7 +352,11 @@ namespace R2NES::Core
             this->createMenu(); // Recria o menu para atualizar o estado do item Unload
         }
 
+        /* Desmarca a Zapper no menu, caso esteja marcada. */
         void uncheckZapperMenu();
+
+        /* Informa o nome da ROM carregada. */
+        void setRomFile(const std::string &path) { romFile = path; }
 
     private:
         /* Abre a caixa de diálogo nativa do Windows para abrir arquivos .nes ou .zip. */
@@ -403,7 +407,8 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.8.4 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.8.5 | FPS: %.2f";
+        std::string romFile = "";
 
         // Valores Default Scanlines
         bool scanlines = false;
