@@ -85,7 +85,7 @@ Mapper 000 (NROM)
 Mapper 001 (MMC1)
 -------
 
-** (não testados - WIP) **
+** (nem todos os jogos foram testados - WIP) **
 
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | --- | --- | --- | --- | --- |
@@ -110,7 +110,7 @@ Mapper 001 (MMC1)
 | Bad News Baseball | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bad Street Brawler | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Barbie | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐ | Não inicializa |
+| Bard's Tale, The: Tales of the Unknown | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Barker Bill's Trick Shooting | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball Simulator 1.000 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Baseball Stars | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -179,7 +179,7 @@ Mapper 001 (MMC1)
 | Faxanadu | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Fester's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Final Fantasy | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Final Fantasy II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Final Fantasy II | Japan | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Flying Warriors | US | 001 | ⭐ | Não abre |
 | Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
@@ -343,7 +343,7 @@ Mapper 002 (UNROM)
 | Adventures of Gilligan's Island, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Alfred Chicken | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Amagon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Archon | US | 002 | ⭐ | Preso após o menu |
+| Archon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Athena | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Best of the Best: Championship Karate | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Black Bass, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
@@ -378,6 +378,7 @@ Mapper 002 (UNROM)
 | Goonies II, The | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Guardian Legend, The | US | 002 | ⭐⭐⭐⭐ | Flickerings no HUD |
 | Gun.Smoke | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
+| Mega Man | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
@@ -394,7 +395,7 @@ Mapper 002 (UNROM)
 | Life Force | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Little Mermaid, Disney's The | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Loopz | US | 002 | ⭐⭐⭐⭐⭐ | - |
-| Mega Man | US | 002 | ⭐⭐⭐⭐⭐ | - |
+
 | Metal Gear | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | NFL | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Paperboy 2 | US | 002 | ⭐⭐⭐⭐⭐ | - |
