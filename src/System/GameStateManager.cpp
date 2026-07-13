@@ -20,9 +20,11 @@ namespace R2NES::System
         window.setPaused(false);
 
         // Gera o disassembly apenas uma vez no carregamento
-        cachedDisassembly = nes.getCpu().disassemble(0x8000, 0xFFFF);
+        if (nes.isCartridgeLoaded())
+            cachedDisassembly = nes.getCpu().disassemble(0x8000, 0xFFFF);
 
         window.clearSelectedPath();
+        window.setRomFile(std::filesystem::path(path).filename().string());
         window.setCartLoaded(true);
     }
 
@@ -33,6 +35,7 @@ namespace R2NES::System
         cachedDisassembly.clear();
         window.clearUnloadRequest();
         window.uncheckZapperMenu();
+        window.setRomFile("");
         window.setCartLoaded(false);
     }
 
