@@ -1541,8 +1541,9 @@ namespace R2NES::Core
 
         if (fps != lastFps || paused != lastPausedState)
         {
-            char titleBuffer[128];
+            char titleBuffer[512];
             std::string displayTitle = title + (paused ? " | PAUSED" : "");
+            displayTitle = title + (cartLoaded ? " | " + romFile : "");
             snprintf(titleBuffer, sizeof(titleBuffer), displayTitle.c_str(), paused ? 0.0f : fps);
             SDL_SetWindowTitle(window, titleBuffer);
             lastFps = fps;
