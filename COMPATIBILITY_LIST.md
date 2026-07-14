@@ -533,6 +533,56 @@ Mapper 003 (CNROM)
 
 
 -------
+Mapper 011 (COLORDREAMS)
+-------
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| Baby Boomer | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Bible Adventures | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Bible Buffet | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Captain Comic: The Adventure | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Castle of Deceit | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Challenge of the Dragon | US | 011 | ⭐ | Não abre |
+| Chiller | US | 142 | ⭐⭐⭐⭐⭐ | SFI |
+| Crystal Mines | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Escape From Atlantis, The | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Exodus: Journey to the Promised Land | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Galactic Crusader | US | 011 | ⭐ | Não abre |
+| Joshua & the Battle of Jericho | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| King Neptune's Adventure | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| King of Kings, The: The Early Years | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Master Chu and the Drunkard Hu | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Menace Beach | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Metal Fighter | US | 011 | ⭐ | Não abre |
+| Mission Cobra | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Moon Ranger | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Operation Secret Storm | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| P'radikus Conflict | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Pesterminator | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Raid 2020 | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Robodemons | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Secret Scout in the Temple of Demise | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Shockwave | US | 079 | ⭐⭐⭐⭐⭐ | SFI |
+| Silent Assault | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Spiritual Warfare | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Sunday Funday: The Ride | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Tagin' Dragon | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
+| Wally Bear and the No! Gang | US | 079 | ⭐⭐⭐⭐⭐ | SFI |
+
+---
+
+### Resumo Estatístico - Mapper 011 (COLORDREAMS)
+- **Total de Jogos Documentados:** 0
+- ⭐⭐⭐⭐⭐ (Perfeito): 28 - 91.0%
+- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 3 - 9.0%
+
+
+
+-------
 Mapper 066 (NES-MH)
 -------
 
