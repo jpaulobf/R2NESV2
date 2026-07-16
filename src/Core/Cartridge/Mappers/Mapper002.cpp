@@ -34,10 +34,8 @@ namespace R2NES::Core
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
             // Escrita em qualquer lugar de $8000-$FFFF altera o banco de $8000-$BFFF
-            nPRGBankSelect = data & 0x0F; // Mapper 2 usa os 4 bits baixos para seleção
+            nPRGBankSelect = data & (nPRGBanks - 1);
         }
-
-        // Retornamos false porque o Mapper 2 não tem PRG-RAM ou escritas na ROM
         return false;
     }
 
