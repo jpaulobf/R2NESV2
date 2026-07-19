@@ -470,6 +470,11 @@ namespace R2NES::Core
                 {
                     loadBackgroundShifters();
                     transferAddressX();
+                    // OAMADDR is set to 0 during each of ticks 257-320 (the sprite tile loading interval)
+                    // of the pre-render and visible scanlines. If we don't do this, OAM DMA during VBLANK
+                    // will start at the wrong offset if the game doesn't explicitly reset OAMADDR,
+                    // causing Sprite 0 to be overwritten with garbage and failing Sprite 0 Hit.
+                    //oamAddr = 0;
                 }
 
                 if (cycle == 337 || cycle == 339)
@@ -500,7 +505,7 @@ namespace R2NES::Core
                 for (int i = 0; i < 64; i++)
                 {
                     uint8_t spriteY = oamMemory[i * 4];
-                    int diffY = scanline - (spriteY + 1);
+                    int diffY = scanline - ((int)spriteY + 1);
 
                     if (diffY >= 0 && diffY < spriteHeight)
                     {
@@ -566,7 +571,7 @@ namespace R2NES::Core
                 {
                     uint8_t i = scanlineSprites[j];
                     uint8_t spriteY = oamMemory[i * 4];
-                    int diffY = scanline - (spriteY + 1);
+                    int diffY = scanline - ((int)spriteY + 1);
                     int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
 
                     if (i == 0)
@@ -643,6 +648,14 @@ namespace R2NES::Core
                         if (spritePixelColor != 0) // Pixel não é transparente
                         {
                             // ========== SPRITE 0 HIT DETECTION ==========
+                            // Sprite 0 hit occurs when a non-transparent background pixel overlaps a non-transparent sprite 0 pixel.
+                            // It does not occur at x=255 (cycle 256) or if background/sprite rendering is disabled.
+                            // If left 8 pixels are clipped, the respective pixel colors will be transparent/not drawn anyway.
+                            // if (i == 0 && bgPixelColor != 0 && cycle != 256)
+                            // {
+                            //     ppuStatus |= 0x40;
+                            // }
+
                             bool bgHasPixel = (bgPixelColor != 0);
                             bool cycleInValidRange = ((cycle - 1) >= 0 && (cycle - 1) <= 254);
                             bool renderingEnabled = (ppuMask & 0x08) && (ppuMask & 0x10);
@@ -655,7 +668,6 @@ namespace R2NES::Core
                                 ppuStatus |= 0x40;
                                 sprite0HitDetectedThisScanline = true;
                             }
-
                             bool priority = (spriteAttrib & 0x20) == 0;
                             if (priority || bgPixelColor == 0)
                             {
