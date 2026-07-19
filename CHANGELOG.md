@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.8.7] - 2026-06-27
+
+### Adicionado
+- Suporte ao Mapper011 - Quase todos os jogos funcionam (90%).
+- Corrigidos ciclos do Mapper2
+- Corrigidas Inconsistências na PPU
+- Implementação inicial (WIP) de suporte a shaders
+
 ## [0.8.4] - 2026-06-27
 
 ### Adicionado
