@@ -385,6 +385,14 @@ namespace R2NES::Core
 
         void setShader(ShaderType shaderType);
 
+        void toggleTiles() {
+            tilesEnabled = !tilesEnabled;
+        }
+
+        void toggleSprites() {
+            spritesEnabled = !spritesEnabled;
+        }
+
     private:
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
@@ -482,5 +490,8 @@ namespace R2NES::Core
 
         //Current Shader
         ShaderType shader = ShaderType::NONE;
+
+        bool tilesEnabled = true;
+        bool spritesEnabled = true;
     };
 }
