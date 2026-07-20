@@ -48,6 +48,9 @@
 #define IDM_VIEW_SCANLINES_LEVEL_15 2115
 #define IDM_VIEW_SCANLINES_LEVEL_20 2120
 #define IDM_VIEW_SCANLINES_LEVEL_25 2125
+#define IDM_VIEW_RENDER 2500
+#define IDM_VIEW_RENDER_TILES 2501
+#define IDM_VIEW_RENDER_SPRITES 2502
 #define IDM_VIEW_PALETTES 2200
 #define IDM_VIEW_PALETTE_DEFAULT 2201
 #define IDM_VIEW_PALETTE_SMOOTH 2202
@@ -532,7 +535,16 @@ namespace R2NES::Core
                             scanlinesTransparency = 25;
                         createMenu(); // Atualiza os checks no menu
                     }
-
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_RENDER &&
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_RENDER_SPRITES)
+                    {
+                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
+                        if (id == IDM_VIEW_RENDER_TILES)
+                            this->toggleTiles();
+                        if (id == IDM_VIEW_RENDER_SPRITES)
+                            this->toggleSprites();
+                        createMenu();
+                    }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_PALETTE_DEFAULT &&
                              LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_PALETTE_NEON)
                     {
@@ -957,6 +969,14 @@ namespace R2NES::Core
             {
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_FULLCROP_OVERSCAN, L"&Full Crop Overscan (8px, 8px, 8px, 8px)");
             }
+
+
+            
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
+            AppendMenuW(hDisplayMenu, MF_STRING| (tilesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_TILES, L"&Render Tiles");
+            AppendMenuW(hDisplayMenu, MF_STRING| (spritesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_SPRITES, L"&Render Sprites");
+
+            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
 
             HMENU hScanlineLevelMenu = CreatePopupMenu();
             AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 5 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_5, L"5%");
