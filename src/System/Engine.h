@@ -76,5 +76,7 @@ namespace R2NES::Core
 
         // Controle dos sprites ilimitados
         bool unlimitedSprites = false;
+        bool tilesEnabled = true;
+        bool spritesEnabled = true;
     };
 }
