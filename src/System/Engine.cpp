@@ -85,6 +85,16 @@ namespace R2NES::Core
         window->setUseZapperCallback([this](bool enabled)
                                       { this->inputManager->configureUseZapper(enabled, *nes); });
 
+        window->setTilesCallback([this](bool enabled) {
+            this->tilesEnabled = enabled;
+            if (nes) nes->setTilesEnabled(enabled);
+        });
+
+        window->setSpritesCallback([this](bool enabled) {
+            this->spritesEnabled = enabled;
+            if (nes) nes->setSpritesEnabled(enabled);
+        });
+
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
                               { this->fastForwardEnabled = enabled; });
@@ -114,6 +124,10 @@ namespace R2NES::Core
 
         // Inicializa o estado da PPU com a configuração da janela
         nes->getPpu().setUnlimitedSprites(this->unlimitedSprites);
+
+        // Sincroniza o estado inicial de renderização
+        nes->setTilesEnabled(this->tilesEnabled);
+        nes->setSpritesEnabled(this->spritesEnabled);
 
         nes->getApu().setAudioSampleRate(static_cast<float>(audioManager->getSampleRate()));
     }
