@@ -44,6 +44,8 @@ namespace R2NES::Core
         using PaletteCallback = std::function<void(PaletteType)>;
         using InvertBAYBCallback = std::function<void(bool)>;
         using UseZapperCallback = std::function<void(bool)>;
+        using TilesCallback = std::function<void(bool)>;
+        using SpritesCallback = std::function<void(bool)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -103,6 +105,12 @@ namespace R2NES::Core
         void setInvertBAYBCallback(InvertBAYBCallback cb) { invertBAYBCallback = cb; }
 
         void setUseZapperCallback(UseZapperCallback cb) { useZapperCallback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar a renderização de tiles. */
+        void setTilesCallback(TilesCallback cb) { tilesCallback = cb; }
+
+        /* Define a função de callback para habilitar ou desabilitar a renderização de sprites. */
+        void setSpritesCallback(SpritesCallback cb) { spritesCallback = cb; }
 
         // ---------------------------------
 
@@ -387,10 +395,14 @@ namespace R2NES::Core
 
         void toggleTiles() {
             tilesEnabled = !tilesEnabled;
+            if (tilesCallback)
+                tilesCallback(tilesEnabled);
         }
 
         void toggleSprites() {
             spritesEnabled = !spritesEnabled;
+            if (spritesCallback)
+                spritesCallback(spritesEnabled);
         }
 
     private:
@@ -441,6 +453,8 @@ namespace R2NES::Core
         PaletteCallback paletteCallback = nullptr;
         InvertBAYBCallback invertBAYBCallback = nullptr;
         UseZapperCallback useZapperCallback = nullptr;
+        TilesCallback tilesCallback = nullptr;
+        SpritesCallback spritesCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
