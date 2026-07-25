@@ -50,6 +50,10 @@ namespace R2NES::Core
 
         bool loadState(const std::string &filename);
 
+        void setTilesEnabled(bool enabled);
+
+        void setSpritesEnabled(bool enabled);
+
     private:
         Bus bus;
         RAM ram;
