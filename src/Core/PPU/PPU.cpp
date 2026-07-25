@@ -534,7 +534,7 @@ namespace R2NES::Core
 
             // Renderiza background se habilitado (PPUMASK bit 3)
             // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 1 (show background in leftmost 8 pixels)
-            bool bgRenderingEnabled = (ppuMask & 0x08) != 0;
+            bool bgRenderingEnabled = (ppuMask & 0x08) != 0 && tilesEnabled;
             if (cycle <= 8 && !(ppuMask & 0x02))
                 bgRenderingEnabled = false;
 
@@ -558,7 +558,7 @@ namespace R2NES::Core
             frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(bgPaletteAddr) & 0x3F];
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
-            bool spriteRenderingEnabled = (ppuMask & 0x10) != 0;
+            bool spriteRenderingEnabled = (ppuMask & 0x10) != 0 && spritesEnabled;
             // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 2 (show sprites in leftmost 8 pixels)
             if (cycle <= 8 && !(ppuMask & 0x04))
                 spriteRenderingEnabled = false;
@@ -809,6 +809,8 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
         os.write(reinterpret_cast<const char *>(oamMemory.data()), oamMemory.size());
         os.write(reinterpret_cast<const char *>(paletteTable.data()), paletteTable.size());
+        os.write(reinterpret_cast<const char *>(&tilesEnabled), sizeof(tilesEnabled));
+        os.write(reinterpret_cast<const char *>(&spritesEnabled), sizeof(spritesEnabled));
     }
 
     void PPU::loadState(std::istream &is)
@@ -841,5 +843,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
         is.read(reinterpret_cast<char *>(oamMemory.data()), oamMemory.size());
         is.read(reinterpret_cast<char *>(paletteTable.data()), paletteTable.size());
+        is.read(reinterpret_cast<char *>(&tilesEnabled), sizeof(tilesEnabled));
+        is.read(reinterpret_cast<char *>(&spritesEnabled), sizeof(spritesEnabled));
     }
 }
