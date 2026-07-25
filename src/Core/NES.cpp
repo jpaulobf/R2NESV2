@@ -223,4 +223,14 @@ namespace R2NES::Core
         is.close();
         return true;
     }
-} // namespace R2NES::Core
+
+    void NES::setTilesEnabled(bool enabled)
+    {
+        ppu.setTilesEnabled(enabled);
+    }
+
+    void NES::setSpritesEnabled(bool enabled)
+    {
+        ppu.setSpritesEnabled(enabled);
+    }
+}
