@@ -43,6 +43,9 @@ namespace R2NES::Core
         void clearFrameComplete() { frameComplete = false; }
         void setUnlimitedSprites(bool enabled) { unlimitedSprites = enabled; }
 
+        void setTilesEnabled(bool enabled) { tilesEnabled = enabled; }
+        void setSpritesEnabled(bool enabled) { spritesEnabled = enabled; }
+
         // Serialização para Save / Load states
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
@@ -114,6 +117,8 @@ namespace R2NES::Core
         bool frameComplete = false;
         bool unlimitedSprites = false;
         uint32_t frameCounter = 0;
+        bool tilesEnabled = true;
+        bool spritesEnabled = true;
         bool usedDebugColors = false;
 
         // Métodos auxiliares para Loopy Registers
