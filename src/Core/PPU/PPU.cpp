@@ -534,11 +534,11 @@ namespace R2NES::Core
 
             // Renderiza background se habilitado (PPUMASK bit 3)
             // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 1 (show background in leftmost 8 pixels)
-            bool bgRenderingEnabled = (ppuMask & 0x08) != 0 && tilesEnabled;
+            bool bgShouldRender = (ppuMask & 0x08) != 0;
             if (cycle <= 8 && !(ppuMask & 0x02))
-                bgRenderingEnabled = false;
+                bgShouldRender = false;
 
-            if (bgRenderingEnabled)
+            if (bgShouldRender)
             {
                 uint16_t bitMux = 0x8000 >> fineX;
 
@@ -555,17 +555,25 @@ namespace R2NES::Core
             uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
             if (bgPixelColor == 0)
                 bgPaletteAddr = 0x3F00;
-            frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(bgPaletteAddr) & 0x3F];
+            
+            // Apenas desenha no framebuffer se a renderização de tiles estiver habilitada
+            if (tilesEnabled) {
+                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(bgPaletteAddr) & 0x3F];
+            } else {
+                // Se a renderização de tiles estiver desabilitada, preenchemos o fundo com a cor universal
+                // para evitar o efeito de "rastro" dos sprites. A cor universal está em $3F00.
+                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(0x3F00) & 0x3F];
+            }
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
-            bool spriteRenderingEnabled = (ppuMask & 0x10) != 0 && spritesEnabled;
+            bool spriteShouldRender = (ppuMask & 0x10) != 0;
             // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 2 (show sprites in leftmost 8 pixels)
             if (cycle <= 8 && !(ppuMask & 0x04))
-                spriteRenderingEnabled = false;
+                spriteShouldRender = false;
 
             bool spritePixelDrawn = false;
 
-            if (spriteRenderingEnabled)
+            if (spriteShouldRender)
             {
                 for (int j = 0; j < scanlineSpriteCount; j++)
                 {
@@ -674,12 +682,15 @@ namespace R2NES::Core
                                 uint8_t spritePalette = (spriteAttrib & 0x03) + 4;
                                 uint16_t palAddr = 0x3F00 + (spritePalette * 4) + spritePixelColor;
 
-                                // Debug: Pintar o Sprite 0 de Lilás (Magenta) para facilitar o rastreio do Sprite 0 Hit
-                                if (i == 0 && usedDebugColors)
-                                    frameBuffer[scanline * 256 + (cycle - 1)] = 0xFFFF00FF;
-                                else
-                                    frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(palAddr) & 0x3F];
-
+                                // Apenas desenha no framebuffer se a renderização de sprites estiver habilitada
+                                if (spritesEnabled)
+                                {
+                                    // Debug: Pintar o Sprite 0 de Lilás (Magenta) para facilitar o rastreio do Sprite 0 Hit
+                                    if (i == 0 && usedDebugColors)
+                                        frameBuffer[scanline * 256 + (cycle - 1)] = 0xFFFF00FF;
+                                    else
+                                        frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(palAddr) & 0x3F];
+                                }
                                 spritePixelDrawn = true;
                             }
 
