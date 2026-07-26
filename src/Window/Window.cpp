@@ -72,6 +72,7 @@
 #define IDM_VIEW_SHADERS_XBRZMULTI 2306
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
+#define IDM_HACKS_CPU_OVERCLOCK 3002
 #define IDI_ICON 101
 #define IDM_INPUT_INVERT_BAYB 4000
 #define IDM_INPUT_USE_ZAPPER 4001
@@ -600,6 +601,16 @@ namespace R2NES::Core
                                 this->fastForwardOn(); });
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_CPU_OVERCLOCK)
+                    {
+                        toggleMarkMenuItem(IDM_HACKS_CPU_OVERCLOCK, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->overclockCPUOff();
+                            else
+                                this->overclockCPUOn(); });
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_SOUND)
                     {
                         toggleMarkMenuItem(IDM_SOUND_SOUND, [this](bool currentlyChecked)
@@ -1098,6 +1109,16 @@ namespace R2NES::Core
                 AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_FAST_FORWARD, L"&Enable Fast Forward");
             }
 
+            if (this->cpuOverclockEnabled)
+            {
+                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_CPU_OVERCLOCK, L"&Enable CPU Overclock");
+            }
+            else
+            {
+                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_CPU_OVERCLOCK, L"&Enable CPU Overclock");
+            }
+
+
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
@@ -1553,21 +1574,42 @@ namespace R2NES::Core
         std::cout << "Window: Scanlines " << (scanlines ? "Enabled" : "Disabled") << std::endl;
     }
 
+    void Window::setCPUOverclock(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (cpuOverclockEnabled == enabled)
+            return;
+
+        cpuOverclockEnabled = enabled;
+
+        // Notificar a Engine sobre a mudança
+        if (cpuOverclockCallback)
+            cpuOverclockCallback(cpuOverclockEnabled);
+
+        std::cout << "Hacks: CPU Overclock " << (cpuOverclockEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
     void Window::render(const uint32_t *pixels, float fps)
     {
         // Atualiza o título da janela com o FPS
         static float lastFps = -1.0f;
         static bool lastPausedState = false;
+        static bool lastOverclockState = false;
 
-        if (fps != lastFps || paused != lastPausedState)
+        if (fps != lastFps || paused != lastPausedState || cpuOverclockEnabled != lastOverclockState)
         {
             char titleBuffer[512];
             std::string displayTitle = title + (paused ? " | PAUSED" : "");
             displayTitle = title + (cartLoaded ? " | " + romFile : "");
+            if (cpuOverclockEnabled)
+            {
+                displayTitle += " | CPU OVERCLOCK ENABLED! GAMES CAN CRASH!";
+            }
             snprintf(titleBuffer, sizeof(titleBuffer), displayTitle.c_str(), paused ? 0.0f : fps);
             SDL_SetWindowTitle(window, titleBuffer);
             lastFps = fps;
             lastPausedState = paused;
+            lastOverclockState = cpuOverclockEnabled;
         }
 
         const uint32_t *finalPixels = pixels;
