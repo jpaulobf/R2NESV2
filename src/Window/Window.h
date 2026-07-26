@@ -46,6 +46,7 @@ namespace R2NES::Core
         using UseZapperCallback = std::function<void(bool)>;
         using TilesCallback = std::function<void(bool)>;
         using SpritesCallback = std::function<void(bool)>;
+        using CPUOverclockCallback = std::function<void(bool)>;
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -111,6 +112,9 @@ namespace R2NES::Core
 
         /* Define a função de callback para habilitar ou desabilitar a renderização de sprites. */
         void setSpritesCallback(SpritesCallback cb) { spritesCallback = cb; }
+
+        /* Define a função de callback para o estado de CPU Overclock. */
+        void setCPUOverclockCallback(CPUOverclockCallback cb) { cpuOverclockCallback = cb; }
 
         // ---------------------------------
 
@@ -241,6 +245,18 @@ namespace R2NES::Core
 
         /* Ativa o Fast Forward. */
         void fastForwardOn() { setFastForward(true); }
+
+        /* Verifica se o hack de CPU Overclock está habilitado. */
+        bool isCPUOverclockEnabled() const { return cpuOverclockEnabled; }
+
+        /* Define o estado do CPU Overclock e notifica a engine. */
+        void overclockCPUOn() { setCPUOverclock(true); }
+
+        /* Desativa o CPU Overclock. */
+        void overclockCPUOff() { setCPUOverclock(false); }
+
+        /* Define o estado do CPU Overclock e notifica a engine. */
+        void setCPUOverclock(bool enabled);
 
         /* Funções para configurar os componentes de som. */
         void setSound(bool enabled);
@@ -393,16 +409,25 @@ namespace R2NES::Core
 
         void setShader(ShaderType shaderType);
 
-        void toggleTiles() {
+        void toggleTiles()
+        {
             tilesEnabled = !tilesEnabled;
             if (tilesCallback)
                 tilesCallback(tilesEnabled);
         }
 
-        void toggleSprites() {
+        void toggleSprites()
+        {
             spritesEnabled = !spritesEnabled;
             if (spritesCallback)
                 spritesCallback(spritesEnabled);
+        }
+
+        void toggleCPUOverclock()
+        {
+            cpuOverclockEnabled = !cpuOverclockEnabled;
+            if (cpuOverclockCallback)
+                cpuOverclockCallback(cpuOverclockEnabled);
         }
 
     private:
@@ -455,6 +480,7 @@ namespace R2NES::Core
         UseZapperCallback useZapperCallback = nullptr;
         TilesCallback tilesCallback = nullptr;
         SpritesCallback spritesCallback = nullptr;
+        CPUOverclockCallback cpuOverclockCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};
@@ -502,10 +528,13 @@ namespace R2NES::Core
         // Configuração para inversão dos botões A e B
         bool invertBAYB = false;
 
-        //Current Shader
+        // Current Shader
         ShaderType shader = ShaderType::NONE;
 
         bool tilesEnabled = true;
         bool spritesEnabled = true;
+
+        // Flag para habilitar ou desabilitar o hack de CPU Overclock
+        bool cpuOverclockEnabled = false;
     };
 }
