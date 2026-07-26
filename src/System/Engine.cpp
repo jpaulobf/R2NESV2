@@ -99,6 +99,12 @@ namespace R2NES::Core
         window->setFFCallback([this](bool enabled)
                               { this->fastForwardEnabled = enabled; });
 
+        window->setCPUOverclockCallback([this](bool enabled)
+                                        { 
+                                            this->cpuOverclockEnabled = enabled; 
+                                            if (nes) nes->setCPUOverclock(enabled);
+                                        });
+
         // Conecta o callback de Pause
         window->setPauseCallback([this](bool p)
                                  { this->paused = p; });
@@ -108,6 +114,10 @@ namespace R2NES::Core
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
         this->fastForwardEnabled = window->isFastForwardEnabled();
         this->soundEnabled = window->isSoundEnabled();
+        this->cpuOverclockEnabled = window->isCPUOverclockEnabled();
+
+        // Sincroniza o estado inicial do Overclock
+        nes->setCPUOverclock(this->cpuOverclockEnabled);
 
         // Sincroniza o estado inicial da APU
         if (this->soundEnabled)
