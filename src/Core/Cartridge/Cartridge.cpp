@@ -4,9 +4,11 @@
 #include "Core/Cartridge/Mappers/Mapper002.h"
 #include "Core/Cartridge/Mappers/Mapper003.h"
 #include "Core/Cartridge/Mappers/Mapper004.h"
+#include "Core/Cartridge/Mappers/Mapper005.h"
 #include "Core/Cartridge/Mappers/Mapper007.h"
 #include "Core/Cartridge/Mappers/Mapper009.h"
 #include "Core/Cartridge/Mappers/Mapper011.h"
+#include "Core/Cartridge/Mappers/Mapper023.h"
 #include "Core/Cartridge/Mappers/Mapper040.h"
 #include "Core/Cartridge/Mappers/Mapper066.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
@@ -251,6 +253,9 @@ namespace R2NES::Core
         case 4:
             pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror);
             break;
+		case 5:
+            pMapper = std::make_shared<Mapper005>(prgBanks, chrBanks);
+            break;
         case 7:
             pMapper = std::make_shared<Mapper007>(prgBanks, chrBanks, mirror);
             break;
@@ -259,6 +264,9 @@ namespace R2NES::Core
             break;
         case 11:
             pMapper = std::make_shared<Mapper011>(prgBanks, chrBanks, mirror);
+            break;
+		case 23:
+            pMapper = std::make_shared<Mapper023>(prgBanks, chrBanks, mirror);
             break;
         case 40:
             pMapper = std::make_shared<Mapper040>(prgBanks, chrBanks);
