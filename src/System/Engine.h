@@ -78,5 +78,8 @@ namespace R2NES::Core
         bool unlimitedSprites = false;
         bool tilesEnabled = true;
         bool spritesEnabled = true;
+
+        // Controle do Overclock
+        bool cpuOverclockEnabled = false;
     };
 }
