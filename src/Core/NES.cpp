@@ -98,6 +98,12 @@ namespace R2NES::Core
         {
             // Se não há DMA, a CPU roda normalmente!
             cpu.clock();
+
+            // Se o overclock estiver ativo, damos um ciclo extra para a CPU.
+            // Isso dobra a velocidade da CPU em relação à PPU e APU.
+            if (cpuOverclock) {
+                cpu.clock();
+            }
         }
 
         // 2. O resto do hardware avança o tempo independentemente do DMA
