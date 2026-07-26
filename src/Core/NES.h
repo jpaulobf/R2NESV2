@@ -54,6 +54,8 @@ namespace R2NES::Core
 
         void setSpritesEnabled(bool enabled);
 
+        void setCPUOverclock(bool enabled) { cpuOverclock = enabled; }
+
     private:
         Bus bus;
         RAM ram;
@@ -64,5 +66,6 @@ namespace R2NES::Core
 
         bool cartridgeLoaded = false;
         uint8_t nmi_delay = 0;
+        bool cpuOverclock = false;
     };
 }
