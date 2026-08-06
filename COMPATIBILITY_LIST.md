@@ -533,6 +533,17 @@ Mapper 003 (CNROM)
 
 
 -------
+Mapper 009 (NES-PT)
+-------
+
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| Mike Tyson's Punch-Out!! | US | 009 | ⭐⭐⭐⭐⭐ | SFI |
+| Punch-Out!! | US | 009 | ⭐⭐⭐⭐⭐ | SFI |
+
+
+-------
 Mapper 011 (COLORDREAMS)
 -------
 
