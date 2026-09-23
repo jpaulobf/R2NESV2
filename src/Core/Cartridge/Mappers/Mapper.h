@@ -20,6 +20,9 @@ namespace R2NES::Core
         virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) = 0;
         virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
+        // Indica que a próxima leitura da PPU busca o padrão de um sprite.
+        virtual void setPpuReadIsSprite(bool isSprite) {}
+
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         virtual bool getIrqFlag() const { return false; }
 
