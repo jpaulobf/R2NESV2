@@ -8,15 +8,9 @@ namespace R2NES::Core
 
     bool Mapper090::cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
     {
-        if (addr >= 0x8000 && addr <= 0xFFFF)
-        {
-            // Mapeamento fixo em 8KB por banco
-            int bankIndex = (addr - 0x8000) / 0x2000;
-            mapped_addr = prgBanks[bankIndex] * 0x2000 + (addr % 0x2000);
-            return true;
-        }
-
         // Multiplicador de Hardware (Registradores $D000-$D003)
+        // Esses enderecos compartilham a janela $8000-$FFFF com a PRG-ROM.
+        // Portanto, precisam ser tratados antes do mapeamento generico de PRG.
         if (addr >= 0xD000 && addr <= 0xD003)
         {
             uint32_t result = (uint32_t)multA * (uint32_t)multB;
@@ -35,6 +29,15 @@ namespace R2NES::Core
                 data = (uint8_t)((result >> 24) & 0xFF);
                 break;
             }
+            mapped_addr = 0xFFFFFFFF;
+            return true;
+        }
+
+        if (addr >= 0x8000 && addr <= 0xFFFF)
+        {
+            // Mapeamento fixo em 8KB por banco
+            int bankIndex = (addr - 0x8000) / 0x2000;
+            mapped_addr = prgBanks[bankIndex] * 0x2000 + (addr % 0x2000);
             return true;
         }
 
