@@ -353,6 +353,17 @@ namespace R2NES::Core
         return false;
     }
 
+    bool Cartridge::ppuReadSprite(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const
+    {
+        if (!pMapper)
+            return false;
+
+        pMapper->setPpuReadIsSprite(true);
+        bool handled = ppuRead(addr, data, systemClockCounter);
+        pMapper->setPpuReadIsSprite(false);
+        return handled;
+    }
+
     bool Cartridge::ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter)
     {
         uint32_t mapped_addr = 0;
