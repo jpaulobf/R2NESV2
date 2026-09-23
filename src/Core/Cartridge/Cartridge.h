@@ -23,6 +23,7 @@ namespace R2NES::Core
 
         // Leitura/Escrita do lado da PPU (Gráficos)
         bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
+        bool ppuReadSprite(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
 
         // Retorna se o cartucho foi carregado com sucesso
