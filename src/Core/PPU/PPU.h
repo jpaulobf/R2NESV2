@@ -25,6 +25,7 @@ namespace R2NES::Core
 
         // Comunicação com o barramento interno da PPU ($0000 - $3FFF)
         uint8_t ppuRead(uint16_t addr) const;
+        uint8_t ppuReadSprite(uint16_t addr) const;
         void ppuWrite(uint16_t addr, uint8_t data);
 
         void clock();
