@@ -144,19 +144,17 @@ namespace R2NES::Core
 
         // Propagação do sinal de IRQ (Interrupt Request)
         // O IRQ pode ser disparado pela APU ou pelo Cartucho (Mappers)
-        bool irqActive = apu.getIrqFlag();
-        if (bus.cart)
-            irqActive |= bus.cart->getIrqFlag();
+        bool mapperIrqActive = bus.cart && bus.cart->getIrqFlag();
+        bool irqActive = apu.getIrqFlag() || mapperIrqActive;
 
         // A interrupção só é processada quando a CPU termina a instrução atual
-        if (irqActive && cpu.complete())
+        if (irqActive && cpu.complete() && cpu.GetFlag(CPU::I) == 0)
         {
             cpu.irq();
 
-            // Limpa o flag do mapper após consumi-lo (acknowledge edge-triggered).
-            // Sem isso, bIRQActive permanece true e cpu.irq() seria chamado
-            // repetidamente a cada step até o jogo escrever em $E000
-            if (bus.cart)
+            // A IRQ do mapper só pode ser reconhecida após a CPU aceitá-la.
+            // Com I=1, CPU::irq() não faz nada e a linha precisa permanecer ativa.
+            if (mapperIrqActive && bus.cart)
                 bus.cart->clearIrqFlag();
         }
     }
