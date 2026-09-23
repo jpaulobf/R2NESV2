@@ -145,6 +145,13 @@ namespace R2NES::Core
         return false;
     }
 
+    bool Bus::ppuReadSprite(uint16_t addr, uint8_t &data) const
+    {
+        if (cart)
+            return cart->ppuReadSprite(addr, data, systemClockCounter);
+        return false;
+    }
+
     bool Bus::ppuWrite(uint16_t addr, uint8_t data)
     {
         if (cart)
