@@ -264,6 +264,17 @@ namespace R2NES::Core
         return 0x00;
     }
 
+    uint8_t PPU::ppuReadSprite(uint16_t addr) const
+    {
+        uint8_t data = 0x00;
+        addr &= 0x3FFF;
+
+        if (bus && bus->ppuReadSprite(addr, data))
+            return data;
+
+        return ppuRead(addr);
+    }
+
     void PPU::ppuWrite(uint16_t addr, uint8_t data)
     {
         addr &= 0x3FFF;
@@ -649,8 +660,8 @@ namespace R2NES::Core
                         // Com flip: bit 0 (esquerda) a bit 7 (direita) = diffX
                         uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
 
-                        uint8_t spLsb = ppuRead(spPtBase + pattern * 16 + row);
-                        uint8_t spMsb = ppuRead(spPtBase + pattern * 16 + row + 8);
+                        uint8_t spLsb = ppuReadSprite(spPtBase + pattern * 16 + row);
+                        uint8_t spMsb = ppuReadSprite(spPtBase + pattern * 16 + row + 8);
                         uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
 
                         if (spritePixelColor != 0) // Pixel não é transparente
