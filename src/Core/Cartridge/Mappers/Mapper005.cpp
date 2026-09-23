@@ -48,6 +48,12 @@ namespace R2NES::Core
 		lastNtAddr = 0;
 		lastExRamByte = 0;
 		chrReadsLeft = 0;
+		ppuReadIsSprite = false;
+	}
+
+	void Mapper005::setPpuReadIsSprite(bool isSprite)
+	{
+		ppuReadIsSprite = isSprite;
 	}
 
 	bool Mapper005::getIrqFlag() const
@@ -419,9 +425,16 @@ namespace R2NES::Core
 	{
 		if (addr >= 0x0000 && addr <= 0x1FFF)
 		{
-			bool isSprite = (chrReadsLeft == 0);
-			if (chrReadsLeft > 0)
+			bool isSprite = ppuReadIsSprite;
+			if (!isSprite && chrReadsLeft > 0)
+			{
+				isSprite = false;
 				chrReadsLeft--;
+			}
+			else if (!isSprite)
+			{
+				isSprite = true;
+			}
 
 			uint32_t totalChr1k = (nCHRBanks == 0) ? 8 : (nCHRBanks * 8);
 
