@@ -395,29 +395,16 @@ namespace R2NES::Core
 		return bank | (static_cast<uint32_t>(chrHigh & 0x03) << 8);
 	}
 
-	void Mapper005::updateScanlineIRQ(uint16_t addr)
+	void Mapper005::onPpuScanlineStart()
 	{
 		idleCycles = 0;
-		if (addr == lastPpuAddr)
+		scanlineCounter++;
+		inFrame = true;
+		if (scanlineCounter == irqTargetLine)
 		{
-			sameAddrReadCount++;
-		}
-		else
-		{
-			sameAddrReadCount = 1;
-			lastPpuAddr = addr;
-		}
-
-		if (sameAddrReadCount == 3)
-		{
-			scanlineCounter++;
-			inFrame = true;
-			if (scanlineCounter == irqTargetLine)
-			{
-				irqPending = true;
-				if (irqEnable)
-					irqActive = true;
-			}
+			irqPending = true;
+			if (irqEnable)
+				irqActive = true;
 		}
 	}
 
@@ -454,7 +441,6 @@ namespace R2NES::Core
 		if (addr >= 0x2000 && addr <= 0x3EFF)
 		{
 			uint16_t normAddr = 0x2000 + (addr & 0x0FFF);
-			updateScanlineIRQ(normAddr);
 
 			uint8_t ntIndex = (normAddr >> 10) & 3;
 			uint8_t ntSource = (nametableTileMode >> (ntIndex * 2)) & 0x03;
