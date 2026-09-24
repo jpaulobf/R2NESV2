@@ -16,6 +16,7 @@ namespace R2NES::Core
 		bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
 		bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
 		bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+		void onPpuScanlineStart() override;
 		void setPpuReadIsSprite(bool isSprite) override;
 
 		bool getIrqFlag() const override;
@@ -76,6 +77,5 @@ namespace R2NES::Core
 		bool ppuReadIsSprite = false;
 
 		uint32_t getChrBankIndex(uint8_t page, bool isSprite) const;
-		void updateScanlineIRQ(uint16_t addr);
 	};
 }
