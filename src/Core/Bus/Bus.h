@@ -54,6 +54,7 @@ namespace R2NES::Core
         bool ppuRead(uint16_t addr, uint8_t &data) const;
         bool ppuReadSprite(uint16_t addr, uint8_t &data) const;
         bool ppuWrite(uint16_t addr, uint8_t data);
+        void ppuScanlineStart();
         MirrorMode getMirrorMode() const;
 
         // Conecta o cartucho inserido
