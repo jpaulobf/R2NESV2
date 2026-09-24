@@ -25,6 +25,7 @@ namespace R2NES::Core
         bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuReadSprite(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
+        void ppuScanlineStart();
 
         // Retorna se o cartucho foi carregado com sucesso
         bool isValid() const { return imageValid; }
