@@ -513,6 +513,9 @@ namespace R2NES::Core
 
             if (renderingEnabled && scanline >= 0 && scanline < 240)
             {
+                if (bus)
+                    bus->ppuScanlineStart();
+
                 for (int i = 0; i < 64; i++)
                 {
                     uint8_t spriteY = oamMemory[i * 4];
