@@ -152,6 +152,12 @@ namespace R2NES::Core
         return false;
     }
 
+    void Bus::ppuScanlineStart()
+    {
+        if (cart)
+            cart->ppuScanlineStart();
+    }
+
     bool Bus::ppuWrite(uint16_t addr, uint8_t data)
     {
         if (cart)
