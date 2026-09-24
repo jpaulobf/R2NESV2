@@ -23,6 +23,9 @@ namespace R2NES::Core
         // Indica que a próxima leitura da PPU busca o padrão de um sprite.
         virtual void setPpuReadIsSprite(bool isSprite) {}
 
+        // Notifica o início de uma scanline visível da PPU.
+        virtual void onPpuScanlineStart() {}
+
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         virtual bool getIrqFlag() const { return false; }
 
