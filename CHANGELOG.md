@@ -2,6 +2,12 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.9.5] - 2026-09-26
+
+### Adicionado
+- Suporte ao Mapper005 - Castlevania 3 funciona bem.
+- Suporte à Rewind (CAPSLOCK por enquanto)
+
 ## [0.8.7] - 2026-06-27
 
 ### Adicionado
