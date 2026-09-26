@@ -99,6 +99,10 @@ namespace R2NES::Core
         window->setFFCallback([this](bool enabled)
                               { this->fastForwardEnabled = enabled; });
 
+        // Conecta o callback de Rewind
+        window->setRewindCallback([this](bool enabled)
+                                 { this->rewindEnabled = enabled; });
+
         window->setCPUOverclockCallback([this](bool enabled)
                                         { 
                                             this->cpuOverclockEnabled = enabled; 
@@ -321,6 +325,9 @@ namespace R2NES::Core
         case SDLK_TAB:
             this->setFastForward(this->fastForwardEnabled && isPressed);
             break;
+        case SDLK_CAPSLOCK:
+            this->setRewind(this->rewindEnabled && isPressed);
+            break;
         case SDLK_p:
         case SDLK_PAUSE:
             if (isPressed && nes->isCartridgeLoaded())
@@ -334,10 +341,12 @@ namespace R2NES::Core
     void Engine::setFastForward(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
-        if (runningFastForward == enabled)
+        if (runningFastForward == enabled || !nes->isCartridgeLoaded())
             return;
 
         runningFastForward = enabled;
+
+        std::cout << "Fast Foward";
 
         if (runningFastForward)
         {
@@ -351,6 +360,19 @@ namespace R2NES::Core
             uncappedSpeed = oldUncappedSpeed;
             vsyncEnabled = oldVsyncEnabled;
         }
+    }
+
+    void Engine::setRewind(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (runningRewind == enabled || !nes->isCartridgeLoaded())
+            return;
+
+        runningRewind = enabled;
+
+        std::cout << "Rewinding...";
+
+        //TODO: Implement the rewind functionality...
     }
 
     void Engine::update()
