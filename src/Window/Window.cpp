@@ -73,6 +73,7 @@
 #define IDM_HACKS_UNLIMITED_SPRITES 3000
 #define IDM_HACKS_FAST_FORWARD 3001
 #define IDM_HACKS_CPU_OVERCLOCK 3002
+#define IDM_HACKS_REWIND 3003
 #define IDI_ICON 101
 #define IDM_INPUT_INVERT_BAYB 4000
 #define IDM_INPUT_USE_ZAPPER 4001
@@ -601,6 +602,16 @@ namespace R2NES::Core
                                 this->fastForwardOn(); });
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_REWIND)
+                    {
+                        toggleMarkMenuItem(IDM_HACKS_REWIND, [this](bool currentlyChecked)
+                                           {
+                            if (currentlyChecked)
+                                this->rewindOff();
+                            else
+                                this->rewindOn(); });
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_CPU_OVERCLOCK)
                     {
                         toggleMarkMenuItem(IDM_HACKS_CPU_OVERCLOCK, [this](bool currentlyChecked)
@@ -1118,6 +1129,15 @@ namespace R2NES::Core
                 AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_CPU_OVERCLOCK, L"&Enable CPU Overclock");
             }
 
+            if (this->rewindEnabled)
+            {
+                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_REWIND, L"&Enable Rewind");
+            }
+            else
+            {
+                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_REWIND, L"&Enable Rewind");
+            }
+
 
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
@@ -1335,6 +1355,22 @@ namespace R2NES::Core
             ffCallback(fastForwardEnabled);
 
         std::cout << "Window: Fast Forward " << (fastForwardEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+
+    void Window::setRewind(bool enabled)
+    {
+        // Se não houve mudança, não fazemos nada
+        if (rewindEnabled == enabled)
+            return;
+
+        rewindEnabled = enabled;
+
+        // Notificar a Engine sobre a mudança
+        if (rewindCallback)
+            rewindCallback(rewindEnabled);
+
+        std::cout << "Window: Rewind " << (rewindEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     void Window::setSound(bool enabled)
