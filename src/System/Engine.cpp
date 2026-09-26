@@ -346,8 +346,6 @@ namespace R2NES::Core
 
         runningFastForward = enabled;
 
-        std::cout << "Fast Foward";
-
         if (runningFastForward)
         {
             oldUncappedSpeed = uncappedSpeed;
@@ -369,8 +367,6 @@ namespace R2NES::Core
             return;
 
         runningRewind = enabled;
-
-        std::cout << "Rewinding...";
 
         //TODO: Implement the rewind functionality...
     }
