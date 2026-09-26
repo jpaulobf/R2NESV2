@@ -40,6 +40,8 @@ namespace R2NES::Core
 
         void setFastForward(bool enabled);
 
+        void setRewind(bool enabled);
+
         // Ponteiros
         std::unique_ptr<Window> window;
         std::unique_ptr<NES> nes;
@@ -68,7 +70,9 @@ namespace R2NES::Core
         bool uncappedSpeed = false;
         bool vsyncEnabled = false;
         bool fastForwardEnabled = false;
+        bool rewindEnabled = false;
         bool runningFastForward = false;
+        bool runningRewind = false;
         bool soundEnabled = true;
         bool paused = false;
         bool oldUncappedSpeed = uncappedSpeed;
