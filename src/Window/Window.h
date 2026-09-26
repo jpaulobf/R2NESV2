@@ -35,6 +35,7 @@ namespace R2NES::Core
         using NoiseCallback = std::function<void(bool)>;
         using DMCCallback = std::function<void(bool)>;
         using FFCallback = std::function<void(bool)>;
+        using RewindCallback = std::function<void(bool)>;
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         using PauseCallback = std::function<void(bool)>;
         using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
@@ -80,6 +81,9 @@ namespace R2NES::Core
 
         /* Define a função de callback para o estado de Fast Forward. */
         void setFFCallback(FFCallback cb) { ffCallback = cb; }
+
+        /* Define a função de callback para o estado de Rewind. */
+        void setRewindCallback(RewindCallback cb) { rewindCallback = cb; }
 
         /* Define a função de callback para o recurso de Unlimited Sprites. */
         void setUnlimitedSpritesCallback(UnlimitedSpritesCallback cb) { unlimitedSpritesCallback = cb; }
@@ -237,14 +241,26 @@ namespace R2NES::Core
         /* Verifica se o Fast Forward está habilitado nas configurações. */
         bool isFastForwardEnabled() const { return fastForwardEnabled; }
 
+        /* Verifica se o Rewind está habilitado nas configurações. */
+        bool isRewindEnabled() const { return rewindEnabled; }
+
         /* Define o estado do Fast Forward e notifica a engine. */
         void setFastForward(bool enabled);
+
+        /* Define o estado do Rewind e notifica a engine. */
+        void setRewind(bool enabled);
 
         /* Desativa o Fast Forward. */
         void fastForwardOff() { setFastForward(false); }
 
+        /* Desativa o Rewind. */
+        void rewindOff() { setRewind(false); }
+
         /* Ativa o Fast Forward. */
         void fastForwardOn() { setFastForward(true); }
+
+        /* Ativa o Rewind. */
+        void rewindOn() { setRewind(true); }
 
         /* Verifica se o hack de CPU Overclock está habilitado. */
         bool isCPUOverclockEnabled() const { return cpuOverclockEnabled; }
@@ -452,7 +468,7 @@ namespace R2NES::Core
         bool unloadRequested = false;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 0.9.4 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 0.9.5 | FPS: %.2f";
         std::string romFile = "";
 
         // Valores Default Scanlines
@@ -466,6 +482,7 @@ namespace R2NES::Core
         UnlimitedSpritesCallback unlimitedSpritesCallback = nullptr;
         PauseCallback pauseCallback = nullptr;
         FFCallback ffCallback = nullptr;
+        RewindCallback rewindCallback = nullptr;
         SoundCallback soundCallback = nullptr;
         Pulse1Callback pulse1Callback = nullptr;
         Pulse2Callback pulse2Callback = nullptr;
@@ -499,6 +516,7 @@ namespace R2NES::Core
         bool soundEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
+        bool rewindEnabled = false;
         bool paused = false;
         bool tileViewerOpen = false;
         bool paletteViewerOpen = false;
