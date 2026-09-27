@@ -80,6 +80,7 @@
 
 namespace R2NES::Core
 {
+    // Inicializa SDL, renderer, textura de vídeo e contexto ImGui da janela principal.
     Window::Window(const std::string &title, int w, int h, int s)
         : width(w), height(h), scale(s)
     {
@@ -143,6 +144,7 @@ namespace R2NES::Core
             this->vsyncCallback(vsyncEnabled);
     }
 
+    // Fecha controles e libera recursos de ImGui, SDL e suas superfícies gráficas.
     Window::~Window()
     {
         for (int i = 0; i < 2; ++i)
@@ -168,6 +170,7 @@ namespace R2NES::Core
         SDL_Quit();
     }
 
+    // Atualiza a marcação de um item no menu nativo do Windows.
     void Window::windowCheckUncheckMenuItem(int menuItemId, bool isChecked)
     {
 #ifdef _WIN32
@@ -182,6 +185,7 @@ namespace R2NES::Core
 #endif
     }
 
+    // Inverte a marcação de um item e informa seu estado anterior ao callback.
     void Window::toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback)
     {
 #ifdef _WIN32
@@ -197,6 +201,7 @@ namespace R2NES::Core
 #endif
     }
 
+    // Distribui eventos SDL entre ImGui, controles, mouse, teclado, menus e janelas auxiliares.
     void Window::pollEvents()
     {
         SDL_Event e;
@@ -289,6 +294,7 @@ namespace R2NES::Core
 
                 if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
                 {
+                    // Remove as barras laterais/superiores antes de mapear o mouse para 256x240.
                     double target_aspect = 8.0 / 7.0;
                     int renderW, renderH, offsetX, offsetY;
                     if ((double)winW / winH > target_aspect)
@@ -309,6 +315,7 @@ namespace R2NES::Core
                 }
                 else
                 {
+                    // Em janela ou fullscreen esticado, a escala usa toda a área exibida.
                     mouseState.x = (int)((float)mouseX * 256.0f / (float)winW);
                     mouseState.y = (int)((float)mouseY * 240.0f / (float)winH);
                 }
@@ -701,7 +708,6 @@ namespace R2NES::Core
                             else
                                 this->useZapperOn(); });
                     }
-
                 }
 #endif
             }
@@ -779,11 +785,13 @@ namespace R2NES::Core
         }
     }
 
+    // Armazena o efeito de pós-processamento escolhido pelo menu.
     void Window::setShader(ShaderType shader)
     {
         this->shader = shader;
     }
 
+    // Reconstrói o menu nativo conforme o estado atual da ROM, visualizadores e opções.
     void Window::createMenu()
     {
 #ifdef _WIN32
@@ -992,11 +1000,9 @@ namespace R2NES::Core
                 AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_FULLCROP_OVERSCAN, L"&Full Crop Overscan (8px, 8px, 8px, 8px)");
             }
 
-
-            
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenuW(hDisplayMenu, MF_STRING| (tilesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_TILES, L"&Render Tiles");
-            AppendMenuW(hDisplayMenu, MF_STRING| (spritesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_SPRITES, L"&Render Sprites");
+            AppendMenuW(hDisplayMenu, MF_STRING | (tilesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_TILES, L"&Render Tiles");
+            AppendMenuW(hDisplayMenu, MF_STRING | (spritesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_SPRITES, L"&Render Sprites");
 
             AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
 
@@ -1138,7 +1144,6 @@ namespace R2NES::Core
                 AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_REWIND, L"&Enable Rewind");
             }
 
-
             // Adiciona o menu File à barra principal
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
             AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
@@ -1152,6 +1157,7 @@ namespace R2NES::Core
 #endif
     }
 
+    // Abre o seletor nativo de ROMs e atualiza a lista de arquivos recentes.
     void Window::openFileDialog()
     {
 #ifdef _WIN32
@@ -1199,6 +1205,7 @@ namespace R2NES::Core
 #endif
     }
 
+    // Abre o desassemblador ao lado da janela principal.
     void Window::openDisassembler()
     {
         this->disassemblerOpen = true;
@@ -1209,12 +1216,14 @@ namespace R2NES::Core
         disassembler.open(x, y, w);
     }
 
+    // Repassa o estado atual da CPU ao visualizador de desassembly.
     void Window::updateDisassembler(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                                     bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
     {
         disassembler.render(pc, disassembly, stepByStep, stepRequested, a, x, y, stkp, status);
     }
 
+    // Abre o visualizador das pattern tables junto à janela principal.
     void Window::openTileViewer()
     {
         this->tileViewerOpen = true;
@@ -1225,6 +1234,7 @@ namespace R2NES::Core
         tileViewer.open(x, y, w);
     }
 
+    // Abre o visualizador de paleta junto à janela principal.
     void Window::openPaletteViewer()
     {
         this->paletteViewerOpen = true;
@@ -1234,16 +1244,19 @@ namespace R2NES::Core
         paletteViewer.open(x, y, w);
     }
 
+    // Repassa as duas pattern tables ao Tile Viewer.
     void Window::updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1)
     {
         tileViewer.render(pixels0, pixels1);
     }
 
+    // Repassa a paleta da PPU e a paleta de cores selecionada ao visualizador.
     void Window::updatePaletteViewer(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette)
     {
         paletteViewer.render(paletteTable, systemPalette);
     }
 
+    // Abre o visualizador de RAM junto à janela principal.
     void Window::openRamViewer()
     {
         this->ramViewerOpen = true;
@@ -1254,6 +1267,7 @@ namespace R2NES::Core
         ramViewer.open(x, y, w);
     }
 
+    // Atualiza o RAM Viewer somente enquanto sua janela existir.
     void Window::updateRamViewer(RAM *ram)
     {
         if (ramViewer.isOpen())
@@ -1262,6 +1276,7 @@ namespace R2NES::Core
         }
     }
 
+    // Abre o visualizador de VRAM junto à janela principal.
     void Window::openVramViewer()
     {
         this->vramViewerOpen = true;
@@ -1272,6 +1287,7 @@ namespace R2NES::Core
         vramViewer.open(x, y, w);
     }
 
+    // Atualiza o VRAM Viewer somente enquanto sua janela existir.
     void Window::updateVramViewer(VRAM *vram)
     {
         if (vramViewer.isOpen())
@@ -1280,6 +1296,7 @@ namespace R2NES::Core
         }
     }
 
+    // Abre o visualizador da memória de atributos de sprites.
     void Window::openOamViewer()
     {
         this->oamViewerOpen = true;
@@ -1290,6 +1307,7 @@ namespace R2NES::Core
         oamViewer.open(x, y, w);
     }
 
+    // Atualiza o OAM Viewer somente enquanto sua janela existir.
     void Window::updateOamViewer(const std::array<uint8_t, 256> &oam)
     {
         if (oamViewer.isOpen())
@@ -1298,6 +1316,7 @@ namespace R2NES::Core
         }
     }
 
+    // Solicita o descarregamento da ROM e fecha ferramentas dependentes do cartucho.
     void Window::unload()
     {
         unloadRequested = true;
@@ -1306,6 +1325,7 @@ namespace R2NES::Core
         this->uncheckZapperMenu();
     }
 
+    // Solicita reset e fecha ferramentas que exibem estado potencialmente inválido.
     void Window::reset()
     {
         resetRequested = true;
@@ -1313,13 +1333,15 @@ namespace R2NES::Core
         this->uncheckAllDebugMenuItems();
     }
 
-    void Window::uncheckZapperMenu() 
+    // Desativa a Zapper na interface após remover ou trocar a ROM.
+    void Window::uncheckZapperMenu()
     {
         std::cout << "uncheck zapper menu";
         this->useZapper = false;
         windowCheckUncheckMenuItem(IDM_INPUT_USE_ZAPPER, false);
     }
 
+    // Fecha todos os visualizadores e remove suas marcações do menu de depuração.
     void Window::uncheckAllDebugMenuItems()
     {
         this->disassemblerOpen = false;
@@ -1342,6 +1364,7 @@ namespace R2NES::Core
         disassembler.close();
     }
 
+    // Atualiza a preferência de fast-forward e a propaga à Engine.
     void Window::setFastForward(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -1357,7 +1380,7 @@ namespace R2NES::Core
         std::cout << "Window: Fast Forward " << (fastForwardEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
-
+    // Atualiza a preferência de rewind e a propaga à Engine.
     void Window::setRewind(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -1373,6 +1396,7 @@ namespace R2NES::Core
         std::cout << "Window: Rewind " << (rewindEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza o som mestre e notifica o subsistema de áudio.
     void Window::setSound(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -1388,6 +1412,7 @@ namespace R2NES::Core
         std::cout << "Window: Sound " << (soundEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza a ativação do primeiro canal pulse da APU.
     void Window::setPulse1(bool enabled)
     {
         if (pulse1Enabled == enabled)
@@ -1400,6 +1425,7 @@ namespace R2NES::Core
         std::cout << "Sound: Pulse1 Channel " << (pulse1Enabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza a ativação do segundo canal pulse da APU.
     void Window::setPulse2(bool enabled)
     {
         if (pulse2Enabled == enabled)
@@ -1413,6 +1439,7 @@ namespace R2NES::Core
         std::cout << "Sound: Pulse2 Channel " << (pulse2Enabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza a ativação do canal triangle da APU.
     void Window::setTriangle(bool enabled)
     {
         if (triangleEnabled == enabled)
@@ -1426,6 +1453,7 @@ namespace R2NES::Core
         std::cout << "Sound: Triangle Channel " << (triangleEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza a ativação do canal noise da APU.
     void Window::setNoise(bool enabled)
     {
         if (noiseEnabled == enabled)
@@ -1439,6 +1467,7 @@ namespace R2NES::Core
         std::cout << "Sound: Noise Channel " << (noiseEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza a ativação do canal DMC da APU.
     void Window::setDMC(bool enabled)
     {
         if (dmcEnabled == enabled)
@@ -1452,6 +1481,7 @@ namespace R2NES::Core
         std::cout << "Sound: DMC Channel " << (dmcEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza o hack de sprites ilimitados e o propaga à Engine.
     void Window::setUnlimitedSprites(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -1467,6 +1497,7 @@ namespace R2NES::Core
         std::cout << "Window: Unlimited Sprites " << (unlimitedSprites ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza a inversão dos botões e informa o InputManager pela Engine.
     void Window::setInvertBAYB(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -1482,6 +1513,7 @@ namespace R2NES::Core
         std::cout << "Window: Inverted BA/YB " << (invertBAYB ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza o uso da Zapper e informa o InputManager pela Engine.
     void Window::setUseZapper(bool enabled)
     {
         if (useZapper == enabled)
@@ -1494,6 +1526,7 @@ namespace R2NES::Core
         std::cout << "Input: Use Zapper " << (useZapper ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Recria os recursos dependentes do renderer para aplicar a opção de VSync.
     void Window::setVSync(bool enabled)
     {
         // Se não houve mudança e o renderer já existe, não fazemos nada
@@ -1539,6 +1572,7 @@ namespace R2NES::Core
         std::cout << "Window: VSync " << (vsyncEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Ajusta o tamanho visível conforme escala e recorte de overscan atuais.
     void Window::windowResize(int times)
     {
         // Exit fullscreen mode if currently in one
@@ -1548,13 +1582,16 @@ namespace R2NES::Core
             SDL_SetWindowBordered(window, SDL_TRUE); // Restore border
             createMenu();                            // Restaura o menu nativo
         }
-        
+
         int currentW = width;
         int currentH = height;
-        if (fullCropOverscan) {
+        if (fullCropOverscan)
+        {
             currentW -= 16;
             currentH -= 16;
-        } else if (cropOverscan) {
+        }
+        else if (cropOverscan)
+        {
             currentH -= 16;
         }
         SDL_SetWindowSize(window, currentW * times * scale, currentH * times * scale);
@@ -1567,6 +1604,7 @@ namespace R2NES::Core
         this->currentWindowX = times;
     }
 
+    // Salva o modo janela, remove o menu nativo e entra em fullscreen sem bordas.
     void Window::setWindowBorderlessFullscreen(DisplayMode dm, Uint32 flags)
     {
         // Save current windowed state before going fullscreen
@@ -1590,16 +1628,19 @@ namespace R2NES::Core
         currentDisplayMode = dm;
     }
 
+    // Entra em fullscreen preenchendo toda a área disponível.
     void Window::windowBorderlessFullscreenStretch()
     {
         this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_STRETCH, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
+    // Entra em fullscreen preservando a proporção de pixels do NES.
     void Window::windowBorderlessFullscreen()
     {
         this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_ASPECT_8_7, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 
+    // Atualiza a ativação do filtro de scanlines.
     void Window::setScanlines(bool enabled)
     {
         if (scanlines == enabled)
@@ -1610,6 +1651,7 @@ namespace R2NES::Core
         std::cout << "Window: Scanlines " << (scanlines ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Atualiza o hack de overclock e o propaga à Engine.
     void Window::setCPUOverclock(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -1625,6 +1667,7 @@ namespace R2NES::Core
         std::cout << "Hacks: CPU Overclock " << (cpuOverclockEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
+    // Compõe o quadro da PPU, aplica pós-processamento e o apresenta pela SDL.
     void Window::render(const uint32_t *pixels, float fps)
     {
         // Atualiza o título da janela com o FPS
@@ -1652,6 +1695,7 @@ namespace R2NES::Core
 
         if (scanlines)
         {
+            // Mantém um buffer separado para não modificar o framebuffer fornecido pela PPU.
             if (postProcessBuffer.size() != width * height)
                 postProcessBuffer.resize(width * height);
 
@@ -1700,10 +1744,10 @@ namespace R2NES::Core
             src_rect.h = height - 16;
         }
 
-
         SDL_Rect dest_rect;
         if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
         {
+            // Calcula uma área centralizada que preserva a proporção escolhida.
             int current_window_w, current_window_h;
             SDL_GetWindowSize(window, &current_window_w, &current_window_h);
 
@@ -1711,13 +1755,18 @@ namespace R2NES::Core
             // (Pixel Aspect Ratio), precisamos ajustar a proporção da tela (Display Aspect Ratio).
             // 8:7 original assume 240 linhas. Para 224 linhas, a nova proporção é 60:49.
             double target_aspect_ratio;
-            if (fullCropOverscan) {
+            if (fullCropOverscan)
+            {
                 // 240x224 -> 60:49
                 target_aspect_ratio = 60.0 / 49.0;
-            } else if (cropOverscan) {
+            }
+            else if (cropOverscan)
+            {
                 // 256x224 -> 8:7
                 target_aspect_ratio = 8.0 / 7.0;
-            } else {
+            }
+            else
+            {
                 target_aspect_ratio = 8.0 / 7.0;
             }
 
