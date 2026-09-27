@@ -1,9 +1,12 @@
 #include "Engine.h"
 #include <SDL.h>
 #include <iostream>
+#include <sstream>
+#include <cmath>
 
 namespace R2NES::Core
 {
+    // Cria os componentes centrais e conclui sua configuração inicial.
     Engine::Engine()
     {
         // Inicializa os componentes principais
@@ -16,10 +19,12 @@ namespace R2NES::Core
         this->init();
     }
 
+    // A destruição dos componentes é feita automaticamente pelos smart pointers.
     Engine::~Engine()
     {
     }
 
+    // Conecta a interface aos subsistemas e aplica as opções atuais ao NES.
     void Engine::init()
     {
         // Cria o menu
@@ -83,17 +88,17 @@ namespace R2NES::Core
                                       { this->inputManager->configureABBAButtons(enabled); });
 
         window->setUseZapperCallback([this](bool enabled)
-                                      { this->inputManager->configureUseZapper(enabled, *nes); });
+                                     { this->inputManager->configureUseZapper(enabled, *nes); });
 
-        window->setTilesCallback([this](bool enabled) {
+        window->setTilesCallback([this](bool enabled)
+                                 {
             this->tilesEnabled = enabled;
-            if (nes) nes->setTilesEnabled(enabled);
-        });
+            if (nes) nes->setTilesEnabled(enabled); });
 
-        window->setSpritesCallback([this](bool enabled) {
+        window->setSpritesCallback([this](bool enabled)
+                                   {
             this->spritesEnabled = enabled;
-            if (nes) nes->setSpritesEnabled(enabled);
-        });
+            if (nes) nes->setSpritesEnabled(enabled); });
 
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
@@ -101,13 +106,12 @@ namespace R2NES::Core
 
         // Conecta o callback de Rewind
         window->setRewindCallback([this](bool enabled)
-                                 { this->rewindEnabled = enabled; });
+                                  { this->rewindEnabled = enabled; });
 
         window->setCPUOverclockCallback([this](bool enabled)
                                         { 
                                             this->cpuOverclockEnabled = enabled; 
-                                            if (nes) nes->setCPUOverclock(enabled);
-                                        });
+                                            if (nes) nes->setCPUOverclock(enabled); });
 
         // Conecta o callback de Pause
         window->setPauseCallback([this](bool p)
@@ -117,6 +121,7 @@ namespace R2NES::Core
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
         this->fastForwardEnabled = window->isFastForwardEnabled();
+        this->rewindEnabled = window->isRewindEnabled();
         this->soundEnabled = window->isSoundEnabled();
         this->cpuOverclockEnabled = window->isCPUOverclockEnabled();
 
@@ -146,6 +151,7 @@ namespace R2NES::Core
         nes->getApu().setAudioSampleRate(static_cast<float>(audioManager->getSampleRate()));
     }
 
+    // Delega a mudança de VSync à janela, que atualiza o estado pelo callback registrado.
     void Engine::toggleVSync()
     {
         // A Engine solicita a mudança para a Window
@@ -154,6 +160,7 @@ namespace R2NES::Core
         window->toggleVSync();
     }
 
+    // Mantém o ciclo de eventos, emulação e vídeo de acordo com o modo de execução ativo.
     void Engine::run()
     {
         uint64_t lastTime = SDL_GetPerformanceCounter();
@@ -179,7 +186,12 @@ namespace R2NES::Core
             // Só processa o timing e a atualização se houver um cartucho carregado no NES
             if (nes->isCartridgeLoaded())
             {
-                if (!paused)
+                if (runningRewind)
+                {
+                    if (updateRewind(deltaTime))
+                        render();
+                }
+                else if (!paused)
                 {
                     if (stepByStep)
                     {
@@ -246,9 +258,13 @@ namespace R2NES::Core
         }
     }
 
+    // Converte eventos da janela em entrada do emulador e comandos de gerenciamento da ROM.
     void Engine::processEmulatorInput()
     {
         window->pollEvents();
+
+        const uint8_t *keyboardState = SDL_GetKeyboardState(nullptr);
+        setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
 
         // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
         if (nes->isCartridgeLoaded())
@@ -261,22 +277,26 @@ namespace R2NES::Core
         std::string romPath = window->getSelectedPath();
         if (!romPath.empty())
         {
+            clearRewindStates();
             stateManager->loadRom(romPath, *nes, *window);
         }
 
         if (window->isResetRequested())
         {
+            clearRewindStates();
             stateManager->reset(*nes, *window);
         }
 
         if (window->isUnloadRequested())
         {
+            clearRewindStates();
             stateManager->unloadRom(*nes, *window);
         }
 
         stateManager->handleSaveLoadState(*nes, *window);
     }
 
+    // Encaminha teclas ao controle e executa atalhos de save, vídeo, pausa e velocidade.
     void Engine::handleKeyboard(SDL_Keycode key, bool isPressed)
     {
         inputManager->handleKeyboard(key, isPressed, *nes);
@@ -320,7 +340,10 @@ namespace R2NES::Core
             break;
         case SDLK_F12:
             if (isPressed)
+            {
+                clearRewindStates();
                 nes->reset();
+            }
             break;
         case SDLK_TAB:
             this->setFastForward(this->fastForwardEnabled && isPressed);
@@ -338,6 +361,7 @@ namespace R2NES::Core
         }
     }
 
+    // Muda o fast-forward preservando e restaurando as opções anteriores de velocidade e VSync.
     void Engine::setFastForward(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -360,6 +384,7 @@ namespace R2NES::Core
         }
     }
 
+    // Controla o rewind e interrompe o áudio pendente ao começar a retroceder.
     void Engine::setRewind(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
@@ -367,10 +392,62 @@ namespace R2NES::Core
             return;
 
         runningRewind = enabled;
+        rewindResidualTime = 0.0;
 
-        //TODO: Implement the rewind functionality...
+        if (runningRewind)
+            audioManager->clearQueuedAudio();
     }
 
+    // Salva snapshots espaçados do NES em uma fila com duração máxima configurada.
+    void Engine::captureRewindState()
+    {
+        if (++framesSinceLastRewindState < rewindStateIntervalFrames)
+            return;
+
+        framesSinceLastRewindState = 0;
+
+        std::ostringstream state(std::ios::binary | std::ios::out);
+        if (!nes->saveState(state))
+            return;
+
+        const size_t maximumStates = static_cast<size_t>(
+            std::ceil(rewindHistorySeconds * targetUPS / rewindStateIntervalFrames));
+        if (maximumStates == 0)
+            return;
+
+        if (rewindStates.size() == maximumStates)
+            rewindStates.pop_front();
+
+        rewindStates.push_back(state.str());
+    }
+
+    // Restaura um snapshot recente quando o intervalo de rewind permite uma nova etapa.
+    bool Engine::updateRewind(double deltaTime)
+    {
+        rewindResidualTime += deltaTime;
+        if (rewindResidualTime < rewindIntervalSeconds || rewindStates.empty())
+            return false;
+
+        rewindResidualTime = std::fmod(rewindResidualTime, rewindIntervalSeconds);
+        std::istringstream state(rewindStates.back(), std::ios::binary | std::ios::in);
+        if (nes->loadState(state))
+        {
+            rewindStates.pop_back();
+            return true;
+        }
+
+        return false;
+    }
+
+    // Remove todos os snapshots e reinicia os acumuladores do rewind.
+    void Engine::clearRewindStates()
+    {
+        rewindStates.clear();
+        framesSinceLastRewindState = 0;
+        rewindResidualTime = 0.0;
+    }
+
+    // Executa um quadro ou instrução, encaminha o áudio produzido e registra rewind.
     void Engine::update()
     {
         inputManager->update(*nes, frameCount);
@@ -406,12 +483,15 @@ namespace R2NES::Core
 
             // 3. Envia o buffer de áudio do frame inteiro para o SDL
             audioManager->queueAudio(uncappedSpeed);
+
+            captureRewindState();
         }
 
         if (!uncappedSpeed)
             frameCount++; // Conta quadros emulados no modo normal
     }
 
+    // Exibe o framebuffer e alimenta os visualizadores auxiliares que estiverem abertos.
     void Engine::render()
     {
         // Usamos o disassembly já armazenado e o PC atual da CPU
