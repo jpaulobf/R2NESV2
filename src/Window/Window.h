@@ -6,6 +6,8 @@
 #include <map>
 #include <functional>
 #include <memory>
+#include "DebugWindowManager.h"
+#include "NativeMenuController.h"
 #include "TileViewer.h"
 #include "PaletteViewer.h"
 #include "RamViewer.h"
@@ -164,23 +166,22 @@ namespace R2NES::Core
         MouseState getMouseState() const { return mouseState; }
 
         /* Verifica se a janela do Disassembler está aberta. */
-        bool isDisassemblerOpen() const { return disassembler.isOpen(); }
+        bool isDisassemblerOpen() const { return debugWindowManager.isDisassemblerOpen(); }
 
         /* Verifica se a janela do Tile Viewer está aberta. */
-        bool isTileViewerOpen() const { return tileViewer.isOpen(); }
+        bool isTileViewerOpen() const { return debugWindowManager.isTileViewerOpen(); }
 
         /* Verifica se a janela do Palette Viewer está aberta. */
-        bool isPaletteViewerOpen() const { return paletteViewer.isOpen(); }
+        bool isPaletteViewerOpen() const { return debugWindowManager.isPaletteViewerOpen(); }
 
         /* Verifica se a janela do VRAM Viewer está aberta. */
-        bool isVramViewerOpen() const { return vramViewer.isOpen(); }
+        bool isVramViewerOpen() const { return debugWindowManager.isVramViewerOpen(); }
 
         /* Verifica se a janela do OAM Viewer está aberta. */
-        bool isOamViewerOpen() const { return oamViewer.isOpen(); }
+        bool isOamViewerOpen() const { return debugWindowManager.isOamViewerOpen(); }
 
-        /* Verifica se houve um pedido de reset via menu. */
         /* Verifica se a janela do RamViewer está aberta. */
-        bool isRamViewerOpen() const { return ramViewer.isOpen(); }
+        bool isRamViewerOpen() const { return debugWindowManager.isRamViewerOpen(); }
 
         /* Verifica se houve um pedido de reset via menu. */
         bool isResetRequested() const { return resetRequested; }
@@ -427,9 +428,6 @@ namespace R2NES::Core
         void openRamViewer();
 
         /* Funções para manipular os itens do menu de debug. */
-        void windowCheckUncheckMenuItem(int menuItemId, bool isChecked);
-
-        /* Funções para manipular os itens do menu de debug. */
         void toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback);
 
         /* Funções para manipular os itens do menu de debug. */
@@ -470,12 +468,8 @@ namespace R2NES::Core
         std::string selectedPath = "";
 
         MouseState mouseState;
-        TileViewer tileViewer;
-        PaletteViewer paletteViewer;
-        RamViewer ramViewer;
-        Disassembler disassembler;
-        OamViewer oamViewer;
-        VRamViewer vramViewer;
+        DebugWindowManager debugWindowManager;
+        NativeMenuController nativeMenuController;
 
         Util::ConfigManager configManager;
 
@@ -534,12 +528,6 @@ namespace R2NES::Core
         bool fastForwardEnabled = true;
         bool rewindEnabled = false;
         bool paused = false;
-        bool tileViewerOpen = false;
-        bool paletteViewerOpen = false;
-        bool disassemblerOpen = false;
-        bool ramViewerOpen = false;
-        bool oamViewerOpen = false;
-        bool vramViewerOpen = false;
         bool useZapper = false;
 
         // Configurações de áudio para cada canal

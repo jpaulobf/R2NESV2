@@ -16,70 +16,10 @@
 #include <commdlg.h>
 #endif
 
-#define IDM_FILE_OPEN 1001
-#define IDM_FILE_EXIT 1002
-#define IDM_FILE_RESET 1003
-#define IDM_FILE_UNLOAD 1004
-#define IDM_FILE_SAVE 1101
-#define IDM_FILE_LOAD 1102
-#define IDM_FILE_SAVE_SLOT 1103
-#define IDM_FILE_SAVE_SLOT_1 1104
-#define IDM_FILE_SAVE_SLOT_2 1105
-#define IDM_FILE_SAVE_SLOT_3 1106
-#define IDM_RECENT_FILE_BASE_ID 10000
-#define IDM_DEBUG_TILE_VIEWER 1006
-#define IDM_DEBUG_DISASSEMBLER 1007
-#define IDM_DEBUG_PALETTE_VIEWER 1009
-#define IDM_DEBUG_OAM_VIEWER 1010
-#define IDM_DEBUG_VRAM_VIEWER 1011
-#define IDM_DEBUG_RAM_VIEWER 1008
-#define IDM_VIEW_VSYNC 1999
-#define IDM_VIEW_WINDOW_1X 2000
-#define IDM_VIEW_WINDOW_2X 2001
-#define IDM_VIEW_WINDOW_3X 2002
-#define IDM_VIEW_WINDOW_4X 2003
-#define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN 2004
-#define IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH 2005
-#define IDM_VIEW_SCANLINES 2006
-#define IDM_VIEW_CROP_OVERSCAN 2007
-#define IDM_VIEW_FULLCROP_OVERSCAN 2008
-#define IDM_VIEW_SCANLINES_LEVEL_5 2105
-#define IDM_VIEW_SCANLINES_LEVEL_10 2110
-#define IDM_VIEW_SCANLINES_LEVEL_15 2115
-#define IDM_VIEW_SCANLINES_LEVEL_20 2120
-#define IDM_VIEW_SCANLINES_LEVEL_25 2125
-#define IDM_VIEW_RENDER 2500
-#define IDM_VIEW_RENDER_TILES 2501
-#define IDM_VIEW_RENDER_SPRITES 2502
-#define IDM_VIEW_PALETTES 2200
-#define IDM_VIEW_PALETTE_DEFAULT 2201
-#define IDM_VIEW_PALETTE_SMOOTH 2202
-#define IDM_VIEW_PALETTE_NESTOPIA 2203
-#define IDM_VIEW_PALETTE_WAVEBEAM 2204
-#define IDM_VIEW_PALETTE_NEON 2205
-#define IDM_SOUND_SOUND 2010
-#define IDM_SOUND_PULSE1 2011
-#define IDM_SOUND_PULSE2 2012
-#define IDM_SOUND_TRIANGLE 2013
-#define IDM_SOUND_NOISE 2014
-#define IDM_SOUND_DMC 2015
-#define IDM_VIEW_SHADERS 2300
-#define IDM_VIEW_SHADERS_NONE 2301
-#define IDM_VIEW_SHADERS_SCANLINES 2302
-#define IDM_VIEW_SHADERS_CRT 2303
-#define IDM_VIEW_SHADERS_CRT3D 2304
-#define IDM_VIEW_SHADERS_SCALEFX 2305
-#define IDM_VIEW_SHADERS_XBRZMULTI 2306
-#define IDM_HACKS_UNLIMITED_SPRITES 3000
-#define IDM_HACKS_FAST_FORWARD 3001
-#define IDM_HACKS_CPU_OVERCLOCK 3002
-#define IDM_HACKS_REWIND 3003
-#define IDI_ICON 101
-#define IDM_INPUT_INVERT_BAYB 4000
-#define IDM_INPUT_USE_ZAPPER 4001
-
 namespace R2NES::Core
 {
+    using namespace NativeMenuCommand;
+    
     // Inicializa SDL, renderer, textura de vídeo e contexto ImGui da janela principal.
     Window::Window(const std::string &title, int w, int h, int s)
         : width(w), height(h), scale(s)
@@ -170,35 +110,12 @@ namespace R2NES::Core
         SDL_Quit();
     }
 
-    // Atualiza a marcação de um item no menu nativo do Windows.
-    void Window::windowCheckUncheckMenuItem(int menuItemId, bool isChecked)
-    {
-#ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
-        {
-            HMENU hMenu = GetMenu(wmInfo.info.win.window);
-            if (hMenu)
-                CheckMenuItem(hMenu, menuItemId, MF_BYCOMMAND | (isChecked ? MF_CHECKED : MF_UNCHECKED));
-        }
-#endif
-    }
-
     // Inverte a marcação de um item e informa seu estado anterior ao callback.
     void Window::toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback)
     {
-#ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
-        {
-            HMENU hMenu = GetMenu(wmInfo.info.win.window);
-            UINT state = GetMenuState(hMenu, menuItemId, MF_BYCOMMAND);
-            CheckMenuItem(hMenu, menuItemId, MF_BYCOMMAND | ((state & MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED));
-            callback(state);
-        }
-#endif
+        const bool currentlyChecked = nativeMenuController.isChecked(window, menuItemId);
+        nativeMenuController.setChecked(window, menuItemId, !currentlyChecked);
+        callback(currentlyChecked);
     }
 
     // Distribui eventos SDL entre ImGui, controles, mouse, teclado, menus e janelas auxiliares.
@@ -214,13 +131,8 @@ namespace R2NES::Core
                 ImGui_ImplSDL2_ProcessEvent(&e);
             }
 
-            // Só processa eventos do ImGui se a janela de debug estiver ativa
-            tileViewer.handleEvent(&e);
-            disassembler.handleEvent(&e);
-            paletteViewer.handleEvent(&e);
-            oamViewer.handleEvent(&e);
-            vramViewer.handleEvent(&e);
-            ramViewer.handleEvent(&e);
+            // Encaminha o evento para os viewers que possuem contexto ImGui próprio.
+            debugWindowManager.handleEvent(&e);
 
             if (e.type == SDL_QUIT)
                 closed = true;
@@ -279,6 +191,47 @@ namespace R2NES::Core
                 {
                     int playerNum = (SDL_GameControllerFromInstanceID(e.cbutton.which) == controllers[0]) ? 1 : 2;
                     controllerCallback(playerNum, (SDL_GameControllerButton)e.cbutton.button, e.type == SDL_CONTROLLERBUTTONDOWN);
+                }
+            }
+
+            // Eventos de Eixo do Controle (ex: gatilhos L2/R2 que aparecem como eixos)
+            else if (e.type == SDL_CONTROLLERAXISMOTION)
+            {
+                // Threshold para considerar o gatilho "pressionado"
+                const int TRIGGER_THRESHOLD = 16000;
+
+                SDL_GameController *gc = SDL_GameControllerFromInstanceID(e.caxis.which);
+                int playerNum = (gc == controllers[0]) ? 1 : 2;
+
+                // Mantemos o estado anterior para detectar transições (pressionado uma vez)
+                static bool prevLT[2] = {false, false};
+                static bool prevRT[2] = {false, false};
+
+                if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+                {
+                    bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
+                    if (pressed && !prevLT[playerNum - 1])
+                    {
+                        std::cout << "L2 pressionado" << std::endl;
+                        prevLT[playerNum - 1] = true;
+                    }
+                    else if (!pressed && prevLT[playerNum - 1])
+                    {
+                        prevLT[playerNum - 1] = false;
+                    }
+                }
+                else if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+                {
+                    bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
+                    if (pressed && !prevRT[playerNum - 1])
+                    {
+                        std::cout << "R2 pressionado" << std::endl;
+                        prevRT[playerNum - 1] = true;
+                    }
+                    else if (!pressed && prevRT[playerNum - 1])
+                    {
+                        prevRT[playerNum - 1] = false;
+                    }
                 }
             }
 
@@ -394,32 +347,32 @@ namespace R2NES::Core
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, true);
+                        nativeMenuController.setChecked(window, IDM_DEBUG_TILE_VIEWER, true);
                         openTileViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_PALETTE_VIEWER)
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, true);
+                        nativeMenuController.setChecked(window, IDM_DEBUG_PALETTE_VIEWER, true);
                         openPaletteViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_DISASSEMBLER)
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, true);
+                        nativeMenuController.setChecked(window, IDM_DEBUG_DISASSEMBLER, true);
                         openDisassembler();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_RAM_VIEWER)
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, true);
+                        nativeMenuController.setChecked(window, IDM_DEBUG_RAM_VIEWER, true);
                         openRamViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_OAM_VIEWER)
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, true);
+                        nativeMenuController.setChecked(window, IDM_DEBUG_OAM_VIEWER, true);
                         openOamViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_VRAM_VIEWER)
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_VRAM_VIEWER, true);
+                        nativeMenuController.setChecked(window, IDM_DEBUG_VRAM_VIEWER, true);
                         openVramViewer();
                     }
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
@@ -496,7 +449,7 @@ namespace R2NES::Core
                             // Se ativou o crop normal, desativa o full crop
                             if (this->cropOverscan) {
                                 this->fullCropOverscan = false;
-                                windowCheckUncheckMenuItem(IDM_VIEW_FULLCROP_OVERSCAN, false);
+                                nativeMenuController.setChecked(window, IDM_VIEW_FULLCROP_OVERSCAN, false);
                             }
 
                             // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
@@ -517,7 +470,7 @@ namespace R2NES::Core
                             // Se ativou o full crop, desativa o crop normal
                             if (this->fullCropOverscan) {
                                 this->cropOverscan = false;
-                                windowCheckUncheckMenuItem(IDM_VIEW_CROP_OVERSCAN, false);
+                                nativeMenuController.setChecked(window, IDM_VIEW_CROP_OVERSCAN, false);
                             }
 
                             // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
@@ -721,41 +674,31 @@ namespace R2NES::Core
                     {
                         closed = true;
                     }
-                    else if (tileViewer.getWindowID() != 0 && e.window.windowID == tileViewer.getWindowID())
+                    else
                     {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
-                        tileViewer.close();
-                        this->tileViewerOpen = false;
-                    }
-                    else if (paletteViewer.getWindowID() != 0 && e.window.windowID == paletteViewer.getWindowID())
-                    {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, false);
-                        paletteViewer.close();
-                        this->paletteViewerOpen = false;
-                    }
-                    else if (ramViewer.getWindowID() != 0 && e.window.windowID == ramViewer.getWindowID())
-                    {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
-                        ramViewer.close();
-                        this->ramViewerOpen = false;
-                    }
-                    else if (oamViewer.getWindowID() != 0 && e.window.windowID == oamViewer.getWindowID())
-                    {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, false);
-                        oamViewer.close();
-                        this->oamViewerOpen = false;
-                    }
-                    else if (vramViewer.getWindowID() != 0 && e.window.windowID == vramViewer.getWindowID())
-                    {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_VRAM_VIEWER, false);
-                        vramViewer.close();
-                        this->vramViewerOpen = false;
-                    }
-                    else if (disassembler.getWindowID() != 0 && e.window.windowID == disassembler.getWindowID())
-                    {
-                        windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
-                        disassembler.close();
-                        this->disassemblerOpen = false;
+                        switch (debugWindowManager.closeWindow(e.window.windowID))
+                        {
+                        case DebugWindow::Tile:
+                            nativeMenuController.setChecked(window, IDM_DEBUG_TILE_VIEWER, false);
+                            break;
+                        case DebugWindow::Palette:
+                            nativeMenuController.setChecked(window, IDM_DEBUG_PALETTE_VIEWER, false);
+                            break;
+                        case DebugWindow::Ram:
+                            nativeMenuController.setChecked(window, IDM_DEBUG_RAM_VIEWER, false);
+                            break;
+                        case DebugWindow::Disassembler:
+                            nativeMenuController.setChecked(window, IDM_DEBUG_DISASSEMBLER, false);
+                            break;
+                        case DebugWindow::Oam:
+                            nativeMenuController.setChecked(window, IDM_DEBUG_OAM_VIEWER, false);
+                            break;
+                        case DebugWindow::Vram:
+                            nativeMenuController.setChecked(window, IDM_DEBUG_VRAM_VIEWER, false);
+                            break;
+                        case DebugWindow::None:
+                            break;
+                        }
                     }
                 }
                 else if (e.window.event == SDL_WINDOWEVENT_MOVED)
@@ -767,12 +710,7 @@ namespace R2NES::Core
                         SDL_GetWindowPosition(window, &x, &y);
                         SDL_GetWindowSize(window, &w_main, &h_main);
 
-                        tileViewer.updatePosition(x, y, w_main);
-                        paletteViewer.updatePosition(x, y, w_main);
-                        ramViewer.updatePosition(x, y, w_main);
-                        oamViewer.updatePosition(x, y, w_main);
-
-                        disassembler.updatePosition(x, y, w_main);
+                        debugWindowManager.updatePositions(x, y, w_main);
                     }
                     // Update last known windowed position if not in fullscreen
                     if (e.window.windowID == SDL_GetWindowID(window) && currentDisplayMode == DisplayMode::WINDOWED)
@@ -794,6 +732,41 @@ namespace R2NES::Core
     // Reconstrói o menu nativo conforme o estado atual da ROM, visualizadores e opções.
     void Window::createMenu()
     {
+        NativeMenuState menuState;
+        menuState.cartLoaded = cartLoaded;
+        menuState.recentRoms.assign(configManager.getRecentRoms().begin(), configManager.getRecentRoms().end());
+        menuState.saveSlot = saveSlot;
+        menuState.disassemblerOpen = isDisassemblerOpen();
+        menuState.ramViewerOpen = isRamViewerOpen();
+        menuState.tileViewerOpen = isTileViewerOpen();
+        menuState.vramViewerOpen = isVramViewerOpen();
+        menuState.paletteViewerOpen = isPaletteViewerOpen();
+        menuState.oamViewerOpen = isOamViewerOpen();
+        menuState.vsyncEnabled = vsyncEnabled;
+        menuState.windowScale = currentWindowX;
+        menuState.scanlines = scanlines;
+        menuState.cropOverscan = cropOverscan;
+        menuState.fullCropOverscan = fullCropOverscan;
+        menuState.tilesEnabled = tilesEnabled;
+        menuState.spritesEnabled = spritesEnabled;
+        menuState.scanlinesTransparency = scanlinesTransparency;
+        menuState.palettePreset = palettePreset;
+        menuState.shader = shader;
+        menuState.soundEnabled = soundEnabled;
+        menuState.pulse1Enabled = pulse1Enabled;
+        menuState.pulse2Enabled = pulse2Enabled;
+        menuState.triangleEnabled = triangleEnabled;
+        menuState.noiseEnabled = noiseEnabled;
+        menuState.dmcEnabled = dmcEnabled;
+        menuState.invertBAYB = invertBAYB;
+        menuState.useZapper = useZapper;
+        menuState.unlimitedSprites = unlimitedSprites;
+        menuState.fastForwardEnabled = fastForwardEnabled;
+        menuState.cpuOverclockEnabled = cpuOverclockEnabled;
+        menuState.rewindEnabled = rewindEnabled;
+        nativeMenuController.createMenu(window, menuState);
+        return;
+
 #ifdef _WIN32
         SDL_SysWMinfo wmInfo;
         SDL_VERSION(&wmInfo.version);
@@ -864,7 +837,7 @@ namespace R2NES::Core
             AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
             AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
 
-            if (this->disassemblerOpen)
+            if (isDisassemblerOpen())
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
             }
@@ -873,7 +846,7 @@ namespace R2NES::Core
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
             }
 
-            if (this->ramViewerOpen)
+            if (isRamViewerOpen())
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
             }
@@ -884,7 +857,7 @@ namespace R2NES::Core
 
             AppendMenuW(hDebugMenu, MF_SEPARATOR, 0, NULL);
 
-            if (this->tileViewerOpen)
+            if (isTileViewerOpen())
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
             }
@@ -893,7 +866,7 @@ namespace R2NES::Core
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
             }
 
-            if (this->vramViewerOpen)
+            if (isVramViewerOpen())
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_VRAM_VIEWER, L"&VRAM Viewer");
             }
@@ -902,7 +875,7 @@ namespace R2NES::Core
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_VRAM_VIEWER, L"&VRAM Viewer");
             }
 
-            if (this->paletteViewerOpen)
+            if (isPaletteViewerOpen())
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
             }
@@ -911,7 +884,7 @@ namespace R2NES::Core
                 AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
             }
 
-            if (this->oamViewerOpen)
+            if (isOamViewerOpen())
             {
                 AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_OAM_VIEWER, L"&OAM Viewer");
             }
@@ -1208,112 +1181,97 @@ namespace R2NES::Core
     // Abre o desassemblador ao lado da janela principal.
     void Window::openDisassembler()
     {
-        this->disassemblerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        disassembler.open(x, y, w);
+        debugWindowManager.openDisassembler(x, y, w);
     }
 
     // Repassa o estado atual da CPU ao visualizador de desassembly.
     void Window::updateDisassembler(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                                     bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
     {
-        disassembler.render(pc, disassembly, stepByStep, stepRequested, a, x, y, stkp, status);
+        debugWindowManager.updateDisassembler(pc, disassembly, stepByStep, stepRequested, a, x, y, stkp, status);
     }
 
     // Abre o visualizador das pattern tables junto à janela principal.
     void Window::openTileViewer()
     {
-        this->tileViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        tileViewer.open(x, y, w);
+        debugWindowManager.openTileViewer(x, y, w);
     }
 
     // Abre o visualizador de paleta junto à janela principal.
     void Window::openPaletteViewer()
     {
-        this->paletteViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
-        paletteViewer.open(x, y, w);
+        debugWindowManager.openPaletteViewer(x, y, w);
     }
 
     // Repassa as duas pattern tables ao Tile Viewer.
     void Window::updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1)
     {
-        tileViewer.render(pixels0, pixels1);
+        debugWindowManager.updateTileViewer(pixels0, pixels1);
     }
 
     // Repassa a paleta da PPU e a paleta de cores selecionada ao visualizador.
     void Window::updatePaletteViewer(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette)
     {
-        paletteViewer.render(paletteTable, systemPalette);
+        debugWindowManager.updatePaletteViewer(paletteTable, systemPalette);
     }
 
     // Abre o visualizador de RAM junto à janela principal.
     void Window::openRamViewer()
     {
-        this->ramViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        ramViewer.open(x, y, w);
+        debugWindowManager.openRamViewer(x, y, w);
     }
 
     // Atualiza o RAM Viewer somente enquanto sua janela existir.
     void Window::updateRamViewer(RAM *ram)
     {
-        if (ramViewer.isOpen())
-        {
-            ramViewer.render(ram);
-        }
+        debugWindowManager.updateRamViewer(ram);
     }
 
     // Abre o visualizador de VRAM junto à janela principal.
     void Window::openVramViewer()
     {
-        this->vramViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        vramViewer.open(x, y, w);
+        debugWindowManager.openVramViewer(x, y, w);
     }
 
     // Atualiza o VRAM Viewer somente enquanto sua janela existir.
     void Window::updateVramViewer(VRAM *vram)
     {
-        if (vramViewer.isOpen())
-        {
-            vramViewer.render(vram);
-        }
+        debugWindowManager.updateVramViewer(vram);
     }
 
     // Abre o visualizador da memória de atributos de sprites.
     void Window::openOamViewer()
     {
-        this->oamViewerOpen = true;
         int x, y, w, h;
         SDL_GetWindowPosition(window, &x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        oamViewer.open(x, y, w);
+        debugWindowManager.openOamViewer(x, y, w);
     }
 
     // Atualiza o OAM Viewer somente enquanto sua janela existir.
     void Window::updateOamViewer(const std::array<uint8_t, 256> &oam)
     {
-        if (oamViewer.isOpen())
-        {
-            oamViewer.render(oam);
-        }
+        debugWindowManager.updateOamViewer(oam);
     }
 
     // Solicita o descarregamento da ROM e fecha ferramentas dependentes do cartucho.
@@ -1338,30 +1296,20 @@ namespace R2NES::Core
     {
         std::cout << "uncheck zapper menu";
         this->useZapper = false;
-        windowCheckUncheckMenuItem(IDM_INPUT_USE_ZAPPER, false);
+        nativeMenuController.setChecked(window, IDM_INPUT_USE_ZAPPER, false);
     }
 
     // Fecha todos os visualizadores e remove suas marcações do menu de depuração.
     void Window::uncheckAllDebugMenuItems()
     {
-        this->disassemblerOpen = false;
-        this->tileViewerOpen = false;
-        this->paletteViewerOpen = false;
-        this->ramViewerOpen = false;
-        this->oamViewerOpen = false;
-        this->vramViewerOpen = false;
+        nativeMenuController.setChecked(window, IDM_DEBUG_TILE_VIEWER, false);
+        nativeMenuController.setChecked(window, IDM_DEBUG_PALETTE_VIEWER, false);
+        nativeMenuController.setChecked(window, IDM_DEBUG_RAM_VIEWER, false);
+        nativeMenuController.setChecked(window, IDM_DEBUG_DISASSEMBLER, false);
+        nativeMenuController.setChecked(window, IDM_DEBUG_OAM_VIEWER, false);
+        nativeMenuController.setChecked(window, IDM_DEBUG_VRAM_VIEWER, false);
 
-        windowCheckUncheckMenuItem(IDM_DEBUG_TILE_VIEWER, false);
-        windowCheckUncheckMenuItem(IDM_DEBUG_PALETTE_VIEWER, false);
-        windowCheckUncheckMenuItem(IDM_DEBUG_RAM_VIEWER, false);
-        windowCheckUncheckMenuItem(IDM_DEBUG_DISASSEMBLER, false);
-        windowCheckUncheckMenuItem(IDM_DEBUG_OAM_VIEWER, false);
-        windowCheckUncheckMenuItem(IDM_DEBUG_VRAM_VIEWER, false);
-
-        tileViewer.close();
-        paletteViewer.close();
-        ramViewer.close();
-        disassembler.close();
+        debugWindowManager.closeAll();
     }
 
     // Atualiza a preferência de fast-forward e a propaga à Engine.
