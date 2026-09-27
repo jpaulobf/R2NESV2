@@ -6,6 +6,7 @@
 #include "Core/Memory/RAM/RAM.h"
 #include "Core/Cartridge/Cartridge.h"
 #include <string>
+#include <iosfwd>
 #include "Core/IO/Joysticks.h"
 
 namespace R2NES::Core
@@ -49,6 +50,10 @@ namespace R2NES::Core
         bool saveState(const std::string &filename);
 
         bool loadState(const std::string &filename);
+
+        bool saveState(std::ostream &output);
+
+        bool loadState(std::istream &input);
 
         void setTilesEnabled(bool enabled);
 
