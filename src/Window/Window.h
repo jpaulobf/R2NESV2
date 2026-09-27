@@ -109,6 +109,7 @@ namespace R2NES::Core
         /* Define a função de callback para o estado de inversão dos botões A e B. */
         void setInvertBAYBCallback(InvertBAYBCallback cb) { invertBAYBCallback = cb; }
 
+        /* Define a função de callback para ativar ou desativar a Zapper. */
         void setUseZapperCallback(UseZapperCallback cb) { useZapperCallback = cb; }
 
         /* Define a função de callback para habilitar ou desabilitar a renderização de tiles. */
@@ -327,9 +328,16 @@ namespace R2NES::Core
                 pauseCallback(paused);
         }
 
+        /* Informa se há uma solicitação pendente para salvar estado. */
         bool getIsToSave() const { return isToSave; }
+
+        /* Informa se há uma solicitação pendente para carregar estado. */
         bool getIsToLoad() const { return isToLoad; }
+
+        /* Retorna o slot atualmente selecionado para save states. */
         int getSaveSlot() const { return saveSlot; }
+
+        /* Solicita o salvamento de estado e notifica o callback correspondente. */
         void setSave(bool save)
         {
             isToSave = save;
@@ -337,6 +345,7 @@ namespace R2NES::Core
                 saveCallback(isToSave);
         }
 
+        /* Solicita o carregamento de estado e notifica o callback correspondente. */
         void setLoad(bool load)
         {
             isToLoad = load;
@@ -351,6 +360,7 @@ namespace R2NES::Core
             isToLoad = false;
         }
 
+        /* Define o slot de save state e notifica seus consumidores. */
         void setSaveSlot(int slot)
         {
             saveSlot = slot;
@@ -358,6 +368,7 @@ namespace R2NES::Core
                 saveSlotCallback(saveSlot);
         }
 
+        /* Seleciona a paleta do sistema e a propaga à Engine. */
         void setPalettePreset(PaletteType preset)
         {
             palettePreset = preset;
@@ -386,6 +397,7 @@ namespace R2NES::Core
         /* Função genérica para configurar o modo de tela cheia sem bordas. */
         void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode, Uint32 flags);
 
+        /* Atualiza o estado do cartucho e recria o menu para refletir as opções disponíveis. */
         void setCartLoaded(bool loaded)
         {
             cartLoaded = loaded;
@@ -423,8 +435,10 @@ namespace R2NES::Core
         /* Funções para manipular os itens do menu de debug. */
         void uncheckAllDebugMenuItems();
 
+        /* Seleciona o shader de pós-processamento usado na renderização. */
         void setShader(ShaderType shaderType);
 
+        /* Alterna a renderização de tiles e notifica a Engine. */
         void toggleTiles()
         {
             tilesEnabled = !tilesEnabled;
@@ -432,6 +446,7 @@ namespace R2NES::Core
                 tilesCallback(tilesEnabled);
         }
 
+        /* Alterna a renderização de sprites e notifica a Engine. */
         void toggleSprites()
         {
             spritesEnabled = !spritesEnabled;
@@ -439,6 +454,7 @@ namespace R2NES::Core
                 spritesCallback(spritesEnabled);
         }
 
+        /* Alterna o overclock da CPU e notifica a Engine. */
         void toggleCPUOverclock()
         {
             cpuOverclockEnabled = !cpuOverclockEnabled;
