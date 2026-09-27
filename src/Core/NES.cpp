@@ -182,8 +182,16 @@ namespace R2NES::Core
         if (!os.is_open())
             return false;
 
+        return saveState(os);
+    }
+
+    bool NES::saveState(std::ostream &os)
+    {
+        if (!bus.cart || !bus.cart->getMapper())
+            return false;
+
         // 1. Identificador simples para validar o arquivo (Magic Number)
-        uint32_t magic = 0x52324E53; // "R2NS"
+        uint32_t magic = 0x52324E32; // "R2N2"
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // 2. Salva estado dos componentes
@@ -196,8 +204,7 @@ namespace R2NES::Core
         apu.saveState(os);
         bus.cart->getMapper()->saveState(os);
 
-        os.close();
-        return true;
+        return os.good();
     }
 
     bool NES::loadState(const std::string &filename)
@@ -206,9 +213,18 @@ namespace R2NES::Core
         if (!is.is_open())
             return false;
 
+        return loadState(is);
+    }
+
+    bool NES::loadState(std::istream &is)
+    {
+        if (!bus.cart || !bus.cart->getMapper())
+            return false;
+
         uint32_t magic = 0;
         is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-        if (magic != 0x52324E53)
+        const bool includesFrameBuffer = magic == 0x52324E32; // "R2N2"
+        if (!includesFrameBuffer && magic != 0x52324E53) // "R2NS" (formato anterior)
         {
             std::cerr << "Error: Invalid SaveState file!" << std::endl;
             return false;
@@ -220,12 +236,11 @@ namespace R2NES::Core
 
         cpu.loadState(is);
         ram.loadState(is);
-        ppu.loadState(is);
+        ppu.loadState(is, includesFrameBuffer);
         apu.loadState(is);
         bus.cart->getMapper()->loadState(is);
 
-        is.close();
-        return true;
+        return is.good();
     }
 
     void NES::setTilesEnabled(bool enabled)
