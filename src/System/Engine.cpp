@@ -163,6 +163,7 @@ namespace R2NES::Core
     // Mantém o ciclo de eventos, emulação e vídeo de acordo com o modo de execução ativo.
     void Engine::run()
     {
+        // Usa o contador de alta resolução do SDL como referência do primeiro delta.
         uint64_t lastTime = SDL_GetPerformanceCounter();
         uint64_t frequency = SDL_GetPerformanceFrequency();
 
@@ -216,6 +217,7 @@ namespace R2NES::Core
                         double updateInterval = 1.0 / targetUPS;
                         residualTime += deltaTime * timeScale;
 
+                        // Limita atrasos acumulados para evitar muitas atualizações em um único ciclo.
                         if (residualTime > 0.1f)
                             residualTime = 0.1f;
 
@@ -247,6 +249,7 @@ namespace R2NES::Core
                     if (renderResidualTime >= renderInterval)
                     {
                         render();
+                        // Preserva somente a fração excedente para manter a cadência de renderização.
                         renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
@@ -264,6 +267,7 @@ namespace R2NES::Core
         window->pollEvents();
 
         const uint8_t *keyboardState = SDL_GetKeyboardState(nullptr);
+        // Consulta contínua garante que o rewind pare ao soltar Caps Lock.
         setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
 
         // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
@@ -277,18 +281,21 @@ namespace R2NES::Core
         std::string romPath = window->getSelectedPath();
         if (!romPath.empty())
         {
+            // Estados de outra ROM não podem ser restaurados na ROM recém-carregada.
             clearRewindStates();
             stateManager->loadRom(romPath, *nes, *window);
         }
 
         if (window->isResetRequested())
         {
+            // O reset invalida os snapshots capturados antes dele.
             clearRewindStates();
             stateManager->reset(*nes, *window);
         }
 
         if (window->isUnloadRequested())
         {
+            // Sem cartucho, nenhum estado de rewind deve permanecer disponível.
             clearRewindStates();
             stateManager->unloadRom(*nes, *window);
         }
@@ -372,6 +379,7 @@ namespace R2NES::Core
 
         if (runningFastForward)
         {
+            // Guarda as preferências do usuário para restaurá-las ao soltar o atalho.
             oldUncappedSpeed = uncappedSpeed;
             oldVsyncEnabled = vsyncEnabled;
             uncappedSpeed = true;
@@ -428,6 +436,7 @@ namespace R2NES::Core
         if (rewindResidualTime < rewindIntervalSeconds || rewindStates.empty())
             return false;
 
+        // Mantém apenas o excedente de tempo para preservar o ritmo do rewind.
         rewindResidualTime = std::fmod(rewindResidualTime, rewindIntervalSeconds);
         std::istringstream state(rewindStates.back(), std::ios::binary | std::ios::in);
         if (nes->loadState(state))
