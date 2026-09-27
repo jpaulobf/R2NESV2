@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <deque>
 #include "Core/IO/NESButtons.h"
 #include <SDL.h>
 #include "System/AudioManager.h"
@@ -17,30 +18,51 @@ namespace R2NES::Core
     class Engine
     {
     public:
+        // Cria os subsistemas do emulador e aplica as configurações iniciais.
         Engine();
 
+        // Libera a Engine e seus subsistemas gerenciados por smart pointers.
         ~Engine();
 
+        // Executa o laço principal de entrada, emulação e renderização.
         void run();
 
+        // Alterna o VSync por meio da janela, mantendo o estado sincronizado via callback.
         void toggleVSync();
 
+        // Alterna a emulação sem limite de velocidade.
         void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
 
     private:
+        // Processa eventos da janela, periféricos e solicitações de estado/ROM.
         void processEmulatorInput();
 
+        // Encaminha teclas ao controle e trata os atalhos globais da Engine.
         void handleKeyboard(SDL_Keycode key, bool isPressed);
 
+        // Registra callbacks da janela e sincroniza as opções iniciais com o NES.
         void init();
 
+        // Emula um quadro, incluindo entrada, áudio e captura para rewind.
         void update();
 
+        // Desenha o quadro e atualiza as janelas auxiliares de depuração.
         void render();
 
+        // Ativa/desativa fast-forward, preservando as opções anteriores de velocidade e VSync.
         void setFastForward(bool enabled);
 
+        // Ativa/desativa rewind e limpa o áudio pendente ao iniciá-lo.
         void setRewind(bool enabled);
+
+        // Serializa periodicamente o estado atual e o mantém no histórico limitado de rewind.
+        void captureRewindState();
+
+        // Restaura o próximo estado do histórico quando o intervalo de rewind é atingido.
+        bool updateRewind(double deltaTime);
+
+        // Descarta o histórico de rewind e reinicializa seus contadores.
+        void clearRewindStates();
 
         // Ponteiros
         std::unique_ptr<Window> window;
@@ -77,6 +99,14 @@ namespace R2NES::Core
         bool paused = false;
         bool oldUncappedSpeed = uncappedSpeed;
         bool oldVsyncEnabled = vsyncEnabled;
+
+        // Histórico em memória: a frente é o estado mais antigo e o fim é o mais recente.
+        std::deque<std::string> rewindStates;
+        int framesSinceLastRewindState = 0;
+        double rewindResidualTime = 0.0;
+        int rewindStateIntervalFrames = 5;
+        double rewindHistorySeconds = 10.0;
+        double rewindIntervalSeconds = 0.05;
 
         // Controle dos sprites ilimitados
         bool unlimitedSprites = false;
