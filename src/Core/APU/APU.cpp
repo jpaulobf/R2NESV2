@@ -21,6 +21,7 @@ namespace R2NES::Core
         {1, 0, 0, 1, 1, 1, 1, 1}  // 25% invertido
     };
 
+    // Construtor do APU — inicializa o estado interno
     APU::APU()
     {
         reset();
@@ -30,20 +31,21 @@ namespace R2NES::Core
 
     void APU::reset()
     {
+        // Reinicia o estado do Frame Counter e flags de IRQ
         frameClockCounter = 0;
         frameCounterMode = 4;
         irqEnabled = false;
         irqFlag = false;
         noise.shiftRegister = 1;
 
-        // Inicializa timers com valores seguros para evitar clocks ultrassônicos no início
+        // Inicializa timers com valores seguros para evitar ruídos/artefatos no início
         pulse1.timerReload = 0;
         pulse2.timerReload = 0;
         triangle.timerReload = 0;
         noise.timerReload = 0;
         noise.timer = 1;
 
-        // Reinicia estado do Slew Limiter
+        // Reinicia estado do Slew Limiter e buffers de áudio
         lastPulse1Sample = 0.0f;
         lastPulse2Sample = 0.0f;
         lastTriangleSample = 0.0f;
@@ -55,10 +57,11 @@ namespace R2NES::Core
         sampleSum = 0.0f;
         sampleCount = 0;
 
-        audioBuffer = std::queue<float>(); // Limpa os restos de áudio
+        audioBuffer = std::queue<float>(); // Limpa a fila de áudio
         cycleCounter = 0.0;
     }
 
+    // Conecta o barramento do sistema ao APU para leituras/escritas pelos canais
     void APU::connectBus(Bus *b) { bus = b; }
 
     void APU::cpuWrite(uint16_t addr, uint8_t data)
@@ -203,6 +206,7 @@ namespace R2NES::Core
     {
         if (addr == 0x4015)
         {
+            // Leitura do registrador de status 0x4015: indica quais canais têm length>0
             uint8_t res = 0;
             if (pulse1.lengthCounter.count > 0)
                 res |= 0x01;
@@ -212,8 +216,9 @@ namespace R2NES::Core
                 res |= 0x04;
             if (noise.lengthCounter.count > 0)
                 res |= 0x08;
-            // DMC Status...
-            irqFlag = false; // Leitura limpa o flag de IRQ
+            // Aqui poderia ser incluído o status do DMC e outras flags
+            // A leitura limpa o flag de IRQ
+            irqFlag = false;
             return res;
         }
         return 0x00;
@@ -221,8 +226,8 @@ namespace R2NES::Core
 
     void APU::step()
     {
-        // O Frame Counter divide o tempo em steps (aprox. 240Hz ou 192Hz)
-        // 1 cycle do APU = 1 cycle da CPU
+        // O Frame Counter divide o tempo em steps (aprox. 240Hz ou 192Hz).
+        // Cada ciclo do APU corresponde a 1 ciclo da CPU.
         bool quarterFrame = false;
         bool halfFrame = false;
 

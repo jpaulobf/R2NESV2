@@ -12,45 +12,47 @@ namespace R2NES::Core
     class APU
     {
     public:
+        // Construtor / destrutor
         APU();
         ~APU();
 
+        // Avança o estado do APU em 1 ciclo de CPU (chamado a cada passo do NES)
         void step();
 
+        // Reseta o estado interno do APU (buffers, contadores, registradores)
         void reset();
 
+        // Conecta o barramento do sistema para leituras/escritas
         void connectBus(Bus *bus);
 
+        // Escrita/Leitura pelo CPU aos registradores do APU (0x4000 - 0x4017)
         void cpuWrite(uint16_t addr, uint8_t data);
-
         uint8_t cpuRead(uint16_t addr);
 
+        // Retorna uma amostra pronta para a saída de áudio (pop da fila)
         float getOutputSample();
 
+        // Configura taxa de amostragem da saída de áudio (ex.: 44100 Hz)
         void setAudioSampleRate(float rate);
 
+        // Ajusta o Slew Limiter (em ms) para evitar cliques em transições abruptas
         void setSlewMs(float ms);
 
+        // Consultas de estado
         bool hasSamples() const { return !audioBuffer.empty(); }
-
         bool getIrqFlag() const { return irqFlag; }
 
+        // Controle global de som e canais (usado pela UI/usuario)
         void enableSound() { soundEnabled = true; }
-
         void disableSound() { soundEnabled = false; }
-
         void setPulse1Enabled(bool enabled) { userPulse1Enabled = enabled; }
-
         void setPulse2Enabled(bool enabled) { userPulse2Enabled = enabled; }
-
         void setTriangleEnabled(bool enabled) { userTriangleEnabled = enabled; }
-
         void setNoiseEnabled(bool enabled) { userNoiseEnabled = enabled; }
-
         void setDMCEnabled(bool enabled) { userDMCEnabled = enabled; }
 
+        // Persistência do estado do APU (savestate)
         void saveState(std::ostream &os);
-
         void loadState(std::istream &is);
 
     private:
