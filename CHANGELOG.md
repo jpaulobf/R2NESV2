@@ -2,6 +2,9 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [0.9.6] - 2026-09-27
+- Refatorada a classe Window, reduzindo a complexidade e separando algumas responsabilidades (WIP)
+
 ## [0.9.5] - 2026-09-26
 
 ### Adicionado
