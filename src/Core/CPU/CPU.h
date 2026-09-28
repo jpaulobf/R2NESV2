@@ -17,6 +17,9 @@ namespace R2NES::Core
         CPU();
         ~CPU();
 
+        // Destruição/Construção: inicializa a tabela de instruções
+        // e prepara o estado interno da CPU 6502 emular.
+
         // Enum para as Flags do Status Register (P)
         // Usamos bitmasks para facilitar a manipulação
         enum FLAGS6502
@@ -34,28 +37,34 @@ namespace R2NES::Core
         // Conecta a CPU ao barramento principal
         void connectBus(Bus *n);
 
-        // Executa um ciclo de clock da CPU
+        // Executa um ciclo de clock da CPU.
+        // Retorna a quantidade de ciclos que a instrução em execução
+        // consumiu (útil para sincronizar PPU/APU/mappers).
         uint16_t clock();
 
-        // Retorna verdadeiro se a instrução atual terminou
+        // Retorna verdadeiro se a CPU não tem ciclos pendentes
+        // (ou seja, se a instrução atual já foi completada).
         bool complete() const;
 
         // Serialização para Save / Load states
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
 
-        // Reseta a CPU para um estado inicial conhecido
+        // Reseta a CPU para um estado inicial conhecido.
+        // Define registradores, ponteiro de pilha, flags e PC via vetor de reset.
         void reset();
 
         // Sinais de interrupção externos
+        // IRQ: interrupção mascarável (verifica flag I)
         void irq(); // Interrupt Request
+        // NMI: interrupção não mascarável (sempre aceita)
         void nmi(); // Non-Maskable Interrupt
 
-        // Métodos auxiliares para manipular as flags
-        // Retorna o estado de uma flag específica
+        // Métodos auxiliares para manipular as flags do registrador P
+        // Retorna o estado (0/1) de uma flag específica.
         uint8_t GetFlag(FLAGS6502 f);
 
-        // Define ou limpa uma flag específica
+        // Define ou limpa uma flag específica no registrador de status.
         void SetFlag(FLAGS6502 f, bool v);
 
         // Retorna um mapa de strings representando a desmontagem do código (Disassembler)
@@ -64,7 +73,9 @@ namespace R2NES::Core
         void push(uint8_t data);
         uint8_t pop();
 
-        // Atualiza as flags Negative e Zero com base em um valor
+        // Atualiza as flags N (Negative) e Z (Zero) com base em `value`.
+        // - Z é setada se value == 0
+        // - N é setada se o bit 7 de value estiver setado
         void updateNZFlags(uint8_t value);
 
         // Tabela de instruções do 6502 (256 opcodes)
@@ -84,7 +95,7 @@ namespace R2NES::Core
         std::vector<INSTRUCTION> lookup; // Tabela de 256 opcodes
 
         // Quantos ciclos restam para a instrução terminar.
-        // Aumentado para uint16_t para suportar stalls de DMA (~513 ciclos).
+        // Usamos uint16_t para suportar eventos longos (ex: DMA/HDMA).
         uint16_t cycles = 0;
 
         // Registradores do 6502
@@ -96,7 +107,9 @@ namespace R2NES::Core
         uint8_t status = 0x00; // Registrador de Status (Flags)
 
         // --- Modos de Endereçamento (Addressing Modes) ---
-        // Retornam 1 se um ciclo extra for necessário (ex: cruzamento de página)
+        // Cada função calcula `addr_abs` / `addr_rel` conforme o modo.
+        // Retornam 1 quando a operação exige ciclo extra (por exemplo,
+        // cruzamento de página em modos indexados).
         uint8_t IMP();
         uint8_t IMM();
         uint8_t ZP0();
@@ -111,7 +124,8 @@ namespace R2NES::Core
         uint8_t IZY();
 
         // --- Opcodes (Instruções) ---
-        // Retornam 1 se um ciclo extra for necessário
+        // Implementações das operações do 6502. Retornam 1 se um ciclo
+        // extra for necessário (por exemplo, em leituras RMW ou cruzamento de página).
         uint8_t ADC();
         uint8_t AND();
         uint8_t ASL();
@@ -190,10 +204,15 @@ namespace R2NES::Core
 
     private:
         // Variáveis auxiliares para o estado da execução
-        uint8_t fetched = 0x00;     // Armazena o dado lido para a instrução atual
-        uint16_t addr_abs = 0x0000; // Endereço calculado pela instrução
-        uint16_t addr_rel = 0x0000; // Endereço relativo para saltos (branch)
-        uint8_t opcode = 0x00;      // Instrução atual
-        Bus *bus = nullptr;         // Ponteiro para o Bus ao qual a CPU está conectada
+        // Dado trazido pela instrução atual (após `fetch()`)
+        uint8_t fetched = 0x00;
+        // Endereço absoluto calculado pelo modo de endereçamento
+        uint16_t addr_abs = 0x0000;
+        // Endereço relativo utilizado em branches (offset sign-extend)
+        uint16_t addr_rel = 0x0000;
+        // Opcode atualmente sendo executado
+        uint8_t opcode = 0x00;
+        // Ponteiro para o barramento (leitura/escrita de memória)
+        Bus *bus = nullptr;
     };
 }

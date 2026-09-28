@@ -5,6 +5,8 @@
 
 namespace R2NES::Core
 {
+    // Construtor: inicializa a tabela de instruções (lookup)
+    // Cada entrada contém: nome, ponteiro para operação, modo de endereçamento e ciclos base.
     CPU::CPU()
     {
         // Inicializa a tabela de opcodes (256 entradas)
@@ -275,18 +277,21 @@ namespace R2NES::Core
 
     void CPU::connectBus(Bus *bus)
     {
+        // Guarda o ponteiro para o barramento principal usado em leituras/escritas
         this->bus = bus;
     }
 
     // Retorna o estado de uma flag específica
     uint8_t CPU::GetFlag(FLAGS6502 flag)
     {
+        // Retorna 1 se o bit correspondente estiver setado, 0 caso contrário.
         return ((status & flag) > 0) ? 1 : 0;
     }
 
     // Define ou limpa uma flag específica
     void CPU::SetFlag(FLAGS6502 flag, bool set)
     {
+        // Opera diretamente sobre o registrador `status` (P)
         if (set)
         {
             status |= flag; // Define o bit da flag
@@ -299,18 +304,21 @@ namespace R2NES::Core
 
     void CPU::updateNZFlags(uint8_t value)
     {
+        // Atualiza Zero e Negative com base em `value`.
         SetFlag(Z, value == 0x00);
         SetFlag(N, value & 0x80);
     }
 
     void CPU::push(uint8_t data)
     {
+        // Escrita na pilha (RAM mapeada em 0x0100-0x01FF). Depois decrementa SP.
         bus->cpuWrite(0x0100 + stkp, data);
         stkp--;
     }
 
     uint8_t CPU::pop()
     {
+        // Incrementa SP e lê o valor da pilha.
         stkp++;
         return bus->cpuRead(0x0100 + stkp);
     }
@@ -319,38 +327,43 @@ namespace R2NES::Core
     {
         if (GetFlag(I) == 0)
         {
+            // Empilha PC (hi/lo) e o registrador de status (com B=0, U=1)
             push((pc >> 8) & 0x00FF);
             push(pc & 0x00FF);
 
-            // No hardware real, interrupções de hardware (IRQ/NMI) empurram o status com Bit 4=0 e Bit 5=1.
+            // No hardware real, IRQ/NMI empurram o status com B=0 e U=1.
             uint8_t status_to_push = status;
             status_to_push &= ~B; // Bit 4 (Break) deve ser 0
             status_to_push |= U;  // Bit 5 (Unused) deve ser 1
             push(status_to_push);
 
-            SetFlag(I, true); // O processador entra em modo de interrupção desabilitada
+            // Desabilita futuras IRQs enquanto estiver atendendo esta
+            SetFlag(I, true);
 
+            // Lê vetor de IRQ (0xFFFE/0xFFFF)
             uint16_t lo = bus->cpuRead(0xFFFE);
             uint16_t hi = bus->cpuRead(0xFFFF);
             pc = (hi << 8) | lo;
 
+            // IRQ custa 7 ciclos no 6502
             cycles = 7;
         }
     }
 
     void CPU::nmi()
     {
+        // NMI: sem máscara — sempre atendida. Comportamento igual ao IRQ
         push((pc >> 8) & 0x00FF);
         push(pc & 0x00FF);
 
-        // NMIs funcionam igual ao IRQ em relação aos bits 4 e 5
         uint8_t status_to_push = status;
         status_to_push &= ~B;
         status_to_push |= U;
         push(status_to_push);
 
-        SetFlag(I, true); // NMI também desabilita IRQs
+        SetFlag(I, true); // Desabilita IRQs ao entrar no handler
 
+        // Lê vetor de NMI (0xFFFA/0xFFFB)
         uint16_t lo = bus->cpuRead(0xFFFA);
         uint16_t hi = bus->cpuRead(0xFFFB);
         pc = (hi << 8) | lo;
@@ -382,26 +395,29 @@ namespace R2NES::Core
 
         if (cycles == 0)
         {
-            // Garante que a flag Unused esteja sempre 1
+            // Início do processamento de uma nova instrução
+            // Garante que a flag 'U' (unused) esteja sempre setada
             SetFlag(U, true);
 
-            // 1. Fetch
+            // 1) Fetch do opcode
             opcode = bus->cpuRead(pc);
             pc++;
 
-            // Obtém os ciclos base da instrução
+            // Ciclos base da instrução
             cycles = lookup[opcode].cycles;
 
-            // 2. Decode & Execute
+            // 2) Decodifica e executa: addrmode e operate podem retornar
+            // ciclos adicionais (ex: cruzamento de página).
             uint8_t additional_cycle1 = (this->*lookup[opcode].addrmode)();
             uint8_t additional_cycle2 = (this->*lookup[opcode].operate)();
 
-            // Soma ciclos extras
+            // Se ambos retornarem 1, soma 1 ciclo extra
             cycles += (additional_cycle1 & additional_cycle2);
 
+            // Mantém U setada
             SetFlag(U, true);
 
-            // Guardamos o total real que ESSA instrução gastou para retornar ao NES::step
+            // Guardamos quantos ciclos essa instrução TOTALIZOU
             cycles_executed = cycles;
         }
 
@@ -414,6 +430,7 @@ namespace R2NES::Core
 
     bool CPU::complete() const
     {
+        // True quando não há ciclos pendentes (CPU pronta para nova instrução)
         return cycles == 0;
     }
 
@@ -450,6 +467,7 @@ namespace R2NES::Core
     // Busca o dado atual com base no modo de endereçamento calculado
     uint8_t CPU::fetch()
     {
+        // Se o modo não for IMP (implied), lê do endereço calculado
         if (!(lookup[opcode].addrmode == &CPU::IMP))
             fetched = bus->cpuRead(addr_abs);
         return fetched;
@@ -458,6 +476,7 @@ namespace R2NES::Core
     // --- Implementações das Instruções de Modo de Endereçamento ---//
     uint8_t CPU::IMP()
     {
+        // Modo IMPLIED: o operando está no registrador A
         fetched = a;
         addr_abs = 0x0000;
         return 0;
@@ -465,12 +484,14 @@ namespace R2NES::Core
 
     uint8_t CPU::IMM()
     {
+        // Modo IMMEDIATE: o operando está logo após o opcode
         addr_abs = pc++;
         return 0;
     }
 
     uint8_t CPU::ZP0()
     {
+        // Zero page addressing: lê um offset de 8 bits
         addr_abs = bus->cpuRead(pc++);
         addr_abs &= 0x00FF;
         return 0;
@@ -478,6 +499,7 @@ namespace R2NES::Core
 
     uint8_t CPU::ZPX()
     {
+        // Zero page,X: soma X ao offset de 8 bits (wrap em 0x00FF)
         addr_abs = (bus->cpuRead(pc++) + x);
         addr_abs &= 0x00FF;
         return 0;
@@ -492,13 +514,15 @@ namespace R2NES::Core
 
     uint8_t CPU::REL()
     {
-        // Lê como uint8_t, converte para int8_t para preservar o sinal, e então para uint16_t
+        // Endereçamento relativo usado por branches.
+        // Lê um offset de 8 bits e sign-extend para 16 bits.
         addr_rel = (uint16_t)(int8_t)bus->cpuRead(pc++);
         return 0;
     }
 
     uint8_t CPU::ABS()
     {
+        // Endereçamento absoluto: 16-bit address immediate (lo, hi)
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         addr_abs = (static_cast<uint16_t>(hi) << 8) | lo;
@@ -507,6 +531,7 @@ namespace R2NES::Core
 
     uint8_t CPU::ABX()
     {
+        // Absolute,X: calcula endereço e detecta cruzamento de página
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         addr_abs = (static_cast<uint16_t>(hi) << 8) | lo;
@@ -531,11 +556,12 @@ namespace R2NES::Core
 
     uint8_t CPU::IND()
     {
+        // Indirect addressing: usado apenas pelo JMP (JMP (addr)).
+        // Reproduz o bug do 6502 quando o low byte é 0xFF.
         uint8_t lo = bus->cpuRead(pc++);
         uint8_t hi = bus->cpuRead(pc++);
         uint16_t ptr = (static_cast<uint16_t>(hi) << 8) | lo;
 
-        // Simula o bug do hardware original do 6502 no JMP indireto
         if (lo == 0xFF)
             addr_abs = (static_cast<uint16_t>(bus->cpuRead(ptr & 0xFF00)) << 8) | bus->cpuRead(ptr);
         else
@@ -546,6 +572,7 @@ namespace R2NES::Core
 
     uint8_t CPU::IZX()
     {
+        // (Indirect,X) — calcula tabela na pagina zero com X offset
         uint8_t t = bus->cpuRead(pc++);
         uint8_t lo = bus->cpuRead(static_cast<uint8_t>(t + x));
         uint8_t hi = bus->cpuRead(static_cast<uint8_t>(t + x + 1));
@@ -555,6 +582,7 @@ namespace R2NES::Core
 
     uint8_t CPU::IZY()
     {
+        // (Indirect),Y — lê endereço na página zero e soma Y. Detecta cruzamento.
         uint8_t t = bus->cpuRead(pc++);
         uint8_t lo = bus->cpuRead(t);
         uint8_t hi = bus->cpuRead(static_cast<uint8_t>(t + 1));
