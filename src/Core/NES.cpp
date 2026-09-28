@@ -6,22 +6,19 @@ namespace R2NES::Core
 {
     NES::NES()
     {
+        // Conecta os subsistemas no barramento e entre si.
+        // A ordem de conexão importa para garantir que cada componente tenha
+        // referência ao barramento antes de ser usado.
         bus.connectCPU(&cpu);
-
         bus.connectRam(&ram);
-
         bus.connectJoysticks(&joysticks);
-
         cpu.connectBus(&bus);
-
         bus.connectPPU(&ppu);
-
         ppu.connectBus(&bus);
-
         bus.connectAPU(&apu);
-
         apu.connectBus(&bus);
 
+        // Reseta o sistema para um estado inicial conhecido.
         reset();
     }
 
@@ -29,6 +26,7 @@ namespace R2NES::Core
 
     void NES::unload()
     {
+        // Ao remover o cartucho, restaura entrada e limpa referência no barramento.
         joysticks.port2Device = R2NES::Core::IO::DeviceType::Gamepad;
         bus.setCartridge(nullptr);
         cartridgeLoaded = false;
@@ -37,55 +35,52 @@ namespace R2NES::Core
 
     void NES::reset()
     {
-        // Limpa a RAM interna da CPU (2KB) para garantir um estado limpo (Cold Boot
-        // simulation)
+        // Limpa a RAM interna da CPU (2KB) para garantir um estado limpo (Cold Boot simulation)
         ram.reset();
 
+        // Reinicia APU e contador de clocks do sistema
         apu.reset();
         bus.systemClockCounter = 0;
 
+        // Se houver um cartucho com mapper, resetamos o mapper também
         if (bus.cart && bus.cart->getMapper())
             bus.cart->getMapper()->reset();
 
         nmi_delay = 0;
 
-        // CPU deve ser a ÚLTIMA a resetar, para ler os vetores com o Mapper já
-        // configurado
+        // CPU deve ser a ÚLTIMA a resetar, para ler os vetores com o Mapper já configurado
         cpu.reset();
         ppu.reset();
 
-        std::cout << "NES: Reset complete. CPU PC at 0x" << std::hex << cpu.pc
-                  << std::endl;
+        std::cout << "NES: Reset complete. CPU PC at 0x" << std::hex << cpu.pc << std::endl;
     }
 
     void NES::step()
     {
-        // 1. OAM DMA ou Execução Normal da CPU
+        // 1) DMA OAM tem prioridade: enquanto um DMA estiver ativo, a CPU fica "suspensa"
+        //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
         if (bus.dma_transfer)
         {
-            // A CPU está suspensa, mas o ciclo de DMA consome tempo
+            // Ciclo dummy inicial para alinhar o DMA a um ciclo par
             if (bus.dma_dummy)
             {
-                // O DMA sempre espera um ciclo de clock par para alinhar
                 if (bus.systemClockCounter % 2 == 1)
                     bus.dma_dummy = false;
             }
             else
             {
-                // Em ciclos pares, o DMA lê um byte da memória (CPU)
+                // Em ciclos pares lê da memória do CPU
                 if (bus.systemClockCounter % 2 == 0)
                 {
                     bus.dma_data = bus.cpuRead((bus.dma_page << 8) | bus.dma_addr);
                 }
-                // Em ciclos ímpares, o DMA escreve o byte na PPU através do registrador $2004
+                // Em ciclos ímpares escreve no registrador $2004 do PPU
                 else
                 {
-                    // O hardware de DMA apenas executa uma gravação repetida em $2004
                     ppu.cpuWrite(0x2004, bus.dma_data);
-
                     bus.dma_addr++;
 
-                    // Se terminou de copiar os 256 bytes
+                    // Após copiar 256 bytes, encerra a transferência
                     if (bus.dma_addr == 0x00)
                     {
                         bus.dma_transfer = false;
@@ -96,35 +91,33 @@ namespace R2NES::Core
         }
         else
         {
-            // Se não há DMA, a CPU roda normalmente!
+            // CPU executa um ciclo normalmente
             cpu.clock();
 
-            // Se o overclock estiver ativo, damos um ciclo extra para a CPU.
-            // Isso dobra a velocidade da CPU em relação à PPU e APU.
-            if (cpuOverclock) {
+            // Modo experimental: quando ativo, damos um ciclo extra à CPU
+            // (útil para testes de desempenho / debugging)
+            if (cpuOverclock)
+            {
                 cpu.clock();
             }
         }
 
-        // 2. O resto do hardware avança o tempo independentemente do DMA
+        // 2) Avança o relógio do sistema e demais dispositivos
         bus.systemClockCounter++;
 
         if (bus.cart)
             bus.cart->tick();
 
-        // A PPU sempre roda 3 vezes para cada passo de sistema (CPU)
+        // A PPU roda 3x para cada passo de sistema (CPU)
         ppu.clock();
         ppu.clock();
         ppu.clock();
 
-        // Verifica se a PPU disparou um sinal de NMI (VBlank).
-        // Emuladores com execução instantânea de instruções precisam de um pequeno
-        // atraso (delay) na NMI para evitar o bug de "NMI Hijacking" (onde o NMI
-        // rouba a flag de VBLANK do loop principal, como no jogo Burgertime).
+        // NMI (VBlank) — introduzimos um pequeno delay para evitar NMI hijacking
         if (ppu.nmi)
         {
             ppu.nmi = false;
-            nmi_delay = 2; // Espera algumas instruções antes de disparar
+            nmi_delay = 2; // espera algumas instruções antes de disparar NMI
         }
 
         if (!bus.dma_transfer)
@@ -139,21 +132,19 @@ namespace R2NES::Core
             }
         }
 
-        // APU clock (mesma velocidade da CPU)
+        // APU avança na mesma cadência da CPU
         apu.step();
 
-        // Propagação do sinal de IRQ (Interrupt Request)
-        // O IRQ pode ser disparado pela APU ou pelo Cartucho (Mappers)
+        // IRQ pode vir da APU ou do Mapper do cartucho
         bool mapperIrqActive = bus.cart && bus.cart->getIrqFlag();
         bool irqActive = apu.getIrqFlag() || mapperIrqActive;
 
-        // A interrupção só é processada quando a CPU termina a instrução atual
+        // IRQ é reconhecida apenas quando a CPU termina a instrução atual
         if (irqActive && cpu.complete() && cpu.GetFlag(CPU::I) == 0)
         {
             cpu.irq();
 
-            // A IRQ do mapper só pode ser reconhecida após a CPU aceitá-la.
-            // Com I=1, CPU::irq() não faz nada e a linha precisa permanecer ativa.
+            // Limpa o flag do mapper após reconhecimento da IRQ
             if (mapperIrqActive && bus.cart)
                 bus.cart->clearIrqFlag();
         }
@@ -161,13 +152,13 @@ namespace R2NES::Core
 
     void NES::insertCartridge(const std::string &path)
     {
+        // Cria e valida o cartucho; em caso de sucesso conecta-o ao barramento.
         std::shared_ptr<Cartridge> newCart = std::make_shared<Cartridge>(path);
         if (newCart->isValid())
         {
             bus.setCartridge(newCart);
             cartridgeLoaded = true;
-            std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: "
-                      << newCart->getRomHash() << std::endl;
+            std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: " << newCart->getRomHash() << std::endl;
         }
         else
         {
@@ -190,14 +181,14 @@ namespace R2NES::Core
         if (!bus.cart || !bus.cart->getMapper())
             return false;
 
-        // 1. Identificador simples para validar o arquivo (Magic Number)
-        uint32_t magic = 0x52324E32; // "R2N2"
+        // Formato simples: Magic number + estado dos componentes, na ordem fixa.
+        uint32_t magic = 0x52324E32; // "R2N2" (inclui framebuffer)
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
-        // 2. Salva estado dos componentes
-        os.write(reinterpret_cast<char *>(&bus.systemClockCounter),
-                 sizeof(bus.systemClockCounter));
+        // Salva contador de clocks do sistema
+        os.write(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
 
+        // Salva os estados dos subsistemas (ordem deve ser preservada ao carregar)
         cpu.saveState(os);
         ram.saveState(os);
         ppu.saveState(os);
@@ -224,15 +215,14 @@ namespace R2NES::Core
         uint32_t magic = 0;
         is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
         const bool includesFrameBuffer = magic == 0x52324E32; // "R2N2"
-        if (!includesFrameBuffer && magic != 0x52324E53) // "R2NS" (formato anterior)
+        if (!includesFrameBuffer && magic != 0x52324E53)      // "R2NS" (formato anterior)
         {
             std::cerr << "Error: Invalid SaveState file!" << std::endl;
             return false;
         }
 
-        // 2. Lê estado dos componentes (Exatamente na mesma ordem do save)
-        is.read(reinterpret_cast<char *>(&bus.systemClockCounter),
-                sizeof(bus.systemClockCounter));
+        // Lê o contador de clocks e restaura os subsistemas na mesma ordem do save
+        is.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
 
         cpu.loadState(is);
         ram.loadState(is);
