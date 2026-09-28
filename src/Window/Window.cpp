@@ -200,39 +200,64 @@ namespace R2NES::Core
                 // Threshold para considerar o gatilho "pressionado"
                 const int TRIGGER_THRESHOLD = 16000;
 
-                SDL_GameController *gc = SDL_GameControllerFromInstanceID(e.caxis.which);
-                int playerNum = (gc == controllers[0]) ? 1 : 2;
-
-                // Mantemos o estado anterior para detectar transições (pressionado uma vez)
-                static bool prevLT[2] = {false, false};
-                static bool prevRT[2] = {false, false};
-
-                if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+                if (controllerTriggerCallback)
                 {
-                    bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
-                    if (pressed && !prevLT[playerNum - 1])
-                    {
-                        std::cout << "L2 pressionado" << std::endl;
-                        prevLT[playerNum - 1] = true;
-                    }
-                    else if (!pressed && prevLT[playerNum - 1])
-                    {
-                        prevLT[playerNum - 1] = false;
-                    }
+                    int playerNum = (SDL_GameControllerFromInstanceID(e.caxis.which) == controllers[0]) ? 1 : 2;
+                    controllerTriggerCallback(playerNum, (SDL_GameControllerAxis)e.caxis.axis, e.caxis.value > TRIGGER_THRESHOLD);
                 }
-                else if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-                {
-                    bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
-                    if (pressed && !prevRT[playerNum - 1])
-                    {
-                        std::cout << "R2 pressionado" << std::endl;
-                        prevRT[playerNum - 1] = true;
-                    }
-                    else if (!pressed && prevRT[playerNum - 1])
-                    {
-                        prevRT[playerNum - 1] = false;
-                    }
-                }
+                // SDL_GameController *gc = SDL_GameControllerFromInstanceID(e.caxis.which);
+                // int playerNum = (gc == controllers[0]) ? 1 : 2;
+
+                // // Mantemos o estado anterior para detectar transições (pressionado uma vez)
+                // static bool prevLT[2] = {false, false};
+                // static bool prevRT[2] = {false, false};
+
+                // if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+                // {
+                //     bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
+                //     if (pressed && !prevLT[playerNum - 1])
+                //     {
+                //         std::cout << "L2 pressionado" << std::endl;
+                //         prevLT[playerNum - 1] = true;
+                //         // Se a opção Rewind estiver ativada no menu, notifica por callback
+                //         if (rewindEnabled && rewindCallback)
+                //         {
+                //             setRewind(true);
+                //         }
+                //     }
+                //     else if (!pressed && prevLT[playerNum - 1])
+                //     {
+                //         std::cout << "L2 liberado" << std::endl;
+                //         prevLT[playerNum - 1] = false;
+                //         if (rewindEnabled && rewindCallback)
+                //         {
+                //             setRewind(false);
+                //         }
+                //     }
+                // }
+                // else if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+                // {
+                //     bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
+                //     if (pressed && !prevRT[playerNum - 1])
+                //     {
+                //         std::cout << "R2 pressionado" << std::endl;
+                //         prevRT[playerNum - 1] = true;
+                //         // Se a opção Fast Forward estiver ativada no menu, notifica por callback
+                //         if (fastForwardEnabled && ffCallback)
+                //         {
+                //             setFastForward(true);
+                //         }
+                //     }
+                //     else if (!pressed && prevRT[playerNum - 1])
+                //     {
+                //         std::cout << "R2 liberado" << std::endl;
+                //         prevRT[playerNum - 1] = false;
+                //         if (fastForwardEnabled && ffCallback)
+                //         {
+                //             setFastForward(false);
+                //         }
+                //     }
+                // }
             }
 
             // Captura de Mouse para Zapper

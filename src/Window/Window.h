@@ -41,6 +41,7 @@ namespace R2NES::Core
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         using PauseCallback = std::function<void(bool)>;
         using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
+        using ControllerTriggerCallback = std::function<void(int, SDL_GameControllerAxis, bool)>;
         using SaveCallback = std::function<void(bool)>;
         using LoadCallback = std::function<void(bool)>;
         using SaveSlotCallback = std::function<void(int)>;
@@ -104,6 +105,9 @@ namespace R2NES::Core
 
         /* Define a função de callback para eventos de botões do controle. */
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
+
+        /* Define a função de callback para eventos de gatilho do controle. */
+        void setControllerTriggerCallback(ControllerTriggerCallback cb) { controllerTriggerCallback = cb; }
 
         /* Define a função de callback para eventos de paleta. */
         void setPaletteCallback(PaletteCallback cb) { paletteCallback = cb; }
@@ -488,6 +492,7 @@ namespace R2NES::Core
 
         KeyCallback keyCallback = nullptr;
         ControllerCallback controllerCallback = nullptr;
+        ControllerTriggerCallback controllerTriggerCallback = nullptr;
         VSyncCallback vsyncCallback = nullptr;
         UnlimitedSpritesCallback unlimitedSpritesCallback = nullptr;
         PauseCallback pauseCallback = nullptr;
