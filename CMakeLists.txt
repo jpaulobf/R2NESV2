@@ -23,9 +23,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Define o diretório de saída para a pasta /bin na raiz (como você pediu)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-# Procura automaticamente por todos os arquivos .cpp dentro de src e subpastas
-# Isso resolve seu problema de "packages/pastas" automaticamente!
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+# Procura automaticamente por todos os arquivos .cpp dentro de src e subpastas.
+# CONFIGURE_DEPENDS reconfigura o projeto quando novos arquivos são adicionados.
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 include(FetchContent)
 
