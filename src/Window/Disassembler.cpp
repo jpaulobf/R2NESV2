@@ -7,8 +7,10 @@
 
 namespace R2NES::Core
 {
+    // Mantém a criação dos recursos preguiçosa até o usuário abrir o viewer.
     Disassembler::Disassembler() {}
 
+    // Destrói os recursos na ordem exigida pelos backends ImGui e SDL.
     Disassembler::~Disassembler()
     {
         if (window)
@@ -26,6 +28,7 @@ namespace R2NES::Core
         }
     }
 
+    // Reexibe a janela existente ou inicializa seu renderer e contexto ImGui.
     void Disassembler::open(int parentX, int parentY, int parentW)
     {
         if (window)
@@ -54,6 +57,7 @@ namespace R2NES::Core
         }
     }
 
+    // Oculta o viewer, preservando recursos para uma reabertura rápida.
     void Disassembler::close()
     {
         if (window)
@@ -63,11 +67,13 @@ namespace R2NES::Core
         }
     }
 
+    // Permite ao gerenciador associar eventos SDL de fechamento a este viewer.
     uint32_t Disassembler::getWindowID() const
     {
         return window ? SDL_GetWindowID(window) : 0;
     }
 
+    // Processa entrada somente no contexto ImGui da janela que está visível.
     void Disassembler::handleEvent(SDL_Event *e)
     {
         if (visible && window && imguiContext)
@@ -77,12 +83,14 @@ namespace R2NES::Core
         }
     }
 
+    // Mantém a janela deslocada à direita e abaixo da janela principal.
     void Disassembler::updatePosition(int parentX, int parentY, int parentW)
     {
         if (window)
             SDL_SetWindowPosition(window, parentX + parentW, parentY + 300);
     }
 
+    // Desenha a instrução atual, estado da CPU e controles de execução passo a passo.
     void Disassembler::render(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                               bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status)
     {
