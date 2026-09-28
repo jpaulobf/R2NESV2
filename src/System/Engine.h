@@ -40,6 +40,15 @@ namespace R2NES::Core
         // Encaminha teclas ao controle e trata os atalhos globais da Engine.
         void handleKeyboard(SDL_Keycode key, bool isPressed);
 
+        // Direciona um evento de gatilho do controle SDL para o jogador correspondente.
+        void handleJoystickTrigger(int playerNum, SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes);
+
+        // Aplica gatilhos do primeiro controle físico.
+        void handleJoystickTrigger1(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes);
+
+        // Aplica gatilhos do segundo controle físico.
+        void handleJoystickTrigger2(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes);
+
         // Registra callbacks da janela e sincroniza as opções iniciais com o NES.
         void init();
 

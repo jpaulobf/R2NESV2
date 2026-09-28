@@ -39,6 +39,10 @@ namespace R2NES::Core
         window->setControllerCallback([this](int player, SDL_GameControllerButton button, bool isPressed)
                                       { this->inputManager->handleJoystick(player, button, isPressed, *nes); });
 
+        // Conecta o callback de gatilhos do controle
+        window->setControllerTriggerCallback([this](int player, SDL_GameControllerAxis axis, bool isPressed)
+                                             { this->handleJoystickTrigger(player, axis, isPressed, *nes); });
+
         // Conecta o callback de VSync para sincronizar o loop da Engine
         window->setVSyncCallback([this](bool enabled)
                                  { this->vsyncEnabled = enabled; });
@@ -160,6 +164,47 @@ namespace R2NES::Core
         window->toggleVSync();
     }
 
+    // Direciona o evento de gatilho do gamepad ao controlador emulado do jogador correto.
+    void Engine::handleJoystickTrigger(int playerNum, SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes)
+    {
+        if (playerNum == 1)
+        {
+            handleJoystickTrigger1(axis, isPressed, nes);
+        }
+        else if (playerNum == 2)
+        {
+            handleJoystickTrigger2(axis, isPressed, nes);
+        }
+    }
+
+    // Atualiza exclusivamente os gatilhos do primeiro controle.
+    void Engine::handleJoystickTrigger1(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes)
+    {
+        auto &joy1 = nes.getJoysticks().controller1;
+        if (axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+        {
+            this->setRewind(this->rewindEnabled && isPressed);
+        }
+        else if (axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        {
+            this->setFastForward(this->fastForwardEnabled && isPressed);
+        }
+    }
+
+    // Atualiza exclusivamente os gatilhos do segundo controle.
+    void Engine::handleJoystickTrigger2(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes)
+    {
+        auto &joy2 = nes.getJoysticks().controller2;
+        if (axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+        {
+            this->setRewind(this->rewindEnabled && isPressed);
+        }
+        else if (axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        {
+            this->setFastForward(this->fastForwardEnabled && isPressed);
+        }
+    }
+
     // Mantém o ciclo de eventos, emulação e vídeo de acordo com o modo de execução ativo.
     void Engine::run()
     {
@@ -268,7 +313,7 @@ namespace R2NES::Core
 
         const uint8_t *keyboardState = SDL_GetKeyboardState(nullptr);
         // Consulta contínua garante que o rewind pare ao soltar Caps Lock.
-        setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
+        //setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
 
         // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
         if (nes->isCartridgeLoaded())
@@ -394,7 +439,7 @@ namespace R2NES::Core
 
     // Controla o rewind e interrompe o áudio pendente ao começar a retroceder.
     void Engine::setRewind(bool enabled)
-    {
+    {      
         // Se não houve mudança, não fazemos nada
         if (runningRewind == enabled || !nes->isCartridgeLoaded())
             return;
