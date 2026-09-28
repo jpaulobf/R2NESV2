@@ -14,12 +14,16 @@ namespace R2NES::Core
     {
         if (window)
         {
+            // Garante que o contexto ImGui desta janela esteja ativo antes de encerrar
             if (imguiContext)
                 ImGui::SetCurrentContext(imguiContext);
+            // Encerra backends do ImGui específicos para SDL Renderer
             ImGui_ImplSDLRenderer2_Shutdown();
             ImGui_ImplSDL2_Shutdown();
+            // Destroi o contexto ImGui criado para esta janela
             if (imguiContext)
                 ImGui::DestroyContext(imguiContext);
+            // Destroi recursos SDL
             if (renderer)
                 SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
@@ -34,15 +38,18 @@ namespace R2NES::Core
             visible = true;
             return;
         }
-
+        // Cria a janela posicionada à esquerda do pai e um pouco abaixo
         window = SDL_CreateWindow("R2NES v2 - VRAM Viewer", parentX - 512, parentY + 300, 512, 400, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
         if (window)
         {
+            // Renderer acelerado para apresentar os comandos do ImGui
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
             SDL_RenderPresent(renderer);
 
+            // Criamos um contexto ImGui dedicado para esta janela para isolar
+            // estados (fontes, IO, etc.) e permitirmos múltiplos visualizadores.
             imguiContext = ImGui::CreateContext();
             ImGui::SetCurrentContext(imguiContext);
             ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
@@ -91,6 +98,7 @@ namespace R2NES::Core
         ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
         ImGui::Begin("VRAM Viewer", &visible, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
+        // Área rolável com a visualização em hexdump + ASCII, linhas de 16 bytes.
         ImGui::BeginChild("VRAM_ScrollRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() * 4), false, ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::Text("Addr | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII");
         ImGui::Separator();
@@ -111,6 +119,7 @@ namespace R2NES::Core
         }
         ImGui::EndChild();
 
+        // Controles de edição simples: endereço e valor em hex, com validação de faixa.
         static uint16_t editAddr = 0x0000;
         static uint8_t editValue = 0x00;
         ImGui::Separator();
@@ -120,11 +129,13 @@ namespace R2NES::Core
         ImGui::SameLine();
         if (ImGui::Button("Write") && editAddr < vram->getSize())
         {
+            // Escrita direta na VRAM (utilize com cautela — pode alterar estado do PPU)
             vram->writeRaw(editAddr, editValue);
         }
 
         ImGui::End();
 
+        // Render ImGui para a janela SDL
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         ImGui::Render();
