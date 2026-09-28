@@ -9,16 +9,19 @@ namespace R2NES::Core::Util
 {
     std::map<std::string, std::string> ConfigManager::configValues;
 
+    // Carrega as configurações assim que o gerenciador fica disponível à Window.
     ConfigManager::ConfigManager()
     {
         loadConfigFile();
     }
 
+    // Persiste a lista atual de ROMs e preferências ao encerrar a aplicação.
     ConfigManager::~ConfigManager()
     {
         saveConfigFile();
     }
 
+    // Analisa o arquivo INI simples e reconstrói a lista de ROMs e o último diretório.
     void ConfigManager::loadConfigFile()
     {
         std::ifstream file(configFilePath);
@@ -66,6 +69,7 @@ namespace R2NES::Core::Util
         }
     }
 
+    // Garante o diretório de saída e grava as ROMs recentes antes das demais chaves.
     void ConfigManager::saveConfigFile()
     {
         // Garante que a pasta 'resources' exista antes de tentar salvar
@@ -114,6 +118,7 @@ namespace R2NES::Core::Util
         }
     }
 
+    // Atualiza a lista LRU sem duplicatas e descarta a entrada mais antiga além do limite.
     void ConfigManager::addRomToList(const std::string &romPath)
     {
         if (romPath.empty())
