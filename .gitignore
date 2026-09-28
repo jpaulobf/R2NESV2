@@ -9,3 +9,9 @@ target/*
 bin/*
 build/*
 analysis_results.md
+cmake/*
+CMakeFiles/*
+_deps/*
+CMakePresets.json
+CMakeCache.txt
+out/*
