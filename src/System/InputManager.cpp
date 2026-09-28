@@ -3,6 +3,7 @@
 
 namespace R2NES::System
 {
+    // Define os controles padrão de teclado, gamepad e turbo do jogador 1.
     InputManager::InputManager()
     {
         // Inicializa o mapeamento de teclas padrão para o Player 1
@@ -32,6 +33,7 @@ namespace R2NES::System
         configureABBAButtons(false);
     }
 
+    // Reconfigura os botões de ação e remove atalhos turbo deixados pelo layout anterior.
     void InputManager::configureABBAButtons(bool invert)
     {
         invertBAYB = invert;
@@ -62,6 +64,7 @@ namespace R2NES::System
         }
     }
 
+    // Atualiza a porta 2 do NES para o dispositivo selecionado no menu.
     void InputManager::configureUseZapper(bool enabled, Core::NES &nes)
     {
         useZapper = enabled;
@@ -76,6 +79,7 @@ namespace R2NES::System
         }
     }
 
+    // Processa teclas de jogo e mantém o estado de turbo separado do botão normal.
     void InputManager::handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
@@ -99,6 +103,7 @@ namespace R2NES::System
         }
     }
 
+    // Direciona o evento do gamepad ao controlador emulado do jogador correto.
     void InputManager::handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
     {
         if (playerNum == 1)
@@ -111,6 +116,7 @@ namespace R2NES::System
         }
     }
 
+    // Atualiza o controle 1 e ativa ou desativa os botões turbo associados.
     void InputManager::handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
@@ -133,6 +139,7 @@ namespace R2NES::System
         }
     }
 
+    // Atualiza exclusivamente os botões convencionais do segundo controle.
     void InputManager::handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
     {
         auto &joy2 = nes.getJoysticks().controller2;
@@ -143,6 +150,7 @@ namespace R2NES::System
         }
     }
 
+    // Alterna A e B turbo a cada dois quadros enquanto seus atalhos permanecem pressionados.
     void InputManager::update(Core::NES &nes, int frameCount)
     {
         auto &joy1 = nes.getJoysticks().controller1;
