@@ -3,16 +3,19 @@
 
 namespace R2NES::System
 {
+    // Inicializa a saída de áudio junto com o gerenciador.
     AudioManager::AudioManager()
     {
         initialize();
     }
 
+    // Garante que o dispositivo SDL não sobreviva ao gerenciador.
     AudioManager::~AudioManager()
     {
         close();
     }
 
+    // Solicita um dispositivo mono com amostras float e armazena a frequência concedida.
     void AudioManager::initialize()
     {
         SDL_AudioSpec want, have;
@@ -35,6 +38,7 @@ namespace R2NES::System
         }
     }
 
+    // Fecha o dispositivo somente quando sua criação foi bem-sucedida.
     void AudioManager::close()
     {
         if (audioDevice > 0)
@@ -44,11 +48,13 @@ namespace R2NES::System
         }
     }
 
+    // Agrupa amostras para reduzir chamadas à fila SDL durante a geração do quadro.
     void AudioManager::pushSample(float sample)
     {
         audioBuffer.push_back(sample);
     }
 
+    // Mantém a fila curta em velocidade normal e a silencia durante fast-forward.
     void AudioManager::queueAudio(bool isFastForwarding)
     {
         if (audioDevice > 0 && !audioBuffer.empty())
@@ -75,6 +81,7 @@ namespace R2NES::System
         audioBuffer.clear();
     }
 
+    // Remove amostras pendentes, por exemplo após pausar ou trocar de ROM.
     void AudioManager::clearQueuedAudio()
     {
         if (audioDevice > 0)
