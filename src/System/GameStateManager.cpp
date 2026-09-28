@@ -6,6 +6,7 @@
 
 namespace R2NES::System
 {
+    // Prepara o NES e a Window para uma nova ROM, incluindo o cache inicial do disassembly.
     void GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
     {
         window.uncheckZapperMenu();
@@ -28,6 +29,7 @@ namespace R2NES::System
         window.setCartLoaded(true);
     }
 
+    // Descarta o cartucho e remove da Window os estados associados à ROM anterior.
     void GameStateManager::unloadRom(Core::NES &nes, Core::Window &window)
     {
         std::cout << "GameStateManager: Unloading ROM..." << std::endl;
@@ -39,6 +41,7 @@ namespace R2NES::System
         window.setCartLoaded(false);
     }
 
+    // Reinicia o hardware emulado após uma solicitação do menu.
     void GameStateManager::reset(Core::NES &nes, Core::Window &window)
     {
         std::cout << "GameStateManager: Resetting NES..." << std::endl;
@@ -46,6 +49,7 @@ namespace R2NES::System
         window.clearResetRequest();
     }
 
+    // Persiste ou restaura o estado no slot solicitado e limpa as flags de comando da Window.
     void GameStateManager::handleSaveLoadState(Core::NES &nes, Core::Window &window)
     {
         if (nes.isCartridgeLoaded() && (window.getIsToSave() || window.getIsToLoad()))
@@ -74,6 +78,7 @@ namespace R2NES::System
         }
     }
 
+    // Reconstrói o cache somente quando o PC não está coberto pelo disassembly atual.
     void GameStateManager::updateDisassemblyCache(Core::NES &nes, uint16_t currentPC)
     {
         if (cachedDisassembly.find(currentPC) == cachedDisassembly.end())
