@@ -8,8 +8,10 @@
 
 namespace R2NES::Core
 {
+    // Construtor — recursos são criados apenas em `open()`.
     RamViewer::RamViewer() {}
 
+    // Destrutor — encerra backends ImGui e destrói recursos SDL se existirem.
     RamViewer::~RamViewer()
     {
         if (window)
@@ -27,6 +29,7 @@ namespace R2NES::Core
         }
     }
 
+    // Abre a janela do visualizador; reposiciona se já existir.
     void RamViewer::open(int parentX, int parentY, int parentW)
     {
         if (window)
@@ -67,6 +70,7 @@ namespace R2NES::Core
         }
     }
 
+    // Oculta a janela (mantém recursos para reuso).
     void RamViewer::close()
     {
         if (window)
@@ -81,6 +85,7 @@ namespace R2NES::Core
         return window ? SDL_GetWindowID(window) : 0;
     }
 
+    // Encaminha eventos SDL para o ImGui deste visualizador.
     void RamViewer::handleEvent(SDL_Event *e)
     {
         if (visible && window && imguiContext)
@@ -90,12 +95,14 @@ namespace R2NES::Core
         }
     }
 
+    // Mantém a janela posicionada ao lado do pai.
     void RamViewer::updatePosition(int parentX, int parentY, int parentW)
     {
         if (window)
             SDL_SetWindowPosition(window, parentX - 512, parentY);
     }
 
+    // Renderiza o conteúdo da RAM em linhas de 16 bytes e permite edição de um byte.
     void RamViewer::render(RAM *ram)
     {
         if (!visible || !renderer || !ram || !imguiContext)
@@ -112,6 +119,7 @@ namespace R2NES::Core
 
         size_t ramSize = ram->getSize();
 
+        // Endereços inicial e final controláveis pelo usuário
         static uint16_t startAddr = 0x0000;
         static uint16_t endAddr = 0x07FF;
 
@@ -129,6 +137,7 @@ namespace R2NES::Core
         ImGui::Text("Addr | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII");
         ImGui::Separator();
 
+        // Exibe linhas de 16 bytes com coluna ASCII à direita
         for (uint16_t addr = startAddr; addr <= endAddr; addr += 16)
         {
             ImGui::Text("%04X |", addr);
@@ -159,6 +168,7 @@ namespace R2NES::Core
             ImGui::Text("| %s", ascii_line.c_str());
         }
 
+        // Edição simples: endereço + valor hex
         static uint16_t editAddr = 0x0000;
         static uint8_t editValue = 0x00;
         ImGui::Separator();
