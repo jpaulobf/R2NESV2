@@ -5,8 +5,10 @@
 
 namespace R2NES::Core
 {
+    // Construtor — não cria recursos até `open()` ser chamado.
     PaletteViewer::PaletteViewer() {}
 
+    // Destrutor — encerra backends ImGui e destrói objetos SDL se existirem.
     PaletteViewer::~PaletteViewer()
     {
         if (window)
@@ -22,6 +24,7 @@ namespace R2NES::Core
         }
     }
 
+    // Abre a janela do visualizador; reposiciona se já existir.
     void PaletteViewer::open(int parentX, int parentY, int parentW)
     {
         if (window)
@@ -36,7 +39,7 @@ namespace R2NES::Core
         {
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-            // Define a cor de fundo como preto e limpa a janela imediatamente para evitar o fundo branco
+            // Define a cor de fundo como preto e limpa a janela imediatamente
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
             SDL_RenderPresent(renderer);
@@ -49,6 +52,7 @@ namespace R2NES::Core
         }
     }
 
+    // Oculta a janela, mantendo recursos para reuso.
     void PaletteViewer::close()
     {
         if (window)
@@ -60,6 +64,7 @@ namespace R2NES::Core
 
     uint32_t PaletteViewer::getWindowID() const { return window ? SDL_GetWindowID(window) : 0; }
 
+    // Encaminha eventos SDL para o ImGui deste visualizador.
     void PaletteViewer::handleEvent(SDL_Event *e)
     {
         if (visible && window && imguiContext)
@@ -69,12 +74,14 @@ namespace R2NES::Core
         }
     }
 
+    // Mantém a janela posicionada ao lado do pai (offset vertical fixo de 600).
     void PaletteViewer::updatePosition(int parentX, int parentY, int parentW)
     {
         if (window)
             SDL_SetWindowPosition(window, parentX + parentW, parentY + 600);
     }
 
+    // Renderiza as paletas usando ImGui e apresenta pelo renderer SDL.
     void PaletteViewer::render(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette)
     {
         if (!visible || !renderer || !imguiContext)
@@ -89,6 +96,7 @@ namespace R2NES::Core
         ImGui::SetNextWindowSize(ImVec2(430, 160));
         ImGui::Begin("Palettes", &visible, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
+        // Função local para desenhar um bloco de 4x4 entradas de paleta
         auto drawPalettes = [&](const char *label, int offset)
         {
             ImGui::Text("%s", label);
@@ -105,7 +113,7 @@ namespace R2NES::Core
                     uint8_t colorIdx = paletteTable[effectiveAddr] & 0x3F;
                     uint32_t color = systemPalette[colorIdx];
 
-                    // Converter ARGB (0xFFRRGGBB) para ABGR (0xFFBBGGRR) para o ImU32 do ImGui
+                    // Converter ARGB (0xFFRRGGBB) para ABGR (0xFFBBGGRR) esperado pelo ImGui U32
                     ImU32 imguiColor = 0xFF000000 |
                                        ((color & 0x00FF0000) >> 16) |
                                        (color & 0x0000FF00) |
