@@ -71,6 +71,9 @@ namespace R2NES::Core
         inline constexpr int IDM_HACKS_FAST_FORWARD = 3001;
         inline constexpr int IDM_HACKS_CPU_OVERCLOCK = 3002;
         inline constexpr int IDM_HACKS_REWIND = 3003;
+        inline constexpr int IDM_HACKS_REWIND_LEVEL_LIGHT = 3004;
+        inline constexpr int IDM_HACKS_REWIND_LEVEL_NORMAL = 3005;
+        inline constexpr int IDM_HACKS_REWIND_LEVEL_PRECISE = 3006;
         inline constexpr int IDM_INPUT_INVERT_BAYB = 4000;
         inline constexpr int IDM_INPUT_USE_ZAPPER = 4001;
         inline constexpr int IDM_RECENT_FILE_BASE_ID = 10000;
@@ -119,6 +122,8 @@ namespace R2NES::Core
         bool fastForwardEnabled = false;
         bool cpuOverclockEnabled = false;
         bool rewindEnabled = false;
+        // 0 = Light, 1 = Normal, 2 = Precise
+        int rewindPrecisionLevel = 1;
     };
 
     class NativeMenuController
