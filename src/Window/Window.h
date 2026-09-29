@@ -256,6 +256,12 @@ namespace R2NES::Core
         /* Define o estado do Rewind e notifica a engine. */
         void setRewind(bool enabled);
 
+        /* Define o nível de precisão do Rewind: 0=Light, 1=Normal, 2=Precise */
+        void setRewindPrecision(int level);
+
+        /* Retorna o nível atual de precisão do Rewind. */
+        int getRewindPrecision() const { return rewindPrecisionLevel; }
+
         /* Desativa o Fast Forward. */
         void fastForwardOff() { setFastForward(false); }
 
@@ -415,6 +421,9 @@ namespace R2NES::Core
         /* Informa o nome da ROM carregada. */
         void setRomFile(const std::string &path) { romFile = path; }
 
+        /* Retorna o nível de precisão do rewind atualmente configurado. */
+        int getRewindPrecisionLevel() const { return rewindPrecisionLevel; }
+
     private:
         /* Abre a caixa de diálogo nativa do Windows para abrir arquivos .nes ou .zip. */
         void openFileDialog();
@@ -532,6 +541,7 @@ namespace R2NES::Core
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
         bool rewindEnabled = false;
+        int rewindPrecisionLevel = 1;
         bool paused = false;
         bool useZapper = false;
 
