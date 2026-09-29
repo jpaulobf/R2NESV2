@@ -159,6 +159,13 @@ namespace R2NES::Core
         appendItem(hacksMenu, NativeMenuCommand::IDM_HACKS_CPU_OVERCLOCK, L"&Enable CPU Overclock", state.cpuOverclockEnabled);
         appendItem(hacksMenu, NativeMenuCommand::IDM_HACKS_REWIND, L"&Enable Rewind", state.rewindEnabled);
 
+        // Rewind Level popup: disabled when rewind is disabled
+        HMENU rewindLevelMenu = CreatePopupMenu();
+        appendItem(rewindLevelMenu, NativeMenuCommand::IDM_HACKS_REWIND_LEVEL_LIGHT, L"Light", state.rewindPrecisionLevel == 0);
+        appendItem(rewindLevelMenu, NativeMenuCommand::IDM_HACKS_REWIND_LEVEL_NORMAL, L"Normal", state.rewindPrecisionLevel == 1);
+        appendItem(rewindLevelMenu, NativeMenuCommand::IDM_HACKS_REWIND_LEVEL_PRECISE, L"Precise", state.rewindPrecisionLevel == 2);
+        AppendMenuW(hacksMenu, MF_POPUP | (state.rewindEnabled ? MF_ENABLED : MF_DISABLED), reinterpret_cast<UINT_PTR>(rewindLevelMenu), L"&Rewind Level");
+
         AppendMenuW(menuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"&File");
         AppendMenuW(menuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(displayMenu), L"&Display");
         AppendMenuW(menuBar, MF_POPUP, reinterpret_cast<UINT_PTR>(soundMenu), L"&Sound");
