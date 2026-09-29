@@ -113,9 +113,9 @@ namespace R2NES::Core
         std::deque<std::string> rewindStates;
         int framesSinceLastRewindState = 0;
         double rewindResidualTime = 0.0;
-        int rewindStateIntervalFrames = 5;
+        int rewindStateIntervalFrames[3] = {60, 20, 5};
         double rewindHistorySeconds = 10.0;
-        double rewindIntervalSeconds = 0.05;
+        double rewindIntervalSeconds[3] = {0.4, 0.1, 0.02};
 
         // Controle dos sprites ilimitados
         bool unlimitedSprites = false;
