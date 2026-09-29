@@ -454,7 +454,7 @@ namespace R2NES::Core
     // Salva snapshots espaçados do NES em uma fila com duração máxima configurada.
     void Engine::captureRewindState()
     {
-        if (++framesSinceLastRewindState < rewindStateIntervalFrames)
+        if (++framesSinceLastRewindState < rewindStateIntervalFrames[window->getRewindPrecisionLevel()])
             return;
 
         framesSinceLastRewindState = 0;
@@ -464,7 +464,7 @@ namespace R2NES::Core
             return;
 
         const size_t maximumStates = static_cast<size_t>(
-            std::ceil(rewindHistorySeconds * targetUPS / rewindStateIntervalFrames));
+            std::ceil(rewindHistorySeconds * targetUPS / rewindStateIntervalFrames[window->getRewindPrecisionLevel()]));
         if (maximumStates == 0)
             return;
 
@@ -478,11 +478,11 @@ namespace R2NES::Core
     bool Engine::updateRewind(double deltaTime)
     {
         rewindResidualTime += deltaTime;
-        if (rewindResidualTime < rewindIntervalSeconds || rewindStates.empty())
+        if (rewindResidualTime < rewindIntervalSeconds[window->getRewindPrecisionLevel()] || rewindStates.empty())
             return false;
 
         // Mantém apenas o excedente de tempo para preservar o ritmo do rewind.
-        rewindResidualTime = std::fmod(rewindResidualTime, rewindIntervalSeconds);
+        rewindResidualTime = std::fmod(rewindResidualTime, rewindIntervalSeconds[window->getRewindPrecisionLevel()]);
         std::istringstream state(rewindStates.back(), std::ios::binary | std::ios::in);
         if (nes->loadState(state))
         {
