@@ -205,59 +205,6 @@ namespace R2NES::Core
                     int playerNum = (SDL_GameControllerFromInstanceID(e.caxis.which) == controllers[0]) ? 1 : 2;
                     controllerTriggerCallback(playerNum, (SDL_GameControllerAxis)e.caxis.axis, e.caxis.value > TRIGGER_THRESHOLD);
                 }
-                // SDL_GameController *gc = SDL_GameControllerFromInstanceID(e.caxis.which);
-                // int playerNum = (gc == controllers[0]) ? 1 : 2;
-
-                // // Mantemos o estado anterior para detectar transições (pressionado uma vez)
-                // static bool prevLT[2] = {false, false};
-                // static bool prevRT[2] = {false, false};
-
-                // if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
-                // {
-                //     bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
-                //     if (pressed && !prevLT[playerNum - 1])
-                //     {
-                //         std::cout << "L2 pressionado" << std::endl;
-                //         prevLT[playerNum - 1] = true;
-                //         // Se a opção Rewind estiver ativada no menu, notifica por callback
-                //         if (rewindEnabled && rewindCallback)
-                //         {
-                //             setRewind(true);
-                //         }
-                //     }
-                //     else if (!pressed && prevLT[playerNum - 1])
-                //     {
-                //         std::cout << "L2 liberado" << std::endl;
-                //         prevLT[playerNum - 1] = false;
-                //         if (rewindEnabled && rewindCallback)
-                //         {
-                //             setRewind(false);
-                //         }
-                //     }
-                // }
-                // else if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-                // {
-                //     bool pressed = e.caxis.value > TRIGGER_THRESHOLD;
-                //     if (pressed && !prevRT[playerNum - 1])
-                //     {
-                //         std::cout << "R2 pressionado" << std::endl;
-                //         prevRT[playerNum - 1] = true;
-                //         // Se a opção Fast Forward estiver ativada no menu, notifica por callback
-                //         if (fastForwardEnabled && ffCallback)
-                //         {
-                //             setFastForward(true);
-                //         }
-                //     }
-                //     else if (!pressed && prevRT[playerNum - 1])
-                //     {
-                //         std::cout << "R2 liberado" << std::endl;
-                //         prevRT[playerNum - 1] = false;
-                //         if (fastForwardEnabled && ffCallback)
-                //         {
-                //             setFastForward(false);
-                //         }
-                //     }
-                // }
             }
 
             // Captura de Mouse para Zapper
@@ -597,6 +544,18 @@ namespace R2NES::Core
                                 this->rewindOn(); });
                     }
 
+                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_HACKS_REWIND_LEVEL_LIGHT &&
+                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_HACKS_REWIND_LEVEL_PRECISE)
+                    {
+                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
+                        if (id == IDM_HACKS_REWIND_LEVEL_LIGHT)
+                            this->setRewindPrecision(0);
+                        else if (id == IDM_HACKS_REWIND_LEVEL_NORMAL)
+                            this->setRewindPrecision(1);
+                        else if (id == IDM_HACKS_REWIND_LEVEL_PRECISE)
+                            this->setRewindPrecision(2);
+                    }
+
                     else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_CPU_OVERCLOCK)
                     {
                         toggleMarkMenuItem(IDM_HACKS_CPU_OVERCLOCK, [this](bool currentlyChecked)
@@ -789,6 +748,7 @@ namespace R2NES::Core
         menuState.fastForwardEnabled = fastForwardEnabled;
         menuState.cpuOverclockEnabled = cpuOverclockEnabled;
         menuState.rewindEnabled = rewindEnabled;
+        menuState.rewindPrecisionLevel = rewindPrecisionLevel;
         nativeMenuController.createMenu(window, menuState);
         return;
 
@@ -1367,6 +1327,24 @@ namespace R2NES::Core
             rewindCallback(rewindEnabled);
 
         std::cout << "Window: Rewind " << (rewindEnabled ? "Enabled" : "Disabled") << std::endl;
+
+        // Recreate menu so dependent items (Rewind Level popup) update enabled state
+        createMenu();
+    }
+
+    void Window::setRewindPrecision(int level)
+    {
+        if (level < 0) level = 0;
+        if (level > 2) level = 2;
+
+        if (rewindPrecisionLevel == level)
+            return;
+
+        rewindPrecisionLevel = level;
+        std::cout << "Window: Rewind Precision set to " << rewindPrecisionLevel << std::endl;
+
+        // Recreate menu to update checked radio item
+        createMenu();
     }
 
     // Atualiza o som mestre e notifica o subsistema de áudio.
