@@ -1,6 +1,7 @@
 #include "Window.h"
 #include <iostream>
-#include <SDL_syswm.h>
+#include <algorithm>
+#include <cctype>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include <filesystem>
@@ -8,18 +9,8 @@
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <commdlg.h>
-#endif
-
 namespace R2NES::Core
 {
-    using namespace NativeMenuCommand;
-    
     // Inicializa SDL, renderer, textura de vídeo e contexto ImGui da janela principal.
     Window::Window(const std::string &title, int w, int h, int s)
         : width(w), height(h), scale(s)
@@ -66,9 +57,6 @@ namespace R2NES::Core
             SDL_TEXTUREACCESS_STREAMING,
             w, h);
 
-        // Habilita o SDL para capturar mensagens nativas do Windows (necessário para o Menu)
-        SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
-
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         imguiContext = ImGui::CreateContext();
@@ -108,14 +96,6 @@ namespace R2NES::Core
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
-    }
-
-    // Inverte a marcação de um item e informa seu estado anterior ao callback.
-    void Window::toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback)
-    {
-        const bool currentlyChecked = nativeMenuController.isChecked(window, menuItemId);
-        nativeMenuController.setChecked(window, menuItemId, !currentlyChecked);
-        callback(currentlyChecked);
     }
 
     // Distribui eventos SDL entre ImGui, controles, mouse, teclado, menus e janelas auxiliares.
@@ -260,9 +240,9 @@ namespace R2NES::Core
             }
 
             // Trata mensagens do Menu do Windows
+ #if 0
             if (e.type == SDL_SYSWMEVENT)
             {
-#ifdef _WIN32
                 if (e.syswm.msg->msg.win.msg == WM_COMMAND)
                 {
                     if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_OPEN)
@@ -646,8 +626,8 @@ namespace R2NES::Core
                                 this->useZapperOn(); });
                     }
                 }
-#endif
             }
+ #endif
 
             // Trata o fechamento de janelas individuais
             if (e.type == SDL_WINDOWEVENT)
@@ -663,22 +643,11 @@ namespace R2NES::Core
                         switch (debugWindowManager.closeWindow(e.window.windowID))
                         {
                         case DebugWindow::Tile:
-                            nativeMenuController.setChecked(window, IDM_DEBUG_TILE_VIEWER, false);
-                            break;
                         case DebugWindow::Palette:
-                            nativeMenuController.setChecked(window, IDM_DEBUG_PALETTE_VIEWER, false);
-                            break;
                         case DebugWindow::Ram:
-                            nativeMenuController.setChecked(window, IDM_DEBUG_RAM_VIEWER, false);
-                            break;
                         case DebugWindow::Disassembler:
-                            nativeMenuController.setChecked(window, IDM_DEBUG_DISASSEMBLER, false);
-                            break;
                         case DebugWindow::Oam:
-                            nativeMenuController.setChecked(window, IDM_DEBUG_OAM_VIEWER, false);
-                            break;
                         case DebugWindow::Vram:
-                            nativeMenuController.setChecked(window, IDM_DEBUG_VRAM_VIEWER, false);
                             break;
                         case DebugWindow::None:
                             break;
@@ -716,6 +685,7 @@ namespace R2NES::Core
     // Reconstrói o menu nativo conforme o estado atual da ROM, visualizadores e opções.
     void Window::createMenu()
     {
+#if 0
         NativeMenuState menuState;
         menuState.cartLoaded = cartLoaded;
         menuState.recentRoms.assign(configManager.getRecentRoms().begin(), configManager.getRecentRoms().end());
@@ -1113,11 +1083,19 @@ namespace R2NES::Core
             SetMenu(hwnd, hMenuBar);
         }
 #endif
+#endif
     }
 
-    // Abre o seletor nativo de ROMs e atualiza a lista de arquivos recentes.
+    // Abre o seletor de ROMs implementado com Dear ImGui.
     void Window::openFileDialog()
     {
+        std::error_code error;
+        const std::string lastRomPath = configManager.getLastRomPath();
+        fileDialogDirectory = !lastRomPath.empty() && std::filesystem::is_directory(lastRomPath, error)
+                                  ? std::filesystem::path(lastRomPath)
+                                  : std::filesystem::current_path(error);
+        fileDialogOpen = true;
+#if 0
 #ifdef _WIN32
         OPENFILENAMEA ofn;
         char szFile[260] = {0};
@@ -1161,6 +1139,218 @@ namespace R2NES::Core
             createMenu(); // Atualiza o menu com a nova ROM no topo da lista
         }
 #endif
+#endif
+    }
+
+    void Window::renderFileDialog()
+    {
+        if (!fileDialogOpen)
+            return;
+
+        ImGui::OpenPopup("Open ROM");
+        bool keepOpen = true;
+        if (ImGui::BeginPopupModal("Open ROM", &keepOpen, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::TextUnformatted(fileDialogDirectory.string().c_str());
+            ImGui::Separator();
+            if (ImGui::Button("Up") && fileDialogDirectory.has_parent_path())
+                fileDialogDirectory = fileDialogDirectory.parent_path();
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+            {
+                fileDialogOpen = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::BeginChild("RomFiles", ImVec2(560.0f, 320.0f), true);
+            std::error_code error;
+            std::vector<std::filesystem::directory_entry> entries;
+            for (const auto &entry : std::filesystem::directory_iterator(fileDialogDirectory, error))
+                entries.push_back(entry);
+            std::sort(entries.begin(), entries.end(), [](const auto &left, const auto &right)
+                      { return left.path().filename().string() < right.path().filename().string(); });
+
+            for (const auto &entry : entries)
+            {
+                const auto path = entry.path();
+                const std::string name = path.filename().string();
+                if (entry.is_directory(error))
+                {
+                    const std::string label = "[DIR] " + name;
+                    if (ImGui::Selectable(label.c_str()))
+                        fileDialogDirectory = path;
+                    continue;
+                }
+
+                std::string extension = path.extension().string();
+                std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character)
+                               { return static_cast<char>(std::tolower(character)); });
+                if ((extension == ".nes" || extension == ".zip") && ImGui::Selectable(name.c_str()))
+                {
+                    selectedPath = path.string();
+                    configManager.addRomToList(selectedPath);
+                    configManager.setLastRomPath(path.parent_path().string());
+                    fileDialogOpen = false;
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            ImGui::EndChild();
+            ImGui::EndPopup();
+        }
+        else if (!keepOpen)
+        {
+            fileDialogOpen = false;
+        }
+    }
+
+    void Window::renderMenu()
+    {
+        if (!ImGui::BeginMainMenuBar())
+            return;
+
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Open ROM...")) openFileDialog();
+            if (ImGui::MenuItem("Reset")) reset();
+            if (ImGui::MenuItem("Unload", nullptr, false, cartLoaded)) unload();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Save State", "F5", false, cartLoaded)) setSave(true);
+            if (ImGui::MenuItem("Load State", "F6", false, cartLoaded)) setLoad(true);
+            if (ImGui::BeginMenu("Save State Slot", cartLoaded))
+            {
+                for (int slot = 1; slot <= 3; ++slot)
+                {
+                    const std::string label = "Slot " + std::to_string(slot);
+                    if (ImGui::MenuItem(label.c_str(), nullptr, saveSlot == slot)) setSaveSlot(slot);
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Recent Files"))
+            {
+                const auto &recentRoms = configManager.getRecentRoms();
+                if (recentRoms.empty()) ImGui::TextDisabled("No Recent Files");
+                int index = 0;
+                for (const auto &path : recentRoms)
+                {
+                    if (index++ == 10) break;
+                    const std::string name = std::filesystem::path(path).filename().string();
+                    if (ImGui::MenuItem(name.c_str()))
+                    {
+                        selectedPath = path;
+                        configManager.addRomToList(selectedPath);
+                    }
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) closed = true;
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Display"))
+        {
+            if (ImGui::MenuItem("VSync", nullptr, vsyncEnabled)) setVSync(!vsyncEnabled);
+            ImGui::Separator();
+            for (int scaleValue = 1; scaleValue <= 4; ++scaleValue)
+            {
+                const std::string label = std::to_string(scaleValue) + "x";
+                if (ImGui::MenuItem(label.c_str(), nullptr, currentWindowX == scaleValue)) windowResize(scaleValue);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Borderless Fullscreen Stretch")) windowBorderlessFullscreenStretch();
+            if (ImGui::MenuItem("Borderless Fullscreen")) windowBorderlessFullscreen();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Scanlines", nullptr, scanlines)) setScanlines(!scanlines);
+            if (ImGui::MenuItem("Top Crop Overscan (8px)", nullptr, cropOverscan))
+            {
+                cropOverscan = !cropOverscan;
+                if (cropOverscan) fullCropOverscan = false;
+                if (currentDisplayMode == DisplayMode::WINDOWED) windowResize(currentWindowX);
+            }
+            if (ImGui::MenuItem("Full Crop Overscan (8px, 8px, 8px, 8px)", nullptr, fullCropOverscan))
+            {
+                fullCropOverscan = !fullCropOverscan;
+                if (fullCropOverscan) cropOverscan = false;
+                if (currentDisplayMode == DisplayMode::WINDOWED) windowResize(currentWindowX);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Render Tiles", nullptr, tilesEnabled)) toggleTiles();
+            if (ImGui::MenuItem("Render Sprites", nullptr, spritesEnabled)) toggleSprites();
+            if (ImGui::BeginMenu("Scanlines Level"))
+            {
+                for (const int level : {5, 10, 15, 20, 25})
+                {
+                    const std::string label = std::to_string(level) + "%";
+                    if (ImGui::MenuItem(label.c_str(), nullptr, scanlinesTransparency == level)) scanlinesTransparency = level;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Palette Preset"))
+            {
+                const std::pair<PaletteType, const char *> palettes[] = {{PaletteType::DEFAULT, "Default"}, {PaletteType::SMOOTH, "Smooth"}, {PaletteType::NESTOPIA, "Nestopia Emulator"}, {PaletteType::WAVEBEAM, "WaveBeam"}, {PaletteType::NEON, "Neon"}};
+                for (const auto &[palette, label] : palettes)
+                    if (ImGui::MenuItem(label, nullptr, palettePreset == palette)) setPalettePreset(palette);
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Shaders"))
+            {
+                const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Scanlines"}, {ShaderType::CRT, "CRT"}, {ShaderType::CRT3D, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}, {ShaderType::XBRZMULTI, "xBRZ Multi"}};
+                for (const auto &[shaderType, label] : shaders)
+                    if (ImGui::MenuItem(label, nullptr, shader == shaderType)) setShader(shaderType);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Sound"))
+        {
+            if (ImGui::MenuItem("Master Sound", nullptr, soundEnabled)) setSound(!soundEnabled);
+            ImGui::Separator();
+            if (ImGui::MenuItem("Pulse 1", nullptr, pulse1Enabled)) setPulse1(!pulse1Enabled);
+            if (ImGui::MenuItem("Pulse 2", nullptr, pulse2Enabled)) setPulse2(!pulse2Enabled);
+            if (ImGui::MenuItem("Triangle", nullptr, triangleEnabled)) setTriangle(!triangleEnabled);
+            if (ImGui::MenuItem("Noise", nullptr, noiseEnabled)) setNoise(!noiseEnabled);
+            if (ImGui::MenuItem("DMC", nullptr, dmcEnabled)) setDMC(!dmcEnabled);
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Input"))
+        {
+            if (ImGui::MenuItem("Invert BA/YB Buttons", nullptr, invertBAYB)) setInvertBAYB(!invertBAYB);
+            if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper)) setUseZapper(!useZapper);
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Debug"))
+        {
+            if (ImGui::MenuItem("Disassembler", nullptr, isDisassemblerOpen())) openDisassembler();
+            if (ImGui::MenuItem("RAM Viewer", nullptr, isRamViewerOpen())) openRamViewer();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Tile Viewer", nullptr, isTileViewerOpen())) openTileViewer();
+            if (ImGui::MenuItem("VRAM Viewer", nullptr, isVramViewerOpen())) openVramViewer();
+            if (ImGui::MenuItem("Palette Viewer", nullptr, isPaletteViewerOpen())) openPaletteViewer();
+            if (ImGui::MenuItem("OAM Viewer", nullptr, isOamViewerOpen())) openOamViewer();
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Hacks"))
+        {
+            if (ImGui::MenuItem("Enable Unlimited Sprites", nullptr, unlimitedSprites)) setUnlimitedSprites(!unlimitedSprites);
+            if (ImGui::MenuItem("Enable Fast Forward", nullptr, fastForwardEnabled)) setFastForward(!fastForwardEnabled);
+            if (ImGui::MenuItem("Enable CPU Overclock", nullptr, cpuOverclockEnabled)) setCPUOverclock(!cpuOverclockEnabled);
+            if (ImGui::MenuItem("Enable Rewind", nullptr, rewindEnabled)) setRewind(!rewindEnabled);
+            if (ImGui::BeginMenu("Rewind Level", rewindEnabled))
+            {
+                const char *levels[] = {"Light", "Normal", "Precise"};
+                for (int level = 0; level < 3; ++level)
+                    if (ImGui::MenuItem(levels[level], nullptr, rewindPrecisionLevel == level)) setRewindPrecision(level);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+        renderFileDialog();
     }
 
     // Abre o desassemblador ao lado da janela principal.
@@ -1281,19 +1471,11 @@ namespace R2NES::Core
     {
         std::cout << "uncheck zapper menu";
         this->useZapper = false;
-        nativeMenuController.setChecked(window, IDM_INPUT_USE_ZAPPER, false);
     }
 
     // Fecha todos os visualizadores e remove suas marcações do menu de depuração.
     void Window::uncheckAllDebugMenuItems()
     {
-        nativeMenuController.setChecked(window, IDM_DEBUG_TILE_VIEWER, false);
-        nativeMenuController.setChecked(window, IDM_DEBUG_PALETTE_VIEWER, false);
-        nativeMenuController.setChecked(window, IDM_DEBUG_RAM_VIEWER, false);
-        nativeMenuController.setChecked(window, IDM_DEBUG_DISASSEMBLER, false);
-        nativeMenuController.setChecked(window, IDM_DEBUG_OAM_VIEWER, false);
-        nativeMenuController.setChecked(window, IDM_DEBUG_VRAM_VIEWER, false);
-
         debugWindowManager.closeAll();
     }
 
@@ -1565,16 +1747,6 @@ namespace R2NES::Core
             SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
         }
 
-#ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
-        {
-            // Remove o menu do Windows
-            SetMenu(wmInfo.info.win.window, NULL);
-        }
-#endif
-
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         currentDisplayMode = dm;
     }
@@ -1748,20 +1920,23 @@ namespace R2NES::Core
             SDL_RenderCopy(renderer, texture, &src_rect, nullptr);
         }
 
-        // Renderiza o overlay de PAUSE em modo Fullscreen
-        if (paused && currentDisplayMode != DisplayMode::WINDOWED && imguiContext)
+        if (imguiContext)
         {
             ImGui::SetCurrentContext(imguiContext);
             ImGui_ImplSDLRenderer2_NewFrame();
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
 
-            // Posiciona no centro da tela
-            ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-            ImGui::Begin("PauseOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
-            ImGui::SetWindowFontScale(4.0f);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.8f), "PAUSED");
-            ImGui::End();
+            renderMenu();
+
+            if (paused && currentDisplayMode != DisplayMode::WINDOWED)
+            {
+                ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+                ImGui::Begin("PauseOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
+                ImGui::SetWindowFontScale(4.0f);
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.8f), "PAUSED");
+                ImGui::End();
+            }
 
             ImGui::Render();
             ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
