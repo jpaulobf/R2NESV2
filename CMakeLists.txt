@@ -75,7 +75,12 @@ set(IMGUI_SOURCES
 )
 
 # Cria o executável
-add_executable(R2NESV2 ${SOURCES} ${IMGUI_SOURCES} resources/resource.rc)
+set(PLATFORM_SOURCES)
+if(WIN32)
+  list(APPEND PLATFORM_SOURCES resources/resource.rc)
+endif()
+
+add_executable(R2NESV2 ${SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})
 
 # Inclui a pasta src para permitir #include "Core/Bus.h"
 # Usar target_include_directories é a prática recomendada em C++ moderno
