@@ -44,6 +44,17 @@ namespace R2NES::System
         player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_X);
         player1TurboControllerMap.erase(SDL_CONTROLLER_BUTTON_Y);
 
+        player1KeyMap.erase(SDLK_j);
+        player1KeyMap.erase(SDLK_k);
+        player1KeyMap.erase(SDLK_i);
+        player1KeyMap.erase(SDLK_u);
+        player1TurboKeyMap.erase(SDLK_j);
+        player1TurboKeyMap.erase(SDLK_k);
+        player1TurboKeyMap.erase(SDLK_i);
+        player1TurboKeyMap.erase(SDLK_u);
+
+        
+
         if (invert)
         {
             player1ControllerMap[SDL_CONTROLLER_BUTTON_A] = R2NES::Core::IO::BUTTON_A;
@@ -52,6 +63,11 @@ namespace R2NES::System
             player1ControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_B;
             player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_B;
             player1TurboControllerMap[SDL_CONTROLLER_BUTTON_B] = R2NES::Core::IO::BUTTON_A;
+            player1KeyMap[SDLK_u] = R2NES::Core::IO::BUTTON_B;
+            player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_A;
+            player1TurboKeyMap[SDLK_k] = R2NES::Core::IO::BUTTON_A;
+            player1TurboKeyMap[SDLK_i] = R2NES::Core::IO::BUTTON_B;
+
         }
         else
         {
@@ -61,6 +77,10 @@ namespace R2NES::System
             player1ControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
             player1TurboControllerMap[SDL_CONTROLLER_BUTTON_X] = R2NES::Core::IO::BUTTON_B;
             player1TurboControllerMap[SDL_CONTROLLER_BUTTON_Y] = R2NES::Core::IO::BUTTON_A;
+            player1KeyMap[SDLK_j] = R2NES::Core::IO::BUTTON_B;
+            player1KeyMap[SDLK_k] = R2NES::Core::IO::BUTTON_A;
+            player1TurboKeyMap[SDLK_i] = R2NES::Core::IO::BUTTON_A;
+            player1TurboKeyMap[SDLK_u] = R2NES::Core::IO::BUTTON_B;
         }
     }
 
