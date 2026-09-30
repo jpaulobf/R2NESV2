@@ -3,11 +3,11 @@
 #include <SDL.h>
 #include <string>
 #include <cstdint>
+#include <filesystem>
 #include <map>
 #include <functional>
 #include <memory>
 #include "DebugWindowManager.h"
-#include "NativeMenuController.h"
 #include "TileViewer.h"
 #include "PaletteViewer.h"
 #include "RamViewer.h"
@@ -160,7 +160,7 @@ namespace R2NES::Core
         /* Atualiza os dados da OAM RAM na janela de debug. */
         void updateOamViewer(const std::array<uint8_t, 256> &oam);
 
-        /* Cria e configura o menu nativo do Windows (File, Display, Debug, etc). */
+        /* Mantido para compatibilidade; o menu ImGui é renderizado a cada quadro. */
         void createMenu();
 
         /* Retorna o caminho do arquivo ROM selecionado no diálogo de abertura. */
@@ -425,8 +425,12 @@ namespace R2NES::Core
         int getRewindPrecisionLevel() const { return rewindPrecisionLevel; }
 
     private:
-        /* Abre a caixa de diálogo nativa do Windows para abrir arquivos .nes ou .zip. */
+        /* Abre o navegador de ROMs renderizado pelo Dear ImGui. */
         void openFileDialog();
+
+        /* Renderiza a barra principal de menus e o navegador de arquivos. */
+        void renderMenu();
+        void renderFileDialog();
 
         /* Inicializa e exibe a janela de visualização de tiles (Pattern Tables). */
         void openTileViewer();
@@ -439,9 +443,6 @@ namespace R2NES::Core
 
         /* Inicializa e exibe a janela do RamViewer. */
         void openRamViewer();
-
-        /* Funções para manipular os itens do menu de debug. */
-        void toggleMarkMenuItem(int menuItemId, const std::function<void(bool)> &callback);
 
         /* Funções para manipular os itens do menu de debug. */
         void uncheckAllDebugMenuItems();
@@ -482,13 +483,14 @@ namespace R2NES::Core
 
         MouseState mouseState;
         DebugWindowManager debugWindowManager;
-        NativeMenuController nativeMenuController;
 
         Util::ConfigManager configManager;
 
         bool closed = false;
         bool resetRequested = false;
         bool unloadRequested = false;
+        bool fileDialogOpen = false;
+        std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
         std::string title = "R2NESV2 - build 0.9.5 | FPS: %.2f";
