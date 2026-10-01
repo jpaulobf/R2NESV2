@@ -1,4 +1,5 @@
 #include "VRamViewer.h"
+#include "ScopedImGuiContext.h"
 #include "Core/Memory/VRAM/VRAM.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
@@ -14,19 +15,17 @@ namespace R2NES::Core
     {
         if (window)
         {
-            // Garante que o contexto ImGui desta janela esteja ativo antes de encerrar
             if (imguiContext)
-                ImGui::SetCurrentContext(imguiContext);
-            // Encerra backends do ImGui específicos para SDL Renderer
-            ImGui_ImplSDLRenderer2_Shutdown();
-            ImGui_ImplSDL2_Shutdown();
-            // Destroi o contexto ImGui criado para esta janela
-            if (imguiContext)
-                ImGui::DestroyContext(imguiContext);
-            // Destroi recursos SDL
+            {
+                ScopedImGuiContext scope(imguiContext);
+                ImGui_ImplSDLRenderer2_Shutdown();
+                ImGui_ImplSDL2_Shutdown();
+            }
             if (renderer)
                 SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
+            if (imguiContext)
+                ImGui::DestroyContext(imguiContext);
         }
     }
 
@@ -48,12 +47,12 @@ namespace R2NES::Core
             SDL_RenderClear(renderer);
             SDL_RenderPresent(renderer);
 
-            // Criamos um contexto ImGui dedicado para esta janela para isolar
-            // estados (fontes, IO, etc.) e permitirmos múltiplos visualizadores.
             imguiContext = ImGui::CreateContext();
-            ImGui::SetCurrentContext(imguiContext);
-            ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-            ImGui_ImplSDLRenderer2_Init(renderer);
+            {
+                ScopedImGuiContext scope(imguiContext);
+                ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+                ImGui_ImplSDLRenderer2_Init(renderer);
+            }
             visible = true;
         }
     }
@@ -73,8 +72,12 @@ namespace R2NES::Core
     {
         if (visible && window && imguiContext)
         {
-            ImGui::SetCurrentContext(imguiContext);
-            ImGui_ImplSDL2_ProcessEvent(e);
+            uint32_t winId = getEventWindowID(e);
+            if (winId == 0 || winId == SDL_GetWindowID(window))
+            {
+                ScopedImGuiContext scope(imguiContext);
+                ImGui_ImplSDL2_ProcessEvent(e);
+            }
         }
     }
 
@@ -89,7 +92,7 @@ namespace R2NES::Core
         if (!visible || !renderer || !vram || !imguiContext)
             return;
 
-        ImGui::SetCurrentContext(imguiContext);
+        ScopedImGuiContext scope(imguiContext);
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
