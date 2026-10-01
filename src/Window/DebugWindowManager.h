@@ -39,6 +39,14 @@ namespace R2NES::Core
         // Fecha o viewer associado ao identificador SDL e informa qual foi fechado.
         DebugWindow closeWindow(uint32_t windowId);
 
+        // Fecha viewers específicos individualmente
+        void closeTileViewer() { tileViewer.close(); }
+        void closePaletteViewer() { paletteViewer.close(); }
+        void closeRamViewer() { ramViewer.close(); }
+        void closeDisassembler() { disassembler.close(); }
+        void closeOamViewer() { oamViewer.close(); }
+        void closeVramViewer() { vramViewer.close(); }
+
         // Fecha todos os viewers de depuração.
         void closeAll();
 
