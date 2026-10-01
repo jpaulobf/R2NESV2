@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "ScopedImGuiContext.h"
 #include <iostream>
 #include <algorithm>
 #include <cctype>
@@ -104,11 +105,15 @@ namespace R2NES::Core
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
-            // Processa eventos para o ImGui da janela principal
+            // Processa eventos para o ImGui da janela principal se o evento pertencer a ela
             if (imguiContext)
             {
-                ImGui::SetCurrentContext(imguiContext);
-                ImGui_ImplSDL2_ProcessEvent(&e);
+                uint32_t winId = getEventWindowID(&e);
+                if (winId == 0 || winId == SDL_GetWindowID(window))
+                {
+                    ImGui::SetCurrentContext(imguiContext);
+                    ImGui_ImplSDL2_ProcessEvent(&e);
+                }
             }
 
             // Encaminha o evento para os viewers que possuem contexto ImGui próprio.
@@ -240,7 +245,7 @@ namespace R2NES::Core
             }
 
             // Trata mensagens do Menu do Windows
- #if 0
+#if 0
             if (e.type == SDL_SYSWMEVENT)
             {
                 if (e.syswm.msg->msg.win.msg == WM_COMMAND)
@@ -627,7 +632,7 @@ namespace R2NES::Core
                     }
                 }
             }
- #endif
+#endif
 
             // Trata o fechamento de janelas individuais
             if (e.type == SDL_WINDOWEVENT)
@@ -674,6 +679,10 @@ namespace R2NES::Core
                 }
             }
         }
+
+        // Garante que o contexto ImGui da janela principal permaneça ativo após processar eventos
+        if (imguiContext)
+            ImGui::SetCurrentContext(imguiContext);
     }
 
     // Armazena o efeito de pós-processamento escolhido pelo menu.
@@ -1205,151 +1214,238 @@ namespace R2NES::Core
 
     void Window::renderMenu()
     {
-        if (!ImGui::BeginMainMenuBar())
-            return;
+        bool isFullscreen = (currentDisplayMode != DisplayMode::WINDOWED);
 
-        if (ImGui::BeginMenu("File"))
+        if (!isFullscreen)
         {
-            if (ImGui::MenuItem("Open ROM...")) openFileDialog();
-            if (ImGui::MenuItem("Reset")) reset();
-            if (ImGui::MenuItem("Unload", nullptr, false, cartLoaded)) unload();
-            ImGui::Separator();
-            if (ImGui::MenuItem("Save State", "F5", false, cartLoaded)) setSave(true);
-            if (ImGui::MenuItem("Load State", "F6", false, cartLoaded)) setLoad(true);
-            if (ImGui::BeginMenu("Save State Slot", cartLoaded))
+            if (!ImGui::BeginMainMenuBar())
+                return;
+
+            if (ImGui::BeginMenu("File"))
             {
-                for (int slot = 1; slot <= 3; ++slot)
+                if (ImGui::MenuItem("Open ROM..."))
+                    openFileDialog();
+                if (ImGui::MenuItem("Reset"))
+                    reset();
+                if (ImGui::MenuItem("Unload", nullptr, false, cartLoaded))
+                    unload();
+                ImGui::Separator();
+                if (ImGui::MenuItem("Save State", "F5", false, cartLoaded))
+                    setSave(true);
+                if (ImGui::MenuItem("Load State", "F6", false, cartLoaded))
+                    setLoad(true);
+                if (ImGui::BeginMenu("Save State Slot", cartLoaded))
                 {
-                    const std::string label = "Slot " + std::to_string(slot);
-                    if (ImGui::MenuItem(label.c_str(), nullptr, saveSlot == slot)) setSaveSlot(slot);
-                }
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Recent Files"))
-            {
-                const auto &recentRoms = configManager.getRecentRoms();
-                if (recentRoms.empty()) ImGui::TextDisabled("No Recent Files");
-                int index = 0;
-                for (const auto &path : recentRoms)
-                {
-                    if (index++ == 10) break;
-                    const std::string name = std::filesystem::path(path).filename().string();
-                    if (ImGui::MenuItem(name.c_str()))
+                    for (int slot = 1; slot <= 3; ++slot)
                     {
-                        selectedPath = path;
+                        const std::string label = "Slot " + std::to_string(slot);
+                        if (ImGui::MenuItem(label.c_str(), nullptr, saveSlot == slot))
+                            setSaveSlot(slot);
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Recent Files"))
+                {
+                    // Faz uma cópia da lista para não invalidar iteradores caso a lista seja alterada
+                    const auto recentRoms = configManager.getRecentRoms();
+                    if (recentRoms.empty())
+                        ImGui::TextDisabled("No Recent Files");
+
+                    std::string chosenRom;
+                    int index = 0;
+                    for (const auto &path : recentRoms)
+                    {
+                        if (index++ == 10)
+                            break;
+                        const std::string name = std::filesystem::path(path).filename().string();
+                        if (ImGui::MenuItem(name.c_str()))
+                        {
+                            chosenRom = path;
+                        }
+                    }
+
+                    // Aplica a alteração fora do loop de iteração
+                    if (!chosenRom.empty())
+                    {
+                        selectedPath = chosenRom;
                         configManager.addRomToList(selectedPath);
                     }
+                    ImGui::EndMenu();
                 }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Exit"))
+                    closed = true;
                 ImGui::EndMenu();
             }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Exit")) closed = true;
-            ImGui::EndMenu();
-        }
 
-        if (ImGui::BeginMenu("Display"))
-        {
-            if (ImGui::MenuItem("VSync", nullptr, vsyncEnabled)) setVSync(!vsyncEnabled);
-            ImGui::Separator();
-            for (int scaleValue = 1; scaleValue <= 4; ++scaleValue)
+            if (ImGui::BeginMenu("Display"))
             {
-                const std::string label = std::to_string(scaleValue) + "x";
-                if (ImGui::MenuItem(label.c_str(), nullptr, currentWindowX == scaleValue)) windowResize(scaleValue);
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Borderless Fullscreen Stretch")) windowBorderlessFullscreenStretch();
-            if (ImGui::MenuItem("Borderless Fullscreen")) windowBorderlessFullscreen();
-            ImGui::Separator();
-            if (ImGui::MenuItem("Scanlines", nullptr, scanlines)) setScanlines(!scanlines);
-            if (ImGui::MenuItem("Top Crop Overscan (8px)", nullptr, cropOverscan))
-            {
-                cropOverscan = !cropOverscan;
-                if (cropOverscan) fullCropOverscan = false;
-                if (currentDisplayMode == DisplayMode::WINDOWED) windowResize(currentWindowX);
-            }
-            if (ImGui::MenuItem("Full Crop Overscan (8px, 8px, 8px, 8px)", nullptr, fullCropOverscan))
-            {
-                fullCropOverscan = !fullCropOverscan;
-                if (fullCropOverscan) cropOverscan = false;
-                if (currentDisplayMode == DisplayMode::WINDOWED) windowResize(currentWindowX);
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Render Tiles", nullptr, tilesEnabled)) toggleTiles();
-            if (ImGui::MenuItem("Render Sprites", nullptr, spritesEnabled)) toggleSprites();
-            if (ImGui::BeginMenu("Scanlines Level"))
-            {
-                for (const int level : {5, 10, 15, 20, 25})
+                if (ImGui::MenuItem("VSync", nullptr, vsyncEnabled))
+                    setVSync(!vsyncEnabled);
+                ImGui::Separator();
+                for (int scaleValue = 1; scaleValue <= 4; ++scaleValue)
                 {
-                    const std::string label = std::to_string(level) + "%";
-                    if (ImGui::MenuItem(label.c_str(), nullptr, scanlinesTransparency == level)) scanlinesTransparency = level;
+                    const std::string label = std::to_string(scaleValue) + "x";
+                    if (ImGui::MenuItem(label.c_str(), nullptr, currentWindowX == scaleValue))
+                        windowResize(scaleValue);
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Borderless Fullscreen Stretch"))
+                    windowBorderlessFullscreenStretch();
+                if (ImGui::MenuItem("Borderless Fullscreen"))
+                    windowBorderlessFullscreen();
+                ImGui::Separator();
+                if (ImGui::MenuItem("Scanlines", nullptr, scanlines))
+                    setScanlines(!scanlines);
+                if (ImGui::MenuItem("Top Crop Overscan (8px)", nullptr, cropOverscan))
+                {
+                    cropOverscan = !cropOverscan;
+                    if (cropOverscan)
+                        fullCropOverscan = false;
+                    if (currentDisplayMode == DisplayMode::WINDOWED)
+                        windowResize(currentWindowX);
+                }
+                if (ImGui::MenuItem("Full Crop Overscan (8px, 8px, 8px, 8px)", nullptr, fullCropOverscan))
+                {
+                    fullCropOverscan = !fullCropOverscan;
+                    if (fullCropOverscan)
+                        cropOverscan = false;
+                    if (currentDisplayMode == DisplayMode::WINDOWED)
+                        windowResize(currentWindowX);
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Render Tiles", nullptr, tilesEnabled))
+                    toggleTiles();
+                if (ImGui::MenuItem("Render Sprites", nullptr, spritesEnabled))
+                    toggleSprites();
+                if (ImGui::BeginMenu("Scanlines Level", scanlines))
+                {
+                    for (const int level : {5, 10, 15, 20, 25})
+                    {
+                        const std::string label = std::to_string(level) + "%";
+                        if (ImGui::MenuItem(label.c_str(), nullptr, scanlinesTransparency == level))
+                            scanlinesTransparency = level;
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Palette Preset"))
+                {
+                    const std::pair<PaletteType, const char *> palettes[] = {{PaletteType::DEFAULT, "Default"}, {PaletteType::SMOOTH, "Smooth"}, {PaletteType::NESTOPIA, "Nestopia Emulator"}, {PaletteType::WAVEBEAM, "WaveBeam"}, {PaletteType::NEON, "Neon"}};
+                    for (const auto &[palette, label] : palettes)
+                        if (ImGui::MenuItem(label, nullptr, palettePreset == palette))
+                            setPalettePreset(palette);
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Shaders"))
+                {
+                    const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Scanlines"}, {ShaderType::CRT, "CRT"}, {ShaderType::CRT3D, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}, {ShaderType::XBRZMULTI, "xBRZ Multi"}};
+                    for (const auto &[shaderType, label] : shaders)
+                        if (ImGui::MenuItem(label, nullptr, shader == shaderType))
+                            setShader(shaderType);
+                    ImGui::EndMenu();
                 }
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu("Palette Preset"))
+
+            if (ImGui::BeginMenu("Sound"))
             {
-                const std::pair<PaletteType, const char *> palettes[] = {{PaletteType::DEFAULT, "Default"}, {PaletteType::SMOOTH, "Smooth"}, {PaletteType::NESTOPIA, "Nestopia Emulator"}, {PaletteType::WAVEBEAM, "WaveBeam"}, {PaletteType::NEON, "Neon"}};
-                for (const auto &[palette, label] : palettes)
-                    if (ImGui::MenuItem(label, nullptr, palettePreset == palette)) setPalettePreset(palette);
+                if (ImGui::MenuItem("Master Sound", nullptr, soundEnabled))
+                    setSound(!soundEnabled);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Pulse 1", nullptr, pulse1Enabled))
+                    setPulse1(!pulse1Enabled);
+                if (ImGui::MenuItem("Pulse 2", nullptr, pulse2Enabled))
+                    setPulse2(!pulse2Enabled);
+                if (ImGui::MenuItem("Triangle", nullptr, triangleEnabled))
+                    setTriangle(!triangleEnabled);
+                if (ImGui::MenuItem("Noise", nullptr, noiseEnabled))
+                    setNoise(!noiseEnabled);
+                if (ImGui::MenuItem("DMC", nullptr, dmcEnabled))
+                    setDMC(!dmcEnabled);
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu("Shaders"))
+
+            if (ImGui::BeginMenu("Input"))
             {
-                const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Scanlines"}, {ShaderType::CRT, "CRT"}, {ShaderType::CRT3D, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}, {ShaderType::XBRZMULTI, "xBRZ Multi"}};
-                for (const auto &[shaderType, label] : shaders)
-                    if (ImGui::MenuItem(label, nullptr, shader == shaderType)) setShader(shaderType);
+                if (ImGui::MenuItem("Invert BA/YB Buttons", nullptr, invertBAYB))
+                    setInvertBAYB(!invertBAYB);
+                if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper))
+                    setUseZapper(!useZapper);
                 ImGui::EndMenu();
             }
-            ImGui::EndMenu();
-        }
 
-        if (ImGui::BeginMenu("Sound"))
-        {
-            if (ImGui::MenuItem("Master Sound", nullptr, soundEnabled)) setSound(!soundEnabled);
-            ImGui::Separator();
-            if (ImGui::MenuItem("Pulse 1", nullptr, pulse1Enabled)) setPulse1(!pulse1Enabled);
-            if (ImGui::MenuItem("Pulse 2", nullptr, pulse2Enabled)) setPulse2(!pulse2Enabled);
-            if (ImGui::MenuItem("Triangle", nullptr, triangleEnabled)) setTriangle(!triangleEnabled);
-            if (ImGui::MenuItem("Noise", nullptr, noiseEnabled)) setNoise(!noiseEnabled);
-            if (ImGui::MenuItem("DMC", nullptr, dmcEnabled)) setDMC(!dmcEnabled);
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Input"))
-        {
-            if (ImGui::MenuItem("Invert BA/YB Buttons", nullptr, invertBAYB)) setInvertBAYB(!invertBAYB);
-            if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper)) setUseZapper(!useZapper);
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Debug"))
-        {
-            if (ImGui::MenuItem("Disassembler", nullptr, isDisassemblerOpen())) openDisassembler();
-            if (ImGui::MenuItem("RAM Viewer", nullptr, isRamViewerOpen())) openRamViewer();
-            ImGui::Separator();
-            if (ImGui::MenuItem("Tile Viewer", nullptr, isTileViewerOpen())) openTileViewer();
-            if (ImGui::MenuItem("VRAM Viewer", nullptr, isVramViewerOpen())) openVramViewer();
-            if (ImGui::MenuItem("Palette Viewer", nullptr, isPaletteViewerOpen())) openPaletteViewer();
-            if (ImGui::MenuItem("OAM Viewer", nullptr, isOamViewerOpen())) openOamViewer();
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Hacks"))
-        {
-            if (ImGui::MenuItem("Enable Unlimited Sprites", nullptr, unlimitedSprites)) setUnlimitedSprites(!unlimitedSprites);
-            if (ImGui::MenuItem("Enable Fast Forward", nullptr, fastForwardEnabled)) setFastForward(!fastForwardEnabled);
-            if (ImGui::MenuItem("Enable CPU Overclock", nullptr, cpuOverclockEnabled)) setCPUOverclock(!cpuOverclockEnabled);
-            if (ImGui::MenuItem("Enable Rewind", nullptr, rewindEnabled)) setRewind(!rewindEnabled);
-            if (ImGui::BeginMenu("Rewind Level", rewindEnabled))
+            if (ImGui::BeginMenu("Debug"))
             {
-                const char *levels[] = {"Light", "Normal", "Precise"};
-                for (int level = 0; level < 3; ++level)
-                    if (ImGui::MenuItem(levels[level], nullptr, rewindPrecisionLevel == level)) setRewindPrecision(level);
+                if (ImGui::MenuItem("Disassembler", nullptr, isDisassemblerOpen()))
+                {
+                    if (isDisassemblerOpen())
+                        debugWindowManager.closeDisassembler();
+                    else
+                        openDisassembler();
+                }
+                if (ImGui::MenuItem("RAM Viewer", nullptr, isRamViewerOpen()))
+                {
+                    if (isRamViewerOpen())
+                        debugWindowManager.closeRamViewer();
+                    else
+                        openRamViewer();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Tile Viewer", nullptr, isTileViewerOpen()))
+                {
+                    if (isTileViewerOpen())
+                        debugWindowManager.closeTileViewer();
+                    else
+                        openTileViewer();
+                }
+                if (ImGui::MenuItem("VRAM Viewer", nullptr, isVramViewerOpen()))
+                {
+                    if (isVramViewerOpen())
+                        debugWindowManager.closeVramViewer();
+                    else
+                        openVramViewer();
+                }
+                if (ImGui::MenuItem("Palette Viewer", nullptr, isPaletteViewerOpen()))
+                {
+                    if (isPaletteViewerOpen())
+                        debugWindowManager.closePaletteViewer();
+                    else
+                        openPaletteViewer();
+                }
+                if (ImGui::MenuItem("OAM Viewer", nullptr, isOamViewerOpen()))
+                {
+                    if (isOamViewerOpen())
+                        debugWindowManager.closeOamViewer();
+                    else
+                        openOamViewer();
+                }
                 ImGui::EndMenu();
             }
-            ImGui::EndMenu();
-        }
 
-        ImGui::EndMainMenuBar();
+            if (ImGui::BeginMenu("Hacks"))
+            {
+                if (ImGui::MenuItem("Enable Unlimited Sprites", nullptr, unlimitedSprites))
+                    setUnlimitedSprites(!unlimitedSprites);
+                if (ImGui::MenuItem("Enable Fast Forward", nullptr, fastForwardEnabled))
+                    setFastForward(!fastForwardEnabled);
+                if (ImGui::MenuItem("Enable CPU Overclock", nullptr, cpuOverclockEnabled))
+                    setCPUOverclock(!cpuOverclockEnabled);
+                if (ImGui::MenuItem("Enable Rewind", nullptr, rewindEnabled))
+                    setRewind(!rewindEnabled);
+                if (ImGui::BeginMenu("Rewind Level", rewindEnabled))
+                {
+                    const char *levels[] = {"Light", "Normal", "Precise"};
+                    for (int level = 0; level < 3; ++level)
+                        if (ImGui::MenuItem(levels[level], nullptr, rewindPrecisionLevel == level))
+                            setRewindPrecision(level);
+                    ImGui::EndMenu();
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMainMenuBar();
+        }
+        
         renderFileDialog();
     }
 
@@ -1516,8 +1612,10 @@ namespace R2NES::Core
 
     void Window::setRewindPrecision(int level)
     {
-        if (level < 0) level = 0;
-        if (level > 2) level = 2;
+        if (level < 0)
+            level = 0;
+        if (level > 2)
+            level = 2;
 
         if (rewindPrecisionLevel == level)
             return;
@@ -1772,6 +1870,9 @@ namespace R2NES::Core
         scanlines = enabled;
 
         std::cout << "Window: Scanlines " << (scanlines ? "Enabled" : "Disabled") << std::endl;
+
+        // Recreate menu so dependent items (Scanlines) are updated correctly.
+        createMenu();
     }
 
     // Atualiza o hack de overclock e o propaga à Engine.
