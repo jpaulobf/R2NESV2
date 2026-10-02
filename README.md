@@ -24,7 +24,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
   - Mapper 002 (UNROM) (almost perfect)
   - Mapper 003 (CNROM) (almost perfect)
   - Mapper 004 (MMC3) (initial support) * very buggy !
-  - Mapper 007 (MMC3) (initial support) Battletoads works, but stage 2 crash after a while (use warpzone in stage 1)
+  - Mapper 007 (AxROM/AOROM) (initial support)
   - Mapper 009 (HVC-PT) (100% perfect)
   - Mapper 011 (Not licensed) (almost perfect)
   - Mapper 040 (NTDEC) (100% perfect)
@@ -42,6 +42,15 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
   - **Directory Persistence**: Automatic memorization of the last opened folder, facilitating navigation.
 - **Input**: Native support for Keyboard and Controllers (XInput/DirectInput via SDL2) with Hot-plugging.
 - **Peripherals**: Zapper (Light Gun) emulation via mouse with precision mapping.
+
+### Game-specific Sprite 0 Hit Workarounds
+
+The PPU includes experimental Sprite 0 Hit workarounds for two Mapper 7 ROMs with known hangs in Sprite 0 polling loops:
+
+- *Battletoads (USA)*, CRC32 `279710DC`.
+- *Battletoads & Double Dragon*, CRC32 `CEB65B06` (including the wait loops at `$8190` and `$8180`).
+
+These workarounds are restricted by ROM hash and loop signature. They are compatibility exceptions, not a general CPU/PPU timing fix.
 
 ## Technologies Used
 

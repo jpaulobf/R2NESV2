@@ -2,6 +2,13 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [Unreleased]
+
+### Compatibilidade
+- Adicionado workaround específico de Sprite 0 Hit para *Battletoads (USA)*, CRC32 `279710DC`, condicionado ao loop de espera identificado na ROM.
+- Adicionado workaround específico de Sprite 0 Hit para *Battletoads & Double Dragon*, CRC32 `CEB65B06`, incluindo os loops de espera observados em `$8190` e `$8180`.
+- Os workarounds são limitados às ROMs identificadas pelos hashes e não representam uma correção geral da sincronização CPU/PPU.
+
 ## [0.9.6] - 2026-09-27
 - Refatorada a classe Window, reduzindo a complexidade e separando algumas responsabilidades (WIP)
 
