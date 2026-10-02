@@ -5,7 +5,7 @@ namespace R2NES::Core
     Mapper001::Mapper001(uint8_t prgBanks, uint8_t chrBanks) : Mapper(prgBanks, chrBanks)
     {
         // Inicializa a PRG RAM se necessário
-        for (int i = 0; i < 32768; i++)
+        for (int i = 0; i < sizeof(nPRGStaticRAM); i++)
             nPRGStaticRAM[i] = 0x00;
     }
 
@@ -247,4 +247,5 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
         is.read(reinterpret_cast<char *>(&nPRGBankHigh), sizeof(nPRGBankHigh));
     }
+
 }
