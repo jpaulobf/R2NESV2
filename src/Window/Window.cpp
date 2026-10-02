@@ -10,6 +10,13 @@
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace R2NES::Core
 {
     // Inicializa SDL, renderer, textura de vídeo e contexto ImGui da janela principal.
@@ -1160,6 +1167,27 @@ namespace R2NES::Core
         bool keepOpen = true;
         if (ImGui::BeginPopupModal("Open ROM", &keepOpen, ImGuiWindowFlags_AlwaysAutoResize))
         {
+#ifdef _WIN32
+            const std::string currentDrive = fileDialogDirectory.root_path().string();
+            if (ImGui::BeginCombo("Drive", currentDrive.empty() ? "Select drive" : currentDrive.c_str()))
+            {
+                const DWORD drives = GetLogicalDrives();
+                for (int index = 0; index < 26; ++index)
+                {
+                    if ((drives & (1UL << index)) == 0)
+                        continue;
+
+                    const char driveLetter = static_cast<char>('A' + index);
+                    const std::string drivePath = std::string(1, driveLetter) + ":\\";
+                    const bool isSelected = currentDrive == drivePath;
+                    if (ImGui::Selectable(drivePath.c_str(), isSelected))
+                        fileDialogDirectory = drivePath;
+                    if (isSelected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+#endif
             ImGui::TextUnformatted(fileDialogDirectory.string().c_str());
             ImGui::Separator();
             if (ImGui::Button("Up") && fileDialogDirectory.has_parent_path())
