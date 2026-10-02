@@ -1,8 +1,10 @@
 #include "Core/PPU/PPU.h"
 #include "Core/Bus/Bus.h"
 #include "Core/Cartridge/Cartridge.h"
+#include "Core/Cartridge/Mappers/Mapper007.h"
 #include "Common/Common.h"
 #include <algorithm>
+#include <iostream>
 
 namespace R2NES::Core
 {
@@ -17,6 +19,26 @@ namespace R2NES::Core
         0xFFA0AA00, 0xFF74C400, 0xFF4CD020, 0xFF38CC6C, 0xFF38B4CC, 0xFF3E3E3E, 0xFF000000, 0xFF000000,
         0xFFFCFCFC, 0xFFA4D2FC, 0xFFB8B8FC, 0xFFD8A8FC, 0xFFF8A4FC, 0xFFF8A8D8, 0xFFF8B4B4, 0xFFF0C090,
         0xFFD8D470, 0xFFC4E470, 0xFFB0EC90, 0xFFA4ECAF, 0xFFA4E2FC, 0xFFB8B8B8, 0xFF000000, 0xFF000000};
+
+    namespace
+    {
+        bool isBattletoadsSpriteZeroWait(const Bus *bus)
+        {
+            if (!bus || !bus->cpu || !bus->cart || bus->cpu->pc != 0x8641 || bus->cpu->a != 0x40 ||
+                !std::dynamic_pointer_cast<Mapper007>(bus->cart->getMapper()))
+                return false;
+
+            constexpr uint16_t loopAddress = 0x863E;
+            constexpr uint8_t loopSignature[] = {0x2C, 0x02, 0x20, 0xF0, 0xFB};
+            for (size_t offset = 0; offset < sizeof(loopSignature); ++offset)
+            {
+                uint8_t value = 0;
+                if (!bus->cart->cpuRead(loopAddress + offset, value) || value != loopSignature[offset])
+                    return false;
+            }
+            return true;
+        }
+    }
 
     static const uint32_t PALETTE_SMOOTH[64] = {
         0xFF6A6A6A, 0xFF001E8C, 0xFF0610A0, 0xFF2A009B, 0xFF4E007A, 0xFF5B0047, 0xFF570012, 0xFF450D00,
@@ -125,6 +147,20 @@ namespace R2NES::Core
         {
             // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
+
+            if ((data & 0x40) == 0 && scanline == 30 && cycle >= 255 && cycle < 341 &&
+                ppuCtrl == 0x10 && ppuMask == 0x18 && oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
+                isBattletoadsSpriteZeroWait(bus))
+            {
+                ppuStatus |= 0x40;
+                data |= 0x40;
+                static bool loggedHack = false;
+                if (!loggedHack)
+                {
+                    std::cerr << "PPU: Battletoads Mapper 7 Sprite 0 raster-hit hack enabled" << std::endl;
+                    loggedHack = true;
+                }
+            }
 
             // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
@@ -705,10 +741,9 @@ namespace R2NES::Core
                                     else
                                         frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(palAddr) & 0x3F];
                                 }
-                                spritePixelDrawn = true;
                             }
 
-                            // Se desenhamos um pixel de sprite opaco, ele oculta os sprites de menor prioridade
+                            spritePixelDrawn = true;
                             break;
                         }
                     }
