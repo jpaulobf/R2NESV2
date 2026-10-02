@@ -58,7 +58,7 @@ namespace R2NES::Core
         uint8_t nShiftRegister = 0x00;
         uint8_t nShiftRegisterCount = 0x00;
 
-        uint8_t nPRGStaticRAM[32768]; // PRG RAM (8KB) - alguns cartuchos (como Metroid) usam isso
+        uint8_t nPRGStaticRAM[8192]; // PRG RAM (8KB)
 
         uint32_t nLastWriteCycle = 0; // Para evitar múltiplas escritas no mesmo ciclo
 
