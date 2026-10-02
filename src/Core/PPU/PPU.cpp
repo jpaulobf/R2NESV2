@@ -1,7 +1,6 @@
 #include "Core/PPU/PPU.h"
 #include "Core/Bus/Bus.h"
 #include "Core/Cartridge/Cartridge.h"
-#include "Core/Cartridge/Mappers/Mapper007.h"
 #include "Common/Common.h"
 #include <algorithm>
 #include <iostream>
@@ -24,8 +23,8 @@ namespace R2NES::Core
     {
         bool isBattletoadsSpriteZeroWait(const Bus *bus)
         {
-            if (!bus || !bus->cpu || !bus->cart || bus->cpu->pc != 0x8641 || bus->cpu->a != 0x40 ||
-                !std::dynamic_pointer_cast<Mapper007>(bus->cart->getMapper()))
+            if (!bus || !bus->cpu || !bus->cart || bus->cart->getRomHash() != "279710DC" ||
+                bus->cpu->pc != 0x8641 || bus->cpu->a != 0x40)
                 return false;
 
             constexpr uint16_t loopAddress = 0x863E;
@@ -41,8 +40,8 @@ namespace R2NES::Core
 
         bool isBattletoadsDoubleDragonSpriteZeroWait(const Bus *bus)
         {
-            if (!bus || !bus->cpu || !bus->cart || bus->cpu->a != 0x40 ||
-                !std::dynamic_pointer_cast<Mapper007>(bus->cart->getMapper()))
+            if (!bus || !bus->cpu || !bus->cart || bus->cart->getRomHash() != "CEB65B06" ||
+                bus->cpu->a != 0x40)
                 return false;
 
             uint16_t loopAddress;
