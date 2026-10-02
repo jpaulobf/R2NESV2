@@ -385,6 +385,18 @@ namespace R2NES::Core
         return false;
     }
 
+    void Cartridge::saveState(std::ostream &os) const
+    {
+        if (chrBanks == 0 && chrROM)
+            chrROM->saveState(os);
+    }
+
+    void Cartridge::loadState(std::istream &is)
+    {
+        if (chrBanks == 0 && chrROM)
+            chrROM->loadState(is);
+    }
+
     MirrorMode Cartridge::getMirrorMode() const
     {
         // Mappers avançados (como MMC1) controlam o Mirroring via software.
