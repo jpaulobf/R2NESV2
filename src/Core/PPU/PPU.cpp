@@ -38,6 +38,30 @@ namespace R2NES::Core
             }
             return true;
         }
+
+        bool isBattletoadsDoubleDragonSpriteZeroWait(const Bus *bus)
+        {
+            if (!bus || !bus->cpu || !bus->cart || bus->cpu->a != 0x40 ||
+                !std::dynamic_pointer_cast<Mapper007>(bus->cart->getMapper()))
+                return false;
+
+            uint16_t loopAddress;
+            if (bus->cpu->pc == 0x8193)
+                loopAddress = 0x8190;
+            else if (bus->cpu->pc == 0x8183)
+                loopAddress = 0x8180;
+            else
+                return false;
+
+            constexpr uint8_t loopSignature[] = {0x2C, 0x02, 0x20, 0xF0, 0xFB};
+            for (size_t offset = 0; offset < sizeof(loopSignature); ++offset)
+            {
+                uint8_t value = 0;
+                if (!bus->cart->cpuRead(loopAddress + offset, value) || value != loopSignature[offset])
+                    return false;
+            }
+            return true;
+        }
     }
 
     static const uint32_t PALETTE_SMOOTH[64] = {
@@ -148,16 +172,31 @@ namespace R2NES::Core
             // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
 
-            if ((data & 0x40) == 0 && scanline == 30 && cycle >= 255 && cycle < 341 &&
-                ppuCtrl == 0x10 && ppuMask == 0x18 && oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
-                isBattletoadsSpriteZeroWait(bus))
+            const bool mapper7RasterHitHack = scanline == 30 && cycle >= 255 && cycle < 341 &&
+                                               ppuCtrl == 0x10 && ppuMask == 0x18 &&
+                                               oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
+                                               isBattletoadsSpriteZeroWait(bus);
+            const int sprite0Height = (ppuCtrl & 0x20) ? 16 : 8;
+            const int sprite0FirstScanline = static_cast<int>(oamMemory[0]) + 1;
+            const int sprite0X = oamMemory[3];
+            const int sprite0LastVisibleX = std::min(sprite0X + 7, 254);
+            constexpr int sprite0HitEarlyTolerance = 3;
+            const int sprite0HitWindowStartCycle = std::max(sprite0X + 2,
+                                                            sprite0LastVisibleX + 2 - sprite0HitEarlyTolerance);
+            const bool sprite0RasterPassed = sprite0X <= 254 &&
+                                             scanline >= sprite0FirstScanline &&
+                                             scanline < sprite0FirstScanline + sprite0Height &&
+                                             cycle >= sprite0HitWindowStartCycle && cycle <= 256;
+            const bool mapper7DoubleDragonWaitHack = (ppuMask & 0x18) == 0x18 && sprite0RasterPassed &&
+                                                      isBattletoadsDoubleDragonSpriteZeroWait(bus);
+            if ((data & 0x40) == 0 && (mapper7RasterHitHack || mapper7DoubleDragonWaitHack))
             {
                 ppuStatus |= 0x40;
                 data |= 0x40;
                 static bool loggedHack = false;
                 if (!loggedHack)
                 {
-                    std::cerr << "PPU: Battletoads Mapper 7 Sprite 0 raster-hit hack enabled" << std::endl;
+                    std::cerr << "PPU: Battletoads Sprite 0 wait-loop hack enabled" << std::endl;
                     loggedHack = true;
                 }
             }
