@@ -182,7 +182,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E32; // "R2N2" (inclui framebuffer)
+        uint32_t magic = 0x52324E33; // "R2N3" (inclui framebuffer e CHR RAM)
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // Salva contador de clocks do sistema
@@ -194,6 +194,7 @@ namespace R2NES::Core
         ppu.saveState(os);
         apu.saveState(os);
         bus.cart->getMapper()->saveState(os);
+        bus.cart->saveState(os);
 
         return os.good();
     }
@@ -214,8 +215,7 @@ namespace R2NES::Core
 
         uint32_t magic = 0;
         is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-        const bool includesFrameBuffer = magic == 0x52324E32; // "R2N2"
-        if (!includesFrameBuffer && magic != 0x52324E53)      // "R2NS" (formato anterior)
+        if (magic != 0x52324E33) // "R2N3" (inclui framebuffer e CHR RAM)
         {
             std::cerr << "Error: Invalid SaveState file!" << std::endl;
             return false;
@@ -226,9 +226,10 @@ namespace R2NES::Core
 
         cpu.loadState(is);
         ram.loadState(is);
-        ppu.loadState(is, includesFrameBuffer);
+        ppu.loadState(is, true);
         apu.loadState(is);
         bus.cart->getMapper()->loadState(is);
+        bus.cart->loadState(is);
 
         return is.good();
     }
