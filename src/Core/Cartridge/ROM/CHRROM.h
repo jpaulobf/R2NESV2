@@ -1,4 +1,6 @@
 #pragma once
+#include <istream>
+#include <ostream>
 #include <vector>
 #include <cstdint>
 
@@ -18,6 +20,18 @@ namespace R2NES::Core
         {
             if (addr < memory.size())
                 memory[addr] = data;
+        }
+
+        void saveState(std::ostream &os) const
+        {
+            if (!memory.empty())
+                os.write(reinterpret_cast<const char *>(memory.data()), static_cast<std::streamsize>(memory.size()));
+        }
+
+        void loadState(std::istream &is)
+        {
+            if (!memory.empty())
+                is.read(reinterpret_cast<char *>(memory.data()), static_cast<std::streamsize>(memory.size()));
         }
 
         size_t size() const { return memory.size(); }
