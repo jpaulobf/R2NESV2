@@ -430,7 +430,15 @@ namespace R2NES::Core
 
         /* Renderiza a barra principal de menus e o navegador de arquivos. */
         void renderMenu();
+
+        /* Renderiza o diálogo de seleção de arquivos. */
         void renderFileDialog();
+
+        /* Atualiza o estado do menu de pausa com base na abertura do menu. */
+        void updateMenuPause(bool menuOpen);
+
+        /* Libera o estado de pausa do menu, possivelmente suspendendo até que o menu seja fechado. */
+        void releaseMenuPause(bool suspendUntilClosed);
 
         /* Inicializa e exibe a janela de visualização de tiles (Pattern Tables). */
         void openTileViewer();
@@ -545,6 +553,9 @@ namespace R2NES::Core
         bool rewindEnabled = false;
         int rewindPrecisionLevel = 1;
         bool paused = false;
+        bool menuPauseActive = false;
+        bool menuPausedBeforeInteraction = false;
+        bool menuPauseSuspendedUntilClose = false;
         bool useZapper = false;
 
         // Configurações de áudio para cada canal
