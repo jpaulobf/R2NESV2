@@ -129,6 +129,14 @@ namespace R2NES::Core
             if (e.type == SDL_QUIT)
                 closed = true;
 
+            if (e.type == SDL_WINDOWEVENT && e.window.windowID == SDL_GetWindowID(window))
+            {
+                if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+                    releaseMenuPause(true);
+                else if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                    menuPauseSuspendedUntilClose = false;
+            }
+
             // Sai do modo tela cheia e restaura o menu ao apertar ESC
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
             {
@@ -1158,6 +1166,7 @@ namespace R2NES::Core
 #endif
     }
 
+    // Renderiza o diálogo de seleção de arquivos.
     void Window::renderFileDialog()
     {
         if (!fileDialogOpen)
@@ -1240,15 +1249,13 @@ namespace R2NES::Core
         }
     }
 
+    // Renderiza a barra principal de menus e o navegador de arquivos.
     void Window::renderMenu()
     {
         bool isFullscreen = (currentDisplayMode != DisplayMode::WINDOWED);
 
-        if (!isFullscreen)
+        if (!isFullscreen && ImGui::BeginMainMenuBar())
         {
-            if (!ImGui::BeginMainMenuBar())
-                return;
-
             if (ImGui::BeginMenu("File"))
             {
                 if (ImGui::MenuItem("Open ROM..."))
@@ -1475,6 +1482,44 @@ namespace R2NES::Core
         }
         
         renderFileDialog();
+        updateMenuPause(ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId));
+    }
+
+    // Atualiza o estado do menu de pausa com base na abertura do menu.
+    void Window::updateMenuPause(bool menuOpen)
+    {
+        if (!menuOpen)
+        {
+            menuPauseSuspendedUntilClose = false;
+            if (menuPauseActive)
+                releaseMenuPause(false);
+            return;
+        }
+
+        if (menuPauseSuspendedUntilClose)
+            return;
+
+        if (!menuPauseActive)
+        {
+            menuPausedBeforeInteraction = paused;
+            menuPauseActive = true;
+        }
+
+        if (!paused)
+            setPaused(true);
+    }
+
+    // Libera o estado de pausa do menu, possivelmente suspendendo até que o menu seja fechado.
+    void Window::releaseMenuPause(bool suspendUntilClosed)
+    {
+        if (menuPauseActive)
+        {
+            menuPauseActive = false;
+            setPaused(menuPausedBeforeInteraction);
+        }
+
+        if (suspendUntilClosed)
+            menuPauseSuspendedUntilClose = true;
     }
 
     // Abre o desassemblador ao lado da janela principal.
