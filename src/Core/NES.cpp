@@ -55,7 +55,7 @@ namespace R2NES::Core
         std::cout << "NES: Reset complete. CPU PC at 0x" << std::hex << cpu.pc << std::endl;
     }
 
-    void NES::step()
+    void NES::step(bool honorCPUOverclock)
     {
         // 1) DMA OAM tem prioridade: enquanto um DMA estiver ativo, a CPU fica "suspensa"
         //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
@@ -91,14 +91,22 @@ namespace R2NES::Core
         }
         else
         {
-            // CPU executa um ciclo normalmente
-            cpu.clock();
-
-            // Modo experimental: quando ativo, damos um ciclo extra à CPU
-            // (útil para testes de desempenho / debugging)
-            if (cpuOverclock)
+            // O overclock acelera apenas a CPU; PPU/APU e o relógio do sistema
+            // continuam avançando na cadência normal.
+            const uint8_t cpuClocksThisStep = (cpuOverclock && honorCPUOverclock) ? 2 : 1;
+            for (uint8_t i = 0; i < cpuClocksThisStep; i++)
             {
                 cpu.clock();
+
+                // A DMA suspende a CPU. Não consome o clock extra se esta
+                // chamada acabou de iniciar uma DMA de OAM.
+                if (bus.dma_transfer)
+                    break;
+
+                // O clock extra pode cruzar o limite entre instruções. Verifica
+                // uma IRQ pendente antes de começar a próxima instrução.
+                if (i + 1 < cpuClocksThisStep && cpu.complete())
+                    serviceIRQ();
             }
         }
 
@@ -135,12 +143,17 @@ namespace R2NES::Core
         // APU avança na mesma cadência da CPU
         apu.step();
 
-        // IRQ pode vir da APU ou do Mapper do cartucho
+        serviceIRQ();
+    }
+
+    void NES::serviceIRQ()
+    {
+        // A IRQ pode vir da APU ou do mapper do cartucho.
         bool mapperIrqActive = bus.cart && bus.cart->getIrqFlag();
         bool irqActive = apu.getIrqFlag() || mapperIrqActive;
 
         // IRQ é reconhecida apenas quando a CPU termina a instrução atual
-        if (irqActive && cpu.complete() && cpu.GetFlag(CPU::I) == 0)
+        if (!bus.dma_transfer && irqActive && cpu.complete() && cpu.GetFlag(CPU::I) == 0)
         {
             cpu.irq();
 
