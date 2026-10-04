@@ -153,7 +153,11 @@ namespace R2NES::Core
                 << std::endl;
         }
 
-        if (!buffer.empty())
+        if (buffer.empty())
+        {
+            std::cerr << "Error: No ROM data read from " << fileName << std::endl;
+        }
+        else
         {
             imageValid = loadFromBuffer(buffer);
             if (imageValid)
@@ -192,11 +196,17 @@ namespace R2NES::Core
         } header;
 
         if (buffer.size() < sizeof(Header))
+        {
+            std::cerr << "Error: ROM too small (" << buffer.size() << " bytes)." << std::endl;
             return false;
+        }
         std::memcpy(&header, buffer.data(), sizeof(Header));
 
         if (std::memcmp(header.name, "NES\x1a", 4) != 0)
+        {
+            std::cerr << "Error: Invalid iNES header (missing 'NES\\x1A' magic)." << std::endl;
             return false;
+        }
 
         size_t offset = sizeof(Header);
         if (header.mapper1 & 0x04)
@@ -213,7 +223,20 @@ namespace R2NES::Core
         prgBanks = header.prg_chunks;
         size_t prgSize = prgBanks * 16384;
         if (offset + prgSize > buffer.size())
-            return false;
+        {
+            size_t available = (buffer.size() > offset) ? buffer.size() - offset : 0;
+            size_t fitBanks = available / 16384;
+            if (fitBanks == 0)
+            {
+                std::cerr << "Error: PRG data exceeds file size (PRG banks=" << (int)prgBanks
+                          << ", file=" << buffer.size() << " bytes)." << std::endl;
+                return false;
+            }
+            std::cerr << "Warning: header declares " << (int)prgBanks << " PRG banks but file only has "
+                      << fitBanks << "; using " << fitBanks << "." << std::endl;
+            prgBanks = static_cast<decltype(prgBanks)>(fitBanks);
+            prgSize = fitBanks * 16384;
+        }
 
         std::vector<uint8_t> prgData(prgSize);
         std::memcpy(prgData.data(), buffer.data() + offset, prgSize);
@@ -230,7 +253,20 @@ namespace R2NES::Core
         {
             size_t chrSize = chrBanks * 8192;
             if (offset + chrSize > buffer.size())
-                return false;
+            {
+                size_t available = (buffer.size() > offset) ? buffer.size() - offset : 0;
+                size_t fitBanks = available / 8192;
+                if (fitBanks == 0)
+                {
+                    std::cerr << "Error: CHR data exceeds file size (CHR banks=" << (int)chrBanks
+                              << ", file=" << buffer.size() << " bytes)." << std::endl;
+                    return false;
+                }
+                std::cerr << "Warning: header declares " << (int)chrBanks << " CHR banks but file only has "
+                          << fitBanks << "; using " << fitBanks << "." << std::endl;
+                chrBanks = static_cast<decltype(chrBanks)>(fitBanks);
+                chrSize = fitBanks * 8192;
+            }
             std::vector<uint8_t> chrData(chrSize);
             std::memcpy(chrData.data(), buffer.data() + offset, chrSize);
             chrROM = std::make_unique<CHRROM>(std::move(chrData));
