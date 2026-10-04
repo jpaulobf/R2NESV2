@@ -19,8 +19,9 @@ namespace R2NES::Core
         NES();
         ~NES();
 
-        // Executa um passo de emulação (avança clocks, processa DMA/NMI/IRQ e APU).
-        void step();
+        // Avança um passo do sistema. honorCPUOverclock=false mantém um clock
+        // da CPU por passo, usado pelo depurador para parar em limites de instrução.
+        void step(bool honorCPUOverclock = true);
 
         // Carrega um cartucho a partir de arquivo ROM (path). Valida o cartucho
         // antes de conectá-lo ao barramento.
@@ -66,6 +67,8 @@ namespace R2NES::Core
         void setCPUOverclock(bool enabled) { cpuOverclock = enabled; }
 
     private:
+        void serviceIRQ();
+
         // Subsistemas do console
         Bus bus;                 // Barramento do sistema, conecta todos os dispositivos
         RAM ram;                 // RAM de trabalho da CPU (2KB)
