@@ -17,3 +17,4 @@ CMakePresets.json
 CMakeCache.txt
 out/*
 imgui.ini
+build-linux.sh
