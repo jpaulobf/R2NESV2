@@ -8,6 +8,7 @@ target/*
 .vscode/*
 bin/*
 build/*
+build-linux/*
 analysis_results.md
 cmake/*
 CMakeFiles/*
