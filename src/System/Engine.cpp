@@ -510,11 +510,11 @@ namespace R2NES::Core
         {
             if (stepRequested)
             {
-                nes->step();
+                nes->step(false);
                 // Em modo step, o áudio geralmente é ignorado ou produz "clicks"
                 while (!nes->getCpu().complete())
                 {
-                    nes->step();
+                    nes->step(false);
                 }
                 stepRequested = false;
             }
