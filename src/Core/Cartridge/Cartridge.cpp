@@ -12,6 +12,7 @@
 #include "Core/Cartridge/Mappers/Mapper040.h"
 #include "Core/Cartridge/Mappers/Mapper066.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
+#include "Core/Cartridge/Mappers/Mapper187.h"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -313,6 +314,9 @@ namespace R2NES::Core
         case 90:
             pMapper = std::make_shared<Mapper090>(prgBanks, chrBanks);
             break;
+        case 187:
+            pMapper = std::make_shared<Mapper187>(prgBanks, chrBanks, mirror);
+            break;
         default:
             std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet."
                       << std::endl;
@@ -440,7 +444,7 @@ namespace R2NES::Core
         if (pMapper &&
             (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
              mapperID == 11 || mapperID == 19 || mapperID == 21 || mapperID == 22 ||
-             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 85))
+             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 85 || mapperID == 187))
         {
             return pMapper->getMirrorMode();
         }
