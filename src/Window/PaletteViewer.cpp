@@ -129,7 +129,7 @@ namespace R2NES::Core
                                        ((color & 0x000000FF) << 16);
 
                     char id[16];
-                    sprintf(id, "##%s_%d_%d", label, p, i);
+                    std::snprintf(id, sizeof(id), "##%d_%d_%d", offset, p, i);
                     ImGui::ColorButton(id, ImGui::ColorConvertU32ToFloat4(imguiColor),
                                        ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop, ImVec2(18, 18));
 
