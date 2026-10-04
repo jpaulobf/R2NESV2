@@ -158,8 +158,8 @@ Mapper 001 (MMC1)
 | Super Mario Bros. / Duck Hunt / World Class Track Meet | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Superman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Teenage Mutant Ninja Turtles | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Yo! Noid | US | 001 | ⭐⭐⭐⭐ | Um pouco de tremor na renderização vertical |
-| Yoshi | US | 001 | ⭐ | Não abre |
+| Yo! Noid | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
+| Yoshi | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Zelda II: The Adventure of Link | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Day Dreamin' Davey | US | 001 |  | ... |
 | Defender of the Crown | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
