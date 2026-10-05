@@ -4,6 +4,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+### Melhorado
+- A execução da CPU passou da granularidade por instrução para ciclo a ciclo, distribuindo os acessos ao barramento pelos ciclos das instruções e avançando em sincronização com a PPU.
+
 ### Compatibilidade
 - Adicionado workaround específico de Sprite 0 Hit para *Battletoads (USA)*, CRC32 `279710DC`, condicionado ao loop de espera identificado na ROM.
 - Adicionado workaround específico de Sprite 0 Hit para *Battletoads & Double Dragon*, CRC32 `CEB65B06`, incluindo os loops de espera observados em `$8190` e `$8180`.
