@@ -38,7 +38,9 @@ jobs:
         shell: pwsh
         run: |
           $packageDir = "release_pkg"
-          $cxxPath = (Get-Command g++ -CommandType Application -ErrorAction Stop).Source
+          $cxxCommand = Get-Command g++ -CommandType Application -ErrorAction Stop | Select-Object -First 1
+          $cxxPath = $cxxCommand.Source
+          Write-Host "Using MinGW C++ compiler: $cxxPath"
           New-Item -ItemType Directory -Path $packageDir | Out-Null
           Copy-Item -Path "bin/R2NESV2.exe" -Destination $packageDir
           Copy-Item -Path "bin/resources" -Destination $packageDir -Recurse
