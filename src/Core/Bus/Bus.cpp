@@ -163,6 +163,12 @@ namespace R2NES::Core
         return false;
     }
 
+    void Bus::ppuAddressUpdated(uint16_t addr)
+    {
+        if (cart)
+            cart->ppuAddressUpdated(addr, systemClockCounter);
+    }
+
     void Bus::ppuScanlineStart()
     {
         // Notifica o cartucho que uma nova scanline começou (mappers com IRQ por scanline)
