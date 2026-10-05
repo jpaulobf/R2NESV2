@@ -23,7 +23,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
   - Mapper 001 (MMC1) (in progress) Read the COMPATIBILITY_LIST.
   - Mapper 002 (UNROM) (almost perfect)
   - Mapper 003 (CNROM) (almost perfect)
-  - Mapper 004 (MMC3) (initial support) * very buggy !
+  - Mapper 004 (MMC3) (in progress) Read the COMPATIBILITY_LIST.
   - Mapper 007 (AxROM/AOROM) (initial support)
   - Mapper 009 (HVC-PT) (100% perfect)
   - Mapper 011 (Not licensed) (almost perfect)
