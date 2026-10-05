@@ -111,9 +111,26 @@ namespace R2NES::Core
         int16_t scanline = 0;
         int16_t cycle = 0;
 
-        // Cache de sprites para o scanline atual (máximo 64 para o modo ilimitado)
-        std::array<uint8_t, 64> scanlineSprites;
+        struct SpriteFetchUnit
+        {
+            uint8_t oamIndex = 0xFF;
+            uint8_t y = 0xFF;
+            uint8_t tile = 0xFF;
+            uint8_t attributes = 0xFF;
+            uint8_t x = 0xFF;
+            uint8_t row = 0x00;
+            uint16_t patternAddress = 0x0000;
+            uint8_t patternLow = 0x00;
+            uint8_t patternHigh = 0x00;
+        };
+
+        // Sprite evaluation for the next scanline and the eight hardware fetch units.
+        // Additional entries are used only by the unlimited-sprites debug option.
+        std::array<SpriteFetchUnit, 64> currentSprites{};
+        std::array<SpriteFetchUnit, 64> nextSprites{};
         int scanlineSpriteCount = 0;
+        int nextScanlineSpriteCount = 0;
+        uint8_t spriteEvaluationIndex = 0;
 
         bool frameComplete = false;
         bool unlimitedSprites = false;
@@ -129,6 +146,9 @@ namespace R2NES::Core
         void transferAddressY();
         void loadBackgroundShifters();
         void updateShifters();
+        uint8_t ppuFetch(uint16_t addr) const;
+        uint8_t ppuFetchSprite(uint16_t addr) const;
+        uint8_t readPalette(uint16_t addr) const;
 
         // Background Latches
         uint8_t bgNextTileId = 0x00;
