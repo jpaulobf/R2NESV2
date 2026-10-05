@@ -25,8 +25,10 @@ namespace R2NES::Core
         bIRQReload = false;
         nIRQLatch = 0x00;
         nIRQCounter = 0x00;
-        nLastA12 = 0x0000;
-        nLastA12Clock = 0; // Inicializado com segurança
+        bPRGRAMEnabled = true;
+        bPRGRAMWriteProtected = false;
+        nLastA12 = 0xFFFF; // The first PPU address establishes the initial A12 level.
+        nA12LowM2Edges = 0;
 
         // Inicialização padrão segura do MMC3
         pRegister[0] = 0;
@@ -46,7 +48,7 @@ namespace R2NES::Core
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
             mapped_addr = 0xFFFFFFFF;
-            data = vPRGRAM[addr & 0x1FFF];
+            data = bPRGRAMEnabled ? vPRGRAM[addr & 0x1FFF] : 0x00;
             return true;
         }
 
@@ -66,7 +68,8 @@ namespace R2NES::Core
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
             mapped_addr = 0xFFFFFFFF;
-            vPRGRAM[addr & 0x1FFF] = data;
+            if (bPRGRAMEnabled && !bPRGRAMWriteProtected)
+                vPRGRAM[addr & 0x1FFF] = data;
             return true;
         }
 
@@ -98,7 +101,13 @@ namespace R2NES::Core
         {
             if (!(addr & 0x0001))
             {
-                mirrorMode = (data & 0x01) ? MirrorMode::HORIZONTAL : MirrorMode::VERTICAL;
+                if (ogMirrorMode != MirrorMode::FOUR_SCREEN)
+                    mirrorMode = (data & 0x01) ? MirrorMode::HORIZONTAL : MirrorMode::VERTICAL;
+            }
+            else
+            {
+                bPRGRAMEnabled = (data & 0x80) != 0;
+                bPRGRAMWriteProtected = (data & 0x40) != 0;
             }
             return false;
         }
@@ -108,7 +117,10 @@ namespace R2NES::Core
             if (!(addr & 0x0001))
                 nIRQLatch = data;
             else
+            {
+                nIRQCounter = 0;
                 bIRQReload = true;
+            }
 
             return false;
         }
@@ -128,49 +140,69 @@ namespace R2NES::Core
         return false;
     }
 
-    // Método auxiliar interno para centralizar o comportamento do contador de IRQ
-    void Mapper004::handleA12Edge(uint16_t addr, uint32_t systemClockCounter)
+    void Mapper004::onPpuAddress(uint16_t addr, uint32_t)
     {
-        uint16_t currentA12 = addr & 0x1000;
-
-        // Se o clock do sistema avançou consideravelmente desde o último acesso,
-        // significa que mudamos de ciclo de instrução/pixel. Forçamos o decaimento
-        // da linha A12 para simular o período em que a PPU ficou ociosa ou lendo Nametables.
-        if ((systemClockCounter - nLastA12Clock) > 100)
-        {
-            nLastA12 = 0;
-        }
-
-        if (nLastA12 == 0 && currentA12 != 0)
-        {
-            if ((systemClockCounter - nLastA12Clock) > 15)
-            {
-                bool bDecremented = false;
-                if (nIRQCounter == 0 || bIRQReload)
-                {
-                    nIRQCounter = nIRQLatch;
-                }
-                else
-                {
-                    nIRQCounter--;
-                    bDecremented = true;
-                }
-
-                if (bDecremented && nIRQCounter == 0 && bIRQEnabled)
-                    bIRQActive = true;
-
-                bIRQReload = false;
-            }
-            nLastA12Clock = systemClockCounter;
-        }
-
-        nLastA12 = currentA12;
+        handleA12Edge(addr);
     }
 
-    bool Mapper004::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter)
+    void Mapper004::tick()
     {
-        handleA12Edge(addr, systemClockCounter);
+        constexpr uint8_t A12_LOW_FILTER_M2_CYCLES = 3;
+        if (nLastA12 == 0x0000 && nA12LowM2Edges < A12_LOW_FILTER_M2_CYCLES)
+            ++nA12LowM2Edges;
+    }
 
+    // Clocks the MMC3 IRQ counter only when the PPU address pins change.
+    void Mapper004::handleA12Edge(uint16_t addr)
+    {
+        constexpr uint16_t A12_UNINITIALIZED = 0xFFFF;
+        constexpr uint16_t A12_LOW = 0x0000;
+        constexpr uint16_t A12_HIGH = 0x1000;
+        // The MMC3 filter requires A12 to remain low across three falling M2 edges.
+        constexpr uint8_t A12_LOW_FILTER_M2_CYCLES = 3;
+
+        const uint16_t currentA12 = addr & A12_HIGH;
+
+        // Establish the initial signal level from a real PPU address observation.
+        if (nLastA12 == A12_UNINITIALIZED)
+        {
+            nLastA12 = currentA12;
+            nA12LowM2Edges = 0;
+            return;
+        }
+
+        // Repeated accesses at the same level do not create A12 edges.
+        if (currentA12 == nLastA12)
+            return;
+
+        if (currentA12 == A12_LOW)
+        {
+            // A12 fell; start counting M2 edges while the line stays low.
+            nA12LowM2Edges = 0;
+            nLastA12 = A12_LOW;
+            return;
+        }
+
+        // A12 rose: only a low interval spanning three M2 edges clocks the counter.
+        nLastA12 = A12_HIGH;
+        if (nA12LowM2Edges < A12_LOW_FILTER_M2_CYCLES)
+            return;
+
+        if (nIRQCounter == 0 || bIRQReload)
+            nIRQCounter = nIRQLatch;
+        else
+            nIRQCounter--;
+
+        // MMC3C asserts IRQ whenever the post-clock counter is zero, including
+        // a zero-valued reload. The IRQ output stays active until $E000.
+        if (nIRQCounter == 0 && bIRQEnabled)
+            bIRQActive = true;
+
+        bIRQReload = false;
+    }
+
+    bool Mapper004::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t)
+    {
         if (addr >= 0x0000 && addr <= 0x1FFF)
         {
             uint16_t offset = addr & 0x03FF;
@@ -181,11 +213,8 @@ namespace R2NES::Core
         return false;
     }
 
-    // Atualizado para receber e processar o relógio do sistema também em escritas
-    bool Mapper004::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
+    bool Mapper004::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t)
     {
-        handleA12Edge(addr, systemClockCounter);
-
         if (addr >= 0x0000 && addr <= 0x1FFF && nCHRBanks == 0)
         {
             uint16_t offset = addr & 0x03FF;
@@ -208,7 +237,8 @@ namespace R2NES::Core
 
     void Mapper004::clearIrqFlag()
     {
-        bIRQActive = false;
+        // Accepting the CPU interrupt does not clear the MMC3's IRQ output.
+        // A write to $E000 disables the source and acknowledges the IRQ.
     }
 
     void Mapper004::updateBanks()
@@ -267,8 +297,10 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&bIRQReload), sizeof(bIRQReload));
         os.write(reinterpret_cast<const char *>(&nIRQLatch), sizeof(nIRQLatch));
         os.write(reinterpret_cast<const char *>(&nIRQCounter), sizeof(nIRQCounter));
+        os.write(reinterpret_cast<const char *>(&bPRGRAMEnabled), sizeof(bPRGRAMEnabled));
+        os.write(reinterpret_cast<const char *>(&bPRGRAMWriteProtected), sizeof(bPRGRAMWriteProtected));
         os.write(reinterpret_cast<const char *>(&nLastA12), sizeof(nLastA12));
-        os.write(reinterpret_cast<const char *>(&nLastA12Clock), sizeof(nLastA12Clock));
+        os.write(reinterpret_cast<const char *>(&nA12LowM2Edges), sizeof(nA12LowM2Edges));
         os.write(reinterpret_cast<const char *>(vPRGRAM), sizeof(vPRGRAM));
     }
 
@@ -284,8 +316,10 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&bIRQReload), sizeof(bIRQReload));
         is.read(reinterpret_cast<char *>(&nIRQLatch), sizeof(nIRQLatch));
         is.read(reinterpret_cast<char *>(&nIRQCounter), sizeof(nIRQCounter));
+        is.read(reinterpret_cast<char *>(&bPRGRAMEnabled), sizeof(bPRGRAMEnabled));
+        is.read(reinterpret_cast<char *>(&bPRGRAMWriteProtected), sizeof(bPRGRAMWriteProtected));
         is.read(reinterpret_cast<char *>(&nLastA12), sizeof(nLastA12));
-        is.read(reinterpret_cast<char *>(&nLastA12Clock), sizeof(nLastA12Clock));
+        is.read(reinterpret_cast<char *>(&nA12LowM2Edges), sizeof(nA12LowM2Edges));
         is.read(reinterpret_cast<char *>(vPRGRAM), sizeof(vPRGRAM));
         updateBanks();
     }
