@@ -325,50 +325,14 @@ namespace R2NES::Core
 
     void CPU::irq()
     {
-        if (GetFlag(I) == 0)
-        {
-            // Empilha PC (hi/lo) e o registrador de status (com B=0, U=1)
-            push((pc >> 8) & 0x00FF);
-            push(pc & 0x00FF);
-
-            // No hardware real, IRQ/NMI empurram o status com B=0 e U=1.
-            uint8_t status_to_push = status;
-            status_to_push &= ~B; // Bit 4 (Break) deve ser 0
-            status_to_push |= U;  // Bit 5 (Unused) deve ser 1
-            push(status_to_push);
-
-            // Desabilita futuras IRQs enquanto estiver atendendo esta
-            SetFlag(I, true);
-
-            // Lê vetor de IRQ (0xFFFE/0xFFFF)
-            uint16_t lo = bus->cpuRead(0xFFFE);
-            uint16_t hi = bus->cpuRead(0xFFFF);
-            pc = (hi << 8) | lo;
-
-            // IRQ custa 7 ciclos no 6502
-            cycles = 7;
-        }
+        if (GetFlag(I) == 0 && interruptKind == 0)
+            interruptRequested = true;
     }
 
     void CPU::nmi()
     {
-        // NMI: sem máscara — sempre atendida. Comportamento igual ao IRQ
-        push((pc >> 8) & 0x00FF);
-        push(pc & 0x00FF);
-
-        uint8_t status_to_push = status;
-        status_to_push &= ~B;
-        status_to_push |= U;
-        push(status_to_push);
-
-        SetFlag(I, true); // Desabilita IRQs ao entrar no handler
-
-        // Lê vetor de NMI (0xFFFA/0xFFFB)
-        uint16_t lo = bus->cpuRead(0xFFFA);
-        uint16_t hi = bus->cpuRead(0xFFFB);
-        pc = (hi << 8) | lo;
-
-        cycles = 7;
+        pendingNmi = true;
+        interruptRequested = true;
     }
 
     void CPU::reset()
@@ -377,55 +341,600 @@ namespace R2NES::Core
         a = 0x00;
         x = 0x00;
         y = 0x00;
-        stkp = 0xFD;
         status = 0x24; // U e I flags setadas (00100100)
 
-        // Lê o vetor de Reset (0xFFFC e 0xFFFD) para saber por onde começar
-        uint16_t lo = bus->cpuRead(0xFFFC);
-        uint16_t hi = bus->cpuRead(0xFFFD);
-        pc = (hi << 8) | lo;
-
-        // Reset leva 8 ciclos de clock no hardware real
-        cycles = 8;
+        pc = 0x0000;
+        opcode = 0x00;
+        fetched = 0x00;
+        addr_abs = 0x0000;
+        addr_rel = 0x0000;
+        cycles = 7;
+        microCycle = 0;
+        operandLow = 0;
+        operandHigh = 0;
+        zeroPageAddress = 0;
+        baseAddress = 0;
+        wrongPageAddress = 0;
+        branchTarget = 0;
+        interruptKind = 3;
+        interruptRequested = false;
+        pendingNmi = false;
+        jammed = false;
+        fetchedCached = false;
+        pageCrossed = false;
+        branchTaken = false;
+        // No reset, o 2A03 executa dois ciclos de leitura do PC, três leituras
+        // da pilha e então lê o vetor $FFFC/$FFFD, decrementando SP até $FD.
+        stkp = 0x00;
     }
 
     uint16_t CPU::clock()
     {
-        uint16_t cycles_executed = 0;
-
         if (cycles == 0)
         {
-            // Início do processamento de uma nova instrução
-            // Garante que a flag 'U' (unused) esteja sempre setada
+            if (interruptKind == 0 && interruptRequested)
+            {
+                interruptKind = pendingNmi ? 2 : 1;
+                pendingNmi = false;
+                interruptRequested = false;
+            }
+
+            if (interruptKind != 0)
+            {
+                microCycle = 1;
+                cycles = 7;
+                if (interruptKind == 3)
+                    stkp = 0x00;
+                bus->cpuRead(pc); // ciclo 1: leitura descartada do PC
+                finishCycle();
+                return 1;
+            }
+
+            if (jammed)
+            {
+                bus->cpuRead(pc);
+                return 1;
+            }
+
             SetFlag(U, true);
-
-            // 1) Fetch do opcode
-            opcode = bus->cpuRead(pc);
-            pc++;
-
-            // Ciclos base da instrução
+            opcode = bus->cpuRead(pc++);
+            microCycle = 1;
             cycles = lookup[opcode].cycles;
-
-            // 2) Decodifica e executa: addrmode e operate podem retornar
-            // ciclos adicionais (ex: cruzamento de página).
-            uint8_t additional_cycle1 = (this->*lookup[opcode].addrmode)();
-            uint8_t additional_cycle2 = (this->*lookup[opcode].operate)();
-
-            // Se ambos retornarem 1, soma 1 ciclo extra
-            cycles += (additional_cycle1 & additional_cycle2);
-
-            // Mantém U setada
-            SetFlag(U, true);
-
-            // Guardamos quantos ciclos essa instrução TOTALIZOU
-            cycles_executed = cycles;
+            finishCycle();
+            return 1;
         }
 
-        // Decrementa o contador de ciclos
-        cycles--;
-                
-        // Retorna exatamente quantos ciclos o sistema (PPU/APU/Mappers) precisa avançar
-        return cycles_executed;
+        if (interruptKind != 0)
+        {
+            ++microCycle;
+            executeInstructionCycle();
+            finishCycle();
+            return 1;
+        }
+
+        ++microCycle;
+        executeInstructionCycle();
+        finishCycle();
+        return 1;
+    }
+
+    void CPU::finishCycle()
+    {
+        if (cycles > 0)
+            --cycles;
+        if (cycles == 0)
+        {
+            microCycle = 0;
+            interruptKind = 0;
+            fetchedCached = false;
+            SetFlag(U, true);
+        }
+    }
+
+    bool CPU::isStoreInstruction() const
+    {
+        auto op = lookup[opcode].operate;
+        return op == &CPU::STA || op == &CPU::STX || op == &CPU::STY ||
+               op == &CPU::SAX || op == &CPU::SHA || op == &CPU::SHX ||
+               op == &CPU::SHY || op == &CPU::TAS;
+    }
+
+    bool CPU::isRmwInstruction() const
+    {
+        auto op = lookup[opcode].operate;
+        return op == &CPU::ASL || op == &CPU::LSR || op == &CPU::ROL || op == &CPU::ROR ||
+               op == &CPU::INC || op == &CPU::DEC || op == &CPU::SLO || op == &CPU::RLA ||
+               op == &CPU::SRE || op == &CPU::RRA || op == &CPU::DCP || op == &CPU::ISC;
+    }
+
+    bool CPU::isBranchInstruction() const
+    {
+        auto op = lookup[opcode].operate;
+        return op == &CPU::BCC || op == &CPU::BCS || op == &CPU::BEQ || op == &CPU::BMI ||
+               op == &CPU::BNE || op == &CPU::BPL || op == &CPU::BVC || op == &CPU::BVS;
+    }
+
+    void CPU::executeReadOperation()
+    {
+        fetched = bus->cpuRead(addr_abs);
+        fetchedCached = true;
+        (this->*lookup[opcode].operate)();
+        fetchedCached = false;
+    }
+
+    void CPU::executeInstructionCycle()
+    {
+        const uint8_t c = microCycle;
+        const auto mode = lookup[opcode].addrmode;
+        const auto op = lookup[opcode].operate;
+        const bool store = isStoreInstruction();
+        const bool rmw = isRmwInstruction();
+
+        if (interruptKind != 0)
+        {
+            if (interruptKind == 3)
+            {
+                if (c <= 2)
+                    bus->cpuRead(pc);
+                else if (c <= 5)
+                {
+                    bus->cpuRead(0x0100 | stkp);
+                    --stkp;
+                }
+                else if (c == 6)
+                    operandLow = bus->cpuRead(0xFFFC);
+                else if (c == 7)
+                    pc = (static_cast<uint16_t>(bus->cpuRead(0xFFFD)) << 8) | operandLow;
+                return;
+            }
+
+            if (c == 2)
+                bus->cpuRead(pc);
+            else if (c == 3)
+                push(static_cast<uint8_t>(pc >> 8));
+            else if (c == 4)
+                push(static_cast<uint8_t>(pc));
+            else if (c == 5)
+            {
+                uint8_t stackedStatus = static_cast<uint8_t>((status & ~B) | U);
+                push(stackedStatus);
+                SetFlag(I, true);
+            }
+            else if (c == 6)
+                operandLow = bus->cpuRead(interruptKind == 2 ? 0xFFFA : 0xFFFE);
+            else if (c == 7)
+            {
+                uint16_t vector = interruptKind == 2 ? 0xFFFB : 0xFFFF;
+                pc = (static_cast<uint16_t>(bus->cpuRead(vector)) << 8) | operandLow;
+            }
+            return;
+        }
+
+        if (isBranchInstruction())
+        {
+            if (c == 2)
+            {
+                addr_rel = static_cast<uint16_t>(static_cast<int8_t>(bus->cpuRead(pc++)));
+                const uint16_t oldPC = pc;
+                if (op == &CPU::BCC)
+                    branchTaken = GetFlag(C) == 0;
+                else if (op == &CPU::BCS)
+                    branchTaken = GetFlag(C) != 0;
+                else if (op == &CPU::BEQ)
+                    branchTaken = GetFlag(Z) != 0;
+                else if (op == &CPU::BMI)
+                    branchTaken = GetFlag(N) != 0;
+                else if (op == &CPU::BNE)
+                    branchTaken = GetFlag(Z) == 0;
+                else if (op == &CPU::BPL)
+                    branchTaken = GetFlag(N) == 0;
+                else if (op == &CPU::BVC)
+                    branchTaken = GetFlag(V) == 0;
+                else
+                    branchTaken = GetFlag(V) != 0;
+                branchTarget = branchTaken ? static_cast<uint16_t>(oldPC + addr_rel) : oldPC;
+                pageCrossed = ((oldPC & 0xFF00) != (branchTarget & 0xFF00));
+                addr_abs = branchTarget;
+                if (branchTaken)
+                {
+                    ++cycles;
+                    if (pageCrossed)
+                        ++cycles;
+                }
+            }
+            else if (c == 3)
+            {
+                bus->cpuRead(pc);
+                if (branchTaken)
+                {
+                    if (pageCrossed)
+                        pc = (pc & 0xFF00) | (branchTarget & 0x00FF);
+                    else
+                        pc = branchTarget;
+                }
+            }
+            else if (c == 4)
+            {
+                bus->cpuRead(pc);
+                pc = branchTarget;
+            }
+            return;
+        }
+
+        if (op == &CPU::BRK)
+        {
+            if (c == 2)
+            {
+                bus->cpuRead(pc++);
+            }
+            else if (c == 3)
+                push(static_cast<uint8_t>(pc >> 8));
+            else if (c == 4)
+                push(static_cast<uint8_t>(pc));
+            else if (c == 5)
+            {
+                push(status | B | U);
+                SetFlag(I, true);
+            }
+            else if (c == 6)
+                operandLow = bus->cpuRead(0xFFFE);
+            else if (c == 7)
+                pc = (static_cast<uint16_t>(bus->cpuRead(0xFFFF)) << 8) | operandLow;
+            return;
+        }
+
+        if (op == &CPU::JMP)
+        {
+            if (mode == &CPU::ABS)
+            {
+                if (c == 2)
+                {
+                    operandLow = bus->cpuRead(pc++);
+                }
+                else if (c == 3)
+                    pc = (static_cast<uint16_t>(bus->cpuRead(pc)) << 8) | operandLow;
+            }
+            else // JMP indirect, including the NMOS 6502 page-wrap bug
+            {
+                if (c == 2)
+                    operandLow = bus->cpuRead(pc++);
+                else if (c == 3)
+                {
+                    operandHigh = bus->cpuRead(pc++);
+                    baseAddress = (static_cast<uint16_t>(operandHigh) << 8) | operandLow;
+                }
+                else if (c == 4)
+                    operandLow = bus->cpuRead(baseAddress);
+                else if (c == 5)
+                {
+                    uint16_t highAddress = (baseAddress & 0x00FF) == 0x00FF
+                                               ? (baseAddress & 0xFF00)
+                                               : static_cast<uint16_t>(baseAddress + 1);
+                    pc = (static_cast<uint16_t>(bus->cpuRead(highAddress)) << 8) | operandLow;
+                }
+            }
+            return;
+        }
+
+        if (op == &CPU::JSR)
+        {
+            if (c == 2)
+                operandLow = bus->cpuRead(pc++);
+            else if (c == 3)
+                bus->cpuRead(0x0100 | stkp);
+            else if (c == 4)
+                push(static_cast<uint8_t>(pc >> 8));
+            else if (c == 5)
+                push(static_cast<uint8_t>(pc));
+            else if (c == 6)
+                pc = (static_cast<uint16_t>(bus->cpuRead(pc)) << 8) | operandLow;
+            return;
+        }
+
+        if (op == &CPU::RTS || op == &CPU::RTI)
+        {
+            if (c == 2)
+                bus->cpuRead(pc);
+            else if (c == 3)
+                bus->cpuRead(0x0100 | stkp);
+            else if (op == &CPU::RTS)
+            {
+                if (c == 4)
+                    operandLow = pop();
+                else if (c == 5)
+                    operandHigh = pop();
+                else if (c == 6)
+                {
+                    uint16_t returnAddress = (static_cast<uint16_t>(operandHigh) << 8) | operandLow;
+                    bus->cpuRead(returnAddress);
+                    pc = returnAddress + 1;
+                }
+            }
+            else
+            {
+                if (c == 4)
+                {
+                    status = pop();
+                    SetFlag(B, false);
+                    SetFlag(U, true);
+                }
+                else if (c == 5)
+                    operandLow = pop();
+                else if (c == 6)
+                    pc = (static_cast<uint16_t>(pop()) << 8) | operandLow;
+            }
+            return;
+        }
+
+        if (op == &CPU::PHA || op == &CPU::PHP || op == &CPU::PLA || op == &CPU::PLP)
+        {
+            if (c == 2)
+                bus->cpuRead(pc);
+            else if ((op == &CPU::PHA || op == &CPU::PHP) && c == 3)
+                (this->*op)();
+            else if ((op == &CPU::PLA || op == &CPU::PLP) && c == 3)
+                bus->cpuRead(0x0100 | stkp);
+            else if (op == &CPU::PLA && c == 4)
+            {
+                a = pop();
+                updateNZFlags(a);
+            }
+            else if (op == &CPU::PLP && c == 4)
+            {
+                status = pop();
+                SetFlag(B, false);
+                SetFlag(U, true);
+            }
+            return;
+        }
+
+        if (mode == &CPU::IMP)
+        {
+            if (c == 2)
+            {
+                bus->cpuRead(pc);
+                fetched = a;
+                (this->*op)();
+                if (op == &CPU::STP)
+                    jammed = true;
+            }
+            return;
+        }
+
+        if (mode == &CPU::IMM)
+        {
+            if (c == 2)
+            {
+                addr_abs = pc;
+                fetched = bus->cpuRead(pc++);
+                fetchedCached = true;
+                (this->*op)();
+                fetchedCached = false;
+            }
+            return;
+        }
+
+        if (mode == &CPU::REL)
+            return;
+
+        // Endereçamento indireto usado somente por JMP, tratado acima.
+        if (mode == &CPU::IND)
+            return;
+
+        if (mode == &CPU::ZP0)
+        {
+            if (c == 2)
+                addr_abs = bus->cpuRead(pc++);
+            else if (c == 3)
+            {
+                if (rmw)
+                {
+                    fetched = bus->cpuRead(addr_abs);
+                    fetchedCached = true;
+                }
+                else if (store)
+                    (this->*op)();
+                else
+                    executeReadOperation();
+            }
+            else if (rmw && c == 4)
+                bus->cpuWrite(addr_abs, fetched);
+            else if (rmw && c == 5)
+            {
+                (this->*op)();
+                fetchedCached = false;
+            }
+            return;
+        }
+
+        if (mode == &CPU::ZPX || mode == &CPU::ZPY)
+        {
+            const uint8_t index = mode == &CPU::ZPX ? x : y;
+            if (c == 2)
+            {
+                zeroPageAddress = bus->cpuRead(pc++);
+                baseAddress = zeroPageAddress;
+            }
+            else if (c == 3)
+                bus->cpuRead(zeroPageAddress);
+            else if (c == 4)
+            {
+                addr_abs = static_cast<uint8_t>(zeroPageAddress + index);
+                if (rmw)
+                {
+                    fetched = bus->cpuRead(addr_abs);
+                    fetchedCached = true;
+                }
+                else if (store)
+                    (this->*op)();
+                else
+                    executeReadOperation();
+            }
+            else if (rmw && c == 5)
+                bus->cpuWrite(addr_abs, fetched);
+            else if (rmw && c == 6)
+            {
+                (this->*op)();
+                fetchedCached = false;
+            }
+            return;
+        }
+
+        if (mode == &CPU::ABS || mode == &CPU::ABX || mode == &CPU::ABY)
+        {
+            const uint8_t index = mode == &CPU::ABX ? x : y;
+            if (c == 2)
+                operandLow = bus->cpuRead(pc++);
+            else if (c == 3)
+            {
+                operandHigh = bus->cpuRead(pc++);
+                baseAddress = (static_cast<uint16_t>(operandHigh) << 8) | operandLow;
+                addr_abs = mode == &CPU::ABS ? baseAddress : static_cast<uint16_t>(baseAddress + index);
+                wrongPageAddress = (baseAddress & 0xFF00) | (addr_abs & 0x00FF);
+                pageCrossed = (baseAddress & 0xFF00) != (addr_abs & 0xFF00);
+                if (pageCrossed && !store && !rmw)
+                    ++cycles;
+            }
+            else if (mode == &CPU::ABS)
+            {
+                if (c == 4)
+                {
+                    if (rmw)
+                    {
+                        fetched = bus->cpuRead(addr_abs);
+                        fetchedCached = true;
+                    }
+                    else if (store)
+                        (this->*op)();
+                    else
+                        executeReadOperation();
+                }
+                else if (rmw && c == 5)
+                    bus->cpuWrite(addr_abs, fetched);
+                else if (rmw && c == 6)
+                {
+                    (this->*op)();
+                    fetchedCached = false;
+                }
+            }
+            else if (rmw)
+            {
+                if (c == 4)
+                    bus->cpuRead(wrongPageAddress);
+                else if (c == 5)
+                {
+                    fetched = bus->cpuRead(addr_abs);
+                    fetchedCached = true;
+                }
+                else if (c == 6)
+                    bus->cpuWrite(addr_abs, fetched);
+                else if (c == 7)
+                {
+                    (this->*op)();
+                    fetchedCached = false;
+                }
+            }
+            else if (store)
+            {
+                if (c == 4)
+                    bus->cpuRead(wrongPageAddress);
+                else if (c == 5)
+                    (this->*op)();
+            }
+            else
+            {
+                if (c == 4)
+                {
+                    if (pageCrossed)
+                        bus->cpuRead(wrongPageAddress);
+                    else
+                        executeReadOperation();
+                }
+                else if (c == 5)
+                    executeReadOperation();
+            }
+            return;
+        }
+
+        if (mode == &CPU::IZX)
+        {
+            if (c == 2)
+                zeroPageAddress = bus->cpuRead(pc++);
+            else if (c == 3)
+                bus->cpuRead(zeroPageAddress);
+            else if (c == 4)
+                operandLow = bus->cpuRead(static_cast<uint8_t>(zeroPageAddress + x));
+            else if (c == 5)
+            {
+                operandHigh = bus->cpuRead(static_cast<uint8_t>(zeroPageAddress + x + 1));
+                addr_abs = (static_cast<uint16_t>(operandHigh) << 8) | operandLow;
+            }
+            else if (c == 6)
+            {
+                if (rmw)
+                {
+                    fetched = bus->cpuRead(addr_abs);
+                    fetchedCached = true;
+                }
+                else if (store)
+                    (this->*op)();
+                else
+                    executeReadOperation();
+            }
+            else if (rmw && c == 7)
+                bus->cpuWrite(addr_abs, fetched);
+            else if (rmw && c == 8)
+            {
+                (this->*op)();
+                fetchedCached = false;
+            }
+            return;
+        }
+
+        if (mode == &CPU::IZY)
+        {
+            if (c == 2)
+                zeroPageAddress = bus->cpuRead(pc++);
+            else if (c == 3)
+                operandLow = bus->cpuRead(zeroPageAddress);
+            else if (c == 4)
+            {
+                operandHigh = bus->cpuRead(static_cast<uint8_t>(zeroPageAddress + 1));
+                baseAddress = (static_cast<uint16_t>(operandHigh) << 8) | operandLow;
+                addr_abs = static_cast<uint16_t>(baseAddress + y);
+                wrongPageAddress = (baseAddress & 0xFF00) | (addr_abs & 0x00FF);
+                pageCrossed = (baseAddress & 0xFF00) != (addr_abs & 0xFF00);
+                if (pageCrossed && !store && !rmw)
+                    ++cycles;
+            }
+            else if (c == 5)
+            {
+                if (store || rmw || pageCrossed)
+                    bus->cpuRead(wrongPageAddress);
+                else
+                    executeReadOperation();
+            }
+            else if (c == 6)
+            {
+                if (rmw)
+                {
+                    fetched = bus->cpuRead(addr_abs);
+                    fetchedCached = true;
+                }
+                else if (store)
+                    (this->*op)();
+                else if (pageCrossed)
+                    executeReadOperation();
+            }
+            else if (rmw && c == 7)
+                bus->cpuWrite(addr_abs, fetched);
+            else if (rmw && c == 8)
+            {
+                (this->*op)();
+                fetchedCached = false;
+            }
+            return;
+        }
     }
 
     bool CPU::complete() const
@@ -447,6 +956,20 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&fetched), sizeof(fetched));
         os.write(reinterpret_cast<const char *>(&addr_abs), sizeof(addr_abs));
         os.write(reinterpret_cast<const char *>(&addr_rel), sizeof(addr_rel));
+        os.write(reinterpret_cast<const char *>(&microCycle), sizeof(microCycle));
+        os.write(reinterpret_cast<const char *>(&operandLow), sizeof(operandLow));
+        os.write(reinterpret_cast<const char *>(&operandHigh), sizeof(operandHigh));
+        os.write(reinterpret_cast<const char *>(&zeroPageAddress), sizeof(zeroPageAddress));
+        os.write(reinterpret_cast<const char *>(&baseAddress), sizeof(baseAddress));
+        os.write(reinterpret_cast<const char *>(&wrongPageAddress), sizeof(wrongPageAddress));
+        os.write(reinterpret_cast<const char *>(&branchTarget), sizeof(branchTarget));
+        os.write(reinterpret_cast<const char *>(&pageCrossed), sizeof(pageCrossed));
+        os.write(reinterpret_cast<const char *>(&fetchedCached), sizeof(fetchedCached));
+        os.write(reinterpret_cast<const char *>(&branchTaken), sizeof(branchTaken));
+        os.write(reinterpret_cast<const char *>(&interruptKind), sizeof(interruptKind));
+        os.write(reinterpret_cast<const char *>(&interruptRequested), sizeof(interruptRequested));
+        os.write(reinterpret_cast<const char *>(&pendingNmi), sizeof(pendingNmi));
+        os.write(reinterpret_cast<const char *>(&jammed), sizeof(jammed));
     }
 
     void CPU::loadState(std::istream &is)
@@ -462,11 +985,27 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&fetched), sizeof(fetched));
         is.read(reinterpret_cast<char *>(&addr_abs), sizeof(addr_abs));
         is.read(reinterpret_cast<char *>(&addr_rel), sizeof(addr_rel));
+        is.read(reinterpret_cast<char *>(&microCycle), sizeof(microCycle));
+        is.read(reinterpret_cast<char *>(&operandLow), sizeof(operandLow));
+        is.read(reinterpret_cast<char *>(&operandHigh), sizeof(operandHigh));
+        is.read(reinterpret_cast<char *>(&zeroPageAddress), sizeof(zeroPageAddress));
+        is.read(reinterpret_cast<char *>(&baseAddress), sizeof(baseAddress));
+        is.read(reinterpret_cast<char *>(&wrongPageAddress), sizeof(wrongPageAddress));
+        is.read(reinterpret_cast<char *>(&branchTarget), sizeof(branchTarget));
+        is.read(reinterpret_cast<char *>(&pageCrossed), sizeof(pageCrossed));
+        is.read(reinterpret_cast<char *>(&fetchedCached), sizeof(fetchedCached));
+        is.read(reinterpret_cast<char *>(&branchTaken), sizeof(branchTaken));
+        is.read(reinterpret_cast<char *>(&interruptKind), sizeof(interruptKind));
+        is.read(reinterpret_cast<char *>(&interruptRequested), sizeof(interruptRequested));
+        is.read(reinterpret_cast<char *>(&pendingNmi), sizeof(pendingNmi));
+        is.read(reinterpret_cast<char *>(&jammed), sizeof(jammed));
     }
 
     // Busca o dado atual com base no modo de endereçamento calculado
     uint8_t CPU::fetch()
     {
+        if (fetchedCached)
+            return fetched;
         // Se o modo não for IMP (implied), lê do endereço calculado
         if (!(lookup[opcode].addrmode == &CPU::IMP))
             fetched = bus->cpuRead(addr_abs);
@@ -635,10 +1174,7 @@ namespace R2NES::Core
     {
         if (GetFlag(C) == 0)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -648,10 +1184,7 @@ namespace R2NES::Core
     {
         if (GetFlag(C) == 1)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -661,10 +1194,7 @@ namespace R2NES::Core
     {
         if (GetFlag(Z) == 1)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -683,10 +1213,7 @@ namespace R2NES::Core
     {
         if (GetFlag(N) == 1)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -696,10 +1223,7 @@ namespace R2NES::Core
     {
         if (GetFlag(Z) == 0)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -709,10 +1233,7 @@ namespace R2NES::Core
     {
         if (GetFlag(N) == 0)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -744,10 +1265,7 @@ namespace R2NES::Core
     {
         if (GetFlag(V) == 0)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
@@ -757,10 +1275,7 @@ namespace R2NES::Core
     {
         if (GetFlag(V) == 1)
         {
-            cycles++;
             addr_abs = pc + addr_rel;
-            if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-                cycles++;
             pc = addr_abs;
         }
         return 0;
