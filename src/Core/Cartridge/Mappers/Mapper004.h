@@ -18,7 +18,8 @@ namespace R2NES::Core
                         uint32_t systemClockCounter) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data,
                          uint32_t systemClockCounter) override;
-        void handleA12Edge(uint16_t addr, uint32_t systemClockCounter);
+        void onPpuAddress(uint16_t addr, uint32_t systemClockCounter) override;
+        void tick() override;
 
         MirrorMode getMirrorMode() override;
 
@@ -46,12 +47,17 @@ namespace R2NES::Core
         bool bIRQReload = false;
         uint16_t nIRQLatch = 0x00;
         uint16_t nIRQCounter = 0x00;
-        uint16_t nLastA12 = 0x0000;
+        bool bPRGRAMEnabled = true;
+        bool bPRGRAMWriteProtected = false;
+        // 0xFFFF marks the first unobserved PPU address; otherwise 0 or 0x1000.
+        uint16_t nLastA12 = 0xFFFF;
 
         uint8_t vPRGRAM[8192];
 
-        uint32_t nLastA12Clock = 0;
+        // Saturating count of M2 edges observed while A12 remains low.
+        uint8_t nA12LowM2Edges = 0;
 
         void updateBanks();
+        void handleA12Edge(uint16_t addr);
     };
 } // namespace R2NES::Core
