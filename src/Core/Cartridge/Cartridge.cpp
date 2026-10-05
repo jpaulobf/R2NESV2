@@ -221,6 +221,12 @@ namespace R2NES::Core
 
         mapperID = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
 
+        // iNES 1.0 armazena a PRG RAM em unidades de 8KB; zero significa 8KB.
+        // NES 2.0 codifica esse tamanho em outro campo, ainda não interpretado aqui.
+        const bool isNes2Header = (header.mapper2 & 0x0C) == 0x08;
+        const uint8_t mapper1PrgRamBanks =
+            (!isNes2Header && header.prg_ram_size != 0) ? header.prg_ram_size : 1;
+
         prgBanks = header.prg_chunks;
         size_t prgSize = prgBanks * 16384;
         if (offset + prgSize > buffer.size())
@@ -279,7 +285,7 @@ namespace R2NES::Core
             pMapper = std::make_shared<Mapper000>(prgBanks, chrBanks);
             break;
         case 1:
-            pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks);
+            pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks, mapper1PrgRamBanks);
             break;
         case 2:
             pMapper = std::make_shared<Mapper002>(prgBanks, chrBanks, mirror);
@@ -290,7 +296,7 @@ namespace R2NES::Core
         case 4:
             pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror);
             break;
-		case 5:
+        case 5:
             pMapper = std::make_shared<Mapper005>(prgBanks, chrBanks);
             break;
         case 7:
@@ -302,7 +308,7 @@ namespace R2NES::Core
         case 11:
             pMapper = std::make_shared<Mapper011>(prgBanks, chrBanks, mirror);
             break;
-		case 23:
+        case 23:
             pMapper = std::make_shared<Mapper023>(prgBanks, chrBanks, mirror);
             break;
         case 40:
@@ -402,6 +408,12 @@ namespace R2NES::Core
         bool handled = ppuRead(addr, data, systemClockCounter);
         pMapper->setPpuReadIsSprite(false);
         return handled;
+    }
+
+    void Cartridge::ppuAddressUpdated(uint16_t addr, uint32_t systemClockCounter)
+    {
+        if (pMapper)
+            pMapper->onPpuAddress(addr, systemClockCounter);
     }
 
     void Cartridge::ppuScanlineStart()
