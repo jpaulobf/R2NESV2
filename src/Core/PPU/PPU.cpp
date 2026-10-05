@@ -4,6 +4,7 @@
 #include "Common/Common.h"
 #include <algorithm>
 #include <iostream>
+#include <utility>
 
 namespace R2NES::Core
 {
@@ -172,9 +173,9 @@ namespace R2NES::Core
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
 
             const bool mapper7RasterHitHack = scanline == 30 && cycle >= 255 && cycle < 341 &&
-                                               ppuCtrl == 0x10 && ppuMask == 0x18 &&
-                                               oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
-                                               isBattletoadsSpriteZeroWait(bus);
+                                              ppuCtrl == 0x10 && ppuMask == 0x18 &&
+                                              oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
+                                              isBattletoadsSpriteZeroWait(bus);
             const int sprite0Height = (ppuCtrl & 0x20) ? 16 : 8;
             const int sprite0FirstScanline = static_cast<int>(oamMemory[0]) + 1;
             const int sprite0X = oamMemory[3];
@@ -187,7 +188,7 @@ namespace R2NES::Core
                                              scanline < sprite0FirstScanline + sprite0Height &&
                                              cycle >= sprite0HitWindowStartCycle && cycle <= 256;
             const bool mapper7DoubleDragonWaitHack = (ppuMask & 0x18) == 0x18 && sprite0RasterPassed &&
-                                                      isBattletoadsDoubleDragonSpriteZeroWait(bus);
+                                                     isBattletoadsDoubleDragonSpriteZeroWait(bus);
             if ((data & 0x40) == 0 && (mapper7RasterHitHack || mapper7DoubleDragonWaitHack))
             {
                 ppuStatus |= 0x40;
@@ -215,16 +216,21 @@ namespace R2NES::Core
 
         case 0x0007: // PPUDATA ($2007)
         {
-            // Leituras do PPUDATA são atrasadas por um buffer, exceto para Paletas
-            uint8_t data = dataBuffer;
-            dataBuffer = ppuRead(vramAddr & 0x3FFF);
-
-            // Se estivermos lendo paletas, o dado é retornado imediatamente
-            if ((vramAddr & 0x3FFF) >= 0x3F00)
+            const uint16_t addr = vramAddr & 0x3FFF;
+            uint8_t data;
+            if (addr >= 0x3F00)
             {
-                // Paletas retornam dado imediato, mas o buffer é preenchido com o dado da VRAM "atrás" (nametable)
-                data = ppuRead(vramAddr & 0x3FFF);
-                dataBuffer = ppuRead((vramAddr & 0x3FFF) & 0x2FFF); // Espelhamento de VRAM abaixo das paletas
+                // A paleta é interna ao PPU; só o endereço espelhado da
+                // nametable acessa a memória externa e atualiza o A12 do MMC3.
+                if (bus)
+                    bus->ppuAddressUpdated(addr);
+                data = readPalette(addr);
+                dataBuffer = ppuFetch(addr & 0x2FFF);
+            }
+            else
+            {
+                data = dataBuffer;
+                dataBuffer = ppuFetch(addr);
             }
 
             vramAddr += (ppuCtrl & 0x04) ? 32 : 1;
@@ -338,6 +344,30 @@ namespace R2NES::Core
         return 0x00;
     }
 
+    uint8_t PPU::ppuFetch(uint16_t addr) const
+    {
+        addr &= 0x3FFF;
+        if (bus)
+            bus->ppuAddressUpdated(addr);
+        return ppuRead(addr);
+    }
+
+    uint8_t PPU::ppuFetchSprite(uint16_t addr) const
+    {
+        addr &= 0x3FFF;
+        if (bus)
+            bus->ppuAddressUpdated(addr);
+        return ppuReadSprite(addr);
+    }
+
+    uint8_t PPU::readPalette(uint16_t addr) const
+    {
+        addr &= 0x001F;
+        if ((addr & 0x0013) == 0x0010)
+            addr &= 0x000F;
+        return paletteTable[addr];
+    }
+
     uint8_t PPU::ppuReadSprite(uint16_t addr) const
     {
         uint8_t data = 0x00;
@@ -352,6 +382,9 @@ namespace R2NES::Core
     void PPU::ppuWrite(uint16_t addr, uint8_t data)
     {
         addr &= 0x3FFF;
+
+        if (bus)
+            bus->ppuAddressUpdated(addr);
 
         if (bus && bus->ppuWrite(addr, data))
         {
@@ -410,7 +443,7 @@ namespace R2NES::Core
                         // Resolve a cor final usando a paleta selecionada
                         // Endereço na Palette RAM: $3F00 + (paletteIndex * 4) + pixelColorValue
                         uint16_t paletteAddr = 0x3F00 + (paletteIndex * 4) + pixelColorValue;
-                        uint8_t systemPaletteIndex = ppuRead(paletteAddr) & 0x3F;
+                        uint8_t systemPaletteIndex = readPalette(paletteAddr) & 0x3F;
 
                         // Escreve no buffer de pixels na posição correta da imagem 128x128
                         uint32_t pixelX = tileX * 8 + col;
@@ -524,10 +557,10 @@ namespace R2NES::Core
                     {
                     case 0:
                         loadBackgroundShifters();
-                        bgNextTileId = ppuRead(0x2000 | (vramAddr & 0x0FFF));
+                        bgNextTileId = ppuFetch(0x2000 | (vramAddr & 0x0FFF));
                         break;
                     case 2:
-                        bgNextTileAttr = ppuRead(0x23C0 | (vramAddr & 0x0C00) | ((vramAddr >> 4) & 0x38) | ((vramAddr >> 2) & 0x07));
+                        bgNextTileAttr = ppuFetch(0x23C0 | (vramAddr & 0x0C00) | ((vramAddr >> 4) & 0x38) | ((vramAddr >> 2) & 0x07));
                         if (vramAddr & 0x0040)
                             bgNextTileAttr >>= 4;
                         if (vramAddr & 0x0002)
@@ -535,10 +568,10 @@ namespace R2NES::Core
                         bgNextTileAttr &= 0x03;
                         break;
                     case 4:
-                        bgNextTileLsb = ppuRead(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07));
+                        bgNextTileLsb = ppuFetch(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07));
                         break;
                     case 6:
-                        bgNextTileMsb = ppuRead(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07) + 8);
+                        bgNextTileMsb = ppuFetch(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07) + 8);
                         break;
                     case 7:
                         incrementScrollX();
@@ -559,14 +592,14 @@ namespace R2NES::Core
                     // of the pre-render and visible scanlines. If we don't do this, OAM DMA during VBLANK
                     // will start at the wrong offset if the game doesn't explicitly reset OAMADDR,
                     // causing Sprite 0 to be overwritten with garbage and failing Sprite 0 Hit.
-                    //oamAddr = 0;
+                    // oamAddr = 0;
                 }
 
                 if (cycle == 337 || cycle == 339)
                 {
                     if (cycle == 337)
                         loadBackgroundShifters();
-                    bgNextTileId = ppuRead(0x2000 | (vramAddr & 0x0FFF));
+                    bgNextTileId = ppuFetch(0x2000 | (vramAddr & 0x0FFF));
                 }
 
                 // O pre-render scanline (-1) prepara o scroll para o próximo frame
@@ -577,41 +610,81 @@ namespace R2NES::Core
             }
         }
 
-        // No início de cada scanline visível (ciclo 0), avaliamos quais sprites serão desenhados.
-        // No hardware real, isso acontece durante o scanline anterior, mas para fins de emulação,
-        // fazer no ciclo 0 é eficiente e preciso o suficiente para a maioria dos casos.
-        if (cycle == 0)
+        // Avalia a OAM ao longo dos dots 65-256 e busca os padrões nos dots
+        // 257-320. As unidades carregadas entram em uso no início da próxima linha.
+        if (renderingEnabled && scanline >= -1 && scanline < 240)
         {
-            scanlineSpriteCount = 0;
-            int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
-
-            if (renderingEnabled && scanline >= 0 && scanline < 240)
+            if (cycle == 64)
             {
-                if (bus)
-                    bus->ppuScanlineStart();
+                nextSprites.fill(SpriteFetchUnit{});
+                nextScanlineSpriteCount = 0;
+                spriteEvaluationIndex = 0;
+            }
+            else if (cycle >= 65 && cycle <= 256 && ((cycle - 65) % 3 == 0) && spriteEvaluationIndex < 64)
+            {
+                const uint8_t index = spriteEvaluationIndex++;
+                const uint8_t spriteY = oamMemory[index * 4];
+                const int targetScanline = scanline + 1;
+                const int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+                const int row = targetScanline - (static_cast<int>(spriteY) + 1);
 
-                for (int i = 0; i < 64; i++)
+                if (row >= 0 && row < spriteHeight)
                 {
-                    uint8_t spriteY = oamMemory[i * 4];
-                    int diffY = scanline - ((int)spriteY + 1);
-
-                    if (diffY >= 0 && diffY < spriteHeight)
+                    const int spriteLimit = unlimitedSprites ? 64 : 8;
+                    if (nextScanlineSpriteCount < spriteLimit)
                     {
-                        if (unlimitedSprites)
-                        {
-                            if (scanlineSpriteCount < 64)
-                                scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
-                        }
-                        else
-                        {
-                            if (scanlineSpriteCount < 8)
-                                scanlineSprites[scanlineSpriteCount++] = (uint8_t)i;
-                            else
-                                ppuStatus |= 0x20; // Sprite Overflow
-                        }
+                        SpriteFetchUnit &sprite = nextSprites[nextScanlineSpriteCount++];
+                        sprite.oamIndex = index;
+                        sprite.y = spriteY;
+                        sprite.tile = oamMemory[index * 4 + 1];
+                        sprite.attributes = oamMemory[index * 4 + 2];
+                        sprite.x = oamMemory[index * 4 + 3];
+                        sprite.row = static_cast<uint8_t>(row);
                     }
+                    else if (!unlimitedSprites)
+                        ppuStatus |= 0x20; // Mais de oito sprites nesta linha
                 }
             }
+            else if (cycle >= 257 && cycle <= 320)
+            {
+                const int slot = (cycle - 257) / 8;
+                const int phase = (cycle - 257) % 8;
+
+                if (phase == 0 || phase == 2)
+                    ppuFetch(0x2000 | (vramAddr & 0x0FFF)); // Busca fictícia de nametable
+                else if (phase == 4)
+                {
+                    SpriteFetchUnit &sprite = nextSprites[slot];
+                    const int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
+                    const int patternRow = (sprite.attributes & 0x80) ? spriteHeight - 1 - sprite.row : sprite.row;
+                    if (spriteHeight == 16)
+                    {
+                        const uint16_t table = (sprite.tile & 0x01) ? 0x1000 : 0x0000;
+                        const uint8_t tile = static_cast<uint8_t>((sprite.tile & 0xFE) + (patternRow >> 3));
+                        sprite.patternAddress = table + (static_cast<uint16_t>(tile) << 4) + (patternRow & 0x07);
+                    }
+                    else
+                    {
+                        const uint16_t table = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                        sprite.patternAddress = table + (static_cast<uint16_t>(sprite.tile) << 4) + patternRow;
+                    }
+                    sprite.patternLow = ppuFetchSprite(sprite.patternAddress);
+                }
+                else if (phase == 6)
+                {
+                    nextSprites[slot].patternHigh = ppuFetchSprite(nextSprites[slot].patternAddress + 8);
+                }
+            }
+        }
+
+        if (cycle == 0)
+        {
+            std::swap(currentSprites, nextSprites);
+            scanlineSpriteCount = nextScanlineSpriteCount;
+            nextScanlineSpriteCount = 0;
+
+            if (renderingEnabled && scanline >= 0 && scanline < 240 && bus)
+                bus->ppuScanlineStart();
         }
 
         // Só processamos renderização nos ciclos visíveis (1-256) e scanlines visíveis (0-239)
@@ -643,14 +716,17 @@ namespace R2NES::Core
             uint16_t bgPaletteAddr = 0x3F00 + (bgPaletteIndex * 4) + bgPixelColor;
             if (bgPixelColor == 0)
                 bgPaletteAddr = 0x3F00;
-            
+
             // Apenas desenha no framebuffer se a renderização de tiles estiver habilitada
-            if (tilesEnabled) {
-                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(bgPaletteAddr) & 0x3F];
-            } else {
+            if (tilesEnabled)
+            {
+                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[readPalette(bgPaletteAddr) & 0x3F];
+            }
+            else
+            {
                 // Se a renderização de tiles estiver desabilitada, preenchemos o fundo com a cor universal
                 // para evitar o efeito de "rastro" dos sprites. A cor universal está em $3F00.
-                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(0x3F00) & 0x3F];
+                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[readPalette(0x3F00) & 0x3F];
             }
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
@@ -659,29 +735,20 @@ namespace R2NES::Core
             if (cycle <= 8 && !(ppuMask & 0x04))
                 spriteShouldRender = false;
 
-            bool spritePixelDrawn = false;
-
             if (spriteShouldRender)
             {
                 for (int j = 0; j < scanlineSpriteCount; j++)
                 {
-                    uint8_t i = scanlineSprites[j];
-                    uint8_t spriteY = oamMemory[i * 4];
+                    const SpriteFetchUnit &sprite = currentSprites[j];
+                    const uint8_t i = sprite.oamIndex;
+                    if (i >= 64)
+                        continue;
+
+                    const uint8_t spriteY = sprite.y;
                     int diffY = scanline - ((int)spriteY + 1);
                     int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
 
-                    if (i == 0)
-                    { // Sprite 0
-                        int diffY = scanline - (oamMemory[0] + 1);
-                        if (diffY >= 0 && diffY < spriteHeight)
-                        {
-                            // Sprite 0 está na tela!
-                            // Onde ele está horizontalmente?
-                            // std::cout << "[DEBUG] Sprite 0 em X: " << (int)oamMemory[3] << " Y: " << (int)oamMemory[0] << std::endl;
-                        }
-                    }
-
-                    uint8_t spriteX = oamMemory[i * 4 + 3];
+                    const uint8_t spriteX = sprite.x;
                     // diffX pode ser negativo (sprite ainda não começou) ou > 7 (sprite já terminou)
                     int diffX = (cycle - 1) - spriteX;
 
@@ -695,50 +762,33 @@ namespace R2NES::Core
                     // Se o ciclo atual está dentro da largura horizontal do sprite (0-7 pixels)
                     if (diffX >= 0 && diffX < 8)
                     {
-                        uint8_t spriteID = oamMemory[i * 4 + 1];
-                        uint8_t spriteAttrib = oamMemory[i * 4 + 2];
-
-                        // Para sprites 8x8: spPtBase é controlado por ppuCtrl bit 3
-                        // Para sprites 8x16: spPtBase é sempre 0x0000 e selecionado pelo bit 0 do spriteID
-                        uint16_t spPtBase;
-                        uint8_t pattern = spriteID;
-                        uint8_t row = 0;
-
-                        if (spriteHeight == 16)
-                        {
-                            // No modo 8x16, o bit 0 do tile seleciona a Pattern Table
-                            spPtBase = (spriteID & 0x01) * 0x1000;
-                            pattern = (spriteID & 0xFE);
-
-                            if (spriteAttrib & 0x80) // Flip vertical
-                            {
-                                // Com flip: inverter a linha e selecionar padrão corretamente
-                                int flippedY = 15 - diffY;
-                                pattern = (spriteID & 0xFE) | ((flippedY >> 3) & 0x01);
-                                row = flippedY & 0x07;
-                            }
-                            else // Sem flip vertical
-                            {
-                                // Metade superior (0-7): padrão com bit 0 = 0
-                                // Metade inferior (8-15): padrão com bit 0 = 1
-                                pattern = (spriteID & 0xFE) | ((diffY >> 3) & 0x01);
-                                row = diffY & 0x07;
-                            }
-                        }
-                        else
-                        {
-                            // Sprites 8x8: padrão é direto, spPtBase controlado por ppuCtrl bit 3
-                            spPtBase = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
-                            row = (spriteAttrib & 0x80) ? (7 - diffY) : diffY;
-                        }
+                        const uint8_t spriteAttrib = sprite.attributes;
 
                         // Para flip horizontal: invertemos como acessamos os bits da pattern
                         // Sem flip: bit 7 (esquerda) a bit 0 (direita) = (7 - diffX)
                         // Com flip: bit 0 (esquerda) a bit 7 (direita) = diffX
                         uint8_t col = (spriteAttrib & 0x40) ? diffX : (7 - diffX);
 
-                        uint8_t spLsb = ppuReadSprite(spPtBase + pattern * 16 + row);
-                        uint8_t spMsb = ppuReadSprite(spPtBase + pattern * 16 + row + 8);
+                        uint8_t spLsb = sprite.patternLow;
+                        uint8_t spMsb = sprite.patternHigh;
+                        if (unlimitedSprites || j >= 8)
+                        {
+                            const int patternRow = (spriteAttrib & 0x80) ? spriteHeight - 1 - diffY : diffY;
+                            uint16_t patternAddress;
+                            if (spriteHeight == 16)
+                            {
+                                const uint16_t table = (sprite.tile & 0x01) ? 0x1000 : 0x0000;
+                                const uint8_t tile = static_cast<uint8_t>((sprite.tile & 0xFE) + (patternRow >> 3));
+                                patternAddress = table + (static_cast<uint16_t>(tile) << 4) + (patternRow & 0x07);
+                            }
+                            else
+                            {
+                                const uint16_t table = (ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                                patternAddress = table + (static_cast<uint16_t>(sprite.tile) << 4) + patternRow;
+                            }
+                            spLsb = ppuReadSprite(patternAddress);
+                            spMsb = ppuReadSprite(patternAddress + 8);
+                        }
                         uint8_t spritePixelColor = ((spLsb >> col) & 0x01) | (((spMsb >> col) & 0x01) << 1);
 
                         if (spritePixelColor != 0) // Pixel não é transparente
@@ -777,11 +827,10 @@ namespace R2NES::Core
                                     if (i == 0 && usedDebugColors)
                                         frameBuffer[scanline * 256 + (cycle - 1)] = 0xFFFF00FF;
                                     else
-                                        frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[ppuRead(palAddr) & 0x3F];
+                                        frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[readPalette(palAddr) & 0x3F];
                                 }
                             }
 
-                            spritePixelDrawn = true;
                             break;
                         }
                     }
@@ -860,8 +909,14 @@ namespace R2NES::Core
         scanline = -1;
         cycle = 0;
         scanlineSpriteCount = 0;
+        nextScanlineSpriteCount = 0;
+        spriteEvaluationIndex = 0;
+        currentSprites.fill(SpriteFetchUnit{});
+        nextSprites.fill(SpriteFetchUnit{});
         frameCounter = 0;
+        frameComplete = false;
         nmi = false;
+        zapperLightDetected = false;
 
         bgNextTileId = 0x00;
         bgNextTileAttr = 0x00;
@@ -905,6 +960,11 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
 
         os.write(reinterpret_cast<const char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
+        os.write(reinterpret_cast<const char *>(&scanlineSpriteCount), sizeof(scanlineSpriteCount));
+        os.write(reinterpret_cast<const char *>(&nextScanlineSpriteCount), sizeof(nextScanlineSpriteCount));
+        os.write(reinterpret_cast<const char *>(&spriteEvaluationIndex), sizeof(spriteEvaluationIndex));
+        os.write(reinterpret_cast<const char *>(currentSprites.data()), sizeof(currentSprites));
+        os.write(reinterpret_cast<const char *>(nextSprites.data()), sizeof(nextSprites));
         os.write(reinterpret_cast<const char *>(oamMemory.data()), oamMemory.size());
         os.write(reinterpret_cast<const char *>(paletteTable.data()), paletteTable.size());
         os.write(reinterpret_cast<const char *>(frameBuffer.data()), frameBuffer.size() * sizeof(frameBuffer[0]));
@@ -940,6 +1000,11 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
 
         is.read(reinterpret_cast<char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
+        is.read(reinterpret_cast<char *>(&scanlineSpriteCount), sizeof(scanlineSpriteCount));
+        is.read(reinterpret_cast<char *>(&nextScanlineSpriteCount), sizeof(nextScanlineSpriteCount));
+        is.read(reinterpret_cast<char *>(&spriteEvaluationIndex), sizeof(spriteEvaluationIndex));
+        is.read(reinterpret_cast<char *>(currentSprites.data()), sizeof(currentSprites));
+        is.read(reinterpret_cast<char *>(nextSprites.data()), sizeof(nextSprites));
         is.read(reinterpret_cast<char *>(oamMemory.data()), oamMemory.size());
         is.read(reinterpret_cast<char *>(paletteTable.data()), paletteTable.size());
         if (includesFrameBuffer)
