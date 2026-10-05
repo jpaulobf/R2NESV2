@@ -16,8 +16,10 @@ namespace R2NES::Core
      * Registrador de Controle ($8000-$9FFF):
      * - Bits 0-1: Modo de espelhamento (0-3)
      * - Bits 2-3: Modo de seleção PRG (0-3)
-     * - Bit 4: Habilita PRG RAM (0=habilitado, 1=desabilitado)
-     * - Bit 4: Modo CHR (quando estiver em bits 4)
+     * - Bit 4: Modo de seleção CHR
+     *
+     * Registrador PRG ($E000-$FFFF), MMC1B:
+     * - Bit 4: Desabilita PRG RAM (0=habilitada, 1=desabilitada)
      *
      * Modos PRG:
      * - 0-1: Switch 32KB
@@ -31,13 +33,14 @@ namespace R2NES::Core
     class Mapper001 : public Mapper
     {
     public:
-        Mapper001(uint8_t prgBanks, uint8_t chrBanks);
+        Mapper001(uint8_t prgBanks, uint8_t chrBanks, uint8_t prgRamBanks = 1);
         ~Mapper001();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+        void onPpuAddress(uint16_t addr, uint32_t systemClockCounter) override;
         void reset() override;
 
         MirrorMode getMirrorMode() override;
@@ -47,6 +50,11 @@ namespace R2NES::Core
         void loadState(std::istream &is) override;
 
     private:
+        bool isPrgRamEnabled() const;
+        uint8_t getPrgRamBank() const;
+        uint8_t getActiveChrBankRegister() const;
+        void updateExtendedPrgBank();
+
         // Seletores de banco
         uint8_t nCHRBankSelect0 = 0x00; // Banco CHR para $0000-$0FFF (modo 0) ou $0000-$0FFF (modo 1)
         uint8_t nCHRBankSelect1 = 0x00; // Banco CHR para $1000-$1FFF (modo 1 apenas)
@@ -58,10 +66,12 @@ namespace R2NES::Core
         uint8_t nShiftRegister = 0x00;
         uint8_t nShiftRegisterCount = 0x00;
 
-        uint8_t nPRGStaticRAM[8192]; // PRG RAM (8KB)
+        uint8_t nPRGStaticRAM[32768] = {}; // Até 32KB, em bancos de 8KB
+        uint8_t nPRGRAMBanks = 1;
 
         uint32_t nLastWriteCycle = 0; // Para evitar múltiplas escritas no mesmo ciclo
 
-        uint8_t nPRGBankHigh = 0; // Último banco PRG selecionado para leitura (para modos 2 e 3)
+        // Bit 0: banco externo de PRG; bit 7: CHR bank register ativo pelo A12 do PPU.
+        uint8_t nPRGBankHigh = 0;
     };
 }
