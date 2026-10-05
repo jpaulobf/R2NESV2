@@ -38,13 +38,25 @@ jobs:
         shell: pwsh
         run: |
           $packageDir = "release_pkg"
-          $mingwBin = "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
+          $cxxPath = (Get-Command g++ -CommandType Application -ErrorAction Stop).Source
           New-Item -ItemType Directory -Path $packageDir | Out-Null
           Copy-Item -Path "bin/R2NESV2.exe" -Destination $packageDir
           Copy-Item -Path "bin/resources" -Destination $packageDir -Recurse
-          Copy-Item -Path (Join-Path $mingwBin "libgcc_s_seh-1.dll") -Destination $packageDir
-          Copy-Item -Path (Join-Path $mingwBin "libstdc++-6.dll") -Destination $packageDir
-          Copy-Item -Path (Join-Path $mingwBin "libwinpthread-1.dll") -Destination $packageDir
+
+          $runtimeDlls = @(
+            "libgcc_s_seh-1.dll",
+            "libstdc++-6.dll",
+            "libwinpthread-1.dll"
+          )
+
+          foreach ($runtimeDll in $runtimeDlls) {
+            $runtimePath = (& $cxxPath "-print-file-name=$runtimeDll" | Select-Object -First 1).Trim()
+            if ($runtimePath -eq $runtimeDll -or -not (Test-Path -LiteralPath $runtimePath -PathType Leaf)) {
+              throw "O MinGW em '$cxxPath' não localizou a DLL '$runtimeDll' (retorno: '$runtimePath')."
+            }
+
+            Copy-Item -LiteralPath $runtimePath -Destination $packageDir
+          }
           
       - name: Create Zip
         shell: pwsh
