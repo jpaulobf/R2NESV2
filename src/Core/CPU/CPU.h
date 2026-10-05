@@ -37,9 +37,7 @@ namespace R2NES::Core
         // Conecta a CPU ao barramento principal
         void connectBus(Bus *n);
 
-        // Executa um ciclo de clock da CPU.
-        // Retorna a quantidade de ciclos que a instrução em execução
-        // consumiu (útil para sincronizar PPU/APU/mappers).
+        // Executa exatamente um ciclo da CPU e no máximo um acesso ao barramento.
         uint16_t clock();
 
         // Retorna verdadeiro se a CPU não tem ciclos pendentes
@@ -203,6 +201,13 @@ namespace R2NES::Core
         uint8_t SBX(); // Subtract X from A with Borrow, then AND X (result in X)
 
     private:
+        void executeInstructionCycle();
+        bool isStoreInstruction() const;
+        bool isRmwInstruction() const;
+        bool isBranchInstruction() const;
+        void executeReadOperation();
+        void finishCycle();
+
         // Variáveis auxiliares para o estado da execução
         // Dado trazido pela instrução atual (após `fetch()`)
         uint8_t fetched = 0x00;
@@ -212,6 +217,20 @@ namespace R2NES::Core
         uint16_t addr_rel = 0x0000;
         // Opcode atualmente sendo executado
         uint8_t opcode = 0x00;
+        uint8_t microCycle = 0;
+        uint8_t operandLow = 0;
+        uint8_t operandHigh = 0;
+        uint8_t zeroPageAddress = 0;
+        uint16_t baseAddress = 0;
+        uint16_t wrongPageAddress = 0;
+        uint16_t branchTarget = 0;
+        bool pageCrossed = false;
+        bool fetchedCached = false;
+        bool branchTaken = false;
+        uint8_t interruptKind = 0; // 0=nenhuma, 1=IRQ, 2=NMI, 3=RESET
+        bool interruptRequested = false;
+        bool pendingNmi = false;
+        bool jammed = false;
         // Ponteiro para o barramento (leitura/escrita de memória)
         Bus *bus = nullptr;
     };
