@@ -2,11 +2,9 @@
 
 namespace R2NES::Core
 {
-    Mapper001::Mapper001(uint8_t prgBanks, uint8_t chrBanks) : Mapper(prgBanks, chrBanks)
+    Mapper001::Mapper001(uint8_t prgBanks, uint8_t chrBanks, uint8_t prgRamBanks)
+        : Mapper(prgBanks, chrBanks), nPRGRAMBanks(prgRamBanks > 4 ? 4 : prgRamBanks)
     {
-        // Inicializa a PRG RAM se necessário
-        for (int i = 0; i < sizeof(nPRGStaticRAM); i++)
-            nPRGStaticRAM[i] = 0x00;
     }
 
     Mapper001::~Mapper001() {}
@@ -15,25 +13,28 @@ namespace R2NES::Core
     {
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
-            // PRG RAM (8KB) - verificar se está habilitada (bit 4 do Control Register)
-            if ((nPRGBankSelect & 0x10) == 0)
+            if (nPRGRAMBanks != 0 && isPrgRamEnabled())
             {
-                data = nPRGStaticRAM[addr & 0x1FFF];
+                const uint32_t ramOffset = static_cast<uint32_t>(getPrgRamBank()) * 0x2000 + (addr & 0x1FFF);
+                data = nPRGStaticRAM[ramOffset];
                 mapped_addr = 0xFFFFFFFF;
                 return true;
             }
-            // Se desabilitada, cartuccho deixa barramento aberto (retorna valor anterior)
+            // Com a PRG RAM desabilitada, o barramento do cartucho fica aberto.
             return false;
         }
 
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
+            if (nPRGBanks == 0)
+                return false;
+
             uint8_t prgMode = (nControlRegister >> 2) & 0x03;
 
             if (prgMode <= 1)
             {
                 // Modo 0 ou 1: Switch 32KB (2 bancos de 16KB, bit 0 de nPRGBankSelect é ignorado)
-                uint8_t baseBank = (nPRGBankHigh << 4) | (nPRGBankSelect & 0x0E);
+                uint8_t baseBank = ((nPRGBankHigh & 0x01) << 4) | (nPRGBankSelect & 0x0E);
                 if (addr >= 0x8000 && addr <= 0xBFFF)
                     mapped_addr = (baseBank % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
                 else
@@ -43,19 +44,19 @@ namespace R2NES::Core
             {
                 // Modo 2: Fixa banco 0 em $8000-$BFFF, troca 16KB em $C000-$FFFF
                 if (addr >= 0x8000 && addr <= 0xBFFF)
-                    mapped_addr = ((nPRGBankHigh << 4) % nPRGBanks) * 0x4000 + (addr & 0x3FFF); // Primeiro banco da região de 256KB com módulo seguro
+                    mapped_addr = (((nPRGBankHigh & 0x01) << 4) % nPRGBanks) * 0x4000 + (addr & 0x3FFF); // Primeiro banco da região de 256KB com módulo seguro
                 else
-                    mapped_addr = (((nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
+                    mapped_addr = ((((nPRGBankHigh & 0x01) << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
             }
             else // prgMode == 3
             {
                 // Modo 3: Troca 16KB em $8000-$BFFF, fixa último banco em $C000-$FFFF
                 if (addr >= 0x8000 && addr <= 0xBFFF)
-                    mapped_addr = (((nPRGBankHigh << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
+                    mapped_addr = ((((nPRGBankHigh & 0x01) << 4) | (nPRGBankSelect & 0x0F)) % nPRGBanks) * 0x4000 + (addr & 0x3FFF);
                 else
                 {
                     // Banco fixo: último banco da região de 256KB (SUROM) ou último banco absoluto
-                    uint32_t lastBank = (nPRGBankHigh << 4) | 0x0F;
+                    uint32_t lastBank = ((nPRGBankHigh & 0x01) << 4) | 0x0F;
                     if (lastBank >= nPRGBanks)
                         lastBank = nPRGBanks - 1;
                     mapped_addr = (lastBank * 0x4000) + (addr & 0x3FFF);
@@ -70,10 +71,10 @@ namespace R2NES::Core
     {
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
-            // PRG RAM (8KB) - verificar se está habilitada (bit 4 do Control Register)
-            if ((nPRGBankSelect & 0x10) == 0)
+            if (nPRGRAMBanks != 0 && isPrgRamEnabled())
             {
-                nPRGStaticRAM[addr & 0x1FFF] = data;
+                const uint32_t ramOffset = static_cast<uint32_t>(getPrgRamBank()) * 0x2000 + (addr & 0x1FFF);
+                nPRGStaticRAM[ramOffset] = data;
                 mapped_addr = 0xFFFFFFFF;
                 return true;
             }
@@ -82,14 +83,17 @@ namespace R2NES::Core
 
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
-            if (systemClockCounter - nLastWriteCycle <= 1)
-            {
-                // Ignora escritas muito próximas, mas NÃO atualiza o ciclo da última escrita.
-                return false;
-            }
-            nLastWriteCycle = systemClockCounter;
+            const bool isShiftReset = (data & 0x80) != 0;
+            const bool isConsecutive = (systemClockCounter - nLastWriteCycle) <= 1;
 
-            if (data & 0x80) // Bit 7 = Reset do Shift Register
+            // O MMC1 sempre aceita o reset pelo bit 7. Escritas consecutivas
+            // sem reset não avançam o registrador serial.
+            const bool acceptWrite = isShiftReset || !isConsecutive;
+            nLastWriteCycle = systemClockCounter;
+            if (!acceptWrite)
+                return false;
+
+            if (isShiftReset)
             {
                 nShiftRegister = 0x00;
                 nShiftRegisterCount = 0;
@@ -110,19 +114,19 @@ namespace R2NES::Core
                     uint8_t targetRegister = (addr >> 13) & 0x03;
 
                     if (targetRegister == 0) // Control Register ($8000-$9FFF)
+                    {
                         nControlRegister = nShiftRegister & 0x1F;
+                        updateExtendedPrgBank();
+                    }
                     else if (targetRegister == 1) // CHR Bank 0 ($A000-$BFFF)
                     {
                         nCHRBankSelect0 = nShiftRegister & 0x1F;
-                        // Em placas SUROM/SXROM, o bit 4 do banco CHR controla o PRG A18
-                        if (nCHRBanks == 0)
-                            nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
+                        updateExtendedPrgBank();
                     }
                     else if (targetRegister == 2)
                     {
                         nCHRBankSelect1 = nShiftRegister & 0x1F;
-                        if (nCHRBanks == 0)
-                            nPRGBankHigh = (nShiftRegister & 0x10) >> 4;
+                        updateExtendedPrgBank();
                     }
                     else if (targetRegister == 3) // PRG Bank ($E000-$FFFF)
                         nPRGBankSelect = nShiftRegister & 0x1F;
@@ -185,6 +189,66 @@ namespace R2NES::Core
         return false;
     }
 
+    void Mapper001::onPpuAddress(uint16_t addr, uint32_t)
+    {
+        // Palette RAM is internal to the PPU. Pattern and nametable accesses
+        // carry the A12 value that selects the active MMC1 CHR register.
+        if (addr >= 0x3F00)
+            return;
+
+        const bool ppuA12 = (addr & 0x1000) != 0;
+        if (ppuA12)
+            nPRGBankHigh |= 0x80;
+        else
+            nPRGBankHigh &= 0x7F;
+
+        updateExtendedPrgBank();
+    }
+
+    uint8_t Mapper001::getActiveChrBankRegister() const
+    {
+        if ((nControlRegister & 0x10) != 0 && (nPRGBankHigh & 0x80) != 0)
+            return nCHRBankSelect1;
+        return nCHRBankSelect0;
+    }
+
+    void Mapper001::updateExtendedPrgBank()
+    {
+        nPRGBankHigh &= 0x80;
+        if (nCHRBanks == 0 && nPRGBanks > 16 && (getActiveChrBankRegister() & 0x10))
+            nPRGBankHigh |= 0x01;
+    }
+
+    bool Mapper001::isPrgRamEnabled() const
+    {
+        // MMC1B bit 4 desabilita a PRG RAM. Em SNROM, CHR.4 também pode
+        // desabilitá-la; em SUROM/SXROM, esse pino seleciona PRG A18.
+        const bool disabledByPrgRegister = (nPRGBankSelect & 0x10) != 0;
+        const bool disabledBySnrom = nPRGRAMBanks == 1 && nCHRBanks == 0 && nPRGBanks <= 16 &&
+                                     (getActiveChrBankRegister() & 0x10) != 0;
+        return !disabledByPrgRegister && !disabledBySnrom;
+    }
+
+    uint8_t Mapper001::getPrgRamBank() const
+    {
+        if (nPRGRAMBanks <= 1)
+            return 0;
+
+        const uint8_t chrBank = getActiveChrBankRegister();
+
+        // SZROM reutiliza CHR0.4 para selecionar a segunda página de PRG RAM.
+        if (nCHRBanks != 0)
+            return nPRGRAMBanks == 2 ? (chrBank >> 4) & 0x01 : 0;
+
+        if (nPRGRAMBanks == 2)
+            return (chrBank >> 3) & 0x01;
+
+        // SXROM usa CHR0.2 como A13 e CHR0.3 como A14 da PRG RAM.
+        const uint8_t bank = ((chrBank >> 2) & 0x01) |
+                             (((chrBank >> 3) & 0x01) << 1);
+        return bank % nPRGRAMBanks;
+    }
+
     MirrorMode Mapper001::getMirrorMode()
     {
         // Bits 0-1 do Control Register determinam o modo de espelhamento de nametable:
@@ -217,9 +281,7 @@ namespace R2NES::Core
         nLastWriteCycle = 0;
         nPRGBankHigh = 0;
 
-        // Inicializa PRG RAM com zeros
-        for (int i = 0; i < 0x2000; i++)
-            nPRGStaticRAM[i] = 0x00;
+        // PRG RAM pode conter dados de bateria; reset do console não a apaga.
     }
 
     void Mapper001::saveState(std::ostream &os)
@@ -230,7 +292,8 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
         os.write(reinterpret_cast<const char *>(&nShiftRegister), sizeof(nShiftRegister));
         os.write(reinterpret_cast<const char *>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
-        os.write(reinterpret_cast<const char *>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+        os.write(reinterpret_cast<const char *>(nPRGStaticRAM),
+                 static_cast<std::streamsize>(nPRGRAMBanks) * 0x2000);
         os.write(reinterpret_cast<const char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
         os.write(reinterpret_cast<const char *>(&nPRGBankHigh), sizeof(nPRGBankHigh));
     }
@@ -243,7 +306,8 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
         is.read(reinterpret_cast<char *>(&nShiftRegister), sizeof(nShiftRegister));
         is.read(reinterpret_cast<char *>(&nShiftRegisterCount), sizeof(nShiftRegisterCount));
-        is.read(reinterpret_cast<char *>(nPRGStaticRAM), sizeof(nPRGStaticRAM));
+        is.read(reinterpret_cast<char *>(nPRGStaticRAM),
+                static_cast<std::streamsize>(nPRGRAMBanks) * 0x2000);
         is.read(reinterpret_cast<char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
         is.read(reinterpret_cast<char *>(&nPRGBankHigh), sizeof(nPRGBankHigh));
     }
