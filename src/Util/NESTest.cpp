@@ -61,7 +61,10 @@ namespace R2NES::Core
             writeLog(currentPC, bytes, instStr);
 
             uint32_t cyclesBefore = nes.getSystemClockCounter();
-            nes.step();
+            do
+            {
+                nes.step();
+            } while (!nes.getCpu().complete());
             totalCycles += (nes.getSystemClockCounter() - cyclesBefore);
 
             // Check de erros do nestest
