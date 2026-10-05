@@ -25,10 +25,17 @@ namespace R2NES::Core
         bool isBattletoadsSpriteZeroWait(const Bus *bus)
         {
             if (!bus || !bus->cpu || !bus->cart || bus->cart->getRomHash() != "279710DC" ||
-                bus->cpu->pc != 0x8641 || bus->cpu->a != 0x40)
+                bus->cpu->a != 0x40)
                 return false;
 
-            constexpr uint16_t loopAddress = 0x863E;
+            uint16_t loopAddress;
+            if (bus->cpu->pc == 0x8641)
+                loopAddress = 0x863E;
+            else if (bus->cpu->pc == 0x8631)
+                loopAddress = 0x862E;
+            else
+                return false;
+
             constexpr uint8_t loopSignature[] = {0x2C, 0x02, 0x20, 0xF0, 0xFB};
             for (size_t offset = 0; offset < sizeof(loopSignature); ++offset)
             {
@@ -162,7 +169,7 @@ namespace R2NES::Core
         this->bus = bus;
     }
 
-    uint8_t PPU::cpuRead(uint16_t addr)
+    uint8_t PPU::cpuRead(uint16_t addr, bool readOnly)
     {
         addr &= 0x0007;
         switch (addr)
@@ -172,7 +179,7 @@ namespace R2NES::Core
             // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
 
-            const bool mapper7RasterHitHack = scanline == 30 && cycle >= 255 && cycle < 341 &&
+            const bool mapper7RasterHitHack = !readOnly && scanline == 30 && cycle >= 255 && cycle < 341 &&
                                               ppuCtrl == 0x10 && ppuMask == 0x18 &&
                                               oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
                                               isBattletoadsSpriteZeroWait(bus);
@@ -187,7 +194,7 @@ namespace R2NES::Core
                                              scanline >= sprite0FirstScanline &&
                                              scanline < sprite0FirstScanline + sprite0Height &&
                                              cycle >= sprite0HitWindowStartCycle && cycle <= 256;
-            const bool mapper7DoubleDragonWaitHack = (ppuMask & 0x18) == 0x18 && sprite0RasterPassed &&
+            const bool mapper7DoubleDragonWaitHack = !readOnly && (ppuMask & 0x18) == 0x18 && sprite0RasterPassed &&
                                                      isBattletoadsDoubleDragonSpriteZeroWait(bus);
             if ((data & 0x40) == 0 && (mapper7RasterHitHack || mapper7DoubleDragonWaitHack))
             {
@@ -203,10 +210,12 @@ namespace R2NES::Core
 
             // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
-            ppuStatus &= ~0x80;
-
-            // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
-            addressLatch = 0;
+            if (!readOnly)
+            {
+                ppuStatus &= ~0x80;
+                // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
+                addressLatch = 0;
+            }
             return data;
         }
 
@@ -217,6 +226,9 @@ namespace R2NES::Core
         case 0x0007: // PPUDATA ($2007)
         {
             const uint16_t addr = vramAddr & 0x3FFF;
+            if (readOnly)
+                return addr >= 0x3F00 ? readPalette(addr) : dataBuffer;
+
             uint8_t data;
             if (addr >= 0x3F00)
             {
