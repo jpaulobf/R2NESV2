@@ -23,13 +23,17 @@ namespace R2NES::Core
         // Indica que a próxima leitura da PPU busca o padrão de um sprite.
         virtual void setPpuReadIsSprite(bool isSprite) {}
 
+        // Notifica a mudança dos pinos de endereço da PPU independentemente
+        // de o acesso ter sido atendido pelo mapeamento CHR do cartucho.
+        virtual void onPpuAddress(uint16_t, uint32_t) {}
+
         // Notifica o início de uma scanline visível da PPU.
         virtual void onPpuScanlineStart() {}
 
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
         virtual bool getIrqFlag() const { return false; }
 
-        // Limpa o flag de IRQ após ele ter sido servido (acknowledge)
+        // Hook de acknowledge do mapper; alguns chips exigem escrita em registrador.
         virtual void clearIrqFlag() {}
 
         // Realiza o tick
