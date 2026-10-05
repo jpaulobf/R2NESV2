@@ -119,7 +119,7 @@ Mapper 001 (MMC1)
 | Battle Chess | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Battle of Olympus, The | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bigfoot | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐ | Não inicializa |
+| Bill & Ted's Excellent Video Game Adventure | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bionic Commando | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Blaster Master | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Bomberman II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -146,9 +146,9 @@ Mapper 001 (MMC1)
 | Dance Aerobics | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkman | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Darkwing Duck, Disney's | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Dragon Warrior | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior | US | 001 |  | ⭐⭐⭐⭐⭐ | SFI |
 | Dragon Warrior II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Dragon Warrior III | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior III | US | 001 |  | ⭐⭐⭐⭐⭐ | SFI |
 | Dragon Warrior IV | US | 001 |  | ⭐ | Não abre |
 | Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! Use Savestate. |
@@ -180,7 +180,7 @@ Mapper 001 (MMC1)
 | Fester's Quest | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Final Fantasy | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Final Fantasy II | Japan | 001 | ⭐⭐⭐⭐⭐ | SFI |
-| Flying Warriors | US | 001 | ⭐ | Não abre |
+| Flying Warriors | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
 | Games not tested yet | --- | --- | --- | --- |

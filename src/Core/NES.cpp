@@ -46,13 +46,11 @@ namespace R2NES::Core
         if (bus.cart && bus.cart->getMapper())
             bus.cart->getMapper()->reset();
 
-        nmi_delay = 0;
-
-        // CPU deve ser a ÚLTIMA a resetar, para ler os vetores com o Mapper já configurado
-        cpu.reset();
         ppu.reset();
+        // O mapper já está pronto; o vetor será lido pela CPU, ciclo a ciclo.
+        cpu.reset();
 
-        std::cout << "NES: Reset complete. CPU PC at 0x" << std::hex << cpu.pc << std::endl;
+        std::cout << "NES: Reset sequence started (7 CPU cycles)." << std::endl;
     }
 
     void NES::step(bool honorCPUOverclock)
@@ -121,23 +119,12 @@ namespace R2NES::Core
         ppu.clock();
         ppu.clock();
 
-        // NMI (VBlank) — introduzimos um pequeno delay para evitar NMI hijacking
+        // A borda de NMI é entregue à CPU; a CPU a aceita no próximo limite
+        // de instrução e executa a entrada da interrupção nos ciclos reais.
         if (ppu.nmi)
         {
             ppu.nmi = false;
-            nmi_delay = 2; // espera algumas instruções antes de disparar NMI
-        }
-
-        if (!bus.dma_transfer)
-        {
-            if (nmi_delay > 0)
-            {
-                if (cpu.complete())
-                    nmi_delay--;
-
-                if (nmi_delay == 0 && cpu.complete())
-                    cpu.nmi();
-            }
+            cpu.nmi();
         }
 
         // APU avança na mesma cadência da CPU
@@ -195,7 +182,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E33; // "R2N3" (inclui framebuffer e CHR RAM)
+        uint32_t magic = 0x52324E36; // "R2N6": inclui o estado atual do MMC3
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // Salva contador de clocks do sistema
@@ -228,7 +215,7 @@ namespace R2NES::Core
 
         uint32_t magic = 0;
         is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-        if (magic != 0x52324E33) // "R2N3" (inclui framebuffer e CHR RAM)
+        if (magic != 0x52324E36) // "R2N6" inclui o estado atual do MMC3
         {
             std::cerr << "Error: Invalid SaveState file!" << std::endl;
             return false;

@@ -79,7 +79,6 @@ namespace R2NES::Core
 
         // Estado interno
         bool cartridgeLoaded = false; // Indica se um cartucho está presente
-        uint8_t nmi_delay = 0;        // Delay para disparo de NMI (proteção contra NMI hijacking)
         bool cpuOverclock = false;    // Flag de overclock experimental da CPU
     };
 }
