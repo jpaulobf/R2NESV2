@@ -20,7 +20,7 @@ R2NES is a high-performance Nintendo Entertainment System (NES) emulator written
 - **APU**: Sound support with individual channel control (Pulse 1/2, Triangle, Noise, DMC) and non-linear mixing.
 - **Mapper Support**: 
   - Mapper 000 (NROM) (100% perfect)
-  - Mapper 001 (MMC1) * Still Buggy!! (in progress) Read the COMPATIBILITY_LIST.
+  - Mapper 001 (MMC1) (in progress) Read the COMPATIBILITY_LIST.
   - Mapper 002 (UNROM) (almost perfect)
   - Mapper 003 (CNROM) (almost perfect)
   - Mapper 004 (MMC3) (initial support) * very buggy !
