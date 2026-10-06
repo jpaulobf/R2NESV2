@@ -40,6 +40,12 @@ namespace R2NES::Core::IO
             return data;
         }
 
+        uint8_t peekNextBit() const
+        {
+            const uint8_t source = strobe ? state : shift;
+            return (source & 0x80) > 0;
+        }
+
         void setButton(NESButtons button, bool pressed)
         {
             if (pressed)
