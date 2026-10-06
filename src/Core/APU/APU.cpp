@@ -1,237 +1,283 @@
 #include "Core/APU/APU.h"
 #include "Core/Bus/Bus.h"
+
+#include <algorithm>
 #include <cmath>
+#include <istream>
+#include <ostream>
 
 namespace R2NES::Core
 {
-    // Tabela de Length Counter (padrão do hardware NES)
-    static const uint8_t lengthTable[] = {
-        10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
-        12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30};
+    namespace
+    {
+        constexpr uint8_t LengthTable[] = {
+            10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
+            12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30};
 
-    // Tabela de períodos para o canal de Noise (NTSC)
-    static const uint16_t noiseTable[] = {
-        4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068};
+        // Períodos expressos em ciclos de CPU. O timer de Noise é clockado a
+        // cada segundo ciclo, portanto seus valores de reload são convertidos.
+        constexpr uint16_t NoisePeriodsNtsc[] = {
+            4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068};
 
-    // Sequências de Duty Cycle para os canais Pulse
-    static const uint8_t dutySequences[4][8] = {
-        {0, 1, 0, 0, 0, 0, 0, 0}, // 12.5%
-        {0, 1, 1, 0, 0, 0, 0, 0}, // 25%
-        {0, 1, 1, 1, 1, 0, 0, 0}, // 50%
-        {1, 0, 0, 1, 1, 1, 1, 1}  // 25% invertido
-    };
+        // Períodos do timer DMC em ciclos de CPU para as taxas NTSC.
+        constexpr uint16_t DmcPeriodsNtsc[] = {
+            428, 380, 340, 320, 286, 254, 226, 214,
+            190, 160, 142, 128, 106, 84, 72, 54};
 
-    // Construtor do APU — inicializa o estado interno
+        constexpr uint8_t DutySequences[4][8] = {
+            {0, 1, 0, 0, 0, 0, 0, 0},
+            {0, 1, 1, 0, 0, 0, 0, 0},
+            {0, 1, 1, 1, 1, 0, 0, 0},
+            {1, 0, 0, 1, 1, 1, 1, 1}};
+
+        template <typename Stream, typename Value>
+        void writeValue(Stream &stream, const Value &value)
+        {
+            stream.write(reinterpret_cast<const char *>(&value), sizeof(value));
+        }
+
+        template <typename Stream, typename Value>
+        void readValue(Stream &stream, Value &value)
+        {
+            stream.read(reinterpret_cast<char *>(&value), sizeof(value));
+        }
+    }
+
     APU::APU()
     {
+        setAudioSampleRate(audioSampleRate);
         reset();
     }
 
-    APU::~APU() {}
-
     void APU::reset()
     {
-        // Reinicia o estado do Frame Counter e flags de IRQ
+        // Preserva preferências da interface, conexão com o barramento e taxa
+        // de saída; todo o estado emulado dos canais volta ao padrão.
+        pulse1 = PulseChannel{};
+        pulse2 = PulseChannel{};
+        triangle = TriangleChannel{};
+        noise = NoiseChannel{};
+        dmc = DMCChannel{};
+        dmc.timer = DmcPeriodsNtsc[0] - 1;
+        dmc.timerReload = DmcPeriodsNtsc[0] - 1;
+        noise.shiftRegister = 1;
+        noise.timerReload = (NoisePeriodsNtsc[0] / 2) - 1;
+
         frameClockCounter = 0;
         frameCounterMode = 4;
-        irqEnabled = false;
-        irqFlag = false;
-        noise.shiftRegister = 1;
+        apuCyclePhase = false;
+        frameIrqEnabled = false;
+        frameIrqFlag = false;
+        frameCounterWritePending = false;
+        frameCounterWriteDelay = 0;
+        pendingFrameCounterMode = 4;
 
-        // Inicializa timers com valores seguros para evitar ruídos/artefatos no início
-        pulse1.timerReload = 0;
-        pulse2.timerReload = 0;
-        triangle.timerReload = 0;
-        noise.timerReload = 0;
-        noise.timer = 1;
-
-        // Reinicia estado do Slew Limiter e buffers de áudio
-        lastPulse1Sample = 0.0f;
-        lastPulse2Sample = 0.0f;
-        lastTriangleSample = 0.0f;
-        lastNoiseSample = 0.0f;
-        lastDmcSample = 0.0f;
-        highPassOutput = 0.0f;
-        lowPassOutput = 0.0f;
-
-        sampleSum = 0.0f;
-        sampleCount = 0;
-
-        audioBuffer = std::queue<float>(); // Limpa a fila de áudio
-        cycleCounter = 0.0;
+        resetAudioPipeline();
     }
 
-    // Conecta o barramento do sistema ao APU para leituras/escritas pelos canais
-    void APU::connectBus(Bus *b) { bus = b; }
+    void APU::connectBus(Bus *b)
+    {
+        bus = b;
+    }
 
     void APU::cpuWrite(uint16_t addr, uint8_t data)
     {
         switch (addr)
         {
-        // Pulse 1
         case 0x4000:
-            pulse1.dutyMode = (data >> 6);
-            pulse1.lengthCounter.halt = (data & 0x20);
-            pulse1.envelope.loop = (data & 0x20);
-            pulse1.envelope.constantVolume = (data & 0x10);
-            pulse1.envelope.volume = (data & 0x0F);
+            pulse1.dutyMode = data >> 6;
+            pulse1.lengthCounter.halt = (data & 0x20) != 0;
+            pulse1.envelope.loop = (data & 0x20) != 0;
+            pulse1.envelope.constantVolume = (data & 0x10) != 0;
+            pulse1.envelope.volume = data & 0x0F;
             break;
         case 0x4001:
-            pulse1.sweep.enabled = (data & 0x80);
+            pulse1.sweep.enabled = (data & 0x80) != 0;
             pulse1.sweep.period = (data >> 4) & 0x07;
-            pulse1.sweep.down = (data & 0x08);
-            pulse1.sweep.shift = (data & 0x07);
+            pulse1.sweep.down = (data & 0x08) != 0;
+            pulse1.sweep.shift = data & 0x07;
             pulse1.sweep.reload = true;
             break;
         case 0x4002:
             pulse1.timerReload = (pulse1.timerReload & 0xFF00) | data;
             break;
         case 0x4003:
-            pulse1.timerReload = (pulse1.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
+            pulse1.timerReload = (pulse1.timerReload & 0x00FF) | (static_cast<uint16_t>(data & 0x07) << 8);
             if (pulse1.enabled)
                 pulse1.lengthCounter.load(data >> 3);
+            pulse1.timer = pulse1.timerReload;
             pulse1.dutyValue = 0;
             pulse1.envelope.start = true;
             break;
 
-        // Pulse 2
         case 0x4004:
-            pulse2.dutyMode = (data >> 6);
-            pulse2.lengthCounter.halt = (data & 0x20);
-            pulse2.envelope.loop = (data & 0x20);
-            pulse2.envelope.constantVolume = (data & 0x10);
-            pulse2.envelope.volume = (data & 0x0F);
+            pulse2.dutyMode = data >> 6;
+            pulse2.lengthCounter.halt = (data & 0x20) != 0;
+            pulse2.envelope.loop = (data & 0x20) != 0;
+            pulse2.envelope.constantVolume = (data & 0x10) != 0;
+            pulse2.envelope.volume = data & 0x0F;
             break;
         case 0x4005:
-            pulse2.sweep.enabled = (data & 0x80);
+            pulse2.sweep.enabled = (data & 0x80) != 0;
             pulse2.sweep.period = (data >> 4) & 0x07;
-            pulse2.sweep.down = (data & 0x08);
-            pulse2.sweep.shift = (data & 0x07);
+            pulse2.sweep.down = (data & 0x08) != 0;
+            pulse2.sweep.shift = data & 0x07;
             pulse2.sweep.reload = true;
             break;
         case 0x4006:
             pulse2.timerReload = (pulse2.timerReload & 0xFF00) | data;
             break;
         case 0x4007:
-            pulse2.timerReload = (pulse2.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
+            pulse2.timerReload = (pulse2.timerReload & 0x00FF) | (static_cast<uint16_t>(data & 0x07) << 8);
             if (pulse2.enabled)
                 pulse2.lengthCounter.load(data >> 3);
+            pulse2.timer = pulse2.timerReload;
             pulse2.dutyValue = 0;
             pulse2.envelope.start = true;
             break;
 
-        // Triangle
         case 0x4008:
-            triangle.linearControl = (data & 0x80);
-            triangle.lengthCounter.halt = (data & 0x80);
-            triangle.linearReload = (data & 0x7F);
+            triangle.linearControl = (data & 0x80) != 0;
+            triangle.lengthCounter.halt = triangle.linearControl;
+            triangle.linearReload = data & 0x7F;
             break;
         case 0x400A:
             triangle.timerReload = (triangle.timerReload & 0xFF00) | data;
             break;
         case 0x400B:
-            triangle.timerReload = (triangle.timerReload & 0x00FF) | ((uint16_t)(data & 0x07) << 8);
+            triangle.timerReload = (triangle.timerReload & 0x00FF) | (static_cast<uint16_t>(data & 0x07) << 8);
             if (triangle.enabled)
                 triangle.lengthCounter.load(data >> 3);
+            triangle.timer = triangle.timerReload;
             triangle.linearReloadFlag = true;
             break;
 
-        case 0x4011:
-            dmc.sampleValue = (data & 0x7F);
-            break;
-
-        // Noise
         case 0x400C:
-            noise.envelope.loop = (data & 0x20);
-            noise.lengthCounter.halt = (data & 0x20);
-            noise.envelope.constantVolume = (data & 0x10);
-            noise.envelope.volume = (data & 0x0F);
+            noise.envelope.loop = (data & 0x20) != 0;
+            noise.lengthCounter.halt = noise.envelope.loop;
+            noise.envelope.constantVolume = (data & 0x10) != 0;
+            noise.envelope.volume = data & 0x0F;
             break;
         case 0x400E:
-            noise.mode = (data & 0x80);
-            noise.timerReload = noiseTable[data & 0x0F];
+        {
+            noise.mode = (data & 0x80) != 0;
+            const uint16_t cpuPeriod = NoisePeriodsNtsc[data & 0x0F];
+            noise.timerReload = static_cast<uint16_t>((cpuPeriod / 2) - 1);
             break;
+        }
         case 0x400F:
             if (noise.enabled)
                 noise.lengthCounter.load(data >> 3);
             noise.envelope.start = true;
             break;
 
-        case 0x4015: // Status
-            pulse1.enabled = (data & 0x01);
-            if (!pulse1.enabled)
-                pulse1.lengthCounter.count = 0;
-            pulse2.enabled = (data & 0x02);
-            if (!pulse2.enabled)
-                pulse2.lengthCounter.count = 0;
-            triangle.enabled = (data & 0x04);
-            if (!triangle.enabled)
-                triangle.lengthCounter.count = 0;
-            noise.enabled = (data & 0x08);
-            if (!noise.enabled)
-                noise.lengthCounter.count = 0;
+        case 0x4010:
+            dmc.irqEnabled = (data & 0x80) != 0;
+            dmc.loop = (data & 0x40) != 0;
+            dmc.rateIndex = data & 0x0F;
+            dmc.timerReload = DmcPeriodsNtsc[dmc.rateIndex] - 1;
+            if (!dmc.irqEnabled)
+                dmc.irqFlag = false;
+            break;
+        case 0x4011:
+            dmc.outputLevel = data & 0x7F;
+            break;
+        case 0x4012:
+            dmc.sampleAddress = static_cast<uint16_t>(0xC000 | (static_cast<uint16_t>(data) << 6));
+            break;
+        case 0x4013:
+            dmc.sampleLength = static_cast<uint16_t>((static_cast<uint16_t>(data) << 4) | 1);
             break;
 
-        case 0x4017: // Frame Counter
-            frameCounterMode = (data & 0x80) ? 5 : 4;
-            irqEnabled = !(data & 0x40);
-            frameClockCounter = 0;
-            if (frameCounterMode == 5)
+        case 0x4015:
+            pulse1.enabled = (data & 0x01) != 0;
+            if (!pulse1.enabled)
+                pulse1.lengthCounter.count = 0;
+            pulse2.enabled = (data & 0x02) != 0;
+            if (!pulse2.enabled)
+                pulse2.lengthCounter.count = 0;
+            triangle.enabled = (data & 0x04) != 0;
+            if (!triangle.enabled)
+                triangle.lengthCounter.count = 0;
+            noise.enabled = (data & 0x08) != 0;
+            if (!noise.enabled)
+                noise.lengthCounter.count = 0;
+
+            // Toda escrita em $4015 reconhece a IRQ do DMC.
+            dmc.irqFlag = false;
+            dmc.enabled = (data & 0x10) != 0;
+            if (dmc.enabled)
             {
-                pulse1.envelope.tick();
-                pulse2.envelope.tick();
-                noise.envelope.tick();
-
-                // Comportamento do Linear Counter do Triangle no clock imediato
-                if (triangle.linearReloadFlag)
-                    triangle.linearCount = triangle.linearReload;
-                else if (triangle.linearCount > 0)
-                    triangle.linearCount--;
-                if (!triangle.linearControl)
-                    triangle.linearReloadFlag = false;
-
-                // Clocks de Half Frame (Length Counters + Sweeps)
-                pulse1.lengthCounter.tick();
-                pulse2.lengthCounter.tick();
-                triangle.lengthCounter.tick();
-                noise.lengthCounter.tick();
-                pulse1.sweep.tick(pulse1.timerReload, true);
-                pulse2.sweep.tick(pulse2.timerReload, false);
+                if (dmc.bytesRemaining == 0)
+                {
+                    dmc.currentAddress = dmc.sampleAddress;
+                    dmc.bytesRemaining = dmc.sampleLength;
+                }
+                requestDmcDma();
             }
+            else
+            {
+                dmc.bytesRemaining = 0;
+                dmc.dmaPending = false;
+            }
+            break;
+
+        case 0x4017:
+            pendingFrameCounterMode = (data & 0x80) ? 5 : 4;
+            frameIrqEnabled = (data & 0x40) == 0;
+            if (!frameIrqEnabled)
+                frameIrqFlag = false;
+
+            // O reset do sequenciador ocorre depois de 3 ou 4 ciclos da CPU,
+            // conforme a fase par/ímpar em que a escrita aconteceu. O step()
+            // deste mesmo ciclo também consome um dos ciclos de atraso.
+            frameCounterWriteDelay = static_cast<uint8_t>((apuCyclePhase ? 3 : 4) + 1);
+            frameCounterWritePending = true;
             break;
         }
     }
 
-    uint8_t APU::cpuRead(uint16_t addr)
+    uint8_t APU::cpuRead(uint16_t addr, bool readOnly)
     {
-        if (addr == 0x4015)
-        {
-            // Leitura do registrador de status 0x4015: indica quais canais têm length>0
-            uint8_t res = 0;
-            if (pulse1.lengthCounter.count > 0)
-                res |= 0x01;
-            if (pulse2.lengthCounter.count > 0)
-                res |= 0x02;
-            if (triangle.lengthCounter.count > 0)
-                res |= 0x04;
-            if (noise.lengthCounter.count > 0)
-                res |= 0x08;
-            // Aqui poderia ser incluído o status do DMC e outras flags
-            // A leitura limpa o flag de IRQ
-            irqFlag = false;
-            return res;
-        }
-        return 0x00;
+        if (addr != 0x4015)
+            return 0x00;
+
+        uint8_t status = 0;
+        if (pulse1.lengthCounter.count > 0)
+            status |= 0x01;
+        if (pulse2.lengthCounter.count > 0)
+            status |= 0x02;
+        if (triangle.lengthCounter.count > 0)
+            status |= 0x04;
+        if (noise.lengthCounter.count > 0)
+            status |= 0x08;
+        if (dmc.bytesRemaining > 0)
+            status |= 0x10;
+        if (frameIrqFlag)
+            status |= 0x40;
+        if (dmc.irqFlag)
+            status |= 0x80;
+
+        // O bit 5 é open bus no hardware; o barramento atual não mantém uma
+        // trava geral de open bus, então ele permanece zero nesta implementação.
+        if (!readOnly)
+            frameIrqFlag = false;
+        return status;
     }
 
     void APU::step()
     {
-        // O Frame Counter divide o tempo em steps (aprox. 240Hz ou 192Hz).
-        // Cada ciclo do APU corresponde a 1 ciclo da CPU.
+        if (frameCounterWritePending)
+        {
+            if (frameCounterWriteDelay > 0)
+                --frameCounterWriteDelay;
+            if (frameCounterWriteDelay == 0)
+                applyFrameCounterWrite();
+        }
+
         bool quarterFrame = false;
         bool halfFrame = false;
-
-        frameClockCounter++;
+        ++frameClockCounter;
 
         if (frameCounterMode == 4)
         {
@@ -244,12 +290,12 @@ namespace R2NES::Core
             else if (frameClockCounter == 29829)
             {
                 quarterFrame = halfFrame = true;
-                if (irqEnabled)
-                    irqFlag = true;
+                if (frameIrqEnabled)
+                    frameIrqFlag = true;
                 frameClockCounter = 0;
             }
         }
-        else // Mode 5
+        else
         {
             if (frameClockCounter == 7457)
                 quarterFrame = true;
@@ -257,8 +303,6 @@ namespace R2NES::Core
                 quarterFrame = halfFrame = true;
             else if (frameClockCounter == 22371)
                 quarterFrame = true;
-            else if (frameClockCounter == 29829)
-                ; // No-op step
             else if (frameClockCounter == 37281)
             {
                 quarterFrame = halfFrame = true;
@@ -267,50 +311,38 @@ namespace R2NES::Core
         }
 
         if (quarterFrame)
-        {
-            pulse1.envelope.tick();
-            pulse2.envelope.tick();
-            noise.envelope.tick();
-            // Linear Counter do Triangle
-            if (triangle.linearReloadFlag)
-                triangle.linearCount = triangle.linearReload;
-            else if (triangle.linearCount > 0)
-                triangle.linearCount--;
-            if (!triangle.linearControl)
-                triangle.linearReloadFlag = false;
-        }
-
+            clockQuarterFrame();
         if (halfFrame)
-        {
-            pulse1.lengthCounter.tick();
-            pulse2.lengthCounter.tick();
-            triangle.lengthCounter.tick();
-            noise.lengthCounter.tick();
-            pulse1.sweep.tick(pulse1.timerReload, true);
-            pulse2.sweep.tick(pulse2.timerReload, false);
-        }
+            clockHalfFrame();
 
-        // Clock dos canais (Timers)
-        if (frameClockCounter % 2 == 0)
+        // Pulse, Noise e DMC usam a fase do clock do APU, independente do
+        // contador do frame. Triangle avança em todo ciclo da CPU.
+        if (apuCyclePhase)
         {
             pulse1.clock();
             pulse2.clock();
             noise.clock();
         }
-        triangle.clock(); // Triangle roda na frequência cheia
+        apuCyclePhase = !apuCyclePhase;
 
+        triangle.clock();
+        dmc.clock();
+        requestDmcDma();
+
+        const double cyclesPerSample = apuCyclesPerSample;
+        cycleCounter += 1.0;
         if (soundEnabled)
         {
-            sampleSum += getRawMix();
-            sampleCount++;
+            float mixed = getRawMix();
+            for (auto &filter : antiAliasFilters)
+                mixed = filter.process(mixed);
+            sampleSum += mixed;
+            ++sampleCount;
         }
-        cycleCounter += 1.0;
 
-        // Quando o clock da CPU atingir o tempo exato de 1 amostra de áudio (ex: ~40.5 ciclos)
-        if (cycleCounter >= apuCyclesPerSample)
+        if (cycleCounter >= cyclesPerSample)
         {
-            cycleCounter -= apuCyclesPerSample; // Subtrai para manter a precisão fracionária
-
+            cycleCounter -= cyclesPerSample;
             if (!soundEnabled)
             {
                 sampleSum = 0.0f;
@@ -320,20 +352,13 @@ namespace R2NES::Core
 
             float averageMix = 0.0f;
             if (sampleCount > 0)
-            {
                 averageMix = sampleSum / static_cast<float>(sampleCount);
-            }
             sampleSum = 0.0f;
             sampleCount = 0;
 
-            // Filtros (Passa-Alta para centralizar o eixo, Passa-Baixa para limpar chiados)
-            float filtered = hpf90.process(averageMix);
-            filtered = lpf14000.process(filtered);
-
-            // Um ganho mais conservador para evitar o som distorcido/metálico
-            filtered *= 1.2f;
-
-            // Envia para a fila em vez de esperar a placa de som pedir
+            const float filtered = hpf90.process(averageMix) * 1.2f;
+            if (audioBuffer.size() >= maxBufferedSamples())
+                audioBuffer.pop();
             audioBuffer.push(filtered);
         }
     }
@@ -341,138 +366,158 @@ namespace R2NES::Core
     float APU::getOutputSample()
     {
         if (audioBuffer.empty())
-            return 0.0f; // Silêncio se o emulador estiver pausado ou lento
+            return 0.0f;
 
-        float sample = audioBuffer.front();
+        // Soft clipping evita o corte abrupto que gerava harmônicos adicionais.
+        const float sample = audioBuffer.front();
         audioBuffer.pop();
+        return std::tanh(sample);
+    }
 
-        // Clipper suave de segurança para a placa de som
-        if (sample > 1.0f)
-            sample = 1.0f;
-        if (sample < -1.0f)
-            sample = -1.0f;
+    void APU::enableSound()
+    {
+        if (!soundEnabled)
+            resetAudioPipeline();
+        soundEnabled = true;
+    }
 
-        return sample;
+    void APU::disableSound()
+    {
+        if (soundEnabled)
+            resetAudioPipeline();
+        soundEnabled = false;
     }
 
     void APU::setAudioSampleRate(float rate)
     {
-        if (rate > 0.0f)
+        if (!std::isfinite(rate) || rate < 8000.0f || rate > 192000.0f)
+            return;
+
+        audioSampleRate = rate;
+        apuCyclesPerSample = NtscCpuClockRate / static_cast<double>(rate);
+        hpf90.init(rate, 90.0f, true);
+
+        const double antiAliasCutoff = std::min(14000.0, static_cast<double>(rate) * 0.45);
+        constexpr double ButterworthQ[] = {0.517638090205, 0.707106781187, 1.93185165258};
+        for (size_t i = 0; i < antiAliasFilters.size(); ++i)
+            antiAliasFilters[i].init(NtscCpuClockRate, antiAliasCutoff, ButterworthQ[i]);
+
+        resetAudioPipeline();
+    }
+
+    void APU::completeDmcDma(uint8_t value, uint8_t totalStallCycles)
+    {
+        if (!dmc.dmaPending || !dmc.enabled || dmc.bytesRemaining == 0)
+            return;
+
+        dmc.sampleBuffer = value;
+        dmc.sampleBufferEmpty = false;
+        dmc.dmaPending = false;
+
+        dmc.currentAddress = (dmc.currentAddress == 0xFFFF)
+                                 ? 0x8000
+                                 : static_cast<uint16_t>(dmc.currentAddress + 1);
+        --dmc.bytesRemaining;
+
+        if (dmc.bytesRemaining == 0)
         {
-            audioSampleRate = rate;
-            apuCyclesPerSample = 1789773.0 / rate;
-
-            // Configura apenas o HPF para DC Offset e o LPF para os ruídos agudos
-            hpf90.init(rate, 90.0f, true);
-            lpf14000.init(rate, 14000.0f, false);
+            if (dmc.loop)
+            {
+                dmc.currentAddress = dmc.sampleAddress;
+                dmc.bytesRemaining = dmc.sampleLength;
+            }
+            else if (dmc.irqEnabled)
+            {
+                dmc.irqFlag = true;
+            }
         }
+
+        // O ciclo da leitura do byte já foi consumido pelo NES; os ciclos
+        // restantes são contabilizados nos próximos passos da CPU.
+        dmc.dmaStallCyclesRemaining = totalStallCycles > 0
+                                          ? static_cast<uint8_t>(totalStallCycles - 1)
+                                          : 0;
     }
 
-    float APU::getRawMix()
+    bool APU::consumeDmcDmaStallCycle()
     {
-        float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample(true)) : 0.0f;
-        float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample(false)) : 0.0f;
-        float tri = userTriangleEnabled ? static_cast<float>(triangle.sample()) : 0.0f;
-        float n = userNoiseEnabled ? static_cast<float>(noise.sample()) : 0.0f;
-        float d = userDMCEnabled ? static_cast<float>(dmc.sample()) : 0.0f;
-
-        float pulseOut = 0.0f;
-        float pulseSum = p1 + p2;
-        if (pulseSum > 0.0f)
-            pulseOut = 95.88f / (8128.0f / pulseSum + 100.0f);
-
-        float tndOut = 0.0f;
-        float tndDenominator = (tri / 8227.0f + n / 12241.0f + d / 22638.0f);
-        if (tndDenominator > 0.0f)
-            tndOut = 159.79f / (1.0f / tndDenominator + 100.0f);
-
-        return pulseOut + tndOut;
+        if (dmc.dmaStallCyclesRemaining == 0)
+            return false;
+        --dmc.dmaStallCyclesRemaining;
+        return true;
     }
-
-    void APU::setSlewMs(float ms)
-    {
-        if (ms >= 0.0f)
-            slewMs = ms;
-    }
-
-    // --- Implementações auxiliares ---
 
     void APU::LengthCounter::tick()
     {
         if (!halt && count > 0)
-            count--;
+            --count;
     }
+
     void APU::LengthCounter::load(uint8_t code)
     {
-        count = lengthTable[code & 0x1F];
+        count = LengthTable[code & 0x1F];
     }
 
     void APU::Envelope::tick()
     {
-        if (!start)
-        {
-            if (dividerCount == 0)
-            {
-                dividerCount = volume;
-                if (decayCount == 0)
-                {
-                    if (loop)
-                        decayCount = 15;
-                }
-                else
-                    decayCount--;
-            }
-            else
-                dividerCount--;
-        }
-        else
+        if (start)
         {
             start = false;
             decayCount = 15;
             dividerCount = volume;
+            return;
+        }
+
+        if (dividerCount == 0)
+        {
+            dividerCount = volume;
+            if (decayCount == 0)
+            {
+                if (loop)
+                    decayCount = 15;
+            }
+            else
+            {
+                --decayCount;
+            }
+        }
+        else
+        {
+            --dividerCount;
         }
     }
+
     uint8_t APU::Envelope::getVolume() const
     {
         return constantVolume ? volume : decayCount;
     }
 
-    bool APU::Sweep::isSilencing(uint16_t pulseTimer, bool isPulse1) const
+    bool APU::Sweep::isSilencing(uint16_t pulseTimer, bool) const
     {
         if (pulseTimer < 8)
             return true;
 
-        uint16_t delta = pulseTimer >> shift;
-        if (!down)
-        {
-            if (pulseTimer + delta > 0x7FF)
-                return true;
-        }
-        // O canal 1 e 2 têm comportamentos de muting ligeiramente diferentes no 'down',
-        // mas a regra do 0x7FF no 'up' é a principal causadora de silêncio em notas agudas.
-        return false;
+        const uint16_t delta = pulseTimer >> shift;
+        return !down && pulseTimer + delta > 0x7FF;
     }
 
     void APU::Sweep::tick(uint16_t &pulseTimer, bool isPulse1)
     {
-        uint16_t delta = pulseTimer >> shift;
+        const uint16_t delta = pulseTimer >> shift;
         uint16_t targetTimer = pulseTimer;
-
         if (down)
         {
-            targetTimer -= delta;
+            targetTimer = static_cast<uint16_t>(targetTimer - delta);
             if (isPulse1)
-                targetTimer--;
+                targetTimer = static_cast<uint16_t>(targetTimer - 1);
         }
         else
         {
-            targetTimer += delta;
+            targetTimer = static_cast<uint16_t>(targetTimer + delta);
         }
 
         if (timer == 0 && enabled && shift > 0 && pulseTimer >= 8 && targetTimer <= 0x7FF)
-        {
             pulseTimer = targetTimer;
-        }
 
         if (timer == 0 || reload)
         {
@@ -481,33 +526,31 @@ namespace R2NES::Core
         }
         else
         {
-            timer--;
+            --timer;
         }
     }
 
     void APU::PulseChannel::clock()
     {
-        // Se timerReload é muito pequeno, silencia (norma do NES)
         if (timerReload < 8)
             return;
 
         if (timer == 0)
         {
             timer = timerReload;
-            dutyValue = (dutyValue + 1) % 8;
+            dutyValue = (dutyValue + 1) & 0x07;
         }
         else
-            timer--;
+        {
+            --timer;
+        }
     }
 
     uint8_t APU::PulseChannel::sample(bool isPulse1) const
     {
-        // Muting por: Enabled flag, Length Counter ou Unidade de Sweep
         if (!enabled || lengthCounter.count == 0 || sweep.isSilencing(timerReload, isPulse1))
             return 0;
-        if (dutySequences[dutyMode][dutyValue] == 0)
-            return 0;
-        return envelope.getVolume();
+        return DutySequences[dutyMode][dutyValue] ? envelope.getVolume() : 0;
     }
 
     void APU::TriangleChannel::clock()
@@ -516,17 +559,18 @@ namespace R2NES::Core
         {
             timer = timerReload;
             if (lengthCounter.count > 0 && linearCount > 0)
-                dutyValue = (dutyValue + 1) % 32;
+                dutyValue = (dutyValue + 1) & 0x1F;
         }
         else
-            timer--;
+        {
+            --timer;
+        }
     }
 
     uint8_t APU::TriangleChannel::sample() const
     {
-        if (dutyValue < 16)
-            return 15 - dutyValue;
-        return dutyValue - 16;
+        return dutyValue < 16 ? static_cast<uint8_t>(15 - dutyValue)
+                              : static_cast<uint8_t>(dutyValue - 16);
     }
 
     void APU::NoiseChannel::clock()
@@ -534,153 +578,392 @@ namespace R2NES::Core
         if (timer == 0)
         {
             timer = timerReload;
-            uint8_t feedback = (shiftRegister & 0x01) ^ ((mode ? (shiftRegister >> 6) : (shiftRegister >> 1)) & 0x01);
-            shiftRegister = (shiftRegister >> 1) | (feedback << 14);
+            const uint16_t tap = mode ? 6 : 1;
+            const uint16_t feedback = (shiftRegister & 1) ^ ((shiftRegister >> tap) & 1);
+            shiftRegister = static_cast<uint16_t>((shiftRegister >> 1) | (feedback << 14));
         }
         else
-            timer--;
+        {
+            --timer;
+        }
     }
 
     uint8_t APU::NoiseChannel::sample() const
     {
-        if (!enabled || lengthCounter.count == 0 || (shiftRegister & 0x01))
+        if (!enabled || lengthCounter.count == 0 || (shiftRegister & 1))
             return 0;
         return envelope.getVolume();
     }
 
+    void APU::DMCChannel::clock()
+    {
+        if (timer == 0)
+        {
+            timer = timerReload;
+
+            if (!silence)
+            {
+                if (shiftRegister & 1)
+                {
+                    if (outputLevel <= 125)
+                        outputLevel += 2;
+                }
+                else if (outputLevel >= 2)
+                {
+                    outputLevel -= 2;
+                }
+            }
+
+            shiftRegister >>= 1;
+            if (bitsRemaining > 0)
+                --bitsRemaining;
+
+            if (bitsRemaining == 0)
+            {
+                bitsRemaining = 8;
+                if (sampleBufferEmpty)
+                {
+                    silence = true;
+                }
+                else
+                {
+                    silence = false;
+                    shiftRegister = sampleBuffer;
+                    sampleBufferEmpty = true;
+                }
+            }
+        }
+        else
+        {
+            --timer;
+        }
+    }
+
+    void APU::FirstOrderFilter::init(float sampleRate, float cutoffFreq, bool highPass)
+    {
+        isHighPass = highPass;
+        const float dt = 1.0f / sampleRate;
+        const float rc = 1.0f / (2.0f * 3.14159265358979323846f * cutoffFreq);
+        alpha = isHighPass ? rc / (rc + dt) : dt / (rc + dt);
+        reset();
+    }
+
+    void APU::FirstOrderFilter::reset()
+    {
+        prevX = 0.0f;
+        prevY = 0.0f;
+    }
+
+    float APU::FirstOrderFilter::process(float x)
+    {
+        const float y = isHighPass ? alpha * (prevY + x - prevX)
+                                   : prevY + alpha * (x - prevY);
+        prevX = x;
+        prevY = y;
+        return y;
+    }
+
+    void APU::BiquadFilter::init(double sampleRate, double cutoffFreq, double q)
+    {
+        const double omega = 2.0 * 3.14159265358979323846 * cutoffFreq / sampleRate;
+        const double cosine = std::cos(omega);
+        const double alpha = std::sin(omega) / (2.0 * q);
+        const double a0 = 1.0 + alpha;
+
+        b0 = ((1.0 - cosine) * 0.5) / a0;
+        b1 = (1.0 - cosine) / a0;
+        b2 = b0;
+        a1 = (-2.0 * cosine) / a0;
+        a2 = (1.0 - alpha) / a0;
+        reset();
+    }
+
+    void APU::BiquadFilter::reset()
+    {
+        z1 = 0.0;
+        z2 = 0.0;
+    }
+
+    float APU::BiquadFilter::process(float x)
+    {
+        const double output = b0 * x + z1;
+        z1 = b1 * x - a1 * output + z2;
+        z2 = b2 * x - a2 * output;
+        return static_cast<float>(output);
+    }
+
+    void APU::clockQuarterFrame()
+    {
+        pulse1.envelope.tick();
+        pulse2.envelope.tick();
+        noise.envelope.tick();
+
+        if (triangle.linearReloadFlag)
+            triangle.linearCount = triangle.linearReload;
+        else if (triangle.linearCount > 0)
+            --triangle.linearCount;
+        if (!triangle.linearControl)
+            triangle.linearReloadFlag = false;
+    }
+
+    void APU::clockHalfFrame()
+    {
+        pulse1.lengthCounter.tick();
+        pulse2.lengthCounter.tick();
+        triangle.lengthCounter.tick();
+        noise.lengthCounter.tick();
+        pulse1.sweep.tick(pulse1.timerReload, true);
+        pulse2.sweep.tick(pulse2.timerReload, false);
+    }
+
+    void APU::applyFrameCounterWrite()
+    {
+        frameCounterWritePending = false;
+        frameCounterMode = pendingFrameCounterMode;
+        frameClockCounter = 0;
+
+        // No modo de cinco passos, os clocks iniciais ocorrem junto com o reset.
+        if (frameCounterMode == 5)
+        {
+            clockQuarterFrame();
+            clockHalfFrame();
+        }
+    }
+
+    void APU::requestDmcDma()
+    {
+        if (dmc.enabled && dmc.sampleBufferEmpty && dmc.bytesRemaining > 0 && !dmc.dmaPending)
+            dmc.dmaPending = true;
+    }
+
+    void APU::resetAudioPipeline()
+    {
+        sampleSum = 0.0f;
+        sampleCount = 0;
+        cycleCounter = 0.0;
+        audioBuffer = std::queue<float>();
+        hpf90.reset();
+        for (auto &filter : antiAliasFilters)
+            filter.reset();
+    }
+
+    size_t APU::maxBufferedSamples() const
+    {
+        return std::max<size_t>(512, static_cast<size_t>(audioSampleRate * 0.1f));
+    }
+
+    float APU::getRawMix()
+    {
+        const float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample(true)) : 0.0f;
+        const float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample(false)) : 0.0f;
+        const float tri = userTriangleEnabled ? static_cast<float>(triangle.sample()) : 0.0f;
+        const float n = userNoiseEnabled ? static_cast<float>(noise.sample()) : 0.0f;
+        const float d = userDMCEnabled ? static_cast<float>(dmc.sample()) : 0.0f;
+
+        const float pulseSum = p1 + p2;
+        const float pulseOut = pulseSum > 0.0f
+                                   ? 95.88f / (8128.0f / pulseSum + 100.0f)
+                                   : 0.0f;
+
+        const float tndDenominator = tri / 8227.0f + n / 12241.0f + d / 22638.0f;
+        const float tndOut = tndDenominator > 0.0f
+                                 ? 159.79f / (1.0f / tndDenominator + 100.0f)
+                                 : 0.0f;
+        return pulseOut + tndOut;
+    }
+
     void APU::saveState(std::ostream &os)
     {
-        // Estado Global do Frame Counter e Sync
-        os.write(reinterpret_cast<const char *>(&frameClockCounter), sizeof(frameClockCounter));
-        os.write(reinterpret_cast<const char *>(&frameCounterMode), sizeof(frameCounterMode));
-        os.write(reinterpret_cast<const char *>(&irqEnabled), sizeof(irqEnabled));
-        os.write(reinterpret_cast<const char *>(&irqFlag), sizeof(irqFlag));
-        os.write(reinterpret_cast<const char *>(&cycleCounter), sizeof(cycleCounter));
-        os.write(reinterpret_cast<const char *>(&sampleSum), sizeof(sampleSum));
-        os.write(reinterpret_cast<const char *>(&sampleCount), sizeof(sampleCount));
-
-        // Helper para salvar canais Pulse
-        auto savePulse = [&](const PulseChannel &p)
+        auto write = [&os](const auto &value) { writeValue(os, value); };
+        auto saveLength = [&](const LengthCounter &length)
         {
-            os.write(reinterpret_cast<const char *>(&p.enabled), sizeof(p.enabled));
-            os.write(reinterpret_cast<const char *>(&p.timer), sizeof(p.timer));
-            os.write(reinterpret_cast<const char *>(&p.timerReload), sizeof(p.timerReload));
-            os.write(reinterpret_cast<const char *>(&p.dutyMode), sizeof(p.dutyMode));
-            os.write(reinterpret_cast<const char *>(&p.dutyValue), sizeof(p.dutyValue));
-            os.write(reinterpret_cast<const char *>(&p.lengthCounter.count), sizeof(p.lengthCounter.count));
-            os.write(reinterpret_cast<const char *>(&p.lengthCounter.halt), sizeof(p.lengthCounter.halt));
-            os.write(reinterpret_cast<const char *>(&p.envelope.start), sizeof(p.envelope.start));
-            os.write(reinterpret_cast<const char *>(&p.envelope.decayCount), sizeof(p.envelope.decayCount));
-            os.write(reinterpret_cast<const char *>(&p.envelope.dividerCount), sizeof(p.envelope.dividerCount));
-            os.write(reinterpret_cast<const char *>(&p.envelope.volume), sizeof(p.envelope.volume));
-            os.write(reinterpret_cast<const char *>(&p.envelope.constantVolume), sizeof(p.envelope.constantVolume));
-            os.write(reinterpret_cast<const char *>(&p.envelope.loop), sizeof(p.envelope.loop));
-            os.write(reinterpret_cast<const char *>(&p.sweep.enabled), sizeof(p.sweep.enabled));
-            os.write(reinterpret_cast<const char *>(&p.sweep.period), sizeof(p.sweep.period));
-            os.write(reinterpret_cast<const char *>(&p.sweep.timer), sizeof(p.sweep.timer));
-            os.write(reinterpret_cast<const char *>(&p.sweep.shift), sizeof(p.sweep.shift));
-            os.write(reinterpret_cast<const char *>(&p.sweep.down), sizeof(p.sweep.down));
-            os.write(reinterpret_cast<const char *>(&p.sweep.reload), sizeof(p.sweep.reload));
+            write(length.count);
+            write(length.halt);
         };
+        auto saveEnvelope = [&](const Envelope &envelope)
+        {
+            write(envelope.start);
+            write(envelope.loop);
+            write(envelope.constantVolume);
+            write(envelope.volume);
+            write(envelope.decayCount);
+            write(envelope.dividerCount);
+        };
+        auto savePulse = [&](const PulseChannel &pulse)
+        {
+            write(pulse.enabled);
+            write(pulse.timer);
+            write(pulse.timerReload);
+            write(pulse.dutyMode);
+            write(pulse.dutyValue);
+            saveLength(pulse.lengthCounter);
+            saveEnvelope(pulse.envelope);
+            write(pulse.sweep.enabled);
+            write(pulse.sweep.down);
+            write(pulse.sweep.reload);
+            write(pulse.sweep.shift);
+            write(pulse.sweep.timer);
+            write(pulse.sweep.period);
+        };
+
+        write(frameClockCounter);
+        write(frameCounterMode);
+        write(apuCyclePhase);
+        write(frameIrqEnabled);
+        write(frameIrqFlag);
+        write(frameCounterWritePending);
+        write(frameCounterWriteDelay);
+        write(pendingFrameCounterMode);
+        write(cycleCounter);
+        write(sampleSum);
+        write(sampleCount);
 
         savePulse(pulse1);
         savePulse(pulse2);
 
-        // Triangle
-        os.write(reinterpret_cast<const char *>(&triangle.enabled), sizeof(triangle.enabled));
-        os.write(reinterpret_cast<const char *>(&triangle.timer), sizeof(triangle.timer));
-        os.write(reinterpret_cast<const char *>(&triangle.timerReload), sizeof(triangle.timerReload));
-        os.write(reinterpret_cast<const char *>(&triangle.dutyValue), sizeof(triangle.dutyValue));
-        os.write(reinterpret_cast<const char *>(&triangle.lengthCounter.count), sizeof(triangle.lengthCounter.count));
-        os.write(reinterpret_cast<const char *>(&triangle.lengthCounter.halt), sizeof(triangle.lengthCounter.halt));
-        os.write(reinterpret_cast<const char *>(&triangle.linearCount), sizeof(triangle.linearCount));
-        os.write(reinterpret_cast<const char *>(&triangle.linearControl), sizeof(triangle.linearControl));
-        os.write(reinterpret_cast<const char *>(&triangle.linearReload), sizeof(triangle.linearReload));
-        os.write(reinterpret_cast<const char *>(&triangle.linearReloadFlag), sizeof(triangle.linearReloadFlag));
+        write(triangle.enabled);
+        write(triangle.timer);
+        write(triangle.timerReload);
+        write(triangle.dutyValue);
+        write(triangle.linearCount);
+        write(triangle.linearReload);
+        write(triangle.linearControl);
+        write(triangle.linearReloadFlag);
+        saveLength(triangle.lengthCounter);
 
-        // Noise
-        os.write(reinterpret_cast<const char *>(&noise.enabled), sizeof(noise.enabled));
-        os.write(reinterpret_cast<const char *>(&noise.timer), sizeof(noise.timer));
-        os.write(reinterpret_cast<const char *>(&noise.timerReload), sizeof(noise.timerReload));
-        os.write(reinterpret_cast<const char *>(&noise.shiftRegister), sizeof(noise.shiftRegister));
-        os.write(reinterpret_cast<const char *>(&noise.mode), sizeof(noise.mode));
-        os.write(reinterpret_cast<const char *>(&noise.lengthCounter.count), sizeof(noise.lengthCounter.count));
-        os.write(reinterpret_cast<const char *>(&noise.lengthCounter.halt), sizeof(noise.lengthCounter.halt));
-        os.write(reinterpret_cast<const char *>(&noise.envelope.start), sizeof(noise.envelope.start));
-        os.write(reinterpret_cast<const char *>(&noise.envelope.decayCount), sizeof(noise.envelope.decayCount));
-        os.write(reinterpret_cast<const char *>(&noise.envelope.dividerCount), sizeof(noise.envelope.dividerCount));
-        os.write(reinterpret_cast<const char *>(&noise.envelope.volume), sizeof(noise.envelope.volume));
-        os.write(reinterpret_cast<const char *>(&noise.envelope.constantVolume), sizeof(noise.envelope.constantVolume));
-        os.write(reinterpret_cast<const char *>(&noise.envelope.loop), sizeof(noise.envelope.loop));
+        write(noise.enabled);
+        write(noise.timer);
+        write(noise.timerReload);
+        write(noise.shiftRegister);
+        write(noise.mode);
+        saveEnvelope(noise.envelope);
+        saveLength(noise.lengthCounter);
 
-        // DMC
-        os.write(reinterpret_cast<const char *>(&dmc.sampleValue), sizeof(dmc.sampleValue));
+        write(dmc.enabled);
+        write(dmc.irqEnabled);
+        write(dmc.loop);
+        write(dmc.irqFlag);
+        write(dmc.sampleBufferEmpty);
+        write(dmc.silence);
+        write(dmc.dmaPending);
+        write(dmc.rateIndex);
+        write(dmc.outputLevel);
+        write(dmc.sampleBuffer);
+        write(dmc.shiftRegister);
+        write(dmc.bitsRemaining);
+        write(dmc.timer);
+        write(dmc.timerReload);
+        write(dmc.sampleAddress);
+        write(dmc.sampleLength);
+        write(dmc.currentAddress);
+        write(dmc.bytesRemaining);
+        write(dmc.dmaStallCyclesRemaining);
+
+        write(hpf90.prevX);
+        write(hpf90.prevY);
+        for (const auto &filter : antiAliasFilters)
+        {
+            write(filter.z1);
+            write(filter.z2);
+        }
     }
 
     void APU::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(&frameClockCounter), sizeof(frameClockCounter));
-        is.read(reinterpret_cast<char *>(&frameCounterMode), sizeof(frameCounterMode));
-        is.read(reinterpret_cast<char *>(&irqEnabled), sizeof(irqEnabled));
-        is.read(reinterpret_cast<char *>(&irqFlag), sizeof(irqFlag));
-        is.read(reinterpret_cast<char *>(&cycleCounter), sizeof(cycleCounter));
-        is.read(reinterpret_cast<char *>(&sampleSum), sizeof(sampleSum));
-        is.read(reinterpret_cast<char *>(&sampleCount), sizeof(sampleCount));
-
-        auto loadPulse = [&](PulseChannel &p)
+        auto read = [&is](auto &value) { readValue(is, value); };
+        auto loadLength = [&](LengthCounter &length)
         {
-            is.read(reinterpret_cast<char *>(&p.enabled), sizeof(p.enabled));
-            is.read(reinterpret_cast<char *>(&p.timer), sizeof(p.timer));
-            is.read(reinterpret_cast<char *>(&p.timerReload), sizeof(p.timerReload));
-            is.read(reinterpret_cast<char *>(&p.dutyMode), sizeof(p.dutyMode));
-            is.read(reinterpret_cast<char *>(&p.dutyValue), sizeof(p.dutyValue));
-            is.read(reinterpret_cast<char *>(&p.lengthCounter.count), sizeof(p.lengthCounter.count));
-            is.read(reinterpret_cast<char *>(&p.lengthCounter.halt), sizeof(p.lengthCounter.halt));
-            is.read(reinterpret_cast<char *>(&p.envelope.start), sizeof(p.envelope.start));
-            is.read(reinterpret_cast<char *>(&p.envelope.decayCount), sizeof(p.envelope.decayCount));
-            is.read(reinterpret_cast<char *>(&p.envelope.dividerCount), sizeof(p.envelope.dividerCount));
-            is.read(reinterpret_cast<char *>(&p.envelope.volume), sizeof(p.envelope.volume));
-            is.read(reinterpret_cast<char *>(&p.envelope.constantVolume), sizeof(p.envelope.constantVolume));
-            is.read(reinterpret_cast<char *>(&p.envelope.loop), sizeof(p.envelope.loop));
-            is.read(reinterpret_cast<char *>(&p.sweep.enabled), sizeof(p.sweep.enabled));
-            is.read(reinterpret_cast<char *>(&p.sweep.period), sizeof(p.sweep.period));
-            is.read(reinterpret_cast<char *>(&p.sweep.timer), sizeof(p.sweep.timer));
-            is.read(reinterpret_cast<char *>(&p.sweep.shift), sizeof(p.sweep.shift));
-            is.read(reinterpret_cast<char *>(&p.sweep.down), sizeof(p.sweep.down));
-            is.read(reinterpret_cast<char *>(&p.sweep.reload), sizeof(p.sweep.reload));
+            read(length.count);
+            read(length.halt);
         };
+        auto loadEnvelope = [&](Envelope &envelope)
+        {
+            read(envelope.start);
+            read(envelope.loop);
+            read(envelope.constantVolume);
+            read(envelope.volume);
+            read(envelope.decayCount);
+            read(envelope.dividerCount);
+        };
+        auto loadPulse = [&](PulseChannel &pulse)
+        {
+            read(pulse.enabled);
+            read(pulse.timer);
+            read(pulse.timerReload);
+            read(pulse.dutyMode);
+            read(pulse.dutyValue);
+            loadLength(pulse.lengthCounter);
+            loadEnvelope(pulse.envelope);
+            read(pulse.sweep.enabled);
+            read(pulse.sweep.down);
+            read(pulse.sweep.reload);
+            read(pulse.sweep.shift);
+            read(pulse.sweep.timer);
+            read(pulse.sweep.period);
+        };
+
+        read(frameClockCounter);
+        read(frameCounterMode);
+        read(apuCyclePhase);
+        read(frameIrqEnabled);
+        read(frameIrqFlag);
+        read(frameCounterWritePending);
+        read(frameCounterWriteDelay);
+        read(pendingFrameCounterMode);
+        read(cycleCounter);
+        read(sampleSum);
+        read(sampleCount);
 
         loadPulse(pulse1);
         loadPulse(pulse2);
 
-        is.read(reinterpret_cast<char *>(&triangle.enabled), sizeof(triangle.enabled));
-        is.read(reinterpret_cast<char *>(&triangle.timer), sizeof(triangle.timer));
-        is.read(reinterpret_cast<char *>(&triangle.timerReload), sizeof(triangle.timerReload));
-        is.read(reinterpret_cast<char *>(&triangle.dutyValue), sizeof(triangle.dutyValue));
-        is.read(reinterpret_cast<char *>(&triangle.lengthCounter.count), sizeof(triangle.lengthCounter.count));
-        is.read(reinterpret_cast<char *>(&triangle.lengthCounter.halt), sizeof(triangle.lengthCounter.halt));
-        is.read(reinterpret_cast<char *>(&triangle.linearCount), sizeof(triangle.linearCount));
-        is.read(reinterpret_cast<char *>(&triangle.linearControl), sizeof(triangle.linearControl));
-        is.read(reinterpret_cast<char *>(&triangle.linearReload), sizeof(triangle.linearReload));
-        is.read(reinterpret_cast<char *>(&triangle.linearReloadFlag), sizeof(triangle.linearReloadFlag));
+        read(triangle.enabled);
+        read(triangle.timer);
+        read(triangle.timerReload);
+        read(triangle.dutyValue);
+        read(triangle.linearCount);
+        read(triangle.linearReload);
+        read(triangle.linearControl);
+        read(triangle.linearReloadFlag);
+        loadLength(triangle.lengthCounter);
 
-        is.read(reinterpret_cast<char *>(&noise.enabled), sizeof(noise.enabled));
-        is.read(reinterpret_cast<char *>(&noise.timer), sizeof(noise.timer));
-        is.read(reinterpret_cast<char *>(&noise.timerReload), sizeof(noise.timerReload));
-        is.read(reinterpret_cast<char *>(&noise.shiftRegister), sizeof(noise.shiftRegister));
-        is.read(reinterpret_cast<char *>(&noise.mode), sizeof(noise.mode));
-        is.read(reinterpret_cast<char *>(&noise.lengthCounter.count), sizeof(noise.lengthCounter.count));
-        is.read(reinterpret_cast<char *>(&noise.lengthCounter.halt), sizeof(noise.lengthCounter.halt));
-        is.read(reinterpret_cast<char *>(&noise.envelope.start), sizeof(noise.envelope.start));
-        is.read(reinterpret_cast<char *>(&noise.envelope.decayCount), sizeof(noise.envelope.decayCount));
-        is.read(reinterpret_cast<char *>(&noise.envelope.dividerCount), sizeof(noise.envelope.dividerCount));
-        is.read(reinterpret_cast<char *>(&noise.envelope.volume), sizeof(noise.envelope.volume));
-        is.read(reinterpret_cast<char *>(&noise.envelope.constantVolume), sizeof(noise.envelope.constantVolume));
-        is.read(reinterpret_cast<char *>(&noise.envelope.loop), sizeof(noise.envelope.loop));
+        read(noise.enabled);
+        read(noise.timer);
+        read(noise.timerReload);
+        read(noise.shiftRegister);
+        read(noise.mode);
+        loadEnvelope(noise.envelope);
+        loadLength(noise.lengthCounter);
 
-        is.read(reinterpret_cast<char *>(&dmc.sampleValue), sizeof(dmc.sampleValue));
+        read(dmc.enabled);
+        read(dmc.irqEnabled);
+        read(dmc.loop);
+        read(dmc.irqFlag);
+        read(dmc.sampleBufferEmpty);
+        read(dmc.silence);
+        read(dmc.dmaPending);
+        read(dmc.rateIndex);
+        read(dmc.outputLevel);
+        read(dmc.sampleBuffer);
+        read(dmc.shiftRegister);
+        read(dmc.bitsRemaining);
+        read(dmc.timer);
+        read(dmc.timerReload);
+        read(dmc.sampleAddress);
+        read(dmc.sampleLength);
+        read(dmc.currentAddress);
+        read(dmc.bytesRemaining);
+        read(dmc.dmaStallCyclesRemaining);
 
-        // Importante: Limpar o buffer de áudio antigo para evitar estalidos ao carregar o estado
+        read(hpf90.prevX);
+        read(hpf90.prevY);
+        for (auto &filter : antiAliasFilters)
+        {
+            read(filter.z1);
+            read(filter.z2);
+        }
+
+        // O áudio já calculado pertence ao ponto temporal anterior ao load.
         audioBuffer = std::queue<float>();
     }
 }
