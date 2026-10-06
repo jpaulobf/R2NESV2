@@ -40,7 +40,7 @@ namespace R2NES::Core
         APU &getApu() { return apu; }
 
         // Leitura direta no barramento (útil para debug; não altera o estado)
-        uint8_t cpuRead(uint16_t addr) { return bus.cpuRead(addr); }
+        uint8_t cpuRead(uint16_t addr) { return bus.cpuRead(addr, true); }
 
         // Retorna o contador de ciclos do sistema (clock global)
         uint32_t getSystemClockCounter() const { return bus.systemClockCounter; }
@@ -68,6 +68,7 @@ namespace R2NES::Core
 
     private:
         void serviceIRQ();
+        bool startDmcDma();
 
         // Subsistemas do console
         Bus bus;                 // Barramento do sistema, conecta todos os dispositivos
