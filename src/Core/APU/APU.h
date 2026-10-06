@@ -1,9 +1,10 @@
 #pragma once
-#include <cstdint>
+
 #include <array>
-#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <iosfwd>
 #include <queue>
-#include <iostream>
 
 namespace R2NES::Core
 {
@@ -12,50 +13,45 @@ namespace R2NES::Core
     class APU
     {
     public:
-        // Construtor / destrutor
         APU();
-        ~APU();
 
-        // Avança o estado do APU em 1 ciclo de CPU (chamado a cada passo do NES)
+        // Avança o estado do APU em um ciclo da CPU.
         void step();
-
-        // Reseta o estado interno do APU (buffers, contadores, registradores)
         void reset();
-
-        // Conecta o barramento do sistema para leituras/escritas
         void connectBus(Bus *bus);
 
-        // Escrita/Leitura pelo CPU aos registradores do APU (0x4000 - 0x4017)
         void cpuWrite(uint16_t addr, uint8_t data);
-        uint8_t cpuRead(uint16_t addr);
+        uint8_t cpuRead(uint16_t addr, bool readOnly = false);
 
-        // Retorna uma amostra pronta para a saída de áudio (pop da fila)
         float getOutputSample();
-
-        // Configura taxa de amostragem da saída de áudio (ex.: 44100 Hz)
         void setAudioSampleRate(float rate);
 
-        // Ajusta o Slew Limiter (em ms) para evitar cliques em transições abruptas
-        void setSlewMs(float ms);
-
-        // Consultas de estado
         bool hasSamples() const { return !audioBuffer.empty(); }
-        bool getIrqFlag() const { return irqFlag; }
+        bool getIrqFlag() const { return frameIrqFlag || dmc.irqFlag; }
 
-        // Controle global de som e canais (usado pela UI/usuario)
-        void enableSound() { soundEnabled = true; }
-        void disableSound() { soundEnabled = false; }
+        // Interface usada pelo NES para transferir bytes do canal DMC e roubar
+        // ciclos da CPU sem acoplar o APU ao escalonador principal.
+        bool hasDmcDmaRequest() const { return dmc.dmaPending; }
+        uint16_t getDmcDmaAddress() const { return dmc.currentAddress; }
+        void completeDmcDma(uint8_t value, uint8_t totalStallCycles);
+        bool consumeDmcDmaStallCycle();
+
+        // Preferências de áudio da interface, independentes dos bits escritos
+        // pelo jogo nos registradores de habilitação dos canais.
+        void enableSound();
+        void disableSound();
         void setPulse1Enabled(bool enabled) { userPulse1Enabled = enabled; }
         void setPulse2Enabled(bool enabled) { userPulse2Enabled = enabled; }
         void setTriangleEnabled(bool enabled) { userTriangleEnabled = enabled; }
         void setNoiseEnabled(bool enabled) { userNoiseEnabled = enabled; }
         void setDMCEnabled(bool enabled) { userDMCEnabled = enabled; }
 
-        // Persistência do estado do APU (savestate)
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
 
     private:
+        static constexpr double NtscCpuClockRate = 1789773.0;
+
         Bus *bus = nullptr;
 
         struct LengthCounter
@@ -102,7 +98,7 @@ namespace R2NES::Core
             LengthCounter lengthCounter;
             void clock();
             uint8_t sample(bool isPulse1) const;
-        } pulse1, pulse2;
+        };
 
         struct TriangleChannel
         {
@@ -117,7 +113,7 @@ namespace R2NES::Core
             LengthCounter lengthCounter;
             void clock();
             uint8_t sample() const;
-        } triangle;
+        };
 
         struct NoiseChannel
         {
@@ -130,14 +126,33 @@ namespace R2NES::Core
             LengthCounter lengthCounter;
             void clock();
             uint8_t sample() const;
-        } noise;
+        };
 
         struct DMCChannel
         {
             bool enabled = false;
-            uint8_t sampleValue = 0;
-            uint8_t sample() const { return sampleValue; }
-        } dmc;
+            bool irqEnabled = false;
+            bool loop = false;
+            bool irqFlag = false;
+            bool sampleBufferEmpty = true;
+            bool silence = true;
+            bool dmaPending = false;
+            uint8_t rateIndex = 0;
+            uint8_t outputLevel = 0;
+            uint8_t sampleBuffer = 0;
+            uint8_t shiftRegister = 0;
+            uint8_t bitsRemaining = 8;
+            uint16_t timer = 0;
+            uint16_t timerReload = 427;
+            uint16_t sampleAddress = 0xC000;
+            uint16_t sampleLength = 1;
+            uint16_t currentAddress = 0xC000;
+            uint16_t bytesRemaining = 0;
+            uint8_t dmaStallCyclesRemaining = 0;
+
+            uint8_t sample() const { return outputLevel; }
+            void clock();
+        };
 
         struct FirstOrderFilter
         {
@@ -146,74 +161,67 @@ namespace R2NES::Core
             float prevY = 0.0f;
             bool isHighPass = true;
 
-            void init(float sampleRate, float cutoffFreq, bool highPass)
-            {
-                isHighPass = highPass;
-                float dt = 1.0f / sampleRate;
-                float rc = 1.0f / (2.0f * 3.14159f * cutoffFreq);
-                if (isHighPass)
-                {
-                    alpha = rc / (rc + dt);
-                }
-                else
-                {
-                    alpha = dt / (rc + dt);
-                }
-                prevX = 0.0f;
-                prevY = 0.0f;
-            }
-
-            float process(float x)
-            {
-                float y = 0.0f;
-                if (isHighPass)
-                {
-                    y = alpha * (prevY + x - prevX);
-                }
-                else
-                {
-                    y = prevY + alpha * (x - prevY);
-                }
-                prevX = x;
-                prevY = y;
-                return y;
-            }
+            void init(float sampleRate, float cutoffFreq, bool highPass);
+            void reset();
+            float process(float x);
         };
 
-        FirstOrderFilter hpf90;
-        FirstOrderFilter lpf14000;
+        // A biquad passabaixa executado na frequência do APU antes da redução
+        // para a taxa de saída, evitando aliases que um filtro posterior não
+        // conseguiria remover.
+        struct BiquadFilter
+        {
+            double b0 = 1.0;
+            double b1 = 0.0;
+            double b2 = 0.0;
+            double a1 = 0.0;
+            double a2 = 0.0;
+            double z1 = 0.0;
+            double z2 = 0.0;
 
+            void init(double sampleRate, double cutoffFreq, double q);
+            void reset();
+            float process(float x);
+        };
+
+        PulseChannel pulse1;
+        PulseChannel pulse2;
+        TriangleChannel triangle;
+        NoiseChannel noise;
+        DMCChannel dmc;
+
+        FirstOrderFilter hpf90;
+        std::array<BiquadFilter, 3> antiAliasFilters;
         std::queue<float> audioBuffer;
 
         float sampleSum = 0.0f;
-        int sampleCount = 0;
-        double apuCyclesPerSample = 0.0;
+        uint32_t sampleCount = 0;
+        double apuCyclesPerSample = NtscCpuClockRate / 44100.0;
         double cycleCounter = 0.0;
-
         float audioSampleRate = 44100.0f;
-        float slewMs = 0.7f;
-        float lastPulse1Sample = 0.0f;
-        float lastPulse2Sample = 0.0f;
-        float lastTriangleSample = 0.0f;
-        float lastNoiseSample = 0.0f;
-        float lastDmcSample = 0.0f;
-
-        // Filtros simples para o sinal final
-        float highPassOutput = 0.0f;
-        float lowPassOutput = 0.0f;
 
         uint32_t frameClockCounter = 0;
-        uint8_t frameCounterMode = 0;
-        bool irqEnabled = false;
-        bool irqFlag = false;
-        bool soundEnabled = true;
+        uint8_t frameCounterMode = 4;
+        bool apuCyclePhase = false;
+        bool frameIrqEnabled = false;
+        bool frameIrqFlag = false;
+        bool frameCounterWritePending = false;
+        uint8_t frameCounterWriteDelay = 0;
+        uint8_t pendingFrameCounterMode = 4;
 
+        bool soundEnabled = true;
         bool userPulse1Enabled = true;
         bool userPulse2Enabled = true;
         bool userTriangleEnabled = true;
         bool userNoiseEnabled = true;
         bool userDMCEnabled = true;
 
+        void clockQuarterFrame();
+        void clockHalfFrame();
+        void applyFrameCounterWrite();
+        void requestDmcDma();
+        void resetAudioPipeline();
+        size_t maxBufferedSamples() const;
         float getRawMix();
     };
 }
