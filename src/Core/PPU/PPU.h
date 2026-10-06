@@ -91,6 +91,7 @@ namespace R2NES::Core
         uint8_t ppuCtrl = 0x00; // PPUCTRL ($2000)
         uint8_t ppuMask = 0x00; // PPUMASK ($2001) - Controla renderização
         uint8_t oamAddr = 0x00;
+        uint8_t oamDataBusLatch = 0xFF;
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;
@@ -118,6 +119,7 @@ namespace R2NES::Core
             uint8_t tile = 0xFF;
             uint8_t attributes = 0xFF;
             uint8_t x = 0xFF;
+            uint8_t xCounter = 0;
             uint8_t row = 0x00;
             uint16_t patternAddress = 0x0000;
             uint8_t patternLow = 0x00;
@@ -130,7 +132,14 @@ namespace R2NES::Core
         std::array<SpriteFetchUnit, 64> nextSprites{};
         int scanlineSpriteCount = 0;
         int nextScanlineSpriteCount = 0;
-        uint8_t spriteEvaluationIndex = 0;
+        std::array<uint8_t, 32> secondaryOam{};
+        uint8_t spriteEvaluationIndex = 0; // n: índice do sprite na OAM primária (0-64)
+        uint8_t spriteEvaluationStartIndex = 0; // n inicial obtido de OAMADDR no dot 65
+        uint8_t spriteEvaluationByteIndex = 0; // m: byte atual do sprite (0-3)
+        uint8_t spriteEvaluationBytesCopied = 0; // Bytes copiados para o sprite atual na OAM secundária
+        uint8_t spriteEvaluationLatch = 0xFF;
+        uint8_t secondaryOamAddress = 0;
+        bool spriteEvaluationComplete = false;
 
         bool frameComplete = false;
         bool unlimitedSprites = false;
@@ -149,6 +158,9 @@ namespace R2NES::Core
         uint8_t ppuFetch(uint16_t addr) const;
         uint8_t ppuFetchSprite(uint16_t addr) const;
         uint8_t readPalette(uint16_t addr) const;
+        void incrementDataAddress();
+        bool isRenderingOamAccess() const;
+        bool isRenderingActive() const;
 
         // Background Latches
         uint8_t bgNextTileId = 0x00;
