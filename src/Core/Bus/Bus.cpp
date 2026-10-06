@@ -102,17 +102,20 @@ namespace R2NES::Core
         // Registradores da PPU
         else if (addr >= 0x2000 && addr <= 0x3FFF)
         {
-            return ppu ? ppu->cpuRead(addr) : 0x00;
+            return ppu ? ppu->cpuRead(addr, readOnly) : 0x00;
         }
         // Registrador de status do APU / canais
         else if (addr == 0x4015)
         {
-            return apu ? apu->cpuRead(addr) : 0x00;
+            return apu ? apu->cpuRead(addr, readOnly) : 0x00;
         }
         // Leitura dos controles / porta 1
         else if (addr == 0x4016)
         {
-            return joysticks ? joysticks->controller1.readNextBit() : 0x00;
+            if (!joysticks)
+                return 0x00;
+            return readOnly ? joysticks->controller1.peekNextBit()
+                            : joysticks->controller1.readNextBit();
         }
         // Porta 2: gamepad ou Zapper
         else if (addr == 0x4017)
@@ -123,7 +126,8 @@ namespace R2NES::Core
             {
                 if (joysticks->port2Device == IO::DeviceType::Gamepad)
                 {
-                    out = joysticks->controller2.readNextBit();
+                    out = readOnly ? joysticks->controller2.peekNextBit()
+                                   : joysticks->controller2.readNextBit();
                 }
                 else if (joysticks->port2Device == IO::DeviceType::Zapper)
                 {
