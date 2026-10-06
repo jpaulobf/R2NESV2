@@ -41,6 +41,11 @@ namespace R2NES::Core
         // Reinicia APU e contador de clocks do sistema
         apu.reset();
         bus.systemClockCounter = 0;
+        bus.dma_page = 0;
+        bus.dma_addr = 0;
+        bus.dma_data = 0;
+        bus.dma_transfer = false;
+        bus.dma_dummy = true;
 
         // Se houver um cartucho com mapper, resetamos o mapper também
         if (bus.cart && bus.cart->getMapper())
@@ -59,9 +64,12 @@ namespace R2NES::Core
         //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
         if (bus.dma_transfer)
         {
-            // Ciclo dummy inicial para alinhar o DMA a um ciclo par
+            // Mantém o OAM DMA contínuo. A arbitragem DMC/OAM ainda não é
+            // modelada ciclo a ciclo; iniciar um DMC DMA aqui pode deslocar
+            // os slots de leitura/escrita e corromper os sprites copiados.
             if (bus.dma_dummy)
             {
+                // Ciclo dummy inicial para alinhar o DMA a um ciclo par.
                 if (bus.systemClockCounter % 2 == 1)
                     bus.dma_dummy = false;
             }
@@ -94,6 +102,14 @@ namespace R2NES::Core
             const uint8_t cpuClocksThisStep = (cpuOverclock && honorCPUOverclock) ? 2 : 1;
             for (uint8_t i = 0; i < cpuClocksThisStep; i++)
             {
+                if (apu.consumeDmcDmaStallCycle())
+                    continue;
+
+                // A leitura do DMC ocupa este ciclo da CPU e agenda os ciclos
+                // de parada restantes dentro do próprio APU.
+                if (startDmcDma())
+                    continue;
+
                 cpu.clock();
 
                 // A DMA suspende a CPU. Não consome o clock extra se esta
@@ -131,6 +147,18 @@ namespace R2NES::Core
         apu.step();
 
         serviceIRQ();
+    }
+
+    bool NES::startDmcDma()
+    {
+        if (!apu.hasDmcDmaRequest())
+            return false;
+
+        const uint16_t address = apu.getDmcDmaAddress();
+        const uint8_t value = bus.cpuRead(address);
+        const uint8_t totalStallCycles = (bus.systemClockCounter & 1) ? 4 : 3;
+        apu.completeDmcDma(value, totalStallCycles);
+        return true;
     }
 
     void NES::serviceIRQ()
@@ -182,7 +210,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E36; // "R2N6": inclui o estado atual do MMC3
+        uint32_t magic = 0x52324E37; // "R2N7": estado do APU inclui DMC e nova sincronização
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // Salva contador de clocks do sistema
@@ -215,7 +243,7 @@ namespace R2NES::Core
 
         uint32_t magic = 0;
         is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-        if (magic != 0x52324E36) // "R2N6" inclui o estado atual do MMC3
+        if (magic != 0x52324E37) // "R2N7": formato atual com estado completo do APU
         {
             std::cerr << "Error: Invalid SaveState file!" << std::endl;
             return false;
