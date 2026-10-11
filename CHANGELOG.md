@@ -7,10 +7,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 ### Melhorado
 - A execução da CPU passou da granularidade por instrução para ciclo a ciclo, distribuindo os acessos ao barramento pelos ciclos das instruções e avançando em sincronização com a PPU.
 
-### Compatibilidade
-- Adicionado workaround específico de Sprite 0 Hit para *Battletoads (USA)*, CRC32 `279710DC`, condicionado ao loop de espera identificado na ROM.
-- Adicionado workaround específico de Sprite 0 Hit para *Battletoads & Double Dragon*, CRC32 `CEB65B06`, incluindo os loops de espera observados em `$8190` e `$8180`.
-- Os workarounds são limitados às ROMs identificadas pelos hashes e não representam uma correção geral da sincronização CPU/PPU.
+### Corrigido
+- Ajustado o timing do Sprite 0 Hit para sinalizar o flag de status um dot após a sobreposição de pixels opacos.
+- Removidos os hacks de Sprite 0 Hit específicos de *Battletoads* e *Battletoads & Double Dragon*; o estado do hit pendente também é preservado em save states.
 
 ## [0.9.6] - 2026-09-27
 - Refatorada a classe Window, reduzindo a complexidade e separando algumas responsabilidades (WIP)
