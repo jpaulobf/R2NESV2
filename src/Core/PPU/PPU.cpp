@@ -333,8 +333,27 @@ namespace R2NES::Core
             else
             {
                 tempAddr = (tempAddr & 0xFF00) | data;
-                vramAddr = tempAddr;
+                const uint16_t previousAddress = vramAddr;
                 addressLatch = 0;
+
+                const uint8_t conflictAxes = scrollIncrementAxesAtCurrentDot();
+                if (conflictAxes != 0)
+                {
+                    uint16_t incrementedAddress = previousAddress;
+                    if (conflictAxes & ScrollConflictX)
+                        incrementedAddress = incrementScrollXAddress(incrementedAddress);
+                    if (conflictAxes & ScrollConflictY)
+                        incrementedAddress = incrementScrollYAddress(incrementedAddress);
+
+                    // A segunda escrita carrega t em v. Se um incremento
+                    // interno ocorre no mesmo dot, os bits daquele eixo sofrem
+                    // o AND entre o endereço carregado e o endereço incrementado.
+                    applyScrollBusConflict(incrementedAddress, conflictAxes, true);
+                }
+                else
+                {
+                    vramAddr = tempAddr;
+                }
             }
             break;
 
@@ -416,9 +435,26 @@ namespace R2NES::Core
         {
             // Durante a renderização, o acesso a $2007 aciona os dois
             // incrementos do endereço de scroll, independentemente de PPUCTRL.
-            incrementScrollX();
-            incrementScrollY();
-            vramAddr &= 0x7FFF;
+            uint16_t incrementedAddress = incrementScrollXAddress(vramAddr);
+            incrementedAddress = incrementScrollYAddress(incrementedAddress) & 0x7FFF;
+
+            uint8_t conflictAxes = 0;
+            if (cycle == 257)
+                conflictAxes |= ScrollConflictX;
+            if (scanline == -1 && cycle >= 280 && cycle <= 304)
+                conflictAxes |= ScrollConflictY;
+
+            if (conflictAxes != 0)
+            {
+                // Em dot 257 há cópia horizontal; no pré-render, dots 280-304
+                // repetem a cópia vertical. O acesso a $2007 colide com esses
+                // bits e altera tanto v quanto t.
+                applyScrollBusConflict(incrementedAddress, conflictAxes, false);
+            }
+            else
+            {
+                vramAddr = incrementedAddress;
+            }
             return;
         }
 
@@ -514,33 +550,34 @@ namespace R2NES::Core
         return pixels;
     }
 
-    void PPU::incrementScrollX()
+    uint16_t PPU::incrementScrollXAddress(uint16_t address)
     {
-        if ((vramAddr & 0x001F) == 31)
+        if ((address & 0x001F) == 31)
         {
-            vramAddr &= ~0x001F;
-            vramAddr ^= 0x0400;
+            address &= ~0x001F;
+            address ^= 0x0400;
         }
         else
         {
-            vramAddr++;
+            address++;
         }
+        return address;
     }
 
-    void PPU::incrementScrollY()
+    uint16_t PPU::incrementScrollYAddress(uint16_t address)
     {
-        if ((vramAddr & 0x7000) != 0x7000)
+        if ((address & 0x7000) != 0x7000)
         {
-            vramAddr += 0x1000;
+            address += 0x1000;
         }
         else
         {
-            vramAddr &= ~0x7000;
-            uint16_t y = (vramAddr & 0x03E0) >> 5;
+            address &= ~0x7000;
+            uint16_t y = (address & 0x03E0) >> 5;
             if (y == 29)
             {
                 y = 0;
-                vramAddr ^= 0x0800;
+                address ^= 0x0800;
             }
             else if (y == 31)
             {
@@ -550,8 +587,58 @@ namespace R2NES::Core
             {
                 y++;
             }
-            vramAddr = (vramAddr & ~0x03E0) | (y << 5);
+            address = (address & ~0x03E0) | (y << 5);
         }
+        return address;
+    }
+
+    void PPU::incrementScrollX()
+    {
+        vramAddr = incrementScrollXAddress(vramAddr);
+    }
+
+    void PPU::incrementScrollY()
+    {
+        vramAddr = incrementScrollYAddress(vramAddr);
+    }
+
+    uint8_t PPU::scrollIncrementAxesAtCurrentDot() const
+    {
+        if (!isRenderingActive())
+            return 0;
+
+        uint8_t axes = 0;
+        const bool backgroundFetchDot = (cycle >= 1 && cycle <= 256) || (cycle >= 321 && cycle <= 336);
+        if (backgroundFetchDot && cycle % 8 == 0)
+            axes |= ScrollConflictX;
+        if (cycle == 256)
+            axes |= ScrollConflictY;
+        return axes;
+    }
+
+    void PPU::applyScrollBusConflict(uint16_t incrementedAddress, uint8_t axes, bool reloadAddress)
+    {
+        constexpr uint16_t horizontalMask = 0x041F; // Coarse X e nametable horizontal
+        constexpr uint16_t verticalMask = 0x7BE0;   // Fine Y, coarse Y e nametable vertical
+
+        uint16_t conflictMask = 0;
+        if (axes & ScrollConflictX)
+            conflictMask |= horizontalMask;
+        if (axes & ScrollConflictY)
+            conflictMask |= verticalMask;
+
+        const uint16_t conflictedBits = incrementedAddress & tempAddr & conflictMask;
+        tempAddr = (tempAddr & ~conflictMask) | conflictedBits;
+        if (reloadAddress)
+            vramAddr = tempAddr;
+        else
+            vramAddr = (incrementedAddress & ~conflictMask) | conflictedBits;
+
+        vramAddr &= 0x7FFF;
+        tempAddr &= 0x7FFF;
+        pendingScrollConflictAxes |= axes;
+        pendingScrollConflictScanline = scanline;
+        pendingScrollConflictCycle = cycle;
     }
 
     void PPU::transferAddressX()
@@ -587,6 +674,15 @@ namespace R2NES::Core
     {
         // Lógica de atualização de Scroll baseada em ciclos
         bool renderingEnabled = (ppuMask & 0x08) || (ppuMask & 0x10);
+        const uint8_t scrollConflictAxesThisDot =
+            pendingScrollConflictScanline == scanline && pendingScrollConflictCycle == cycle
+                ? pendingScrollConflictAxes
+                : 0;
+        // O conflito é de um único dot. Se o acesso não chegou ao clock
+        // correspondente, descarte o marcador para não afetar um dot futuro.
+        pendingScrollConflictAxes = 0;
+        pendingScrollConflictScanline = -2;
+        pendingScrollConflictCycle = -1;
 
         // O VBlank começa no dot 1 da scanline 241. A borda do status e o NMI
         // precisam ocorrer no mesmo ponto do ciclo da PPU.
@@ -642,20 +738,23 @@ namespace R2NES::Core
                         bgNextTileMsb = ppuFetch(((ppuCtrl & 0x10) ? 0x1000 : 0x0000) + ((uint16_t)bgNextTileId << 4) + ((vramAddr >> 12) & 0x07) + 8);
                         break;
                     case 7:
-                        incrementScrollX();
+                        if (!(scrollConflictAxesThisDot & ScrollConflictX))
+                            incrementScrollX();
                         break;
                     }
                 }
 
                 if (cycle == 256)
                 {
-                    incrementScrollY();
+                    if (!(scrollConflictAxesThisDot & ScrollConflictY))
+                        incrementScrollY();
                 }
 
                 if (cycle == 257)
                 {
                     loadBackgroundShifters();
-                    transferAddressX();
+                    if (!(scrollConflictAxesThisDot & ScrollConflictX))
+                        transferAddressX();
                 }
 
                 if (cycle == 337 || cycle == 339)
@@ -668,7 +767,8 @@ namespace R2NES::Core
                 // O pre-render scanline (-1) prepara o scroll para o próximo frame
                 if (scanline == -1 && cycle >= 280 && cycle <= 304)
                 {
-                    transferAddressY();
+                    if (!(scrollConflictAxesThisDot & ScrollConflictY))
+                        transferAddressY();
                 }
             }
         }
@@ -1143,6 +1243,9 @@ namespace R2NES::Core
         vramAddr = 0;
         tempAddr = 0;
         fineX = 0;
+        pendingScrollConflictAxes = 0;
+        pendingScrollConflictScanline = -2;
+        pendingScrollConflictCycle = -1;
         sprite0HitDetectedThisScanline = false;
         scanline = -1;
         cycle = 0;
@@ -1227,6 +1330,9 @@ namespace R2NES::Core
 
     void PPU::loadState(std::istream &is, bool includesFrameBuffer)
     {
+        pendingScrollConflictAxes = 0;
+        pendingScrollConflictScanline = -2;
+        pendingScrollConflictCycle = -1;
         vram.loadState(is);
         is.read(reinterpret_cast<char *>(&ppuCtrl), sizeof(ppuCtrl));
         is.read(reinterpret_cast<char *>(&ppuMask), sizeof(ppuMask));
