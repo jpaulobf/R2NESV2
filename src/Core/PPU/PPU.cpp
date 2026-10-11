@@ -202,9 +202,7 @@ namespace R2NES::Core
         case 0x0001: // PPUMASK ($2001)
         {
             ppuMask = data;
-            // Bits importantes para Sprite 0 Hit:
-            // Bit 3: Background enable
-            // Bit 4: Sprite enable
+            // Os bits 3 e 4 passam pelo atraso de rendering em PPU::clock().
             break;
         }
 
@@ -345,10 +343,17 @@ namespace R2NES::Core
         return isRenderingActive() && cycle >= 1 && cycle <= 320;
     }
 
+    uint8_t PPU::effectivePpuMask() const
+    {
+        // PPUMASK é legível imediatamente pelo estado do registrador, mas os
+        // bits que ligam background/sprites só afetam o rendering após 3 dots.
+        return static_cast<uint8_t>((ppuMask & 0xE7) | effectiveRenderMask);
+    }
+
     bool PPU::isRenderingActive() const
     {
         const bool renderingScanline = scanline == -1 || (scanline >= 0 && scanline < 240);
-        return renderingScanline && (ppuMask & 0x18) != 0;
+        return renderingScanline && (effectivePpuMask() & 0x18) != 0;
     }
 
     void PPU::incrementDataAddress()
@@ -583,7 +588,7 @@ namespace R2NES::Core
 
     void PPU::updateShifters()
     {
-        if (ppuMask & 0x08) // Background enabled
+        if (effectivePpuMask() & 0x08) // Background enabled
         {
             bgShifterPatternLow <<= 1;
             bgShifterPatternHigh <<= 1;
@@ -594,6 +599,16 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        // Amostra PPUMASK e atrasa seus bits de rendering por três dots. O
+        // quarto estágio mantém o valor anterior nos três dots completos que
+        // seguem a escrita, inclusive quando o jogo alterna a máscara perto
+        // do incremento vertical no dot 256.
+        for (size_t i = renderMaskDelay.size() - 1; i > 0; --i)
+            renderMaskDelay[i] = renderMaskDelay[i - 1];
+        renderMaskDelay[0] = ppuMask & 0x18;
+        effectiveRenderMask = renderMaskDelay.back();
+        const uint8_t activeMask = effectivePpuMask();
+
         // A composição do pixel visível ocorre neste dot, mas o circuito de
         // Sprite 0 Hit expõe o resultado um dot depois (dot 2 é o primeiro
         // em que o flag pode ser observado). Mantemos esse atraso explícito.
@@ -604,7 +619,7 @@ namespace R2NES::Core
         }
 
         // Lógica de atualização de Scroll baseada em ciclos
-        bool renderingEnabled = (ppuMask & 0x08) || (ppuMask & 0x10);
+        bool renderingEnabled = (activeMask & 0x18) != 0;
         const uint8_t scrollConflictAxesThisDot =
             pendingScrollConflictScanline == scanline && pendingScrollConflictCycle == cycle
                 ? pendingScrollConflictAxes
@@ -974,8 +989,8 @@ namespace R2NES::Core
 
             // Renderiza background se habilitado (PPUMASK bit 3)
             // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 1 (show background in leftmost 8 pixels)
-            bool bgShouldRender = (ppuMask & 0x08) != 0;
-            if (cycle <= 8 && !(ppuMask & 0x02))
+            bool bgShouldRender = (activeMask & 0x08) != 0;
+            if (cycle <= 8 && !(activeMask & 0x02))
                 bgShouldRender = false;
 
             if (bgShouldRender)
@@ -1009,9 +1024,9 @@ namespace R2NES::Core
             }
 
             // --- Renderização de Sprites (Otimizada para este ciclo) ---
-            bool spriteShouldRender = (ppuMask & 0x10) != 0;
+            bool spriteShouldRender = (activeMask & 0x10) != 0;
             // Nos primeiros 8 pixels (ciclos 1-8), verifica bit 2 (show sprites in leftmost 8 pixels)
-            if (cycle <= 8 && !(ppuMask & 0x04))
+            if (cycle <= 8 && !(activeMask & 0x04))
                 spriteShouldRender = false;
 
             if (spriteShouldRender)
@@ -1079,9 +1094,9 @@ namespace R2NES::Core
 
                     const bool bgHasPixel = (bgPixelColor != 0);
                     bool cycleInValidRange = ((cycle - 1) >= 0 && (cycle - 1) <= 254);
-                    const bool bothLayersEnabled = (ppuMask & 0x18) == 0x18;
+                    const bool bothLayersEnabled = (activeMask & 0x18) == 0x18;
 
-                    if ((cycle - 1) < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
+                    if ((cycle - 1) < 8 && (!(activeMask & 0x02) || !(activeMask & 0x04)))
                         cycleInValidRange = false;
 
                     if (i == 0 && bgHasPixel && bothLayersEnabled &&
@@ -1163,6 +1178,8 @@ namespace R2NES::Core
 
         ppuCtrl = 0x00;
         ppuMask = 0x00;
+        renderMaskDelay.fill(0x00);
+        effectiveRenderMask = 0x00;
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
         oamAddr = 0x00;
         oamDataBusLatch = 0xFF;
@@ -1212,6 +1229,8 @@ namespace R2NES::Core
         vram.saveState(os);
         os.write(reinterpret_cast<const char *>(&ppuCtrl), sizeof(ppuCtrl));
         os.write(reinterpret_cast<const char *>(&ppuMask), sizeof(ppuMask));
+        os.write(reinterpret_cast<const char *>(renderMaskDelay.data()), renderMaskDelay.size());
+        os.write(reinterpret_cast<const char *>(&effectiveRenderMask), sizeof(effectiveRenderMask));
         os.write(reinterpret_cast<const char *>(&ppuStatus), sizeof(ppuStatus));
         os.write(reinterpret_cast<const char *>(&oamAddr), sizeof(oamAddr));
         os.write(reinterpret_cast<const char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1263,6 +1282,8 @@ namespace R2NES::Core
         vram.loadState(is);
         is.read(reinterpret_cast<char *>(&ppuCtrl), sizeof(ppuCtrl));
         is.read(reinterpret_cast<char *>(&ppuMask), sizeof(ppuMask));
+        is.read(reinterpret_cast<char *>(renderMaskDelay.data()), renderMaskDelay.size());
+        is.read(reinterpret_cast<char *>(&effectiveRenderMask), sizeof(effectiveRenderMask));
         is.read(reinterpret_cast<char *>(&ppuStatus), sizeof(ppuStatus));
         is.read(reinterpret_cast<char *>(&oamAddr), sizeof(oamAddr));
         is.read(reinterpret_cast<char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
