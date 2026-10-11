@@ -8,6 +8,14 @@
 
 namespace R2NES::Core
 {
+    namespace
+    {
+        // Aproximação determinística de ~12 ms em um PPU NTSC (5,37 MHz).
+        constexpr uint32_t PpuIoBusDecayDots = 64000;
+        // NES NTSC ignora escritas nesses registradores por ~29.658 clocks da CPU.
+        constexpr uint32_t PpuRegisterWriteLockoutDots = 29658u * 3u;
+    }
+
     // Paleta de cores padrão do NES (64 cores ARGB)
     // Esta tabela converte o índice de cor (0-63) da Palette RAM em um valor de cor real.
     static const uint32_t nesSystemPalette[64] = {
@@ -161,7 +169,7 @@ namespace R2NES::Core
         case 0x0002: // PPUSTATUS ($2002)
         {
             // Retorna o status (vblank, sprite 0 hit, etc)
-            uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
+            uint8_t data = (ppuStatus & 0xE0) | (ppuIoBusLatch & 0x1F);
 
             // Fallback temporário de Battletoads: o wait de raster do jogo
             // não recebe o hit pela composição normal dos pixels.
@@ -185,6 +193,9 @@ namespace R2NES::Core
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
             if (!readOnly)
             {
+                // PPUSTATUS dirige os bits 7-5; os bits baixos mantêm o valor
+                // que já estava no barramento interno da PPU.
+                drivePpuIoBus(data, 0xE0);
                 ppuStatus &= ~0x80;
                 // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
                 addressLatch = 0;
@@ -193,15 +204,28 @@ namespace R2NES::Core
         }
 
         case 0x0004: // OAMDATA ($2004)
+        {
             // Durante a renderização, a CPU observa o barramento interno usado
             // pela limpeza, avaliação e busca dos sprites.
-            return isRenderingOamAccess() ? oamDataBusLatch : oamMemory[oamAddr];
+            const uint8_t data = isRenderingOamAccess() ? oamDataBusLatch : oamMemory[oamAddr];
+            if (!readOnly)
+                drivePpuIoBus(data, 0xFF);
+            return data;
+        }
 
         case 0x0007: // PPUDATA ($2007)
         {
             const uint16_t addr = vramAddr & 0x3FFF;
             if (readOnly)
-                return addr >= 0x3F00 ? readPalette(addr) : dataBuffer;
+            {
+                if (addr < 0x3F00)
+                    return dataBuffer;
+
+                uint8_t paletteData = readPalette(addr);
+                if (ppuMask & 0x01)
+                    paletteData &= 0x30;
+                return static_cast<uint8_t>((paletteData & 0x3F) | (ppuIoBusLatch & 0xC0));
+            }
 
             uint8_t data;
             if (addr >= 0x3F00)
@@ -211,6 +235,9 @@ namespace R2NES::Core
                 if (bus)
                     bus->ppuAddressUpdated(addr);
                 data = readPalette(addr);
+                if (ppuMask & 0x01)
+                    data &= 0x30;
+                data = static_cast<uint8_t>((data & 0x3F) | (ppuIoBusLatch & 0xC0));
                 dataBuffer = ppuFetch(addr & 0x2FFF);
             }
             else
@@ -219,16 +246,29 @@ namespace R2NES::Core
                 dataBuffer = ppuFetch(addr);
             }
 
+            drivePpuIoBus(data, addr >= 0x3F00 ? 0x3F : 0xFF);
             incrementDataAddress();
             return data;
         }
         }
-        return 0x00;
+        // PPUCTRL, PPUMASK, OAMADDR, PPUSCROLL e PPUADDR não dirigem dados
+        // durante a leitura: a CPU observa o valor retido no barramento da PPU.
+        return ppuIoBusLatch;
     }
 
     void PPU::cpuWrite(uint16_t addr, uint8_t data)
     {
         addr &= 0x0007; // Mapeia o intervalo $2000-$3FFF para os 8 registradores básicos
+        // Toda escrita na interface da PPU carrega seu barramento interno,
+        // inclusive escritas em registradores somente de leitura.
+        drivePpuIoBus(data, 0xFF);
+
+        // Durante o reset interno da PPU, estas escritas não alteram os
+        // registradores nem o latch compartilhado de $2005/$2006.
+        if (resetRegisterWriteLockoutDots > 0 &&
+            (addr == 0x0000 || addr == 0x0001 || addr == 0x0005 || addr == 0x0006))
+            return;
+
         switch (addr)
         {
         case 0x0000: // PPUCTRL ($2000)
@@ -391,6 +431,28 @@ namespace R2NES::Core
         // PPUMASK é legível imediatamente pelo estado do registrador, mas os
         // bits que ligam background/sprites só afetam o rendering após 3 dots.
         return static_cast<uint8_t>((ppuMask & 0xE7) | effectiveRenderMask);
+    }
+
+    void PPU::drivePpuIoBus(uint8_t value, uint8_t drivenBits)
+    {
+        const uint8_t retainedBits = static_cast<uint8_t>(~drivenBits);
+        ppuIoBusLatch = static_cast<uint8_t>((ppuIoBusLatch & retainedBits) | (value & drivenBits));
+
+        for (uint8_t bit = 0; bit < 8; ++bit)
+        {
+            if (drivenBits & (1u << bit))
+                ppuIoBusDecayCounters[bit] = PpuIoBusDecayDots;
+        }
+    }
+
+    void PPU::clockPpuIoBusDecay()
+    {
+        for (uint8_t bit = 0; bit < 8; ++bit)
+        {
+            uint32_t &counter = ppuIoBusDecayCounters[bit];
+            if (counter > 0 && --counter == 0)
+                ppuIoBusLatch &= static_cast<uint8_t>(~(1u << bit));
+        }
     }
 
     bool PPU::isRenderingActive() const
@@ -642,6 +704,11 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        clockPpuIoBusDecay();
+
+        if (resetRegisterWriteLockoutDots > 0)
+            --resetRegisterWriteLockoutDots;
+
         // Amostra PPUMASK e atrasa seus bits de rendering por três dots. O
         // quarto estágio mantém o valor anterior nos três dots completos que
         // seguem a escrita, inclusive quando o jogo alterna a máscara perto
@@ -1227,6 +1294,9 @@ namespace R2NES::Core
         oamAddr = 0x00;
         oamDataBusLatch = 0xFF;
         addressLatch = 0;
+        ppuIoBusLatch = 0x00;
+        ppuIoBusDecayCounters.fill(0);
+        resetRegisterWriteLockoutDots = PpuRegisterWriteLockoutDots;
         vramAddr = 0;
         tempAddr = 0;
         fineX = 0;
@@ -1282,6 +1352,10 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&tempAddr), sizeof(tempAddr));
         os.write(reinterpret_cast<const char *>(&fineX), sizeof(fineX));
         os.write(reinterpret_cast<const char *>(&dataBuffer), sizeof(dataBuffer));
+        os.write(reinterpret_cast<const char *>(&ppuIoBusLatch), sizeof(ppuIoBusLatch));
+        os.write(reinterpret_cast<const char *>(ppuIoBusDecayCounters.data()),
+                 ppuIoBusDecayCounters.size() * sizeof(ppuIoBusDecayCounters[0]));
+        os.write(reinterpret_cast<const char *>(&resetRegisterWriteLockoutDots), sizeof(resetRegisterWriteLockoutDots));
         os.write(reinterpret_cast<const char *>(&scanline), sizeof(scanline));
         os.write(reinterpret_cast<const char *>(&cycle), sizeof(cycle));
         os.write(reinterpret_cast<const char *>(&frameCounter), sizeof(frameCounter));
@@ -1335,6 +1409,10 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&tempAddr), sizeof(tempAddr));
         is.read(reinterpret_cast<char *>(&fineX), sizeof(fineX));
         is.read(reinterpret_cast<char *>(&dataBuffer), sizeof(dataBuffer));
+        is.read(reinterpret_cast<char *>(&ppuIoBusLatch), sizeof(ppuIoBusLatch));
+        is.read(reinterpret_cast<char *>(ppuIoBusDecayCounters.data()),
+                ppuIoBusDecayCounters.size() * sizeof(ppuIoBusDecayCounters[0]));
+        is.read(reinterpret_cast<char *>(&resetRegisterWriteLockoutDots), sizeof(resetRegisterWriteLockoutDots));
         is.read(reinterpret_cast<char *>(&scanline), sizeof(scanline));
         is.read(reinterpret_cast<char *>(&cycle), sizeof(cycle));
         is.read(reinterpret_cast<char *>(&frameCounter), sizeof(frameCounter));
