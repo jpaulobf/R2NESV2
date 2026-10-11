@@ -99,6 +99,11 @@ namespace R2NES::Core
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;
+        uint8_t ppuIoBusLatch = 0x00;
+        // Tempo restante, em dots da PPU, até cada bit aberto cair para zero.
+        std::array<uint32_t, 8> ppuIoBusDecayCounters{};
+        // $2000, $2001, $2005 e $2006 ignoram escritas durante a inicialização.
+        uint32_t resetRegisterWriteLockoutDots = 0;
 
         // Registradores Internos (Loopy's Registers)
         uint16_t vramAddr = 0x0000; // v: Endereço de VRAM atual (15 bits)
@@ -174,6 +179,8 @@ namespace R2NES::Core
         uint8_t ppuFetchSprite(uint16_t addr) const;
         uint8_t readPalette(uint16_t addr) const;
         uint8_t effectivePpuMask() const;
+        void drivePpuIoBus(uint8_t value, uint8_t drivenBits);
+        void clockPpuIoBusDecay();
         void incrementDataAddress();
         bool isRenderingOamAccess() const;
         bool isRenderingActive() const;
