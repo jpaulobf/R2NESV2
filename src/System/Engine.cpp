@@ -512,7 +512,10 @@ namespace R2NES::Core
             {
                 nes->step(false);
                 // Em modo step, o áudio geralmente é ignorado ou produz "clicks"
-                while (!nes->getCpu().complete())
+                // O DMA de OAM suspende a CPU após STA $4014, mas faz parte
+                // do mesmo avanço observável. Não pare no PC seguinte enquanto
+                // a cópia ainda está ocupando o barramento.
+                while (!nes->getCpu().complete() || nes->getBus().dma_transfer)
                 {
                     nes->step(false);
                 }
