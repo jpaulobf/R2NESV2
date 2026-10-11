@@ -90,6 +90,10 @@ namespace R2NES::Core
         // Registradores e buffers internos
         uint8_t ppuCtrl = 0x00; // PPUCTRL ($2000)
         uint8_t ppuMask = 0x00; // PPUMASK ($2001) - Controla renderização
+        // Os bits de habilitação do background e dos sprites chegam ao circuito
+        // de rendering alguns dots depois da escrita em PPUMASK.
+        std::array<uint8_t, 4> renderMaskDelay{};
+        uint8_t effectiveRenderMask = 0x00;
         uint8_t oamAddr = 0x00;
         uint8_t oamDataBusLatch = 0xFF;
         uint8_t ppuStatus = 0x00;
@@ -169,6 +173,7 @@ namespace R2NES::Core
         uint8_t ppuFetch(uint16_t addr) const;
         uint8_t ppuFetchSprite(uint16_t addr) const;
         uint8_t readPalette(uint16_t addr) const;
+        uint8_t effectivePpuMask() const;
         void incrementDataAddress();
         bool isRenderingOamAccess() const;
         bool isRenderingActive() const;
