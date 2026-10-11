@@ -109,10 +109,9 @@ namespace R2NES::Core
         int16_t pendingScrollConflictScanline = -2;
         int16_t pendingScrollConflictCycle = -1;
 
-        // Sprite 0 Hit - Tracking
-        // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
-        // Depois de ser detectado, o bit permanece setado até o pré-render scanline
-        bool sprite0HitDetectedThisScanline = false;
+        // O hit é sinalizado um dot depois da composição do pixel coincidente.
+        // O bit de status permanece setado até o início do pré-render.
+        bool sprite0HitPending = false;
         uint32_t lastSprite0Y = 0xFF;
         uint32_t lastSprite0X = 0xFF;
 
