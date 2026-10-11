@@ -210,7 +210,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E38; // "R2N8": inclui o pipeline atrasado de PPUMASK da PPU
+        uint32_t magic = 0x52324E42; // "R2NB": inclui latch de I/O e lockout inicial da PPU
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // Salva contador de clocks do sistema
@@ -243,7 +243,7 @@ namespace R2NES::Core
 
         uint32_t magic = 0;
         is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-        if (magic != 0x52324E38) // "R2N8": inclui o pipeline atrasado de PPUMASK da PPU
+        if (magic != 0x52324E42) // "R2NB": inclui latch de I/O e lockout inicial da PPU
         {
             std::cerr << "Error: Invalid SaveState file!" << std::endl;
             return false;
