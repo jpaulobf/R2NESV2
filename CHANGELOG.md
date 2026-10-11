@@ -9,8 +9,8 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### Corrigido
 - Ajustado o timing do Sprite 0 Hit para sinalizar o flag de status um dot após a sobreposição de pixels opacos.
-- Modelado o atraso de três dots dos bits de habilitação de rendering do PPUMASK, preservando o alinhamento de scroll usado por *Battletoads* e *Battletoads & Double Dragon*.
-- Removidos os hacks de Sprite 0 Hit específicos de *Battletoads* e *Battletoads & Double Dragon*; o estado do hit pendente também é preservado em save states.
+- Modelado o atraso de três dots dos bits de habilitação de rendering do PPUMASK, relevante para o alinhamento de scroll em *Battletoads* e *Battletoads & Double Dragon*.
+- Removido o hack de Sprite 0 Hit de *Battletoads & Double Dragon* após aparentar estabilidade com o atraso de 3 dots; mantido temporariamente o fallback de *Battletoads*. O estado do hit pendente é preservado em save states.
 
 ## [0.9.6] - 2026-09-27
 - Refatorada a classe Window, reduzindo a complexidade e separando algumas responsabilidades (WIP)
