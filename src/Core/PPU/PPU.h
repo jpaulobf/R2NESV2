@@ -101,6 +101,14 @@ namespace R2NES::Core
         uint16_t tempAddr = 0x0000; // t: Endereço de VRAM temporário (15 bits)
         uint8_t fineX = 0x00;       // x: Scroll fino horizontal (3 bits)
 
+        // O acesso da CPU aplica o conflito; o próximo clock consome o eixo
+        // para não repetir a operação interna do mesmo dot.
+        static constexpr uint8_t ScrollConflictX = 0x01;
+        static constexpr uint8_t ScrollConflictY = 0x02;
+        uint8_t pendingScrollConflictAxes = 0;
+        int16_t pendingScrollConflictScanline = -2;
+        int16_t pendingScrollConflictCycle = -1;
+
         // Sprite 0 Hit - Tracking
         // No NES real, o Sprite 0 Hit é detectado apenas uma vez por scanline
         // Depois de ser detectado, o bit permanece setado até o pré-render scanline
@@ -151,6 +159,10 @@ namespace R2NES::Core
         // Métodos auxiliares para Loopy Registers
         void incrementScrollX();
         void incrementScrollY();
+        static uint16_t incrementScrollXAddress(uint16_t address);
+        static uint16_t incrementScrollYAddress(uint16_t address);
+        uint8_t scrollIncrementAxesAtCurrentDot() const;
+        void applyScrollBusConflict(uint16_t incrementedAddress, uint8_t axes, bool reloadAddress);
         void transferAddressX();
         void transferAddressY();
         void loadBackgroundShifters();
