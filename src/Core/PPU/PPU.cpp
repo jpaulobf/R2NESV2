@@ -1,9 +1,7 @@
 #include "Core/PPU/PPU.h"
 #include "Core/Bus/Bus.h"
-#include "Core/Cartridge/Cartridge.h"
 #include "Common/Common.h"
 #include <algorithm>
-#include <iostream>
 #include <utility>
 
 namespace R2NES::Core
@@ -29,53 +27,6 @@ namespace R2NES::Core
             return static_cast<uint8_t>(((value & 0xAA) >> 1) | ((value & 0x55) << 1));
         }
 
-        bool isBattletoadsSpriteZeroWait(const Bus *bus)
-        {
-            if (!bus || !bus->cpu || !bus->cart || bus->cart->getRomHash() != "279710DC" ||
-                bus->cpu->a != 0x40)
-                return false;
-
-            uint16_t loopAddress;
-            if (bus->cpu->pc == 0x8641)
-                loopAddress = 0x863E;
-            else if (bus->cpu->pc == 0x8631)
-                loopAddress = 0x862E;
-            else
-                return false;
-
-            constexpr uint8_t loopSignature[] = {0x2C, 0x02, 0x20, 0xF0, 0xFB};
-            for (size_t offset = 0; offset < sizeof(loopSignature); ++offset)
-            {
-                uint8_t value = 0;
-                if (!bus->cart->cpuRead(loopAddress + offset, value) || value != loopSignature[offset])
-                    return false;
-            }
-            return true;
-        }
-
-        bool isBattletoadsDoubleDragonSpriteZeroWait(const Bus *bus)
-        {
-            if (!bus || !bus->cpu || !bus->cart || bus->cart->getRomHash() != "CEB65B06" ||
-                bus->cpu->a != 0x40)
-                return false;
-
-            uint16_t loopAddress;
-            if (bus->cpu->pc == 0x8193)
-                loopAddress = 0x8190;
-            else if (bus->cpu->pc == 0x8183)
-                loopAddress = 0x8180;
-            else
-                return false;
-
-            constexpr uint8_t loopSignature[] = {0x2C, 0x02, 0x20, 0xF0, 0xFB};
-            for (size_t offset = 0; offset < sizeof(loopSignature); ++offset)
-            {
-                uint8_t value = 0;
-                if (!bus->cart->cpuRead(loopAddress + offset, value) || value != loopSignature[offset])
-                    return false;
-            }
-            return true;
-        }
     }
 
     static const uint32_t PALETTE_SMOOTH[64] = {
@@ -135,7 +86,7 @@ namespace R2NES::Core
 
         scanline = -1;
         cycle = 0;
-        sprite0HitDetectedThisScanline = false;
+        sprite0HitPending = false;
     }
 
     PPU::~PPU()
@@ -186,35 +137,6 @@ namespace R2NES::Core
         {
             // Retorna o status (vblank, sprite 0 hit, etc)
             uint8_t data = (ppuStatus & 0xE0) | (dataBuffer & 0x1F);
-
-            const bool mapper7RasterHitHack = !readOnly && scanline == 30 && cycle >= 255 && cycle < 341 &&
-                                              ppuCtrl == 0x10 && ppuMask == 0x18 &&
-                                              oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
-                                              isBattletoadsSpriteZeroWait(bus);
-            const int sprite0Height = (ppuCtrl & 0x20) ? 16 : 8;
-            const int sprite0FirstScanline = static_cast<int>(oamMemory[0]) + 1;
-            const int sprite0X = oamMemory[3];
-            const int sprite0LastVisibleX = std::min(sprite0X + 7, 254);
-            constexpr int sprite0HitEarlyTolerance = 3;
-            const int sprite0HitWindowStartCycle = std::max(sprite0X + 2,
-                                                            sprite0LastVisibleX + 2 - sprite0HitEarlyTolerance);
-            const bool sprite0RasterPassed = sprite0X <= 254 &&
-                                             scanline >= sprite0FirstScanline &&
-                                             scanline < sprite0FirstScanline + sprite0Height &&
-                                             cycle >= sprite0HitWindowStartCycle && cycle <= 256;
-            const bool mapper7DoubleDragonWaitHack = !readOnly && (ppuMask & 0x18) == 0x18 && sprite0RasterPassed &&
-                                                     isBattletoadsDoubleDragonSpriteZeroWait(bus);
-            if ((data & 0x40) == 0 && (mapper7RasterHitHack || mapper7DoubleDragonWaitHack))
-            {
-                ppuStatus |= 0x40;
-                data |= 0x40;
-                static bool loggedHack = false;
-                if (!loggedHack)
-                {
-                    std::cerr << "PPU: Battletoads Sprite 0 wait-loop hack enabled" << std::endl;
-                    loggedHack = true;
-                }
-            }
 
             // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
@@ -672,6 +594,15 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        // A composição do pixel visível ocorre neste dot, mas o circuito de
+        // Sprite 0 Hit expõe o resultado um dot depois (dot 2 é o primeiro
+        // em que o flag pode ser observado). Mantemos esse atraso explícito.
+        if (sprite0HitPending)
+        {
+            ppuStatus |= 0x40;
+            sprite0HitPending = false;
+        }
+
         // Lógica de atualização de Scroll baseada em ciclos
         bool renderingEnabled = (ppuMask & 0x08) || (ppuMask & 0x10);
         const uint8_t scrollConflictAxesThisDot =
@@ -700,7 +631,6 @@ namespace R2NES::Core
         {
             // Limpa flags de VBlank, Sprite 0 Hit e Overflow no início do pre-render
             ppuStatus &= 0x1F; // Limpa os 3 bits superiores (7, 6, 5)
-            sprite0HitDetectedThisScanline = false;
         }
 
         if (renderingEnabled)
@@ -1154,10 +1084,10 @@ namespace R2NES::Core
                     if ((cycle - 1) < 8 && (!(ppuMask & 0x02) || !(ppuMask & 0x04)))
                         cycleInValidRange = false;
 
-                    if (i == 0 && bgHasPixel && bothLayersEnabled && !sprite0HitDetectedThisScanline && cycleInValidRange)
+                    if (i == 0 && bgHasPixel && bothLayersEnabled &&
+                        (ppuStatus & 0x40) == 0 && !sprite0HitPending && cycleInValidRange)
                     {
-                        ppuStatus |= 0x40;
-                        sprite0HitDetectedThisScanline = true;
+                        sprite0HitPending = true;
                     }
 
                     const bool priority = (spriteAttrib & 0x20) == 0;
@@ -1217,9 +1147,6 @@ namespace R2NES::Core
             cycle = 0;
             scanline++;
 
-            // Reseta o flag de Sprite 0 Hit para o próximo scanline
-            sprite0HitDetectedThisScanline = false;
-
             if (scanline >= 261)
             {
                 scanline = -1;
@@ -1246,7 +1173,7 @@ namespace R2NES::Core
         pendingScrollConflictAxes = 0;
         pendingScrollConflictScanline = -2;
         pendingScrollConflictCycle = -1;
-        sprite0HitDetectedThisScanline = false;
+        sprite0HitPending = false;
         scanline = -1;
         cycle = 0;
         scanlineSpriteCount = 0;
@@ -1308,7 +1235,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&bgShifterAttrLow), sizeof(bgShifterAttrLow));
         os.write(reinterpret_cast<const char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
 
-        os.write(reinterpret_cast<const char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
+        os.write(reinterpret_cast<const char *>(&sprite0HitPending), sizeof(sprite0HitPending));
         os.write(reinterpret_cast<const char *>(&scanlineSpriteCount), sizeof(scanlineSpriteCount));
         os.write(reinterpret_cast<const char *>(&nextScanlineSpriteCount), sizeof(nextScanlineSpriteCount));
         os.write(reinterpret_cast<const char *>(&spriteEvaluationIndex), sizeof(spriteEvaluationIndex));
@@ -1359,7 +1286,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&bgShifterAttrLow), sizeof(bgShifterAttrLow));
         is.read(reinterpret_cast<char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
 
-        is.read(reinterpret_cast<char *>(&sprite0HitDetectedThisScanline), sizeof(sprite0HitDetectedThisScanline));
+        is.read(reinterpret_cast<char *>(&sprite0HitPending), sizeof(sprite0HitPending));
         is.read(reinterpret_cast<char *>(&scanlineSpriteCount), sizeof(scanlineSpriteCount));
         is.read(reinterpret_cast<char *>(&nextScanlineSpriteCount), sizeof(nextScanlineSpriteCount));
         is.read(reinterpret_cast<char *>(&spriteEvaluationIndex), sizeof(spriteEvaluationIndex));
