@@ -8,6 +8,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 - A execução da CPU passou da granularidade por instrução para ciclo a ciclo, distribuindo os acessos ao barramento pelos ciclos das instruções e avançando em sincronização com a PPU.
 
 ### Corrigido
+- No modo Step-by-Step, a execução agora aguarda o fim do OAM DMA iniciado pela instrução antes de pausar no próximo limite de instrução.
+- Implementado o latch de I/O da PPU, com decaimento aproximado por bit, para leituras de registradores write-only, bits baixos de PPUSTATUS e bits altos de leituras de paleta via PPUDATA.
+- Modelado o bloqueio de escritas em PPUCTRL, PPUMASK, PPUSCROLL e PPUADDR durante a inicialização/reset da PPU; o contador é preservado em save states, cuja versão foi atualizada.
 - Ajustado o timing do Sprite 0 Hit para sinalizar o flag de status um dot após a sobreposição de pixels opacos.
 - Modelado o atraso de três dots dos bits de habilitação de rendering do PPUMASK, relevante para o alinhamento de scroll em *Battletoads* e *Battletoads & Double Dragon*.
 - Removido o hack de Sprite 0 Hit de *Battletoads & Double Dragon* após aparentar estabilidade com o atraso de 3 dots; mantido temporariamente o fallback de *Battletoads*. O estado do hit pendente é preservado em save states.
