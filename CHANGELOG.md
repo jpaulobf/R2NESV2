@@ -4,10 +4,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+### Adicionado
+
+- Suporte ao Mapper189, com seleção independente de bancos PRG de 32 KiB e lógica de CHR, espelhamento e IRQ do MMC3, incluindo persistência do banco PRG em save states.
+- Suporte ao Mapper071, incluindo espelhamento BF9097 de *Fire Hawk*, submapper 1 do NES 2.0 e detecção para cabeçalhos iNES antigos.
+- Testes de regressão para os Mappers007, 071 e 189, sprite overflow da PPU, espera por eventos SDL e supressão da saída de áudio da APU. O teste do Mapper189 também permite verificar a inicialização de uma ROM ou ZIP informado pelo usuário.
+
 ### Melhorado
+
 - A execução da CPU passou da granularidade por instrução para ciclo a ciclo, distribuindo os acessos ao barramento pelos ciclos das instruções e avançando em sincronização com a PPU.
+- Durante fast-forward, a APU deixa de misturar, filtrar e armazenar amostras de áudio, mantendo a execução dos canais, do sequenciador e do DMC.
+- O loop principal usa espera por eventos entre os próximos quadros quando não está limitado pelo VSync, evitando consultas contínuas sem trabalho pendente. Os lotes de fast-forward retornam regularmente ao processamento de eventos.
+- A captura de estados de rewind ocorre somente quando o recurso está habilitado; o histórico também respeita reduções de capacidade ao mudar a precisão.
+- Atualizado o README com os recursos recentes, observações de compatibilidade e instruções de acesso aos testes. Padronizados os comentários dos Mappers187 e 189 em Português-BR.
 
 ### Corrigido
+
+- Corrigida a tela preta na inicialização de *Street Fighter II: The World Warrior* com CRC32 `96CE586E`: esse dump iNES declara Mapper187 incorretamente e agora é carregado como Mapper189, sem alterar a ROM ou ZIP. A verificação de inicialização avançou 201 quadros com saída de vídeo; partidas completas ainda não foram validadas.
+- No Mapper007, conflitos de barramento são aplicados apenas ao submapper 2 do NES 2.0; cabeçalhos iNES antigos e submappers 0/1 usam seleção de bancos sem conflitos.
+- Com Unlimited Sprites habilitado, o bit de sprite overflow continua sendo sinalizado ao encontrar o nono sprite, permitindo que jogos como *Bee 52* detectem essa condição. O comportamento não reproduz integralmente o bug de overflow do hardware.
+- Fast-forward suspende o VSync do renderer temporariamente e restaura o comportamento configurado ao soltar o atalho, preservando a preferência do menu.
+- Os pulsos dos botões turbo usam um contador contínuo de quadros emulados, independente do contador de FPS, inclusive durante fast-forward.
+- Pausas, carregamentos e resets limpam o áudio pendente e reiniciam os acumuladores de tempo, evitando reproduzir áudio antigo ou compensar o tempo gasto em pausas e diálogos.
+- Carregar uma ROM ou save state, resetar ou descarregar o cartucho invalida o histórico anterior de rewind; desabilitar o recurso também encerra o retrocesso e limpa os estados capturados.
 - No modo Step-by-Step, a execução agora aguarda o fim do OAM DMA iniciado pela instrução antes de pausar no próximo limite de instrução.
 - Implementado o latch de I/O da PPU, com decaimento aproximado por bit, para leituras de registradores write-only, bits baixos de PPUSTATUS e bits altos de leituras de paleta via PPUDATA.
 - Modelado o bloqueio de escritas em PPUCTRL, PPUMASK, PPUSCROLL e PPUADDR durante a inicialização/reset da PPU; o contador é preservado em save states, cuja versão foi atualizada.
