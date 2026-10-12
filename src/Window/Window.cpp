@@ -95,7 +95,8 @@ namespace R2NES::Core
         if (imguiContext)
         {
             ImGui::SetCurrentContext(imguiContext);
-            ImGui_ImplSDLRenderer2_Shutdown();
+            if (ImGui::GetIO().BackendRendererUserData)
+                ImGui_ImplSDLRenderer2_Shutdown();
             ImGui_ImplSDL2_Shutdown();
             ImGui::DestroyContext(imguiContext);
         }
@@ -1830,7 +1831,7 @@ namespace R2NES::Core
         std::cout << "Input: Use Zapper " << (useZapper ? "Enabled" : "Disabled") << std::endl;
     }
 
-    // Recria os recursos dependentes do renderer para aplicar a opção de VSync.
+    // Mantém a preferência do usuário mesmo quando o fast-forward suspende VSync.
     void Window::setVSync(bool enabled)
     {
         // Se não houve mudança e o renderer já existe, não fazemos nada
@@ -1838,7 +1839,36 @@ namespace R2NES::Core
             return;
 
         vsyncEnabled = enabled;
+        applyVSync(vsyncEnabled && !vsyncSuppressed);
 
+        if (vsyncCallback)
+            vsyncCallback(vsyncEnabled);
+
+        std::cout << "Window: VSync " << (vsyncEnabled ? "Enabled" : "Disabled") << std::endl;
+    }
+
+    void Window::setVSyncSuppressed(bool suppressed)
+    {
+        if (vsyncSuppressed == suppressed)
+            return;
+
+        vsyncSuppressed = suppressed;
+        applyVSync(vsyncEnabled && !vsyncSuppressed);
+    }
+
+    // A troca direta evita destruir texturas e o backend ImGui a cada atalho.
+    void Window::applyVSync(bool enabled)
+    {
+        if (renderer && rendererVsyncEnabled == enabled)
+            return;
+
+        if (renderer && SDL_RenderSetVSync(renderer, enabled ? 1 : 0) == 0)
+        {
+            rendererVsyncEnabled = enabled;
+            return;
+        }
+
+        // Drivers sem suporte à troca direta usam a recriação do renderer.
         // 1. Destruir recursos antigos vinculados ao renderer atual
         if (texture)
         {
@@ -1855,10 +1885,17 @@ namespace R2NES::Core
 
         // 2. Criar novo renderer com a flag de VSync se solicitado
         Uint32 flags = SDL_RENDERER_ACCELERATED;
-        if (vsyncEnabled)
+        if (enabled)
             flags |= SDL_RENDERER_PRESENTVSYNC;
 
         renderer = SDL_CreateRenderer(window, -1, flags);
+        if (!renderer)
+        {
+            std::cerr << "Window: Could not recreate renderer: " << SDL_GetError() << std::endl;
+            closed = true;
+            return;
+        }
+        rendererVsyncEnabled = enabled;
 
         // 3. Restaurar estado do renderer e recriar texturas
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -1867,13 +1904,14 @@ namespace R2NES::Core
             SDL_PIXELFORMAT_ARGB8888,
             SDL_TEXTUREACCESS_STREAMING,
             width, height);
+        if (!texture)
+        {
+            std::cerr << "Window: Could not recreate texture: " << SDL_GetError() << std::endl;
+            ImGui_ImplSDLRenderer2_Init(renderer);
+            closed = true;
+            return;
+        }
         ImGui_ImplSDLRenderer2_Init(renderer);
-
-        // 4. Notificar a Engine sobre a mudança para ajustar o Game Loop
-        if (vsyncCallback)
-            vsyncCallback(vsyncEnabled);
-
-        std::cout << "Window: VSync " << (vsyncEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 
     // Ajusta o tamanho visível conforme escala e recorte de overscan atuais.
@@ -1967,6 +2005,9 @@ namespace R2NES::Core
     // Compõe o quadro da PPU, aplica pós-processamento e o apresenta pela SDL.
     void Window::render(const uint32_t *pixels, float fps)
     {
+        if (closed || !renderer || !texture)
+            return;
+
         // Atualiza o título da janela com o FPS
         static float lastFps = -1.0f;
         static bool lastPausedState = false;
@@ -2102,6 +2143,8 @@ namespace R2NES::Core
             ImGui::NewFrame();
 
             renderMenu();
+            if (closed)
+                return;
 
             if (paused && currentDisplayMode != DisplayMode::WINDOWED)
             {
