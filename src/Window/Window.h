@@ -205,8 +205,11 @@ namespace R2NES::Core
         /* Verifica se o VSync está habilitado. */
         bool isVSyncEnabled() const { return vsyncEnabled; }
 
-        /* Habilita ou desabilita o VSync, recriando o renderer para aplicar a mudança. */
+        /* Define a preferência de VSync e aplica ao renderer. */
         void setVSync(bool enabled);
+
+        /* Suspende o VSync durante fast-forward sem alterar a preferência do menu. */
+        void setVSyncSuppressed(bool suppressed);
 
         /* Alterna o estado do VSync. */
         void toggleVSync() { setVSync(!vsyncEnabled); }
@@ -483,6 +486,8 @@ namespace R2NES::Core
         }
 
     private:
+        void applyVSync(bool enabled);
+
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
@@ -547,6 +552,8 @@ namespace R2NES::Core
         int currentWindowX = 3;
         bool unlimitedSprites = true;
         bool vsyncEnabled = true;
+        bool vsyncSuppressed = false;
+        bool rendererVsyncEnabled = true;
         bool soundEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
