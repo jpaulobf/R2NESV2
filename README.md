@@ -16,22 +16,29 @@ Prebuilt packages are published on the [GitHub Releases page](https://github.com
 
 ## Features
 
-- **CPU:** Emulation of the NES Ricoh 2A03 CPU.
+- **CPU:** Emulation of the NES Ricoh 2A03 CPU, with bus accesses distributed across instruction cycles and synchronized with the PPU.
 - **PPU:** Background and sprite rendering, scrolling, sprite priority, and Sprite 0 Hit. Timing behavior is under active development and is not fully cycle-accurate.
 - **APU:** Pulse 1, Pulse 2, Triangle, Noise, and DMC audio channels, with per-channel controls.
-- **Mappers:** Implementations are present for iNES mapper IDs 0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 90, and 187. Mapper 71 includes BF9097 (Fire Hawk) mirroring, with NES 2.0 submapper 1 support and legacy iNES detection. Accuracy and game compatibility vary; see the [compatibility notes](COMPATIBILITY_LIST.md).
+- **Mappers:** Implementations are present for iNES mapper IDs 0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 90, 187, and 189. Mapper 71 includes BF9097 (Fire Hawk) mirroring, with NES 2.0 submapper 1 support and legacy iNES detection. Mapper 189 combines independent 32 KiB PRG banking with MMC3 CHR banking, mirroring, and IRQs. Accuracy and game compatibility vary; see the [compatibility notes](COMPATIBILITY_LIST.md).
 - **ROM loading:** `.nes` files and `.zip` archives containing a `.nes` file.
 - **Save states:** Three selectable slots, stored under `savestates/` and named for the loaded ROM.
+- **Rewind:** Optional rewind with selectable precision. Snapshots are captured only while rewind is enabled; loading a ROM or save state, resetting, or unloading clears the previous rewind history.
+- **Fast forward:** Temporarily suspends renderer VSync while preserving the menu preference. Audio output is suppressed while the APU channels, sequencer, and DMC continue to run. Turbo buttons follow emulated frames, including during fast forward.
 - **Debug tools:** Viewers for VRAM, palettes, OAM, and pattern-table tiles, plus a CPU disassembler.
 - **Display options:** Several palette presets, scanline and shader options, and an unlimited-sprite mode.
 - **Convenience:** Recent ROM history and persistence of the last opened directory.
 - **Input:** Keyboard and up to two SDL game controllers. The Zapper can be enabled for the second port and aimed with the mouse.
+- **Playback and responsiveness:** Event-based waits between scheduled frames avoid busy polling when VSync is off, paused, or no ROM is loaded. Fast-forward batches return regularly to event processing; pausing, loading, and resetting clear pending audio and timing accumulators.
 
 ### Compatibility notes
 
 Mapper coverage and PPU/APU timing are incomplete. Some games rely on board-specific mapper behavior or precise CPU/PPU timing that R2NES does not yet reproduce. A small number of ROM-specific Sprite 0 wait-loop workarounds are present; these are narrow compatibility exceptions, not general timing fixes.
 
-The unlimited-sprite option relaxes the NES limit of eight sprites per scanline. It can reduce flicker, but changes hardware behavior; turn it off when checking the normal sprite limit or game compatibility.
+The unlimited-sprite option relaxes the NES limit of eight sprites per scanline. It can reduce flicker, but changes hardware behavior; turn it off when checking the normal sprite limit or game compatibility. The sprite-overflow status bit is still set when a ninth sprite is found, so games such as *Bee 52* can observe it. This does not fully reproduce the hardware's sprite-overflow bug.
+
+AxROM (mapper 7) applies bus conflicts only when NES 2.0 submapper 2 explicitly declares them; legacy iNES and submappers 0/1 use conflict-free banking.
+
+The legacy iNES dump of *Street Fighter II: The World Warrior* with payload CRC32 `96CE586E` incorrectly declares mapper 187. The loader recognizes this specific dump and selects mapper 189 without modifying the ROM or ZIP. Other mapper 187 payloads retain their declared mapper. Boot testing confirmed 201 frames with visible video output; full gameplay compatibility remains unverified.
 
 The [compatibility list](COMPATIBILITY_LIST.md) records game observations and is maintained as testing progresses. It is not a claim of complete compatibility or hardware accuracy.
 
@@ -64,6 +71,12 @@ cmake --build build --config Release --parallel
 ```
 
 The executable and copied resources are placed in `bin/`.
+
+## Regression tests
+
+Standalone tests cover mapper 7, mapper 71, mapper 189, PPU sprite overflow, SDL event waits, and APU audio-output suppression. Mapper tests use generated ROM fixtures; the mapper 189 test also accepts an optional game ROM or ZIP for a boot check.
+
+See [tests/README.md](tests/README.md) for the documented build and run commands. Test coverage is targeted and does not establish complete hardware accuracy or game compatibility.
 
 ## Default controls
 
