@@ -19,7 +19,7 @@ Prebuilt packages are published on the [GitHub Releases page](https://github.com
 - **CPU:** Emulation of the NES Ricoh 2A03 CPU.
 - **PPU:** Background and sprite rendering, scrolling, sprite priority, and Sprite 0 Hit. Timing behavior is under active development and is not fully cycle-accurate.
 - **APU:** Pulse 1, Pulse 2, Triangle, Noise, and DMC audio channels, with per-channel controls.
-- **Mappers:** Implementations are present for iNES mapper IDs 0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 90, and 187. Accuracy and game compatibility vary; see the [compatibility notes](COMPATIBILITY_LIST.md).
+- **Mappers:** Implementations are present for iNES mapper IDs 0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 90, and 187. Mapper 71 includes BF9097 (Fire Hawk) mirroring, with NES 2.0 submapper 1 support and legacy iNES detection. Accuracy and game compatibility vary; see the [compatibility notes](COMPATIBILITY_LIST.md).
 - **ROM loading:** `.nes` files and `.zip` archives containing a `.nes` file.
 - **Save states:** Three selectable slots, stored under `savestates/` and named for the loaded ROM.
 - **Debug tools:** Viewers for VRAM, palettes, OAM, and pattern-table tiles, plus a CPU disassembler.
