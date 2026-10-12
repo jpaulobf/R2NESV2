@@ -57,7 +57,8 @@ namespace R2NES::Core
 			mirrorMode =
 				(data & 0x10) ? MirrorMode::ONESCREEN_HI : MirrorMode::ONESCREEN_LO;
 
-			return false; // Retorna false: não há escrita na PRG ROM
+			mapped_addr = 0xFFFFFFFF; // Registrador tratado; não escreve na PRG ROM.
+			return true;
 		}
 
 		return false;
