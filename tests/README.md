@@ -1,3 +1,23 @@
+# Mapper 189 regression tests
+
+Checks 32 KiB PRG switching, both data nibbles, independent MMC3 CHR banking,
+mirroring, IRQs, reset, save states, and cartridge loading. Generated mapper 187
+fixtures verify that unrelated ROMs keep their declared mapper.
+
+```powershell
+$coreSources = (Get-ChildItem src/Core -Filter '*.cpp' -Recurse).FullName
+g++ -O2 -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper189Tests.cpp $coreSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper189-tests.exe
+if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
+./build/mapper189-tests.exe build/mapper189-test-data
+if ($LASTEXITCODE -ne 0) { throw 'Mapper 189 tests failed' }
+```
+
+Optionally pass a game ROM/ZIP as a second argument. It runs 6,000,000 CPU cycles
+and checks that video contains more than four colors. This is a boot smoke test,
+not a complete gameplay test. The SF II payload CRC `96CE586E` with an old iNES
+mapper 187 header is corrected to mapper 189 during loading; the source file is
+unchanged.
+
 # Mapper 71 regression tests
 
 These tests use generated ROMs to check bank switching, address boundaries,
