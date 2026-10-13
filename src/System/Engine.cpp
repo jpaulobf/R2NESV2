@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 namespace R2NES::Core
 {
@@ -106,11 +107,22 @@ namespace R2NES::Core
 
         // Conecta o callback de FF
         window->setFFCallback([this](bool enabled)
-                              { this->fastForwardEnabled = enabled; });
+                              {
+                                  this->fastForwardEnabled = enabled;
+                                  if (!enabled)
+                                      setFastForward(false);
+                              });
 
         // Conecta o callback de Rewind
         window->setRewindCallback([this](bool enabled)
-                                  { this->rewindEnabled = enabled; });
+                                  {
+                                      this->rewindEnabled = enabled;
+                                      if (!enabled)
+                                      {
+                                          setRewind(false);
+                                          clearRewindStates();
+                                      }
+                                  });
 
         window->setCPUOverclockCallback([this](bool enabled)
                                         { 
@@ -119,7 +131,13 @@ namespace R2NES::Core
 
         // Conecta o callback de Pause
         window->setPauseCallback([this](bool p)
-                                 { this->paused = p; });
+                                 {
+                                     if (paused != p)
+                                     {
+                                         paused = p;
+                                         resetPlaybackTiming();
+                                     }
+                                 });
 
         // Verifica os estados iniciais das opções
         this->vsyncEnabled = window->isVSyncEnabled();
@@ -219,13 +237,24 @@ namespace R2NES::Core
             lastTime = currentTime;
 
             processEmulatorInput();
+            if (window->shouldClose() || !isRunning)
+                break;
+
+            if (timingResetPending)
+            {
+                // Exclui tempo de pausa, carregamento e diálogos do catch-up.
+                currentTime = SDL_GetPerformanceCounter();
+                lastTime = currentTime;
+                deltaTime = 0.0;
+                timingResetPending = false;
+            }
 
             // Calcula o FPS real a cada segundo
             fpsTimer += static_cast<float>(deltaTime);
             if (fpsTimer >= 1.0f)
             {
-                currentFPS = static_cast<float>(frameCount) / fpsTimer;
-                frameCount = 0;
+                currentFPS = static_cast<float>(fpsFrameCount) / fpsTimer;
+                fpsFrameCount = 0;
                 fpsTimer = 0.0f;
             }
 
@@ -245,12 +274,15 @@ namespace R2NES::Core
                     }
                     else if (uncappedSpeed)
                     {
-                        // Emulação (UPS)
-                        for (int i = 0; i < 10; ++i)
+                        // Volta aos eventos após ~4 ms, em vez de prender a
+                        // entrada por dez frames em máquinas mais lentas.
+                        const uint64_t batchStart = SDL_GetPerformanceCounter();
+                        const uint64_t batchBudget = frequency / 250;
+                        do
                         {
                             update();
-                            frameCount++;
                         }
+                        while (SDL_GetPerformanceCounter() - batchStart < batchBudget);
                     }
                     else if (vsyncEnabled)
                     {
@@ -276,11 +308,13 @@ namespace R2NES::Core
 
                 if (uncappedSpeed)
                 {
+                    const double renderInterval = 1.0 / targetFPS;
                     renderResidualTime += deltaTime;
-                    if (renderResidualTime >= 1.0 / targetFPS)
+                    if (renderResidualTime >= renderInterval)
                     {
                         render();
-                        renderResidualTime = 0;
+                        // Preserva a fração excedente também durante fast-forward.
+                        renderResidualTime = std::fmod(renderResidualTime, renderInterval);
                     }
                 }
                 else if (vsyncEnabled)
@@ -301,9 +335,63 @@ namespace R2NES::Core
             }
             else
             {
-                render();
+                // Sem ROM, a interface também respeita a cadência de vídeo.
+                if (vsyncEnabled && !uncappedSpeed)
+                    render();
+                else
+                {
+                    const double renderInterval = 1.0 / targetFPS;
+                    renderResidualTime += deltaTime;
+                    if (renderResidualTime >= renderInterval)
+                    {
+                        render();
+                        renderResidualTime = std::fmod(renderResidualTime, renderInterval);
+                    }
+                }
             }
+
+            waitForNextWork(currentTime, frequency);
         }
+    }
+
+    void Engine::waitForNextWork(uint64_t iterationStart, uint64_t frequency)
+    {
+        if (window->shouldClose() || !isRunning)
+            return;
+
+        // O renderer já espera pelo VSync nesse modo. Fast-forward ativo
+        // sempre tem mais trabalho e não recebe espera adicional.
+        if (vsyncEnabled && !uncappedSpeed)
+            return;
+
+        const bool loaded = nes->isCartridgeLoaded();
+        if (loaded && !paused && !runningRewind &&
+            ((uncappedSpeed && !stepByStep) || (stepByStep && stepRequested)))
+            return;
+
+        double waitSeconds = 1.0 / targetFPS - renderResidualTime;
+        if (loaded && runningRewind && !rewindStates.empty())
+        {
+            waitSeconds = std::min(waitSeconds,
+                rewindIntervalSeconds[window->getRewindPrecisionLevel()] - rewindResidualTime);
+        }
+        else if (loaded && !paused && !runningRewind && !stepByStep && timeScale > 0.0f)
+        {
+            waitSeconds = std::min(waitSeconds,
+                (1.0 / targetUPS - 0.0002 - residualTime) / timeScale);
+        }
+
+        // Os acumuladores usam o início da iteração; desconta emulação,
+        // áudio e renderização antes de decidir quanto ainda pode esperar.
+        const double elapsed = static_cast<double>(SDL_GetPerformanceCounter() - iterationStart) / frequency;
+        waitSeconds -= elapsed;
+        if (waitSeconds <= 0.0)
+            return;
+
+        // Arredonda para cima para evitar busy-wait no último milissegundo.
+        // nullptr preserva o evento na fila para Window::pollEvents().
+        const int timeoutMs = static_cast<int>(std::ceil(waitSeconds * 1000.0));
+        SDL_WaitEventTimeout(nullptr, timeoutMs);
     }
 
     // Converte eventos da janela em entrada do emulador e comandos de gerenciamento da ROM.
@@ -326,26 +414,26 @@ namespace R2NES::Core
         std::string romPath = window->getSelectedPath();
         if (!romPath.empty())
         {
-            // Estados de outra ROM não podem ser restaurados na ROM recém-carregada.
-            clearRewindStates();
+            setFastForward(false);
             stateManager->loadRom(romPath, *nes, *window);
+            resetPlaybackTiming(true);
         }
 
         if (window->isResetRequested())
         {
-            // O reset invalida os snapshots capturados antes dele.
-            clearRewindStates();
             stateManager->reset(*nes, *window);
+            resetPlaybackTiming(true);
         }
 
         if (window->isUnloadRequested())
         {
-            // Sem cartucho, nenhum estado de rewind deve permanecer disponível.
-            clearRewindStates();
+            setFastForward(false);
             stateManager->unloadRom(*nes, *window);
+            resetPlaybackTiming(true);
         }
 
-        stateManager->handleSaveLoadState(*nes, *window);
+        if (stateManager->handleSaveLoadState(*nes, *window))
+            resetPlaybackTiming(true);
     }
 
     // Encaminha teclas ao controle e executa atalhos de save, vídeo, pausa e velocidade.
@@ -393,8 +481,8 @@ namespace R2NES::Core
         case SDLK_F12:
             if (isPressed)
             {
-                clearRewindStates();
                 nes->reset();
+                resetPlaybackTiming(true);
             }
             break;
         case SDLK_TAB:
@@ -413,11 +501,11 @@ namespace R2NES::Core
         }
     }
 
-    // Muda o fast-forward preservando e restaurando as opções anteriores de velocidade e VSync.
+    // Suspende VSync no renderer durante fast-forward e preserva a preferência do menu.
     void Engine::setFastForward(bool enabled)
     {
         // Se não houve mudança, não fazemos nada
-        if (runningFastForward == enabled || !nes->isCartridgeLoaded())
+        if (runningFastForward == enabled || (enabled && !nes->isCartridgeLoaded()))
             return;
 
         runningFastForward = enabled;
@@ -426,22 +514,35 @@ namespace R2NES::Core
         {
             // Guarda as preferências do usuário para restaurá-las ao soltar o atalho.
             oldUncappedSpeed = uncappedSpeed;
-            oldVsyncEnabled = vsyncEnabled;
-            uncappedSpeed = true;
-            vsyncEnabled = false;
+            setUncappedSpeed(true);
+            window->setVSyncSuppressed(true);
         }
         else
         {
-            uncappedSpeed = oldUncappedSpeed;
-            vsyncEnabled = oldVsyncEnabled;
+            setUncappedSpeed(oldUncappedSpeed);
+            window->setVSyncSuppressed(false);
         }
+
+        residualTime = 0.0;
+        renderResidualTime = 0.0;
+    }
+
+    void Engine::setUncappedSpeed(bool enabled)
+    {
+        if (uncappedSpeed == enabled)
+            return;
+
+        uncappedSpeed = enabled;
+        nes->getApu().setAudioOutputSuppressed(enabled);
+        // Descarta áudio do instante anterior na entrada e saída do fast-forward.
+        audioManager->clearQueuedAudio();
     }
 
     // Controla o rewind e interrompe o áudio pendente ao começar a retroceder.
     void Engine::setRewind(bool enabled)
     {      
         // Se não houve mudança, não fazemos nada
-        if (runningRewind == enabled || !nes->isCartridgeLoaded())
+        if (runningRewind == enabled || (enabled && (!rewindEnabled || !nes->isCartridgeLoaded())))
             return;
 
         runningRewind = enabled;
@@ -454,6 +555,10 @@ namespace R2NES::Core
     // Salva snapshots espaçados do NES em uma fila com duração máxima configurada.
     void Engine::captureRewindState()
     {
+        // Não avança o intervalo nem serializa o NES com rewind desligado.
+        if (!rewindEnabled)
+            return;
+
         if (++framesSinceLastRewindState < rewindStateIntervalFrames[window->getRewindPrecisionLevel()])
             return;
 
@@ -468,7 +573,9 @@ namespace R2NES::Core
         if (maximumStates == 0)
             return;
 
-        if (rewindStates.size() == maximumStates)
+        // Remove os mais antigos e reserva espaço para o próximo snapshot,
+        // inclusive quando a mudança de precisão reduz a capacidade.
+        while (rewindStates.size() >= maximumStates)
             rewindStates.pop_front();
 
         rewindStates.push_back(state.str());
@@ -501,10 +608,31 @@ namespace R2NES::Core
         rewindResidualTime = 0.0;
     }
 
+    void Engine::resetPlaybackTiming(bool invalidateRewind)
+    {
+        audioManager->clearQueuedAudio();
+        nes->getApu().clearPendingSamples();
+        residualTime = 0.0;
+        renderResidualTime = 0.0;
+        rewindResidualTime = 0.0;
+        fpsTimer = 0.0f;
+        fpsFrameCount = 0;
+        currentFPS = 0.0f;
+        timingResetPending = true;
+
+        if (invalidateRewind)
+        {
+            setRewind(false);
+            clearRewindStates();
+            stepRequested = false;
+        }
+    }
+
     // Executa um quadro ou instrução, encaminha o áudio produzido e registra rewind.
     void Engine::update()
     {
-        inputManager->update(*nes, frameCount);
+        inputManager->update(*nes, emulatedFrameCount);
+        bool completedFrame = false;
 
         if (stepByStep)
         {
@@ -520,6 +648,10 @@ namespace R2NES::Core
                     nes->step(false);
                 }
                 stepRequested = false;
+                // Uma instrução só conta se realmente atravessou o fim do quadro.
+                completedFrame = nes->isFrameComplete();
+                if (completedFrame)
+                    nes->clearFrameComplete();
             }
         }
         else
@@ -531,21 +663,25 @@ namespace R2NES::Core
                 // A cada step, a APU agora gera e guarda as amostras de áudio sozinha!
             }
             nes->clearFrameComplete();
+            completedFrame = true;
 
-            // 2. Coleta todo o áudio que a APU gerou durante este frame
-            while (nes->getApu().hasSamples())
+            if (!uncappedSpeed)
             {
-                audioManager->pushSample(nes->getApu().getOutputSample());
-            }
+                // Coleta e envia somente o áudio que será reproduzido.
+                while (nes->getApu().hasSamples())
+                    audioManager->pushSample(nes->getApu().getOutputSample());
 
-            // 3. Envia o buffer de áudio do frame inteiro para o SDL
-            audioManager->queueAudio(uncappedSpeed);
+                audioManager->queueAudio();
+            }
 
             captureRewindState();
         }
 
-        if (!uncappedSpeed)
-            frameCount++; // Conta quadros emulados no modo normal
+        if (completedFrame)
+        {
+            ++emulatedFrameCount;
+            ++fpsFrameCount;
+        }
     }
 
     // Exibe o framebuffer e alimenta os visualizadores auxiliares que estiverem abertos.
