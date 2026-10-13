@@ -61,6 +61,7 @@ namespace R2NES::Core
         uint8_t mapperID = 0;
         uint8_t prgBanks = 0;
         uint8_t chrBanks = 0;
+        bool mapper7BusConflicts = false;
         std::string romHash;
 
         bool imageValid = false;
