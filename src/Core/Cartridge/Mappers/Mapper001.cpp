@@ -311,5 +311,4 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
         is.read(reinterpret_cast<char *>(&nPRGBankHigh), sizeof(nPRGBankHigh));
     }
-
 }
