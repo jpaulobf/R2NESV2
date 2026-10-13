@@ -18,11 +18,11 @@ namespace R2NES::Core
 
         void reset() override;
 
-        // Serialização para Save / Load states
+        // Serialização para salvar e carregar estados
         void saveState(std::ostream &os) override;
         void loadState(std::istream &is) override;
 
     private:
         uint8_t nromModeRegister = 0;
     };
-} // namespace R2NES::Core
+}
