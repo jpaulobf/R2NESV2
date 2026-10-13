@@ -27,6 +27,8 @@ namespace R2NES::Core
         void setAudioSampleRate(float rate);
 
         bool hasSamples() const { return !audioBuffer.empty(); }
+        // Descarta amostras pendentes sem alterar canais ou filtros restaurados.
+        void clearPendingSamples();
         bool getIrqFlag() const { return frameIrqFlag || dmc.irqFlag; }
 
         // Interface usada pelo NES para transferir bytes do canal DMC e roubar
@@ -40,6 +42,8 @@ namespace R2NES::Core
         // pelo jogo nos registradores de habilitação dos canais.
         void enableSound();
         void disableSound();
+        // Suspende somente a saída para o host, sem alterar a preferência de som.
+        void setAudioOutputSuppressed(bool suppressed);
         void setPulse1Enabled(bool enabled) { userPulse1Enabled = enabled; }
         void setPulse2Enabled(bool enabled) { userPulse2Enabled = enabled; }
         void setTriangleEnabled(bool enabled) { userTriangleEnabled = enabled; }
@@ -210,6 +214,7 @@ namespace R2NES::Core
         uint8_t pendingFrameCounterMode = 4;
 
         bool soundEnabled = true;
+        bool audioOutputSuppressed = false; // Estado do host; não faz parte do savestate.
         bool userPulse1Enabled = true;
         bool userPulse2Enabled = true;
         bool userTriangleEnabled = true;
