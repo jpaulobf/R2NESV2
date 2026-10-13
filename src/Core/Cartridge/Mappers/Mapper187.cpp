@@ -18,9 +18,9 @@ namespace R2NES::Core
     {
         if (addr >= 0x8000 && (nromModeRegister & 0x80))
         {
-            // $5000 bit 7 selects the NROM override. The low bank bits choose
-            // a 16 KiB bank; bit 5 selects NROM-256 behavior by routing CPU A14
-            // to PRG A14. With bit 5 clear, the selected 16 KiB bank is mirrored.
+            // O bit 7 de $5000 ativa o mapeamento NROM. Os bits inferiores selecionam
+            // um banco de 16 KiB; o bit 5 seleciona o modo NROM-256, conectando A14
+            // da CPU a A14 da PRG. Com o bit 5 desativado, o banco de 16 KiB é espelhado.
             const uint32_t total16kBanks = nPRGBanks;
             if (total16kBanks == 0)
                 return false;
@@ -40,8 +40,8 @@ namespace R2NES::Core
     bool Mapper187::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data,
                                 uint32_t systemClockCounter)
     {
-        // The NROM override register is decoded at $5000 (low address bits
-        // are not connected on the board).
+        // O registrador de mapeamento NROM é decodificado em $5000 (os bits inferiores
+        // do endereço não estão conectados na placa).
         if ((addr & 0xF007) == 0x5000)
         {
             nromModeRegister = data;
@@ -81,4 +81,4 @@ namespace R2NES::Core
         Mapper004::loadState(is);
         is.read(reinterpret_cast<char *>(&nromModeRegister), sizeof(nromModeRegister));
     }
-} // namespace R2NES::Core
+}
