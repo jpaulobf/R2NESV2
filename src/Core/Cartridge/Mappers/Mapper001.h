@@ -33,7 +33,17 @@ namespace R2NES::Core
     class Mapper001 : public Mapper
     {
     public:
+        struct Configuration
+        {
+            uint32_t prgRamSize = 8192;
+            uint32_t prgNvRamSize = 0;
+            uint8_t submapper = 0;
+            MirrorMode hardwareMirror = MirrorMode::HORIZONTAL;
+        };
+
         Mapper001(uint8_t prgBanks, uint8_t chrBanks, uint8_t prgRamBanks = 1);
+        Mapper001(uint16_t prgBanks, uint16_t chrBanks, Configuration configuration);
+        static bool supports(uint16_t prgBanks, uint16_t chrBanks, const Configuration &configuration);
         ~Mapper001();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
@@ -60,7 +70,7 @@ namespace R2NES::Core
         uint8_t nCHRBankSelect1 = 0x00; // Banco CHR para $1000-$1FFF (modo 1 apenas)
         uint8_t nPRGBankSelect = 0x00;  // Seletor de banco PRG (seletivo dependendo do modo)
 
-        uint8_t nControlRegister = 0x1E; // Valor inicial padrão (PRG Mode 3, Vertical Mirroring)
+        uint8_t nControlRegister = 0x1E; // Inicialização determinística do emulador, não garantia do hardware.
 
         // Shift register para serial writing dos registros
         uint8_t nShiftRegister = 0x00;
@@ -68,8 +78,10 @@ namespace R2NES::Core
 
         uint8_t nPRGStaticRAM[32768] = {}; // Até 32KB, em bancos de 8KB
         uint8_t nPRGRAMBanks = 1;
+        Configuration configuration;
 
-        uint32_t nLastWriteCycle = 0; // Para evitar múltiplas escritas no mesmo ciclo
+        uint32_t nLastWriteCycle = 0; // Ciclos da CPU, incluindo o overclock.
+        bool hasLastWrite = false;
 
         // Bit 0: banco externo de PRG; bit 7: CHR bank register ativo pelo A12 do PPU.
         uint8_t nPRGBankHigh = 0;
