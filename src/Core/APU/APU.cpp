@@ -329,6 +329,11 @@ namespace R2NES::Core
         dmc.clock();
         requestDmcDma();
 
+        // Os canais, o sequenciador e o DMC continuam acima. Fast-forward
+        // dispensa mistura, filtros, resampling e armazenamento de amostras.
+        if (audioOutputSuppressed)
+            return;
+
         const double cyclesPerSample = apuCyclesPerSample;
         cycleCounter += 1.0;
         if (soundEnabled)
@@ -374,6 +379,11 @@ namespace R2NES::Core
         return std::tanh(sample);
     }
 
+    void APU::clearPendingSamples()
+    {
+        audioBuffer = std::queue<float>();
+    }
+
     void APU::enableSound()
     {
         if (!soundEnabled)
@@ -386,6 +396,15 @@ namespace R2NES::Core
         if (soundEnabled)
             resetAudioPipeline();
         soundEnabled = false;
+    }
+
+    void APU::setAudioOutputSuppressed(bool suppressed)
+    {
+        if (audioOutputSuppressed == suppressed)
+            return;
+
+        audioOutputSuppressed = suppressed;
+        resetAudioPipeline();
     }
 
     void APU::setAudioSampleRate(float rate)
