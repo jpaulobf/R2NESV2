@@ -9,7 +9,7 @@ namespace R2NES::Core
     class Mapper
     {
     public:
-        Mapper(uint8_t prgBanks, uint8_t chrBanks) : nPRGBanks(prgBanks), nCHRBanks(chrBanks) {}
+        Mapper(uint16_t prgBanks, uint16_t chrBanks) : nPRGBanks(prgBanks), nCHRBanks(chrBanks) {}
         virtual ~Mapper() = default;
 
         // Transforma o endereço virtual da CPU em um endereço físico na PRG-ROM
@@ -54,7 +54,7 @@ namespace R2NES::Core
         }
 
     protected:
-        uint8_t nPRGBanks = 0;
-        uint8_t nCHRBanks = 0;
+        uint16_t nPRGBanks = 0;
+        uint16_t nCHRBanks = 0;
     };
 }
