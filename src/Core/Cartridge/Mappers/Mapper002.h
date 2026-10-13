@@ -8,7 +8,7 @@ namespace R2NES::Core
     class Mapper002 : public Mapper
     {
     public:
-        Mapper002(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror);
+        Mapper002(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror);
         ~Mapper002();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
@@ -17,6 +17,9 @@ namespace R2NES::Core
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
 
         MirrorMode getMirrorMode() override;
+
+        // Reinicialização completa usada por NES::reset(), não o reset elétrico do console.
+        void reset() override;
 
         // Serialização para Save / Load states
         void saveState(std::ostream &os) override;
