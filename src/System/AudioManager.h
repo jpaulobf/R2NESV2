@@ -24,8 +24,8 @@ namespace R2NES::System
         // Acrescenta uma amostra da APU ao lote pendente do quadro atual.
         void pushSample(float sample);
 
-        // Enfileira o lote pendente ou o descarta durante fast-forward.
-        void queueAudio(bool isFastForwarding);
+        // Enfileira o lote pendente para reprodução.
+        void queueAudio();
 
         // Descarta o áudio ainda aguardando reprodução no dispositivo SDL.
         void clearQueuedAudio();

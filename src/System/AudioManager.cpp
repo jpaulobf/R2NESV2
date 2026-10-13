@@ -54,29 +54,21 @@ namespace R2NES::System
         audioBuffer.push_back(sample);
     }
 
-    // Mantém a fila curta em velocidade normal e a silencia durante fast-forward.
-    void AudioManager::queueAudio(bool isFastForwarding)
+    // Mantém a fila curta durante a reprodução.
+    void AudioManager::queueAudio()
     {
         if (audioDevice > 0 && !audioBuffer.empty())
         {
-            if (!isFastForwarding)
-            {
-                // Latência alvo de ~3 frames (~50ms)
-                Uint32 maxSafeBytes = sampleRate * sizeof(float) / 20;
+            // Latência alvo de ~3 frames (~50ms)
+            Uint32 maxSafeBytes = sampleRate * sizeof(float) / 20;
 
-                // Se o buffer engasgar e acumular áudio velho, limpamos
-                if (SDL_GetQueuedAudioSize(audioDevice) > maxSafeBytes)
-                {
-                    SDL_ClearQueuedAudio(audioDevice);
-                }
-
-                SDL_QueueAudio(audioDevice, audioBuffer.data(), audioBuffer.size() * sizeof(float));
-            }
-            else
+            // Se o buffer engasgar e acumular áudio velho, limpamos
+            if (SDL_GetQueuedAudioSize(audioDevice) > maxSafeBytes)
             {
-                // Em Fast-Forward, ignoramos o áudio para não estourar os ouvidos e acelerar
                 SDL_ClearQueuedAudio(audioDevice);
             }
+
+            SDL_QueueAudio(audioDevice, audioBuffer.data(), audioBuffer.size() * sizeof(float));
         }
         audioBuffer.clear();
     }
@@ -84,6 +76,7 @@ namespace R2NES::System
     // Remove amostras pendentes, por exemplo após pausar ou trocar de ROM.
     void AudioManager::clearQueuedAudio()
     {
+        audioBuffer.clear();
         if (audioDevice > 0)
         {
             SDL_ClearQueuedAudio(audioDevice);
