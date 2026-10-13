@@ -32,8 +32,8 @@ namespace R2NES::System
         // Reinicia o NES e confirma na interface que a solicitação foi atendida.
         void reset(Core::NES &nes, Core::Window &window);
 
-        // Processa uma solicitação pendente de salvar ou carregar o estado da ROM atual.
-        void handleSaveLoadState(Core::NES &nes, Core::Window &window);
+        // Retorna true somente quando um estado foi carregado com sucesso.
+        bool handleSaveLoadState(Core::NES &nes, Core::Window &window);
 
         // Expõe o desassembly em cache consumido pelo viewer de depuração.
         const std::map<uint16_t, std::string> &getCachedDisassembly() const { return cachedDisassembly; }

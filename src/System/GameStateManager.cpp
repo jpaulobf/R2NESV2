@@ -50,8 +50,9 @@ namespace R2NES::System
     }
 
     // Persiste ou restaura o estado no slot solicitado e limpa as flags de comando da Window.
-    void GameStateManager::handleSaveLoadState(Core::NES &nes, Core::Window &window)
+    bool GameStateManager::handleSaveLoadState(Core::NES &nes, Core::Window &window)
     {
+        bool stateLoaded = false;
         if (nes.isCartridgeLoaded() && (window.getIsToSave() || window.getIsToLoad()))
         {
             namespace fs = std::filesystem;
@@ -71,11 +72,15 @@ namespace R2NES::System
             else if (window.getIsToLoad())
             {
                 if (nes.loadState(filename))
+                {
                     std::cout << "GameStateManager: State loaded from " << filename << std::endl;
+                    stateLoaded = true;
+                }
             }
 
             window.resetSaveLoadFlags();
         }
+        return stateLoaded;
     }
 
     // Reconstrói o cache somente quando o PC não está coberto pelo disassembly atual.
