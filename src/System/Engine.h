@@ -31,7 +31,7 @@ namespace R2NES::Core
         void toggleVSync();
 
         // Alterna a emulação sem limite de velocidade.
-        void toggleUncappedSpeed() { uncappedSpeed = !uncappedSpeed; }
+        void toggleUncappedSpeed() { setUncappedSpeed(!uncappedSpeed); }
 
     private:
         // Processa eventos da janela, periféricos e solicitações de estado/ROM.
@@ -58,8 +58,14 @@ namespace R2NES::Core
         // Desenha o quadro e atualiza as janelas auxiliares de depuração.
         void render();
 
-        // Ativa/desativa fast-forward, preservando as opções anteriores de velocidade e VSync.
+        // Espera por eventos ou pelo próximo prazo de atualização/renderização.
+        void waitForNextWork(uint64_t iterationStart, uint64_t frequency);
+
+        // Ativa/desativa fast-forward e suspende temporariamente VSync no renderer.
         void setFastForward(bool enabled);
+
+        // Sincroniza a velocidade ilimitada com a suspensão da saída de áudio.
+        void setUncappedSpeed(bool enabled);
 
         // Ativa/desativa rewind e limpa o áudio pendente ao iniciá-lo.
         void setRewind(bool enabled);
@@ -73,6 +79,9 @@ namespace R2NES::Core
         // Descarta o histórico de rewind e reinicializa seus contadores.
         void clearRewindStates();
 
+        // Sincroniza áudio e relógio após transições; invalida rewind quando solicitado.
+        void resetPlaybackTiming(bool invalidateRewind = false);
+
         // Ponteiros
         std::unique_ptr<Window> window;
         std::unique_ptr<NES> nes;
@@ -84,6 +93,7 @@ namespace R2NES::Core
         bool stepByStep = false;
         bool stepRequested = false;
         bool isRunning = true;
+        bool timingResetPending = false;
 
         // Variáveis de controle de tempo e performance
         double residualTime = 0.0;
@@ -94,8 +104,10 @@ namespace R2NES::Core
 
         // Cálculo de FPS real
         float currentFPS = 0.0f;
-        int frameCount = 0;
+        uint64_t fpsFrameCount = 0;
         float fpsTimer = 0.0f;
+        // Contínuo: usado pelo turbo e independente da janela de medição de FPS.
+        uint64_t emulatedFrameCount = 0;
 
         // Flag para ignorar o limite de tempo (Fast Forward ilimitado)
         bool uncappedSpeed = false;
@@ -107,7 +119,6 @@ namespace R2NES::Core
         bool soundEnabled = true;
         bool paused = false;
         bool oldUncappedSpeed = uncappedSpeed;
-        bool oldVsyncEnabled = vsyncEnabled;
 
         // Histórico em memória: a frente é o estado mais antigo e o fim é o mais recente.
         std::deque<std::string> rewindStates;
