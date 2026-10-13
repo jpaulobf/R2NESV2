@@ -11,8 +11,10 @@
 #include "Core/Cartridge/Mappers/Mapper023.h"
 #include "Core/Cartridge/Mappers/Mapper040.h"
 #include "Core/Cartridge/Mappers/Mapper066.h"
+#include "Core/Cartridge/Mappers/Mapper071.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
 #include "Core/Cartridge/Mappers/Mapper187.h"
+#include "Core/Cartridge/Mappers/Mapper189.h"
 #include <algorithm>
 #include <cstring>
 #include <fstream>
@@ -221,9 +223,23 @@ namespace R2NES::Core
 
         mapperID = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
 
+        // This legacy SF II dump incorrectly declares mapper 187. Identify the
+        // exact payload instead of changing the behavior of real mapper 187 ROMs.
+        if (mapperID == 187 && header.prg_chunks == 8 && header.chr_chunks == 16 &&
+            (header.mapper2 & 0x0C) != 0x08 && !(header.mapper1 & 0x04) &&
+            calculateRomHash(buffer) == "96CE586E")
+        {
+            mapperID = 189;
+            std::cout << "Cartridge: corrected legacy mapper 187 to 189 (CRC 96CE586E)."
+                      << std::endl;
+        }
+
         // iNES 1.0 armazena a PRG RAM em unidades de 8KB; zero significa 8KB.
         // NES 2.0 codifica esse tamanho em outro campo, ainda não interpretado aqui.
         const bool isNes2Header = (header.mapper2 & 0x0C) == 0x08;
+        // AxROM: iNES e submappers 0/1 não aplicam conflitos (ANROM).
+        // Somente NES 2.0 submapper 2 declara conflitos AND (AMROM/AOROM).
+        mapper7BusConflicts = isNes2Header && (header.prg_ram_size >> 4) == 2;
         const uint8_t mapper1PrgRamBanks =
             (!isNes2Header && header.prg_ram_size != 0) ? header.prg_ram_size : 1;
 
@@ -317,11 +333,19 @@ namespace R2NES::Core
         case 66:
             pMapper = std::make_shared<Mapper066>(prgBanks, chrBanks, mirror);
             break;
+        case 71:
+            pMapper = std::make_shared<Mapper071>(
+                prgBanks, chrBanks, mirror,
+                isNes2Header ? header.prg_ram_size >> 4 : 0, !isNes2Header);
+            break;
         case 90:
             pMapper = std::make_shared<Mapper090>(prgBanks, chrBanks);
             break;
         case 187:
             pMapper = std::make_shared<Mapper187>(prgBanks, chrBanks, mirror);
+            break;
+        case 189:
+            pMapper = std::make_shared<Mapper189>(prgBanks, chrBanks, mirror);
             break;
         default:
             std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet."
@@ -356,7 +380,8 @@ namespace R2NES::Core
             // escrito seja o AND lógico entre o valor da CPU e o valor armazenado na ROM naquele endereço.
             if (addr >= 0x8000 && addr <= 0xFFFF)
             {
-                if (mapperID == 2 || mapperID == 3 || mapperID == 7 || mapperID == 66)
+                if (mapperID == 2 || mapperID == 3 ||
+                    (mapperID == 7 && mapper7BusConflicts) || mapperID == 66)
                 {
                     uint32_t read_mapped_addr = 0;
                     uint8_t dummy_data = 0;
@@ -456,7 +481,7 @@ namespace R2NES::Core
         if (pMapper &&
             (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
              mapperID == 11 || mapperID == 19 || mapperID == 21 || mapperID == 22 ||
-             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 85 || mapperID == 187))
+             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 71 || mapperID == 85 || mapperID == 187 || mapperID == 189))
         {
             return pMapper->getMirrorMode();
         }
