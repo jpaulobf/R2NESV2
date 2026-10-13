@@ -169,11 +169,11 @@ namespace R2NES::System
         }
     }
 
-    // Alterna A e B turbo a cada dois quadros enquanto seus atalhos permanecem pressionados.
-    void InputManager::update(Core::NES &nes, int frameCount)
+    // Mantém o pulso de turbo ligado por um quadro a cada quatro quadros emulados.
+    void InputManager::update(Core::NES &nes, uint64_t emulatedFrameCount)
     {
         auto &joy1 = nes.getJoysticks().controller1;
-        bool turboPulse = (frameCount % 4 > 2); // Fica 'true' por 2 frames, 'false' por 2 frames
+        const bool turboPulse = (emulatedFrameCount % 4 > 2);
 
         if (turboA)
             joy1.setButton(R2NES::Core::IO::BUTTON_A, turboPulse);

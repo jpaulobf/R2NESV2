@@ -3,6 +3,7 @@
 #include "Core/IO/NESButtons.h"
 #include <SDL.h>
 #include <map>
+#include <cstdint>
 
 namespace R2NES::Core
 {
@@ -32,7 +33,7 @@ namespace R2NES::System
         void configureUseZapper(bool enabled, Core::NES &nes);
 
         // Atualiza os pulsos de turbo de acordo com o quadro atual da emulação.
-        void update(Core::NES &nes, int frameCount);
+        void update(Core::NES &nes, uint64_t emulatedFrameCount);
 
     private:
         // Aplica botões e turbo do primeiro controle físico.
