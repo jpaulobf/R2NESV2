@@ -880,6 +880,12 @@ namespace R2NES::Core
                         if (row >= 0 && row < spriteHeight)
                         {
                             SpriteFetchUnit &sprite = nextSprites[nextScanlineSpriteCount++];
+                            // Unlimited Sprites amplia a renderização, mas o jogo
+                            // ainda precisa observar overflow ao encontrar o nono
+                            // sprite (Bee 52 espera por esse bit em $2002).
+                            if (nextScanlineSpriteCount > 8)
+                                ppuStatus |= 0x20;
+
                             sprite.oamIndex = index;
                             sprite.y = spriteY;
                             sprite.tile = oamMemory[index * 4 + 1];
