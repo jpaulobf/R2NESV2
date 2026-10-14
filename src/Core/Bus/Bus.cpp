@@ -43,8 +43,9 @@ namespace R2NES::Core
 
     void Bus::cpuWrite(uint16_t addr, uint8_t data)
     {
+        cpuDataBus = data;
         // Escrita via CPU: primeiro delega ao cartucho (mappers podem interceptar).
-        if (cart && cart->cpuWrite(addr, data, systemClockCounter))
+        if (cart && cart->cpuWrite(addr, data, systemClockCounter, cpuCycleCounter))
         {
             // Cartucho tratou a escrita.
         }
@@ -87,7 +88,15 @@ namespace R2NES::Core
 
     uint8_t Bus::cpuRead(uint16_t addr, bool readOnly)
     {
-        uint8_t data = 0x00;
+        const uint8_t value = readCpuDevice(addr, readOnly);
+        if (!readOnly)
+            cpuDataBus = value;
+        return value;
+    }
+
+    uint8_t Bus::readCpuDevice(uint16_t addr, bool readOnly)
+    {
+        uint8_t data = cpuDataBus;
         // Leitura delegada ao cartucho primeiro (mappers podem prover ROM/RAM mapeada)
         if (cart && cart->cpuRead(addr, data))
         {
