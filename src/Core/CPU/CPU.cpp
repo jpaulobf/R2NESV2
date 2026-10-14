@@ -331,8 +331,9 @@ namespace R2NES::Core
 
     void CPU::nmi()
     {
+        // A borda fica latched; a instrução ainda precisa alcançar seu ponto
+        // de polling antes de a CPU aceitar a interrupção.
         pendingNmi = true;
-        interruptRequested = true;
     }
 
     void CPU::reset()
@@ -411,6 +412,17 @@ namespace R2NES::Core
             finishCycle();
             return 1;
         }
+
+        // Amostra a NMI que estava latched ao final do penúltimo ciclo.
+        // Uma borda no último ciclo (por exemplo STA $2000 habilitando NMI
+        // durante VBlank) só será aceita após a próxima instrução.
+        // Branches também fazem polling antes do fetch do deslocamento;
+        // sem cruzar página, o ciclo extra do branch não faz outro polling.
+        const bool nmiPoll = isBranchInstruction()
+                                 ? (microCycle == 1 || (pageCrossed && cycles == 1))
+                                 : cycles == 1;
+        if (pendingNmi && nmiPoll)
+            interruptRequested = true;
 
         ++microCycle;
         executeInstructionCycle();
