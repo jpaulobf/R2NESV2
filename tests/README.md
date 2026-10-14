@@ -1,3 +1,124 @@
+# Mapper 1 regression tests
+
+Generated ROMs cover PRG/CHR modes and boundaries, serial bit order and fifth-write
+address selection, consecutive writes (including real INC/RRA instructions with
+and without CPU overclock), reset bit 7, first writes at cycles 0/1 and counter
+wrap, dynamic/fixed mirroring, fixed PRG, CHR-RAM/ROM board variants and isolated
+PRG RAM banks. Invalid configurations, truncated images/states and corrupt serial
+registers are rejected. Console tests verify rollback after failed loads and the
+CPU open-bus latch, including side-effect-free debugger reads.
+NMI tests cover edges on all four cycles of STA, a real PPUCTRL-triggered edge
+during VBlank, the subsequent RAM shadow store, and pending-NMI state restore.
+An edge on the last cycle must wait until the following instruction has run.
+
+```powershell
+cmake --build build --target mapper001-tests -j 4
+ctest --test-dir build -R '^mapper001$' --output-on-failure
+```
+
+Optionally pass a game ROM/ZIP as the second argument to `bin/mapper001-tests.exe`.
+This boot smoke test runs 15,000,000 CPU cycles and checks continuing NMI entries
+and visible video. Pugsley's Scavenger Hunt (`063E5653`) reached its opening
+credits in 503 frames with 484 NMI entries after the CPU polling fix. This does
+not establish complete gameplay compatibility or change the game's rating.
+A separate 45,000,000-cycle run was visually checked at the title screen.
+Timing reference: https://www.nesdev.org/wiki/CPU_interrupts
+
+MMC1 supports power-of-two PRG sizes up to 512 KiB and CHR-ROM up to 128 KiB or
+8 KiB CHR-RAM. CHR capacities up to 8 KiB leave the extra bank lines available
+for SNROM/SOROM/SUROM/SXROM, including their CHR-ROM variants. SZROM uses CHR.4
+for its two RAM banks. NES 2.0 PRG-RAM and PRG-NVRAM declarations are stored
+separately, with a supported combined capacity of 0/8/16/32 KiB. No automatic
+battery-file persistence is implemented. Ambiguous iNES headers retain the old
+8 KiB default; specify RAM sizes explicitly for SOROM/SXROM/SZROM.
+
+Submapper 5 has fixed 32 KiB PRG and submapper 7 uses header H/V mirroring.
+Deprecated submappers 1/2/4 require matching memory sizes. Unsupported EEPROM
+submapper 6, MMC1A submapper 3 (mapper 155), unknown variants and incompatible
+memory capacities are rejected instead of approximated.
+
+The mapper payload keeps its previous length; a reserved bit records whether
+there has been a CPU write, including cycle zero. Old payloads remain readable.
+Derived PRG banking is recomputed on load. The console writes format `R2NC`,
+which adds CPU clock and data-bus state, and still reads `R2NB` using the saved
+system clock and zero for its missing bus latch, when memory capacities match.
+Old NES 2.0 states created with an incorrectly sized RAM payload are rejected.
+Older builds cannot read `R2NC`.
+Any failed console load restores its previous serialized state.
+
+`reset()` is the emulator's deterministic complete initialization. Its MMC1
+Control value `0x1E` is not a hardware power-up guarantee. A serial bit-7 reset
+preserves CHR mode and mirroring while selecting PRG mode 3. Neither reset
+clears PRG RAM. Game compatibility ratings are not inferred from these tests.
+
+# Mapper 2 regression tests
+
+Generated ROMs check all register values and PRG window boundaries for 1 through
+256 banks, iNES and NES 2.0 submappers 0/1/2, AND conflicts against the current
+switchable or fixed ROM bank, CHR-RAM, read-only CHR-ROM, fixed H/V mirroring,
+save states and invalid/truncated images. Both linear and exponent/multiplier
+NES 2.0 sizes are exercised, including 4 MiB PRG. No game ROM is required.
+
+```powershell
+cmake --build build --target mapper002-tests -j 4
+ctest --test-dir build -R '^mapper002$' --output-on-failure
+```
+
+Mapper 2 accepts power-of-two PRG sizes from 16 KiB through 4 MiB and either
+8 KiB CHR-RAM or 8 KiB CHR-ROM. NES 2.0 RAM declarations must match these
+capacities; PRG RAM, CHR NVRAM and four-screen mirroring are unsupported.
+Other mappers retain their existing eight-bit constructor limits; extended
+sizes beyond those limits are rejected rather than silently truncated.
+
+`Mapper002::reset()` selects bank zero for the complete initialization currently
+performed by `NES::reset()`. This does not model the console's electrical warm
+reset, which would require a separate system reset path. States retain the old
+Windows five-byte layout (one bank byte plus four little-endian mirroring bytes).
+Loading a truncated state, an out-of-range bank or a different hardware mirroring
+mode fails without changing the mapper. Existing game ratings are not retested
+by this synthetic suite.
+
+# Mapper 3 regression tests
+
+Generated ROMs exercise every register value at all PRG window boundaries for
+16/32 KiB PRG and 8/16/32/64/128 KiB CHR-ROM, or 8 KiB CHR-RAM. Tests cover
+iNES and NES 2.0 submappers 0/1/2, conflicts against the written PRG address,
+physical CHR bank mirroring, read-only CHR-ROM (including PPUDATA), fixed H/V
+mirroring, background/sprite reads, reset, legacy states and invalid images.
+The Namcot variant has 2 KiB volatile PRG-RAM mirrored across $6000-$7FFF;
+tests check all RAM addresses, trainer installation and state persistence.
+Console tests verify RAM/bank restore and rollback after an invalid mapper load.
+
+```powershell
+cmake --build build --target mapper003-tests -j 4
+ctest --test-dir build -R '^mapper003$' --output-on-failure
+```
+
+The default iNES/submapper 0 applies AND bus conflicts; NES 2.0 submapper 1
+disables them and submapper 2 enables them. The ordinary latch retains two bits;
+CHR capacities above 32 KiB retain four. Only physically connected bank lines
+affect reads, so legacy latch values 2/3 remain valid with smaller CHR capacities.
+CHR-RAM is supported as an 8 KiB extension with a fixed physical bank.
+Reference: https://www.nesdev.org/wiki/CNROM
+Submappers: https://www.nesdev.org/wiki/NES_2.0_submappers
+
+NES 2.0 byte 10 must declare zero RAM or exactly 2 KiB volatile PRG-RAM (5).
+Byte 11 must declare zero RAM with CHR-ROM, or exactly 8 KiB volatile CHR-RAM (7)
+without CHR-ROM. Unsupported memory sizes, submappers, NVRAM, four-screen
+mirroring, truncated data and declared Misc. ROMs are rejected. An iNES header
+with explicit PRG-RAM size is rejected because its 8 KiB units cannot describe
+the Namcot RAM: use NES 2.0. Trainers require declared PRG-RAM and are installed
+at $7000. The M50805 speech chip and Mapper 185 protection remain unsupported;
+security diode electrical effects are not modeled.
+
+States without PRG-RAM keep the old five-byte Windows layout (latch plus fixed
+32-bit little-endian mirroring). New PRG-RAM states append 2048 bytes. Invalid
+or truncated loads leave the mapper intact. States from the formerly unsupported
+PRG-RAM configuration lack that payload and are rejected. Complete emulator
+initialization selects latch zero and preserves cartridge RAM; this does not
+model the console's electrical warm reset. Synthetic tests do not retest or
+establish commercial game compatibility ratings.
+
 # Mapper 189 regression tests
 
 Checks 32 KiB PRG switching, both data nibbles, independent MMC3 CHR banking,
