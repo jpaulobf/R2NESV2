@@ -44,7 +44,7 @@ Mapper 000 (NROM)
 | Lode Runner | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Lunar Pool | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | M.U.S.C.L.E. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
-| Mach Rider | US | 000 | ⭐⭐⭐⭐ | Small Glitches visuais |
+| Mach Rider | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Magmax | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Mario Bros. | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
 | Millipide | US | 000 | ⭐⭐⭐⭐⭐ | SFI |
@@ -78,7 +78,6 @@ Mapper 000 (NROM)
 - ⭐⭐⭐ (Jogável): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
 - ⭐ (Não funciona): 0 - 0.0%
-
 
 
 -------
@@ -149,7 +148,7 @@ Mapper 001 (MMC1)
 | Dragon Warrior | US | 001 |  | ⭐⭐⭐⭐⭐ | SFI |
 | Dragon Warrior II | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Dragon Warrior III | US | 001 |  | ⭐⭐⭐⭐⭐ | SFI |
-| Dragon Warrior IV | US | 001 |  | ⭐ | Não abre |
+| Dragon Warrior IV | US | 001 |  | ⭐⭐⭐⭐⭐ | SFI |
 | Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Legend of Zelda, The | US | 001 | ⭐⭐⭐⭐⭐ | (SFI) BUT! No save functionality yet! Use Savestate. |
 | Mega Man 2 | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -183,7 +182,7 @@ Mapper 001 (MMC1)
 | Flying Warriors | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Formula One: Built to Win | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
-| Games not tested yet | --- | --- | --- | --- |
+| Outros jogos documentados (consulte a avaliação individual) | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
 | Fox's Peter Pan & The Pirates: The Revenge of Captain Hook | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
 | Frankenstein: The Monster Returns | US | 001 | ⭐⭐⭐⭐⭐ | SFI |
@@ -321,16 +320,17 @@ Mapper 001 (MMC1)
 ---
 
 ### Resumo Estatístico - Mapper 001 (MMC1)
-- **Total de Jogos Documentados:** 69
-- ⭐⭐⭐⭐⭐ (Perfeito): 45 - 65.2%
-- ⭐⭐⭐⭐ (Jogável): 4 - 5.8%
+- **Total de Jogos Documentados:** 224
+- ⭐⭐⭐⭐⭐ (Perfeito): 97 - 43.3%
+- ⭐⭐⭐⭐ (Jogável): 2 - 0.9%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 20 - 29.0%
+- ⭐ (Não funciona): 2 - 0.9%
+- Sem avaliação: 123 - 54.9%
 
 
 -------
-Mapper 002 (UNROM)
+Mapper 002 (UxROM — UNROM/UOROM)
 -------
 
 ** (não todos os jogos foram testados - WIP) **
@@ -354,7 +354,7 @@ Mapper 002 (UNROM)
 | California Raisins, The: The Grape Escape | US | 002 | - | N/A |
 | Casino Kid | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Casino Kid II | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
-| Castelian | US | 002 | ⭐ | Erro na velocidade da emulação |
+| Castelian | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Castle of Dragon | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Castlevania | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Championship Pool | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
@@ -380,7 +380,7 @@ Mapper 002 (UNROM)
 | Gun.Smoke | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | Mega Man | US | 002 | ⭐⭐⭐⭐⭐ | SFI |
 | --- | --- | --- | --- | --- |
-| Games not tested yet | --- | --- | --- | --- |
+| Jogos com avaliação registrada, sem comentários detalhados | --- | --- | --- | --- |
 | --- | --- | --- | --- | --- |
 | Hollywood Squares | US | 002 | ⭐⭐⭐⭐⭐ | - |
 | Ikari Warriors | US | 002 | ⭐⭐⭐⭐⭐ | - |
@@ -440,37 +440,35 @@ Mapper 002 (UNROM)
 ---
 
 ### Resumo Estatístico - Mapper 002 (UNROM)
-- **Total de Jogos Documentados:** 0
-- ⭐⭐⭐⭐⭐ (Perfeito): 0 - 0.0%
-- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- **Total de Jogos Documentados:** 94
+- ⭐⭐⭐⭐⭐ (Perfeito): 89 - 94.7%
+- ⭐⭐⭐⭐ (Jogável): 2 - 2.1%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 0 - 0.0%
+- ⭐ (Não funciona): 1 - 1.1%
+- Sem avaliação: 2 - 2.1%
 
 
 -------
 Mapper 003 (CNROM)
 -------
 
-** (nenhum jogo testado - WIP) **
-
-
 | Nome do Jogo | Região | Mapper | Nota | Comentários |
 | --- | --- | --- | --- | --- |
-| ASO: Armored Scrum Object | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| ASO: Armored Scrum Object | US | 003 | ⭐⭐⭐⭐⭐ | N/A |
 | Adventure Island | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
-| Adventures of Dino Riki | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Alpha Mission | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Arkanoid | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Arkista's Ring | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Dino Riki | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Alpha Mission | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Arkanoid | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Arkista's Ring | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Athletic World | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Back to the Future | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Bandai Golf: Challenge Pebble Beach | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Battle Tank, Garry Kitchen's | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Battleship | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Bubble Bath Babes | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Bump 'n' Jump | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Castlequest | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Back to the Future | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Bandai Golf: Challenge Pebble Beach | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Battle Tank, Garry Kitchen's | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Battleship | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Bubble Bath Babes | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Bump 'n' Jump | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
+| Castlequest | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Championship Bowling | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | City Connection | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Cybernoid: The Fighting Machine | US | 003 | ⭐⭐⭐⭐⭐ | - |
@@ -485,10 +483,10 @@ Mapper 003 (CNROM)
 | Ghostbusters | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Gotcha! The Sport! | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Gradius | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Gyruss | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Gyruss | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Jaws | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | John Elway's Quarterback | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Joust | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Joust | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Karate Champ | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Karate Kid, The | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | King's Knight | US | 003 | ⭐⭐⭐⭐⭐ | - |
@@ -508,7 +506,7 @@ Mapper 003 (CNROM)
 | Puzznic | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Q*bert | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Shooting Range | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Solomon's Key | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Solomon's Key | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Spy Hunter | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Stadium Events | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Star Force | US | 003 | ⭐⭐⭐⭐⭐ | - |
@@ -516,7 +514,7 @@ Mapper 003 (CNROM)
 | Star Voyager | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Super Team Games | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | T&C Surf Designs: Wood and Water Rage | US | 003 | ⭐⭐⭐⭐⭐ | - |
-| Tetris | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Tetris | US | 003 | ⭐⭐⭐⭐⭐ | SFI |
 | Tiger-Heli | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | Track & Field | US | 003 | ⭐⭐⭐⭐⭐ | - |
 | World Class Track Meet | US | 003 | ⭐⭐⭐⭐⭐ | - |
@@ -524,8 +522,8 @@ Mapper 003 (CNROM)
 ---
 
 ### Resumo Estatístico - Mapper 003 (CNROM)
-- **Total de Jogos Documentados:** 0
-- ⭐⭐⭐⭐⭐ (Perfeito): 0 - 0.0%
+- **Total de entradas documentadas:** 63
+- ⭐⭐⭐⭐⭐ (Perfeito, avaliação registrada): 63 - 100.0%
 - ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
