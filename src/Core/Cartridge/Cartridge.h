@@ -5,6 +5,7 @@
 #include "Core/Cartridge/ROM/PRGROM.h"
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -19,7 +20,8 @@ namespace R2NES::Core
 
         // Leitura/Escrita do lado da CPU
         bool cpuRead(uint16_t addr, uint8_t &data) const;
-        bool cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
+        bool cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter,
+                      std::optional<uint32_t> cpuCycleCounter = std::nullopt);
 
         // Leitura/Escrita do lado da PPU (Gráficos)
         bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
@@ -58,9 +60,11 @@ namespace R2NES::Core
         std::shared_ptr<Mapper> pMapper;
 
         MirrorMode mirror = MirrorMode::HORIZONTAL;
-        uint8_t mapperID = 0;
-        uint8_t prgBanks = 0;
-        uint8_t chrBanks = 0;
+        uint16_t mapperID = 0;
+        uint16_t prgBanks = 0;
+        uint16_t chrBanks = 0;
+        bool mapper2BusConflicts = true;
+        bool mapper3BusConflicts = true;
         bool mapper7BusConflicts = false;
         std::string romHash;
 
