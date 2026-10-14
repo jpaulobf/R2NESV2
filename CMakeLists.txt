@@ -105,3 +105,22 @@ add_custom_command(TARGET R2NESV2 POST_BUILD
     "${CMAKE_SOURCE_DIR}/resources"
     "$<TARGET_FILE_DIR:R2NESV2>/resources"
 )
+
+include(CTest)
+if(BUILD_TESTING)
+  file(GLOB MAPPER_SOURCES CONFIGURE_DEPENDS "src/Core/Cartridge/Mappers/*.cpp")
+  add_executable(mapper002-tests tests/Mapper002Tests.cpp
+    src/Core/Cartridge/Cartridge.cpp ${MAPPER_SOURCES})
+  target_include_directories(mapper002-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+  target_link_libraries(mapper002-tests PRIVATE zlibstatic)
+  add_test(NAME mapper002 COMMAND mapper002-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper002-test-roms")
+  file(GLOB_RECURSE CORE_TEST_SOURCES CONFIGURE_DEPENDS "src/Core/*.cpp")
+  add_executable(mapper003-tests tests/Mapper003Tests.cpp ${CORE_TEST_SOURCES})
+  target_include_directories(mapper003-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+  target_link_libraries(mapper003-tests PRIVATE zlibstatic)
+  add_test(NAME mapper003 COMMAND mapper003-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper003-test-roms")
+  add_executable(mapper001-tests tests/Mapper001Tests.cpp ${CORE_TEST_SOURCES})
+  target_include_directories(mapper001-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+  target_link_libraries(mapper001-tests PRIVATE zlibstatic)
+  add_test(NAME mapper001 COMMAND mapper001-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper001-test-roms")
+endif()
