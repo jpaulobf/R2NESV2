@@ -506,7 +506,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.0.0 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 1.0.2 | FPS: %.2f";
         std::string romFile = "";
 
         // Valores Default Scanlines
