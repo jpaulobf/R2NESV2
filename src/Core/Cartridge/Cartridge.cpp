@@ -20,10 +20,31 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <zlib.h>
 
 namespace R2NES::Core
 {
+    // NES 2.0: contagem linear de bancos ou tamanho em bytes 2^E * (2*M+1).
+    static bool decodeRomSize(uint8_t lsb, uint8_t msb, uint32_t unit, size_t &size)
+    {
+        uint64_t bytes = 0;
+        if (msb != 0x0F)
+            bytes = (uint64_t(msb) * 256 + lsb) * unit;
+        else
+        {
+            const uint64_t base = uint64_t(1) << (lsb >> 2);
+            const uint64_t multiplier = (lsb & 3) * 2 + 1;
+            if (base > std::numeric_limits<uint64_t>::max() / multiplier)
+                return false;
+            bytes = base * multiplier;
+        }
+        if (bytes > std::numeric_limits<size_t>::max())
+            return false;
+        size = static_cast<size_t>(bytes);
+        return true;
+    }
+
     // Função auxiliar para extrair arquivo .nes de um ZIP usando zlib
     static bool extractNESFromZIP(const std::string &zipFileName, std::vector<uint8_t> &buffer)
     {
@@ -221,7 +242,11 @@ namespace R2NES::Core
             mirror =
                 (header.mapper1 & 0x01) ? MirrorMode::VERTICAL : MirrorMode::HORIZONTAL;
 
-        mapperID = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
+        const bool isNes2Header = (header.mapper2 & 0x0C) == 0x08;
+        const uint8_t submapper = isNes2Header ? header.prg_ram_size >> 4 : 0;
+        mapperID = (header.mapper2 & 0xF0) | (header.mapper1 >> 4);
+        if (isNes2Header)
+            mapperID |= uint16_t(header.prg_ram_size & 0x0F) << 8;
 
         // This legacy SF II dump incorrectly declares mapper 187. Identify the
         // exact payload instead of changing the behavior of real mapper 187 ROMs.
@@ -234,19 +259,102 @@ namespace R2NES::Core
                       << std::endl;
         }
 
-        // iNES 1.0 armazena a PRG RAM em unidades de 8KB; zero significa 8KB.
-        // NES 2.0 codifica esse tamanho em outro campo, ainda não interpretado aqui.
-        const bool isNes2Header = (header.mapper2 & 0x0C) == 0x08;
+        // UxROM: conflitos no iNES/submapper 0 e no submapper 2; nunca no 1.
+        mapper2BusConflicts = !isNes2Header || submapper != 1;
+        mapper3BusConflicts = !isNes2Header || submapper != 1;
+        // Hayauchi Super Igo: NES 2.0 declara 2 KiB de PRG-RAM volátil.
+        const uint32_t mapper3RamSize = isNes2Header && header.tv_system2 == 5 ? 2048 : 0;
         // AxROM: iNES e submappers 0/1 não aplicam conflitos (ANROM).
         // Somente NES 2.0 submapper 2 declara conflitos AND (AMROM/AOROM).
         mapper7BusConflicts = isNes2Header && (header.prg_ram_size >> 4) == 2;
-        const uint8_t mapper1PrgRamBanks =
-            (!isNes2Header && header.prg_ram_size != 0) ? header.prg_ram_size : 1;
-
-        prgBanks = header.prg_chunks;
-        size_t prgSize = prgBanks * 16384;
-        if (offset + prgSize > buffer.size())
+        Mapper001::Configuration mmc1Config;
+        mmc1Config.submapper = submapper;
+        mmc1Config.hardwareMirror = mirror;
+        if (isNes2Header)
         {
+            const auto ramSize = [](uint8_t shift) -> uint32_t { return shift ? 64u << shift : 0; };
+            mmc1Config.prgRamSize = ramSize(header.tv_system2 & 0x0F); // Byte 10.
+            mmc1Config.prgNvRamSize = ramSize(header.tv_system2 >> 4);
+        }
+        else
+        {
+            // iNES sem tamanho explícito: mantém a suposição histórica de 8 KiB.
+            const uint32_t ram = uint32_t(header.prg_ram_size ? header.prg_ram_size : 1) * 8192;
+            mmc1Config.prgRamSize = (header.mapper1 & 2) ? 0 : ram;
+            mmc1Config.prgNvRamSize = (header.mapper1 & 2) ? ram : 0;
+        }
+
+        size_t prgSize = size_t(header.prg_chunks) * 16384;
+        size_t chrSize = size_t(header.chr_chunks) * 8192;
+        if (isNes2Header &&
+            (!decodeRomSize(header.prg_chunks, header.tv_system1 & 0x0F, 16384, prgSize) ||
+             !decodeRomSize(header.chr_chunks, header.tv_system1 >> 4, 8192, chrSize)))
+        {
+            std::cerr << "Error: NES 2.0 ROM size overflows." << std::endl;
+            return false;
+        }
+        // Os demais mappers ainda recebem contagens de oito bits nos construtores.
+        const size_t maxPrgBanks = mapperID == 2 ? 256 : 255;
+        if (prgSize == 0 || prgSize % 16384 != 0 || chrSize % 8192 != 0 ||
+            prgSize / 16384 > maxPrgBanks || chrSize / 8192 > 255)
+        {
+            std::cerr << "Error: Unsupported PRG/CHR ROM size for mapper " << mapperID << "." << std::endl;
+            return false;
+        }
+        prgBanks = static_cast<uint16_t>(prgSize / 16384);
+        chrBanks = static_cast<uint16_t>(chrSize / 8192);
+        if (mapperID == 1)
+        {
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
+            if (!Mapper001::supports(prgBanks, chrBanks, mmc1Config) ||
+                (isNes2Header && chrRam != (chrBanks == 0 ? 7 : 0)) ||
+                ((header.mapper1 & 4) && mmc1Config.prgRamSize + mmc1Config.prgNvRamSize == 0))
+            {
+                std::cerr << "Error: Unsupported MMC1 memory/submapper configuration (submapper "
+                          << unsigned(submapper) << ")." << std::endl;
+                return false;
+            }
+        }
+        if (mapperID == 2)
+        {
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]); // Byte 11 NES 2.0.
+            if ((prgBanks & (prgBanks - 1)) != 0 || chrBanks > 1 ||
+                mirror == MirrorMode::FOUR_SCREEN || (isNes2Header &&
+                (submapper > 2 || header.tv_system2 != 0 ||
+                 chrRam != (chrBanks == 0 ? 7 : 0))))
+            {
+                std::cerr << "Error: Unsupported Mapper 2 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        if (mapperID == 3)
+        {
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
+            if (!Mapper003::supports(prgBanks, chrBanks, mirror, mapper3RamSize) ||
+                (header.mapper1 & 2) || // Não há suporte a NVRAM nesta placa.
+                ((header.mapper1 & 4) && mapper3RamSize == 0) ||
+                (isNes2Header && (submapper > 2 ||
+                 (header.tv_system2 != 0 && header.tv_system2 != 5) ||
+                 chrRam != (chrBanks == 0 ? 7 : 0) ||
+                 (static_cast<uint8_t>(header.unused[3]) & 3) != 0)) ||
+                (!isNes2Header && header.prg_ram_size != 0))
+            {
+                std::cerr << "Error: Unsupported Mapper 3 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        if (offset > buffer.size())
+        {
+            std::cerr << "Error: Truncated trainer." << std::endl;
+            return false;
+        }
+        if (prgSize > buffer.size() - offset)
+        {
+            if (mapperID == 1 || mapperID == 2 || mapperID == 3 || isNes2Header)
+            {
+                std::cerr << "Error: Truncated PRG ROM." << std::endl;
+                return false;
+            }
             size_t available = (buffer.size() > offset) ? buffer.size() - offset : 0;
             size_t fitBanks = available / 16384;
             if (fitBanks == 0)
@@ -266,7 +374,6 @@ namespace R2NES::Core
         prgROM = std::make_unique<PRGROM>(std::move(prgData));
         offset += prgSize;
 
-        chrBanks = header.chr_chunks;
         if (chrBanks == 0)
         {
             std::vector<uint8_t> chrData(8192);
@@ -274,9 +381,13 @@ namespace R2NES::Core
         }
         else
         {
-            size_t chrSize = chrBanks * 8192;
-            if (offset + chrSize > buffer.size())
+            if (chrSize > buffer.size() - offset)
             {
+                if (mapperID == 1 || mapperID == 2 || mapperID == 3 || isNes2Header)
+                {
+                    std::cerr << "Error: Truncated CHR ROM." << std::endl;
+                    return false;
+                }
                 size_t available = (buffer.size() > offset) ? buffer.size() - offset : 0;
                 size_t fitBanks = available / 8192;
                 if (fitBanks == 0)
@@ -301,13 +412,23 @@ namespace R2NES::Core
             pMapper = std::make_shared<Mapper000>(prgBanks, chrBanks);
             break;
         case 1:
-            pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks, mapper1PrgRamBanks);
+            pMapper = std::make_shared<Mapper001>(prgBanks, chrBanks, mmc1Config);
+            if (header.mapper1 & 4)
+            {
+                for (uint16_t index = 0; index < 512; ++index)
+                    cpuWrite(0x7000 + index, buffer[sizeof(Header) + index], 0);
+            }
             break;
         case 2:
             pMapper = std::make_shared<Mapper002>(prgBanks, chrBanks, mirror);
             break;
         case 3:
-            pMapper = std::make_shared<Mapper003>(prgBanks, chrBanks, mirror);
+            pMapper = std::make_shared<Mapper003>(prgBanks, chrBanks, mirror, mapper3RamSize);
+            if (header.mapper1 & 4)
+            {
+                for (uint16_t index = 0; index < 512; ++index)
+                    cpuWrite(0x7000 + index, buffer[sizeof(Header) + index], 0);
+            }
             break;
         case 4:
             pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror);
@@ -370,7 +491,8 @@ namespace R2NES::Core
         return false;
     }
 
-    bool Cartridge::cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter)
+    bool Cartridge::cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter,
+                             std::optional<uint32_t> cpuCycleCounter)
     {
         uint32_t mapped_addr = 0;
         if (pMapper)
@@ -380,7 +502,7 @@ namespace R2NES::Core
             // escrito seja o AND lógico entre o valor da CPU e o valor armazenado na ROM naquele endereço.
             if (addr >= 0x8000 && addr <= 0xFFFF)
             {
-                if (mapperID == 2 || mapperID == 3 ||
+                if ((mapperID == 2 && mapper2BusConflicts) || (mapperID == 3 && mapper3BusConflicts) ||
                     (mapperID == 7 && mapper7BusConflicts) || mapperID == 66)
                 {
                     uint32_t read_mapped_addr = 0;
@@ -395,7 +517,8 @@ namespace R2NES::Core
                 }
             }
 
-            if (pMapper->cpuMapWrite(addr, mapped_addr, data, systemClockCounter))
+            const uint32_t mapperClock = mapperID == 1 && cpuCycleCounter ? *cpuCycleCounter : systemClockCounter;
+            if (pMapper->cpuMapWrite(addr, mapped_addr, data, mapperClock))
             {
                 if (mapped_addr == 0xFFFFFFFF)
                     return true; // Escrita tratada internamente pelo Mapper
