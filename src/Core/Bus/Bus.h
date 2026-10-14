@@ -96,6 +96,8 @@ namespace R2NES::Core
 
         // Contador de ciclos do sistema (clock global do emulador).
         uint32_t systemClockCounter = 0;
+        uint32_t cpuCycleCounter = 0; // Avança por ciclo físico da CPU, inclusive em overclock/DMA.
+        uint8_t cpuDataBus = 0; // Último valor conduzido no barramento; leituras abertas o preservam.
 
         // Registros para a transferência DMA (OAM DMA 0x4014).
         // `dma_transfer` indica que uma DMA está em andamento.
@@ -106,6 +108,7 @@ namespace R2NES::Core
         bool dma_dummy = true;
 
     private:
+        uint8_t readCpuDevice(uint16_t addr, bool readOnly);
         // Estado interno da Pistola Zapper (gatilho)
         bool zapperTrigger = false;
     };
