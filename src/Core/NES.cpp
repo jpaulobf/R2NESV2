@@ -1,6 +1,7 @@
 #include "Core/NES.h"
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 namespace R2NES::Core
 {
@@ -41,6 +42,8 @@ namespace R2NES::Core
         // Reinicia APU e contador de clocks do sistema
         apu.reset();
         bus.systemClockCounter = 0;
+        bus.cpuCycleCounter = 0;
+        bus.cpuDataBus = 0;
         bus.dma_page = 0;
         bus.dma_addr = 0;
         bus.dma_data = 0;
@@ -64,6 +67,7 @@ namespace R2NES::Core
         //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
         if (bus.dma_transfer)
         {
+            ++bus.cpuCycleCounter;
             // Mantém o OAM DMA contínuo. A arbitragem DMC/OAM ainda não é
             // modelada ciclo a ciclo; iniciar um DMC DMA aqui pode deslocar
             // os slots de leitura/escrita e corromper os sprites copiados.
@@ -102,6 +106,7 @@ namespace R2NES::Core
             const uint8_t cpuClocksThisStep = (cpuOverclock && honorCPUOverclock) ? 2 : 1;
             for (uint8_t i = 0; i < cpuClocksThisStep; i++)
             {
+                ++bus.cpuCycleCounter;
                 if (apu.consumeDmcDmaStallCycle())
                     continue;
 
@@ -210,11 +215,13 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E42; // "R2NB": inclui latch de I/O e lockout inicial da PPU
+        uint32_t magic = 0x52324E43; // "R2NC": inclui ciclos da CPU e seu barramento aberto.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // Salva contador de clocks do sistema
         os.write(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
+        os.write(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
+        os.write(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
 
         // Salva os estados dos subsistemas (ordem deve ser preservada ao carregar)
         cpu.saveState(os);
@@ -241,25 +248,41 @@ namespace R2NES::Core
         if (!bus.cart || !bus.cart->getMapper())
             return false;
 
-        uint32_t magic = 0;
-        is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-        if (magic != 0x52324E42) // "R2NB": inclui latch de I/O e lockout inicial da PPU
-        {
-            std::cerr << "Error: Invalid SaveState file!" << std::endl;
+        // Um erro em qualquer componente restaura o snapshot anterior do console.
+        std::stringstream previous;
+        if (!saveState(previous))
             return false;
-        }
-
-        // Lê o contador de clocks e restaura os subsistemas na mesma ordem do save
-        is.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
-
-        cpu.loadState(is);
-        ram.loadState(is);
-        ppu.loadState(is, true);
-        apu.loadState(is);
-        bus.cart->getMapper()->loadState(is);
-        bus.cart->loadState(is);
-
-        return is.good();
+        const auto restore = [&](std::istream &input) -> bool
+        {
+            uint32_t magic = 0;
+            input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
+            if (!input || (magic != 0x52324E42 && magic != 0x52324E43))
+                return false;
+            input.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
+            if (magic == 0x52324E43)
+            {
+                input.read(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
+                input.read(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
+            }
+            else
+            {
+                bus.cpuCycleCounter = bus.systemClockCounter;
+                bus.cpuDataBus = 0; // Campo ausente nos estados R2NB anteriores.
+            }
+            if (!input) return false;
+            cpu.loadState(input); if (!input) return false;
+            ram.loadState(input); if (!input) return false;
+            ppu.loadState(input, true); if (!input) return false;
+            apu.loadState(input); if (!input) return false;
+            bus.cart->getMapper()->loadState(input); if (!input) return false;
+            bus.cart->loadState(input);
+            return input.good();
+        };
+        if (restore(is))
+            return true;
+        restore(previous);
+        is.setstate(std::ios::failbit);
+        return false;
     }
 
     void NES::setTilesEnabled(bool enabled)
