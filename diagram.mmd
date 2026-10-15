@@ -1,0 +1,113 @@
+flowchart TD
+
+subgraph group_app["Desktop application"]
+  node_engine["Emulation engine<br/>[Engine.cpp]"]
+  node_window["Desktop window<br/>[Window.cpp]"]
+  node_input["Input manager<br/>[InputManager.cpp]"]
+  node_audio["Audio manager<br/>[AudioManager.cpp]"]
+  node_states["ROM and save state manager<br/>[GameStateManager.cpp]"]
+  node_rewind["Rewind history<br/>[Engine.cpp]"]
+  node_config[("Preferences and recent ROMs<br/>[ConfigManager.cpp]")]
+end
+
+subgraph group_console["NES emulation"]
+  node_nes["NES console<br/>[NES.cpp]"]
+  node_bus["System bus<br/>[Bus.cpp]"]
+  node_cpu["CPU<br/>[CPU.cpp]"]
+  node_ppu["PPU video<br/>[PPU.cpp]"]
+  node_apu["APU audio<br/>[APU.cpp]"]
+  node_ram[("System RAM<br/>[RAM.cpp]")]
+  node_vram[("Video RAM<br/>[VRAM.cpp]")]
+  node_controllers["Controllers and Zapper<br/>[Controller.h]"]
+end
+
+subgraph group_media["Cartridge support"]
+  node_cartridge["Cartridge loader<br/>[Cartridge.cpp]"]
+  node_mappers["Mapper implementations"]
+end
+
+subgraph group_inspection["Debug tools"]
+  node_debug["Debug window manager"]
+  node_viewers["Hardware viewers<br/>[OamViewer.cpp]"]
+  node_disassembler["CPU disassembler<br/>[Disassembler.cpp]"]
+end
+
+node_user(("Player"))
+node_rom["ROM or ZIP"]
+
+node_user -.->|"operates"| node_window
+node_rom -.->|"loads"| node_cartridge
+node_window -.->|"requests emulation"| node_engine
+node_engine -.->|"advances console"| node_nes
+node_engine -->|"owns"| node_window
+node_engine -->|"owns"| node_nes
+node_engine -->|"owns"| node_input
+node_engine -->|"owns"| node_audio
+node_input -.->|"sets controls"| node_nes
+node_engine -.->|"manages output"| node_audio
+node_engine -->|"owns"| node_states
+node_engine -->|"stores"| node_rewind
+node_states -.->|"loads ROMs and saves or restores state"| node_nes
+node_rewind -.->|"captures and restores snapshots"| node_nes
+node_window -.->|"persists preferences"| node_config
+node_nes -->|"owns"| node_bus
+node_nes -->|"owns"| node_cpu
+node_nes -->|"owns"| node_ppu
+node_nes -->|"owns"| node_apu
+node_nes -->|"owns"| node_ram
+node_nes -->|"owns"| node_controllers
+node_nes -.->|"loads cartridge"| node_cartridge
+node_cpu <-.->|"CPU memory access"| node_bus
+node_ppu <-.->|"PPU registers and cartridge access"| node_bus
+node_apu <-.->|"APU registers and DMC access"| node_bus
+node_bus -.->|"reads and writes"| node_ram
+node_bus -.->|"reads controls and writes strobe"| node_controllers
+node_bus -->|"holds shared ownership"| node_cartridge
+node_bus -.->|"routes cartridge access"| node_cartridge
+node_ppu -->|"owns"| node_vram
+node_cartridge -->|"owns selected mapper"| node_mappers
+node_apu -.->|"supplies emulated audio"| node_audio
+node_window -->|"owns"| node_debug
+node_debug -->|"owns viewers"| node_viewers
+node_debug -->|"owns"| node_disassembler
+node_viewers -.->|"inspects video state"| node_ppu
+
+subgraph group_legend["Legend"]
+  legend_owner["Owner"] -->|"owns / stores"| legend_owned["Component or data"]
+  legend_source["Caller / source"] -.->|"calls / access / data flow"| legend_target["Receiver"]
+end
+
+click node_engine "https://github.com/jpaulobf/r2nesv2/blob/main/src/System/Engine.cpp"
+click node_window "https://github.com/jpaulobf/r2nesv2/blob/main/src/Window/Window.cpp"
+click node_input "https://github.com/jpaulobf/r2nesv2/blob/main/src/System/InputManager.cpp"
+click node_audio "https://github.com/jpaulobf/r2nesv2/blob/main/src/System/AudioManager.cpp"
+click node_states "https://github.com/jpaulobf/r2nesv2/blob/main/src/System/GameStateManager.cpp"
+click node_rewind "https://github.com/jpaulobf/r2nesv2/blob/main/src/System/Engine.cpp"
+click node_config "https://github.com/jpaulobf/r2nesv2/blob/main/src/Util/ConfigManager.cpp"
+click node_nes "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/NES.cpp"
+click node_bus "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/Bus/Bus.cpp"
+click node_cpu "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/CPU/CPU.cpp"
+click node_ppu "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/PPU/PPU.cpp"
+click node_apu "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/APU/APU.cpp"
+click node_ram "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/Memory/RAM/RAM.cpp"
+click node_vram "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/Memory/VRAM/VRAM.cpp"
+click node_controllers "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/IO/Controller.h"
+click node_cartridge "https://github.com/jpaulobf/r2nesv2/blob/main/src/Core/Cartridge/Cartridge.cpp"
+click node_mappers "https://github.com/jpaulobf/r2nesv2/tree/main/src/Core/Cartridge/Mappers"
+click node_debug "https://github.com/jpaulobf/r2nesv2/blob/main/src/Window/DebugWindowManager.cpp"
+click node_viewers "https://github.com/jpaulobf/r2nesv2/blob/main/src/Window/OamViewer.cpp"
+click node_disassembler "https://github.com/jpaulobf/r2nesv2/blob/main/src/Window/Disassembler.cpp"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_engine,node_window,node_input,node_audio,node_states,node_rewind,node_config toneBlue
+class node_nes,node_bus,node_cpu,node_ppu,node_apu,node_ram,node_vram,node_controllers toneAmber
+class node_cartridge,node_mappers toneMint
+class node_debug,node_viewers,node_disassembler toneRose
+class node_user,node_rom toneIndigo
+class legend_owner,legend_owned,legend_source,legend_target toneNeutral
