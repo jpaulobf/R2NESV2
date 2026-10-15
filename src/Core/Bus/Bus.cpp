@@ -176,6 +176,12 @@ namespace R2NES::Core
         return false;
     }
 
+    bool Bus::ppuPeek(uint16_t addr, uint8_t &data) const
+    {
+        // O visualizador não deve acionar os latches de CHR do MMC2.
+        return cart && cart->ppuPeek(addr, data, systemClockCounter);
+    }
+
     void Bus::ppuAddressUpdated(uint16_t addr)
     {
         if (cart)
