@@ -25,6 +25,7 @@ namespace R2NES::Core
 
         // Leitura/Escrita do lado da PPU (Gráficos)
         bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
+        bool ppuPeek(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuReadSprite(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
         void ppuAddressUpdated(uint16_t addr, uint32_t systemClockCounter);
