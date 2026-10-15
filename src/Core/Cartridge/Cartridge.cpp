@@ -348,6 +348,32 @@ namespace R2NES::Core
                 return false;
             }
         }
+        if (mapperID == 7)
+        {
+            // AxROM não possui PRG-RAM, CHR-ROM, NVRAM ou RAM four-screen.
+            // No iNES, o byte 8 é ambíguo e não seleciona um submapper.
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
+            if (!Mapper007::supports(prgBanks, chrBanks, mirror) ||
+                (header.mapper1 & 6) || // Bateria e trainer exigiriam memória ausente.
+                (isNes2Header && (submapper > 2 || header.tv_system2 != 0 || chrRam != 7 ||
+                 (static_cast<uint8_t>(header.unused[3]) & 3) != 0)))
+            {
+                std::cerr << "Error: Unsupported Mapper 7 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        if (mapperID == 9)
+        {
+            // MMC2/PxROM: apenas PRG-ROM e CHR-ROM, sem RAM ou variantes declaradas.
+            if (!Mapper009::supports(prgBanks, chrBanks, mirror) || (header.mapper1 & 6) ||
+                (isNes2Header && (submapper != 0 || header.tv_system2 != 0 ||
+                 static_cast<uint8_t>(header.unused[0]) != 0 ||
+                 (static_cast<uint8_t>(header.unused[3]) & 3) != 0)))
+            {
+                std::cerr << "Error: Unsupported Mapper 9 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
         if (mapperID == 4)
         {
             // Não basta reconhecer o número do mapper: submapper, RAM e
@@ -381,7 +407,7 @@ namespace R2NES::Core
         }
         if (prgSize > buffer.size() - offset)
         {
-            if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 ||
+            if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 7 || mapperID == 9 ||
                 mapperID == 187 || mapperID == 189 || isNes2Header)
             {
                 std::cerr << "Error: Truncated PRG ROM." << std::endl;
@@ -415,7 +441,7 @@ namespace R2NES::Core
         {
             if (chrSize > buffer.size() - offset)
             {
-                if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 ||
+                if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 9 ||
                     mapperID == 187 || mapperID == 189 || isNes2Header)
                 {
                     std::cerr << "Error: Truncated CHR ROM." << std::endl;
@@ -580,6 +606,19 @@ namespace R2NES::Core
             }
         }
         return false;
+    }
+
+    bool Cartridge::ppuPeek(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const
+    {
+        uint32_t mapped_addr = 0;
+        if (!pMapper || !pMapper->ppuMapPeek(addr, mapped_addr, data, systemClockCounter))
+            return false;
+        if (mapped_addr == 0xFFFFFFFF)
+            return true;
+        if (!chrROM)
+            return false;
+        data = chrROM->read(mapped_addr);
+        return true;
     }
 
     bool Cartridge::ppuReadSprite(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const
