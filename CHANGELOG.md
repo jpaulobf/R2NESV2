@@ -4,6 +4,20 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+### Melhorado
+
+- Revisado o Mapper007 (AxROM) conforme o NesDev, com validação de memória e submappers, espelhamento físico dos bancos PRG e preservação das extensões de 16 KiB espelhados e 512 KiB.
+- Ampliados e integrados ao CTest os testes do Mapper007, cobrindo conflitos de barramento, nametables pela PPU, CHR-RAM, save states e rejeição de imagens inválidas.
+- Revisado o Mapper009 (MMC2), com validação de PRG/CHR e cabeçalhos e testes de regressão para bancos, latches, espelhamento, barramento aberto, depuração e save states.
+
+### Corrigido
+
+- Cartuchos Mapper007 com CHR-ROM, configurações de RAM não suportadas, submappers desconhecidos ou PRG truncada passam a ser rejeitados em vez de executados com memória incorreta.
+- Save states do Mapper007 são validados antes de alterar bancos ou espelhamento, preservando os cinco bytes do formato anterior e recusando estados truncados ou corrompidos.
+- Removida a PRG-RAM fictícia do Mapper009: a placa PxROM usa barramento aberto em `$6000–$7FFF`. Os estados antigos continuam sendo lidos, consumindo o espaço dessa memória sem mapeá-la na CPU.
+- Escritas nos registradores do Mapper009 passam a ser reconhecidas como atendidas; estados inválidos ou truncados são rejeitados antes de alterar o mapper.
+- O visualizador de Pattern Tables consulta o MMC2 sem disparar seus latches de CHR, evitando alterar o jogo durante a depuração.
+
 ## [1.0.5] - 2026-10-15
 
 ### Adicionado
