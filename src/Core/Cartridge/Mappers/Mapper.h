@@ -18,6 +18,11 @@ namespace R2NES::Core
 
         // Transforma o endereço virtual da PPU em um endereço físico na CHR-ROM
         virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) = 0;
+        // Consulta do visualizador. Mappers com efeitos de leitura devem sobrescrever.
+        virtual bool ppuMapPeek(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter)
+        {
+            return ppuMapRead(addr, mapped_addr, data, systemClockCounter);
+        }
         virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
         // Indica que a próxima leitura da PPU busca o padrão de um sprite.
