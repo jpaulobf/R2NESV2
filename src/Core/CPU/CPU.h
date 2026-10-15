@@ -55,6 +55,7 @@ namespace R2NES::Core
         // Sinais de interrupção externos
         // IRQ: interrupção mascarável (verifica flag I)
         void irq(); // Interrupt Request
+        void setIrqLine(bool active) { irqLine = active; }
         // NMI: interrupção não mascarável (sempre aceita)
         void nmi(); // Non-Maskable Interrupt
 
@@ -231,6 +232,7 @@ namespace R2NES::Core
         bool interruptRequested = false;
         bool pendingNmi = false;
         bool jammed = false;
+        bool irqLine = false; // Nível externo, recomputado pelo console após load/reset.
         // Ponteiro para o barramento (leitura/escrita de memória)
         Bus *bus = nullptr;
     };
