@@ -115,6 +115,7 @@ namespace R2NES::Core
                 if (startDmcDma())
                     continue;
 
+                serviceIRQ();
                 cpu.clock();
 
                 // A DMA suspende a CPU. Não consome o clock extra se esta
@@ -122,10 +123,6 @@ namespace R2NES::Core
                 if (bus.dma_transfer)
                     break;
 
-                // O clock extra pode cruzar o limite entre instruções. Verifica
-                // uma IRQ pendente antes de começar a próxima instrução.
-                if (i + 1 < cpuClocksThisStep && cpu.complete())
-                    serviceIRQ();
             }
         }
 
@@ -168,19 +165,9 @@ namespace R2NES::Core
 
     void NES::serviceIRQ()
     {
-        // A IRQ pode vir da APU ou do mapper do cartucho.
-        bool mapperIrqActive = bus.cart && bus.cart->getIrqFlag();
-        bool irqActive = apu.getIrqFlag() || mapperIrqActive;
-
-        // IRQ é reconhecida apenas quando a CPU termina a instrução atual
-        if (!bus.dma_transfer && irqActive && cpu.complete() && cpu.GetFlag(CPU::I) == 0)
-        {
-            cpu.irq();
-
-            // Limpa o flag do mapper após reconhecimento da IRQ
-            if (mapperIrqActive && bus.cart)
-                bus.cart->clearIrqFlag();
-        }
+        // A CPU faz o polling no ciclo correto da instrução. Aceitar uma IRQ
+        // não reconhece automaticamente a fonte: o software deve fazê-lo.
+        cpu.setIrqLine(apu.getIrqFlag() || (bus.cart && bus.cart->getIrqFlag()));
     }
 
     void NES::insertCartridge(const std::string &path)
