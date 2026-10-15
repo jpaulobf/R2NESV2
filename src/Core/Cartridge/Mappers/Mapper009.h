@@ -8,13 +8,16 @@ namespace R2NES::Core
     class Mapper009 : public Mapper
     {
     public:
-        Mapper009(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror);
+        Mapper009(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror);
         ~Mapper009();
+        static bool supports(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror);
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
+        bool ppuMapPeek(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+        // Inicialização completa e determinística do emulador, não reset elétrico.
         void reset() override;
 
         MirrorMode getMirrorMode() override;
@@ -42,6 +45,5 @@ namespace R2NES::Core
         MirrorMode mirrorMode = MirrorMode::HORIZONTAL;
         MirrorMode ogMirrorMode = MirrorMode::HORIZONTAL;
 
-        uint8_t vPRGRAM[8192] = {0};
     };
 }
