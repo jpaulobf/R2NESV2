@@ -119,6 +119,77 @@ initialization selects latch zero and preserves cartridge RAM; this does not
 model the console's electrical warm reset. Synthetic tests do not retest or
 establish commercial game compatibility ratings.
 
+# Mapper 4 regression tests
+
+```powershell
+cmake --build build --target mapper004-tests -j 4
+ctest --test-dir build -R '^mapper004' --output-on-failure
+```
+
+The synthetic suite checks all bank register values and PRG/CHR window boundaries,
+CHR inversion and even 2 KiB banks, ROM write protection, PRG-RAM enable/protect,
+MMC6's 1 KiB RAM mirrors and every combination of its half-chip permissions,
+fixed mirroring, four-screen memory and its state restore, trainers, reset,
+invalid configurations and atomic mapper state loading. CPU tests exercise CLI,
+SEI, PLP, RTI, branch polling (including page crossing), late IRQs and
+pending-request persistence. Console failures roll
+back the previously serialized state. Mappers 1/2/3 remain separate regressions.
+
+When present, seven local ROMs from `nestest/blarg` are registered in CTest:
+`1-clocking`, `2-details`, `3-A12_clocking`, `4-scanline_timing`, `5-MMC3`,
+`6-MMC3_alt`, and `6-MMC6`. The two variant ROMs are copied into test directories
+and given NES 2.0 headers selecting NEC/MMC6 respectively; source ROMs are intact.
+Results use the $6000 test protocol, or the final nametable text for MMC6, whose
+RAM does not occupy $6000. These tests passed; game ratings are not inferred.
+
+Mapper 4 accepts power-of-two PRG sizes from 16 to 512 KiB and CHR-ROM from 8 to
+256 KiB, or fixed-capacity 8 KiB CHR-RAM. NES 2.0 selects submappers 0 through 5:
+Sharp MMC3, MMC6, hard-wired mirroring, MC-ACC, NEC MMC3, and T9552. Unsupported
+submappers, RAM sizes, mixed volatile/nonvolatile PRG memory, CHR-NVRAM, Misc.
+ROMs and truncated images are rejected. Regular PRG-RAM/NVRAM capacities are
+0/8 KiB; MMC6 requires 1 KiB. Battery-backed memory participates in save states;
+automatic .sav file persistence is still a separate, unimplemented feature.
+Ambiguous iNES headers retain the MMC3 interpretation and historical 8 KiB RAM
+default; use NES 2.0 to identify MMC6/MC-ACC/NEC/T9552 explicitly.
+
+MMC6 uses $8000 bit 5 and the four $A001 permission bits. A disabled half reads
+zero only if the other half is readable; with neither half readable, reads are
+open bus. Disabling bit 5 clears permissions and prevents writes to $A001.
+The zero-reload IRQ distinction follows the alternate behavior exercised by
+the MMC6 and NEC tests. MC-ACC counts falling A12 edges through a divide-by-eight
+prescaler; $C001 resets that prescaler. T9552 powers on with pattern zero and
+implements all PRG/CHR scrambling patterns selected in $5000-$5FFF, using
+Mapper 4.5's file order (pattern 2 is unscrambled).
+
+The PPU exposes address changes from $2006/$2007 and separately presents the
+rendering fetch address before data consumption, including the aborted CHR
+fetch on the visible idle dot. This prevents extra inter-scanline clocks when
+background uses $1000. IRQ polling belongs to CPU instruction cycles; accepting
+an interrupt does not acknowledge the mapper. The default MMC3 A12 filter still
+requires three M2 falling edges while low, including during DMA.
+
+Default mapper payloads retain the legacy 8219-byte Windows layout with explicit
+little-endian integers and canonical boolean bytes. The newly supported MMC6,
+MC-ACC and T9552 append two, one and one variant bytes respectively. Four-screen
+adds 2048 cartridge nametable bytes while keeping the PPU's existing 2 KiB CIRAM
+state. Old four-screen states and old states for previously misidentified variants
+lack the required data and are rejected. Complete initialization preserves the
+cartridge RAM and selects deterministic banks; it is not electrical warm reset.
+The consecutive-$C001 silicon reload glitch is not modeled by this revision.
+
+Broader CPU/APU diagnostics `4-jitter`, `6-irq_flag_timing`,
+`5-branch_delays_irq`, and `2-nmi_and_brk` still fail. The same ROMs were checked
+with the pre-change CPU/NES sources: all four already failed. The first two
+report late APU frame IRQ flags; the remaining tests include behavior beyond
+this mapper revision. They are not claimed as passing by this suite.
+
+References: https://www.nesdev.org/wiki/MMC3,
+https://www.nesdev.org/wiki/MMC6,
+https://www.nesdev.org/wiki/NES_2.0_submappers,
+https://www.nesdev.org/wiki/T9552,
+https://www.nesdev.org/wiki/PPU_rendering,
+https://www.nesdev.org/wiki/CPU_interrupts
+
 # Mapper 189 regression tests
 
 Checks 32 KiB PRG switching, both data nibbles, independent MMC3 CHR banking,
