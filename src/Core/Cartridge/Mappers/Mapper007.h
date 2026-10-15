@@ -8,13 +8,16 @@ namespace R2NES::Core
     class Mapper007 : public Mapper
     {
     public:
-        Mapper007(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror);
+        Mapper007(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror);
         ~Mapper007();
+
+        static bool supports(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror);
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;
         bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
+        // Inicialização completa do emulador; não representa o reset elétrico da placa.
         void reset() override;
 
         MirrorMode getMirrorMode() override;
