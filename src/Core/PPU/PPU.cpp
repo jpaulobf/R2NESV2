@@ -357,6 +357,10 @@ namespace R2NES::Core
                 {
                     vramAddr = tempAddr;
                 }
+                // Fora do rendering, carregar v também muda os pinos de
+                // endereço: o MMC3 pode contar A12 mesmo sem ler CHR.
+                if (bus && !isRenderingActive())
+                    bus->ppuAddressUpdated(vramAddr & 0x3FFF);
             }
             break;
 
@@ -491,6 +495,10 @@ namespace R2NES::Core
         }
 
         vramAddr = (vramAddr + ((ppuCtrl & 0x04) ? 32 : 1)) & 0x7FFF;
+        // A borda pode surgir no incremento, como em $0FFF -> $1000.
+        // Notificar apenas o endereço lido/escrito perderia esse clock de IRQ.
+        if (bus)
+            bus->ppuAddressUpdated(vramAddr & 0x3FFF);
     }
 
     uint8_t PPU::ppuReadSprite(uint16_t addr) const
@@ -702,6 +710,54 @@ namespace R2NES::Core
         }
     }
 
+    void PPU::driveRenderingAddress()
+    {
+        // O endereço é apresentado antes da leitura do dado. Mantém A12
+        // nos dots 260/324, independentemente do pipeline que consome CHR.
+        if (!bus || !isRenderingActive() || (cycle & 1))
+            return;
+        if (cycle == 0)
+        {
+            // Dot ocioso das linhas visíveis: início de um fetch CHR abortado
+            // pelo fetch de nametable no dot 1. Interrompe o intervalo baixo
+            // de A12 entre linhas quando background usa a tabela $1000.
+            // O pré-render começa sem o pipeline da linha anterior.
+            if (scanline >= 0)
+                bus->ppuAddressUpdated(((ppuCtrl & 0x10) ? 0x1000 : 0) +
+                                       (uint16_t(bgNextTileId) << 4) + ((vramAddr >> 12) & 7));
+            return;
+        }
+        uint16_t address = 0x2000 | (vramAddr & 0x0FFF);
+        if ((cycle >= 0 && cycle < 256) || (cycle >= 320 && cycle < 336))
+        {
+            const unsigned phase = cycle & 7;
+            if (phase == 2)
+                address = 0x23C0 | (vramAddr & 0x0C00) | ((vramAddr >> 4) & 0x38) | ((vramAddr >> 2) & 7);
+            else if (phase == 4 || phase == 6)
+                address = ((ppuCtrl & 0x10) ? 0x1000 : 0) + (uint16_t(bgNextTileId) << 4) +
+                          ((vramAddr >> 12) & 7) + (phase == 6 ? 8 : 0);
+        }
+        else if (cycle >= 256 && cycle < 320)
+        {
+            const unsigned phase = (cycle - 256) & 7;
+            if (phase == 4 || phase == 6)
+            {
+                const auto &sprite = nextSprites[(cycle - 256) / 8];
+                const int height = (ppuCtrl & 0x20) ? 16 : 8;
+                const int row = (sprite.attributes & 0x80) ? height - 1 - sprite.row : sprite.row;
+                if (height == 16)
+                    address = ((sprite.tile & 1) ? 0x1000 : 0) +
+                              (uint16_t((sprite.tile & 0xFE) + (row >> 3)) << 4) + (row & 7);
+                else
+                    address = ((ppuCtrl & 8) ? 0x1000 : 0) + (uint16_t(sprite.tile) << 4) + row;
+                if (phase == 6) address += 8;
+            }
+        }
+        else if (cycle != 336 && cycle != 338)
+            return;
+        bus->ppuAddressUpdated(address & 0x3FFF);
+    }
+
     void PPU::clock()
     {
         clockPpuIoBusDecay();
@@ -730,6 +786,7 @@ namespace R2NES::Core
 
         // Lógica de atualização de Scroll baseada em ciclos
         bool renderingEnabled = (activeMask & 0x18) != 0;
+        driveRenderingAddress();
         const uint8_t scrollConflictAxesThisDot =
             pendingScrollConflictScanline == scanline && pendingScrollConflictCycle == cycle
                 ? pendingScrollConflictAxes
