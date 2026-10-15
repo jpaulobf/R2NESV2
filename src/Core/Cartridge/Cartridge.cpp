@@ -284,6 +284,11 @@ namespace R2NES::Core
             mmc1Config.prgNvRamSize = (header.mapper1 & 2) ? ram : 0;
         }
 
+        Mapper004::Configuration mmc3Config;
+        mmc3Config.submapper = submapper;
+        mmc3Config.prgRamSize = mmc1Config.prgRamSize;
+        mmc3Config.prgNvRamSize = mmc1Config.prgNvRamSize;
+
         size_t prgSize = size_t(header.prg_chunks) * 16384;
         size_t chrSize = size_t(header.chr_chunks) * 8192;
         if (isNes2Header &&
@@ -343,6 +348,32 @@ namespace R2NES::Core
                 return false;
             }
         }
+        if (mapperID == 4)
+        {
+            // Não basta reconhecer o número do mapper: submapper, RAM e
+            // dados adicionais do header precisam corresponder à placa emulada.
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
+            if (!Mapper004::supports(prgBanks, chrBanks, mirror, mmc3Config) ||
+                (isNes2Header && (chrRam != (chrBanks == 0 ? 7 : 0) ||
+                 (static_cast<uint8_t>(header.unused[3]) & 3) != 0)) ||
+                ((header.mapper1 & 4) && mmc3Config.prgRamSize + mmc3Config.prgNvRamSize == 0))
+            {
+                std::cerr << "Error: Unsupported Mapper 4 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        // Os derivados compartilham o construtor MMC3 validado. A placa 187
+        // acrescenta uma linha CHR; rejeite headers inválidos antes de construir.
+        if (mapperID == 187 || mapperID == 189)
+        {
+            Mapper004::Configuration derivedConfig;
+            derivedConfig.extendedChr = mapperID == 187;
+            if (!Mapper004::supports(prgBanks, chrBanks, mirror, derivedConfig))
+            {
+                std::cerr << "Error: Unsupported memory configuration for mapper " << mapperID << "." << std::endl;
+                return false;
+            }
+        }
         if (offset > buffer.size())
         {
             std::cerr << "Error: Truncated trainer." << std::endl;
@@ -350,7 +381,8 @@ namespace R2NES::Core
         }
         if (prgSize > buffer.size() - offset)
         {
-            if (mapperID == 1 || mapperID == 2 || mapperID == 3 || isNes2Header)
+            if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 ||
+                mapperID == 187 || mapperID == 189 || isNes2Header)
             {
                 std::cerr << "Error: Truncated PRG ROM." << std::endl;
                 return false;
@@ -383,7 +415,8 @@ namespace R2NES::Core
         {
             if (chrSize > buffer.size() - offset)
             {
-                if (mapperID == 1 || mapperID == 2 || mapperID == 3 || isNes2Header)
+                if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 ||
+                    mapperID == 187 || mapperID == 189 || isNes2Header)
                 {
                     std::cerr << "Error: Truncated CHR ROM." << std::endl;
                     return false;
@@ -431,7 +464,9 @@ namespace R2NES::Core
             }
             break;
         case 4:
-            pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror);
+            pMapper = std::make_shared<Mapper004>(prgBanks, chrBanks, mirror, mmc3Config);
+            if (header.mapper1 & 4)
+                std::static_pointer_cast<Mapper004>(pMapper)->loadTrainer(buffer.data() + sizeof(Header));
             break;
         case 5:
             pMapper = std::make_shared<Mapper005>(prgBanks, chrBanks);
