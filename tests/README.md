@@ -210,6 +210,77 @@ not a complete gameplay test. The SF II payload CRC `96CE586E` with an old iNES
 mapper 187 header is corrected to mapper 189 during loading; the source file is
 unchanged.
 
+# Mapper 7 regression tests
+
+```powershell
+cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
+cmake --build build --target mapper007-tests -j 4
+ctest --test-dir build -R '^mapper007$' --output-on-failure
+```
+
+Generated ROMs and direct mapper tests cover every register value at PRG window
+boundaries, power-of-two PRG capacities from 16 through 512 KiB, both linear and
+exponent/multiplier NES 2.0 sizes, ignored bits and the oversized bit-3 extension.
+iNES and NES 2.0 submappers 0/1 have no conflicts; submapper 2 ANDs the written
+value with the ROM byte at the write address in the bank selected before that
+write. Sequential conflicts use different bytes in different banks.
+
+Console tests check all 8 KiB of CHR-RAM, background/sprite reads, both CIRAM
+pages and all four single-screen nametable aliases, open bus without PRG-RAM,
+state restoration and rollback after invalid/truncated console loads.
+Mapper states retain the previous Windows five-byte layout (bank followed by
+32-bit little-endian mirroring). Invalid bank/page values and every truncated
+mapper payload length fail without modifying the mapper.
+
+Standard AxROM has up to 256 KiB PRG, fixed 8 KiB CHR-RAM and no PRG-RAM.
+16 KiB mirrored PRG is retained as a compatibility extension; 512 KiB uses bit 3.
+Non-power-of-two sizes and larger PRG, CHR-ROM, four-screen, battery and trainers
+are rejected. NES 2.0 additionally requires submapper 0/1/2, no PRG RAM/NVRAM,
+exactly 8 KiB volatile CHR-RAM and no Misc. ROMs. Legacy iNES byte 8 is ignored
+and does not create PRG-RAM or select a submapper.
+
+Complete emulator initialization selects bank zero and the lower CIRAM page,
+preserving cartridge CHR-RAM. This is not an electrical warm reset or a claim
+that hardware powers on in a guaranteed bank. No game compatibility ratings
+are inferred from the synthetic suite. See the [review in Portuguese](Mapper007Review.md).
+
+References: https://www.nesdev.org/wiki/AxROM,
+https://www.nesdev.org/wiki/NES_2.0_submappers,
+https://www.nesdev.org/wiki/NES_2.0
+
+# Mapper 9 regression tests
+
+```powershell
+cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
+cmake --build build --target mapper009-tests -j 4
+ctest --test-dir build -R '^mapper009$' --output-on-failure
+```
+
+Generated ROMs cover power-of-two PRG capacities of 32/64/128 KiB and CHR-ROM
+capacities from 8 through 128 KiB, iNES/NES 2.0 linear and exponent/multiplier
+sizes, all register values, ignored bits, physical bank mirroring and the fixed
+last three 8 KiB PRG banks. Unsupported sizes, submappers, RAM/NVRAM, four-screen,
+trainers, battery flags, Misc. ROMs and truncated images are rejected.
+Legacy iNES byte 8 is ignored; NES 2.0 requires zero PRG/CHR RAM declarations.
+
+Latch tests read every CHR address from both FD and FE initial states. The
+triggering read uses the old bank; only subsequent reads use the new one.
+The low window triggers only at $0FD8/$0FE8; the upper window uses the ranges
+$1FD8-$1FDF/$1FE8-$1FEF. Peeks and writes do not change latches. Console tests
+also check sprite reads, real versus debugger PPUDATA reads, both nametable
+mirroring modes and Pattern Table viewer isolation.
+
+PxROM has no PRG-RAM: $6000-$7FFF remains open bus. States retain the old Windows
+8207-byte mapper layout with explicit little-endian mirroring. The old 8192-byte
+phantom RAM payload is consumed and ignored; new states write zero padding.
+Register/latch/mirror values and every truncated mapper payload length are
+validated before committing. Console tests verify restoration and rollback.
+
+Complete initialization retains the existing bank-zero/FE-latch convention,
+without claiming an electrical warm reset or guaranteed hardware power-up state.
+The synthetic suite does not establish complete Punch-Out!! gameplay
+compatibility. See the [review in Portuguese](Mapper009Review.md).
+
 # Mapper 71 regression tests
 
 These tests use generated ROMs to check bank switching, address boundaries,
