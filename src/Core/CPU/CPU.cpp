@@ -361,6 +361,7 @@ namespace R2NES::Core
         interruptRequested = false;
         pendingNmi = false;
         jammed = false;
+        irqLine = false;
         fetchedCached = false;
         pageCrossed = false;
         branchTaken = false;
@@ -401,6 +402,9 @@ namespace R2NES::Core
             opcode = bus->cpuRead(pc++);
             microCycle = 1;
             cycles = lookup[opcode].cycles;
+            // Instruções de dois ciclos fazem polling de IRQ no fetch do opcode.
+            if (cycles == 2 && !isBranchInstruction() && irqLine && GetFlag(I) == 0)
+                interruptRequested = true;
             finishCycle();
             return 1;
         }
@@ -421,7 +425,18 @@ namespace R2NES::Core
         const bool nmiPoll = isBranchInstruction()
                                  ? (microCycle == 1 || (pageCrossed && cycles == 1))
                                  : cycles == 1;
-        if (pendingNmi && nmiPoll)
+        if (nmiPoll && pendingNmi)
+            interruptRequested = true;
+
+        // O nível IRQ é amostrado no penúltimo ciclo da instrução, antes
+        // de avançar a PPU para os dots seguintes. Branches fazem um polling
+        // no ciclo do deslocamento e outro ao cruzar a página.
+        const bool irqPoll = isBranchInstruction()
+                                 ? (microCycle == 1 || (pageCrossed && cycles == 1))
+                                 : cycles == 2;
+        if (irqPoll && irqLine && GetFlag(I) == 0)
+            // O pedido fica latched: desativar a fonte depois do polling
+            // não cancela a entrada de IRQ no próximo limite de instrução.
             interruptRequested = true;
 
         ++microCycle;
@@ -986,6 +1001,7 @@ namespace R2NES::Core
 
     void CPU::loadState(std::istream &is)
     {
+        irqLine = false;
         is.read(reinterpret_cast<char *>(&a), sizeof(a));
         is.read(reinterpret_cast<char *>(&x), sizeof(x));
         is.read(reinterpret_cast<char *>(&y), sizeof(y));
