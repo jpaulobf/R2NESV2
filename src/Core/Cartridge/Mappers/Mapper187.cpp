@@ -3,7 +3,9 @@
 namespace R2NES::Core
 {
     Mapper187::Mapper187(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror)
-        : Mapper004(prgBanks, chrBanks, mirror)
+        : Mapper004(prgBanks, chrBanks, mirror, [] {
+            Configuration config; config.extendedChr = true; return config;
+        }())
     {
         reset();
     }
@@ -56,7 +58,9 @@ namespace R2NES::Core
                                uint32_t systemClockCounter)
     {
         const bool mapped = Mapper004::ppuMapRead(addr, mapped_addr, data, systemClockCounter);
-        if (mapped && nCHRBanks > 32)
+        // A linha CHR extra só afeta pattern tables. Preserva o sentinela
+        // usado pela base para leituras da RAM de nametables four-screen.
+        if (mapped && addr <= 0x1FFF && nCHRBanks > 32)
             mapped_addr = (mapped_addr & 0x3FFFF) | ((addr & 0x1000) ? 0x40000 : 0);
         return mapped;
     }
@@ -65,7 +69,8 @@ namespace R2NES::Core
                                 uint32_t systemClockCounter)
     {
         const bool mapped = Mapper004::ppuMapWrite(addr, mapped_addr, data, systemClockCounter);
-        if (mapped && nCHRBanks > 32)
+        // Escritas em nametables não passam pela extensão de endereçamento CHR.
+        if (mapped && addr <= 0x1FFF && nCHRBanks > 32)
             mapped_addr = (mapped_addr & 0x3FFFF) | ((addr & 0x1000) ? 0x40000 : 0);
         return mapped;
     }
