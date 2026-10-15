@@ -61,6 +61,7 @@ namespace R2NES::Core
         // Leitura/escrita pela PPU (área de VRAM/cartucho).
         // Retornam true se o cartucho tratou a operação.
         bool ppuRead(uint16_t addr, uint8_t &data) const;
+        bool ppuPeek(uint16_t addr, uint8_t &data) const;
         bool ppuReadSprite(uint16_t addr, uint8_t &data) const;
         bool ppuWrite(uint16_t addr, uint8_t data);
 
