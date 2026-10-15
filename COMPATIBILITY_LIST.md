@@ -530,6 +530,229 @@ Mapper 003 (CNROM)
 - ⭐ (Não funciona): 0 - 0.0%
 
 
+
+-------
+Mapper 004 (MMC3)
+-------
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| 8 Eyes | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Adventure Island II | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Adventure Island III | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Lolo 2 | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Adventures of Rocky and Bullwinkle and Friends, The | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Alien³ | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Astyanax | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Bad Dudes | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Base Wars: Cyber Stadium Series | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Baseball Stars II | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Bases Loaded 3, Ryne Sandberg Plays | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Bases Loaded 4 | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Batman | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Batman Returns | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Bill Elliott's NASCAR Challenge | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Blue Marlin, The | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Bo Jackson Baseball | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Bonk's Adventure | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Bram Stoker's Dracula | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Bubble Bobble: Part 2 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Bucky O'Hare | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Bugs Bunny Birthday Blowout, The | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Burai Fighter | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Capcom's Gold Medal Challenge '92 | US | 004 | ⭐⭐⭐⭐⭐ | - |revezados. |
+| Captain America and the Avengers | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Captain Planet and the Planeteers | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Cliffhanger | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Code Name: Viper | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Conquest of the Crystal Palace | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Contra Force | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Cowboy Kid | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Crash 'n The Boys: Street Challenge | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Crystalis | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Cyberball | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Days of Thunder | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Defenders of Dynatron City | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Dirty Harry | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Double Dragon II: The Revenge | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Double Dragon III: The Sacred Stones | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Dragon Spirit: The New Legend | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| DragonStrike, Advanced Dungeons & Dragons | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Déjà Vu | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| F-117a Stealth Fighter | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| F-15 Strike Eagle | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Felix the Cat | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Fire'n Ice | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Flintstones, The: The Rescue of Dino & Hoppy | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Flintstones, The: The Surprise at Dinosaur Peak! | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| G.I. Joe | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| G.I. Joe: The Atlantis Factor | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Galaxy 5000: Racing in the 51st Century | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Gargoyle's Quest II | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Gauntlet | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Gauntlet II | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| George Foreman's KO Boxing | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Golgo 13: The Mafat Conspiracy | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Gremlins 2: The New Batch | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Gun Nac | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Heavy Barrel | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Hit the Ice | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Home Alone | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Home Alone 2: Lost in New York | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Hunt for Red October, The | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Image Fight | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Immortal, Will Harvey Presents The | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Incredible Crash Dummies, The | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Indiana Jones and the Temple of Doom | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Infiltrator | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Isolated Warrior | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Jackie Chan's Action Kung Fu | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| James Bond Jr. | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Jetsons, The: Cogswell's Caper | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Joe & Mac | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Jungle Book, Disney's The | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Jurassic Park | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Kabuki: Quantum Fighter | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Kick Master | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Kickle Cubicle | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Kid Klown in Night Mayor World | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| King's Quest V | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Kirby's Adventure | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Kiwi Kraze: A Bird-Brained Adventure! | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Krion Conquest, The | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Krusty's Fun House | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Last Action Hero | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Last Ninja, The | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Legacy of the Wizard | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Legends of the Diamond: The Baseball Championship Game | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Little Nemo: The Dream Master | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Little Ninja Brothers | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Little Samson | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Lone Ranger, The | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Low G Man: The Low Gravity Man | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| M.C. Kids | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mad Max | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Magician | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Mappy-Land | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Mario Is Missing! | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mario's Time Machine | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mega Man 3 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mega Man 4 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mega Man 5 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mega Man 6 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mendel Palace | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Metal Storm | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Michael Andretti's World GP | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Mickey's Adventure in Numberland | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mickey's Safari in Letterland | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Might and Magic: Secret of the Inner Sanctum | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Mighty Final Fight | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Mission: Impossible | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Monster In My Pocket | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Nightshade | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Ninja Crusaders | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Ninja Gaiden II: The Dark Sword of Chaos | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Ninja Gaiden III: The Ancient Ship of Doom | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Nintendo World Cup | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Noah's Ark | PAL | 004 | ⭐⭐⭐⭐⭐ | - |
+| North & South | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Panic Restaurant | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Pool of Radiance, Advanced Dungeons & Dragons | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Power Blade | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Power Blade 2 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Power Punch II | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Punisher, The | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Rad Racer II | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Rampage | US | 000 | ⭐⭐⭐⭐⭐ | - |
+| Rampart | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Ren & Stimpy Show, The: Buckeroo$! | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| River City Ransom | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| RoboCop | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Rock'n' Ball | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Rockin' Kats | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Roger Clemens' MVP Baseball | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Rollerblade Racer | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Rollergames | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Roundball: 2-on-2 Challenge | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Secret Ties | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Shadow of the Ninja | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Shadowgate | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Shatterhand | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Silver Surfer | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Simpsons, The: Bart vs. The World | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Simpsons, The: Bartman Meets Radioactive Man | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Smash T.V. | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Spider-Man: Return of the Sinister Six | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Squashed | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Stanley: The Search for Dr. Livingston | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Star Trek: 25th Anniversary | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Star Wars | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Star Wars: The Empire Strikes Back | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| StarTropics | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Street Fighter 2010: The Final Fight | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Super C | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Super Mario Bros. 2 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Super Mario Bros. 3 | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Super Spike V'Ball | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Super Spy Hunter | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Superman | US | 002 | ⭐⭐⭐⭐⭐ | - |
+| Sword Master | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| T&C Surf Designs 2: Thrilla's Surfari | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| T2: Terminator 2: Judgment Day | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Tecmo NBA Basketball | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Tecmo Super Bowl | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Teenage Mutant Ninja Turtles II: The Arcade Game | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Teenage Mutant Ninja Turtles III: The Manhattan Project | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Teenage Mutant Ninja Turtles: Tournament Fighters | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Terminator, The | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Tetris 2 | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Thomas The Tank Engine & Friends | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Tiny Toon Adventures | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Tiny Toon Adventures 2: Trouble in Wackyland | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Tiny Toon Adventures: Cartoon Workshop | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| To The Earth | US | 000 | ⭐⭐⭐⭐⭐ | - |
+| Toki | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Tom & Jerry | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Top Gun: The Second Mission | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Totally Rad | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Toxic Crusaders | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Twin Cobra | US | 003 | ⭐⭐⭐⭐⭐ | - |
+| Ultimate Air Combat | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Ultimate Basketball | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Uninvited | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Vice: Project Doom | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| WCW World Championship Wrestling | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| WURM: Journey to the Center of the Earth | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| WWF King of the Ring | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| WWF WrestleMania: Steel Cage Challenge | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Wacky Races | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Wario's Woods | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Wayne's World | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Werewolf: The Last Warrior | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Where in Time is Carmen Sandiego? | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Where's Waldo? | US | 000 | ⭐⭐⭐⭐⭐ | - |
+| Whomp 'Em | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Widget | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Wizardry: Knight of Diamonds | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Wolverine | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| World Champ | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Yoshi's Cookie | US | 001 | ⭐⭐⭐⭐⭐ | - |
+| Young Indiana Jones Chronicles, The | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Zen: Intergalactic Ninja | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Zoda's Revenge: StarTropics II | US | 004 | ⭐⭐⭐⭐⭐ | - |
+| Zombie Nation | US | 004 | ⭐⭐⭐⭐⭐ | - |
+
+---
+
+### Resumo Estatístico - Mapper 004 (MMC3)
+- **Total de entradas documentadas:** 204
+- ⭐⭐⭐⭐⭐ (Perfeito, avaliação registrada): 0 - 0.0%
+- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 0 - 0.0%
+
+
 -------
 Mapper 009 (NES-PT)
 -------
