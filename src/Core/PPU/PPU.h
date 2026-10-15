@@ -184,6 +184,7 @@ namespace R2NES::Core
         void incrementDataAddress();
         bool isRenderingOamAccess() const;
         bool isRenderingActive() const;
+        void driveRenderingAddress();
 
         // Background Latches
         uint8_t bgNextTileId = 0x00;
