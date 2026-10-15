@@ -4,35 +4,75 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-10-15
+
 ### Adicionado
 
 - Suporte ao Mapper189, com seleção independente de bancos PRG de 32 KiB e lógica de CHR, espelhamento e IRQ do MMC3, incluindo persistência do banco PRG em save states.
-- Suporte ao Mapper071, incluindo espelhamento BF9097 de *Fire Hawk*, submapper 1 do NES 2.0 e detecção para cabeçalhos iNES antigos.
-- Testes de regressão para os Mappers007, 071 e 189, sprite overflow da PPU, espera por eventos SDL e supressão da saída de áudio da APU. O teste do Mapper189 também permite verificar a inicialização de uma ROM ou ZIP informado pelo usuário.
+- Suporte às variantes MMC6, espelhamento fixo, MC-ACC, NEC MMC3 e T9552 do Mapper004, selecionadas pelos submappers do NES 2.0, incluindo permissões de RAM específicas do MMC6 e memória adicional para espelhamento four-screen.
+- Testes de regressão para os Mappers001, 002, 003, 004 e 189, com integração ao CTest e verificações com ROMs de teste de IRQ do MMC3. O teste do Mapper189 também permite verificar a inicialização de uma ROM ou ZIP informado pelo usuário.
 
 ### Melhorado
 
-- A execução da CPU passou da granularidade por instrução para ciclo a ciclo, distribuindo os acessos ao barramento pelos ciclos das instruções e avançando em sincronização com a PPU.
+- Ampliado o suporte do Mapper001 às configurações de bancos e RAM das placas SNROM, SOROM, SUROM, SXROM e SZROM, além das variantes de PRG fixo e espelhamento pelo cabeçalho.
+- Revisados os limites, o espelhamento físico de bancos e a seleção de CHR-ROM/CHR-RAM nos Mappers002 e 003, incluindo a RAM PRG de 2 KiB espelhada das placas Namcot no Mapper003.
+- Reforçada a validação de cabeçalhos e tamanhos de memória dos Mappers001 a 004, com rejeição de configurações não suportadas e tratamento de trainers nas configurações compatíveis.
 - Durante fast-forward, a APU deixa de misturar, filtrar e armazenar amostras de áudio, mantendo a execução dos canais, do sequenciador e do DMC.
 - O loop principal usa espera por eventos entre os próximos quadros quando não está limitado pelo VSync, evitando consultas contínuas sem trabalho pendente. Os lotes de fast-forward retornam regularmente ao processamento de eventos.
 - A captura de estados de rewind ocorre somente quando o recurso está habilitado; o histórico também respeita reduções de capacidade ao mudar a precisão.
-- Atualizado o README com os recursos recentes, observações de compatibilidade e instruções de acesso aos testes. Padronizados os comentários dos Mappers187 e 189 em Português-BR.
+- Atualizados o README, a lista de compatibilidade e a documentação dos testes com os recursos recentes, resultados observados e limitações conhecidas. Adicionados comentários em Português-BR nas alterações relevantes dos mappers e do núcleo.
 
 ### Corrigido
 
 - Corrigida a tela preta na inicialização de *Street Fighter II: The World Warrior* com CRC32 `96CE586E`: esse dump iNES declara Mapper187 incorretamente e agora é carregado como Mapper189, sem alterar a ROM ou ZIP. A verificação de inicialização avançou 201 quadros com saída de vídeo; partidas completas ainda não foram validadas.
-- No Mapper007, conflitos de barramento são aplicados apenas ao submapper 2 do NES 2.0; cabeçalhos iNES antigos e submappers 0/1 usam seleção de bancos sem conflitos.
+- Corrigidas a amostragem de IRQ e a captura de NMI na CPU, incluindo os efeitos de CLI, SEI, PLP, RTI e desvios. A linha de IRQ permanece sob controle da fonte que a gerou.
+- Implementado o latch do barramento de dados da CPU para leituras de barramento aberto, incluindo RAM ausente ou desabilitada do cartucho; leituras de depuração não provocam os efeitos colaterais dos acessos normais.
+- No Mapper001, o filtro de escritas consecutivas usa o contador de ciclos da CPU; o reset do registrador serial preserva os bits de espelhamento e modo de CHR.
+- Corrigidos os conflitos de barramento dos Mappers002 e 003 conforme o submapper, a proteção contra escrita em CHR-ROM e a seleção de bancos conforme a memória disponível.
+- No Mapper004, corrigidos os modos de bancos PRG/CHR, as permissões de RAM, o espelhamento e a recarga, habilitação e reconhecimento de IRQ, respeitando as diferenças entre as variantes.
+- Ajustada a apresentação dos endereços da PPU ao mapper durante a renderização e os acessos a PPUADDR/PPUDATA, corrigindo a detecção e filtragem de A12 e clocks extras de IRQ do MMC3 entre linhas.
+- Corrigido o tratamento da linha adicional de CHR do Mapper187 para preservar os acessos de nametable e o espelhamento four-screen compartilhados com a base MMC3.
+- Reforçada a validação de save states dos Mappers001 a 004 e a restauração do console em caso de falha, evitando deixar componentes parcialmente carregados.
 - Com Unlimited Sprites habilitado, o bit de sprite overflow continua sendo sinalizado ao encontrar o nono sprite, permitindo que jogos como *Bee 52* detectem essa condição. O comportamento não reproduz integralmente o bug de overflow do hardware.
-- Fast-forward suspende o VSync do renderer temporariamente e restaura o comportamento configurado ao soltar o atalho, preservando a preferência do menu.
 - Os pulsos dos botões turbo usam um contador contínuo de quadros emulados, independente do contador de FPS, inclusive durante fast-forward.
 - Pausas, carregamentos e resets limpam o áudio pendente e reiniciam os acumuladores de tempo, evitando reproduzir áudio antigo ou compensar o tempo gasto em pausas e diálogos.
 - Carregar uma ROM ou save state, resetar ou descarregar o cartucho invalida o histórico anterior de rewind; desabilitar o recurso também encerra o retrocesso e limpa os estados capturados.
+
+### Compatibilidade e limitações
+
+- Os novos save states usam o formato `R2NC`, que inclui o contador de ciclos e o barramento de dados da CPU. A leitura de `R2NB` continua disponível, mas versões anteriores do emulador não leem `R2NC`.
+- Estados antigos do MMC3 padrão mantêm compatibilidade; estados de variantes e de cartuchos four-screen precisam conter os campos adicionais exigidos pela configuração. A memória de bateria é incluída nos save states, mas ainda não há persistência automática em arquivos `.sav`.
+- O glitch de recarga causado por escritas consecutivas em `$C001` no MMC3 ainda não é reproduzido. Os diagnósticos gerais de CPU/APU `4-jitter`, `6-irq_flag_timing`, `5-branch_delays_irq` e `2-nmi_and_brk` continuam apresentando falhas, também observadas na revisão anterior às correções do Mapper004. Detalhes em [tests/README.md](tests/README.md).
+
+## [1.0.1] - 2026-10-12
+
+### Adicionado
+
+- Suporte ao Mapper071, incluindo espelhamento BF9097 de *Fire Hawk*, submapper 1 do NES 2.0 e detecção para cabeçalhos iNES antigos.
+- Testes de regressão para os Mappers007 e 071, sprite overflow da PPU, espera por eventos SDL e supressão da saída de áudio da APU.
+
+### Corrigido
+
+- No Mapper007, conflitos de barramento são aplicados apenas ao submapper 2 do NES 2.0; cabeçalhos iNES antigos e submappers 0/1 usam seleção de bancos sem conflitos.
+- Fast-forward suspende o VSync do renderer temporariamente e restaura o comportamento configurado ao soltar o atalho, preservando a preferência do menu.
 - No modo Step-by-Step, a execução agora aguarda o fim do OAM DMA iniciado pela instrução antes de pausar no próximo limite de instrução.
 - Implementado o latch de I/O da PPU, com decaimento aproximado por bit, para leituras de registradores write-only, bits baixos de PPUSTATUS e bits altos de leituras de paleta via PPUDATA.
 - Modelado o bloqueio de escritas em PPUCTRL, PPUMASK, PPUSCROLL e PPUADDR durante a inicialização/reset da PPU; o contador é preservado em save states, cuja versão foi atualizada.
 - Ajustado o timing do Sprite 0 Hit para sinalizar o flag de status um dot após a sobreposição de pixels opacos.
 - Modelado o atraso de três dots dos bits de habilitação de rendering do PPUMASK, relevante para o alinhamento de scroll em *Battletoads* e *Battletoads & Double Dragon*.
 - Removido o hack de Sprite 0 Hit de *Battletoads & Double Dragon* após aparentar estabilidade com o atraso de 3 dots; mantido temporariamente o fallback de *Battletoads*. O estado do hit pendente é preservado em save states.
+
+## [1.0.0] - 2026-10-06
+
+### Melhorado
+
+- A execução da CPU passou da granularidade por instrução para ciclo a ciclo, distribuindo os acessos ao barramento pelos ciclos das instruções e avançando em sincronização com a PPU.
+
+### Compatibilidade
+
+- Adicionado workaround específico de Sprite 0 Hit para *Battletoads (USA)*, CRC32 `279710DC`, condicionado ao loop de espera identificado na ROM.
+- Adicionado workaround específico de Sprite 0 Hit para *Battletoads & Double Dragon*, CRC32 `CEB65B06`, incluindo os loops de espera observados em `$8190` e `$8180`.
+- Os workarounds são limitados às ROMs identificadas pelos hashes e não representam uma correção geral da sincronização CPU/PPU.
 
 ## [0.9.6] - 2026-09-27
 - Refatorada a classe Window, reduzindo a complexidade e separando algumas responsabilidades (WIP)
