@@ -563,8 +563,8 @@ namespace R2NES::Core
 
                     if (bus)
                     {
-                        bus->ppuRead(offset + row, tileLSB);
-                        bus->ppuRead(offset + row + 8, tileMSB);
+                        bus->ppuPeek(offset + row, tileLSB);
+                        bus->ppuPeek(offset + row + 8, tileMSB);
                     }
 
                     for (uint16_t col = 0; col < 8; col++)
