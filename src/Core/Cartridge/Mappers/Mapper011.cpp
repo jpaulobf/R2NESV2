@@ -1,10 +1,22 @@
 #include "Core/Cartridge/Mappers/Mapper011.h"
+#include <stdexcept>
 
 namespace R2NES::Core
 {
-    Mapper011::Mapper011(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror) 
-        : Mapper(prgBanks, chrBanks), mirrorMode(mirror) 
+    bool Mapper011::supports(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror)
     {
+        // Quatro bancos PRG de 32 KiB e dezesseis bancos CHR de 8 KiB.
+        // Mantém as extensões anteriores: PRG de 16 KiB espelhada e CHR-RAM fixa.
+        return prgBanks >= 1 && prgBanks <= 8 && (prgBanks & (prgBanks - 1)) == 0 &&
+               chrBanks <= 16 && (chrBanks == 0 || (chrBanks & (chrBanks - 1)) == 0) &&
+               (mirror == MirrorMode::HORIZONTAL || mirror == MirrorMode::VERTICAL);
+    }
+
+    Mapper011::Mapper011(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror)
+        : Mapper(prgBanks, chrBanks), mirrorMode(mirror)
+    {
+        if (!supports(prgBanks, chrBanks, mirror))
+            throw std::invalid_argument("Unsupported Mapper 11 memory configuration");
         reset();
     }
 
@@ -14,11 +26,10 @@ namespace R2NES::Core
     {
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
-            // Mapper 11 maps 32KB PRG-ROM banks.
-            // nPRGBanks is in 16KB units, so total PRG size is nPRGBanks * 16384.
-            uint32_t offset = addr & 0x7FFF;
-            uint32_t totalSize = static_cast<uint32_t>(nPRGBanks) * 16384;
-            mapped_addr = (static_cast<uint32_t>(nPRGBankSelect) * 0x8000 + offset) % totalSize;
+            // Linhas de endereço ausentes espelham a ROM física, inclusive
+            // a extensão de 16 KiB nas duas metades da janela de 32 KiB.
+            const uint32_t totalSize = static_cast<uint32_t>(nPRGBanks) * 16384;
+            mapped_addr = (static_cast<uint32_t>(nPRGBankSelect) * 0x8000 + (addr & 0x7FFF)) & (totalSize - 1);
             return true;
         }
         return false;
@@ -28,22 +39,13 @@ namespace R2NES::Core
     {
         if (addr >= 0x8000 && addr <= 0xFFFF)
         {
-            // Data format: CCCC LLPP
-            // Bits 0-1: 32KB PRG bank select
-            // Bits 4-7: 8KB CHR bank select
-
-            // nPRGBanks is in 16KB chunks. We have 32KB banks, so nPRGBanks/2 is the number of 32KB banks.
-            uint8_t nPRG32kChunks = nPRGBanks / 2;
-            if (nPRG32kChunks > 0)
-                nPRGBankSelect = (data & 0x03) % nPRG32kChunks;
-            else
-                nPRGBankSelect = 0;
-
-            if (nCHRBanks > 0)
-                nCHRBankSelect = ((data >> 4) & 0x0F) % nCHRBanks;
-            else
-                nCHRBankSelect = 0;
-
+            // CCCC LLPP: PP seleciona PRG, CCCC seleciona CHR. LL controla
+            // o circuito de bloqueio CIC, que não precisa ser emulado aqui.
+            // Quando a placa possui conflitos, o cartucho aplica o AND antes daqui.
+            const uint8_t prgMask = nPRGBanks >= 2 ? nPRGBanks / 2 - 1 : 0;
+            nPRGBankSelect = data & prgMask;
+            nCHRBankSelect = nCHRBanks ? (data >> 4) & (nCHRBanks - 1) : 0;
+            mapped_addr = 0xFFFFFFFF; // Registrador atendido; nunca grava PRG-ROM.
             return true;
         }
         return false;
@@ -60,9 +62,7 @@ namespace R2NES::Core
                 return true;
             }
 
-            uint32_t offset = addr & 0x1FFF;
-            uint32_t totalSize = static_cast<uint32_t>(nCHRBanks) * 8192;
-            mapped_addr = (static_cast<uint32_t>(nCHRBankSelect) * 0x2000 + offset) % totalSize;
+            mapped_addr = static_cast<uint32_t>(nCHRBankSelect) * 0x2000 + addr;
             return true;
         }
         return false;
@@ -98,7 +98,18 @@ namespace R2NES::Core
 
     void Mapper011::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        is.read(reinterpret_cast<char *>(&nCHRBankSelect), sizeof(nCHRBankSelect));
+        uint8_t prg = 0, chr = 0;
+        is.read(reinterpret_cast<char *>(&prg), sizeof(prg));
+        is.read(reinterpret_cast<char *>(&chr), sizeof(chr));
+        const unsigned prgCount = nPRGBanks >= 2 ? nPRGBanks / 2 : 1;
+        const unsigned chrCount = nCHRBanks ? nCHRBanks : 1;
+        if (!is || prg >= prgCount || chr >= chrCount)
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        // Conserva os dois bytes históricos e só aplica um estado completo válido.
+        nPRGBankSelect = prg;
+        nCHRBankSelect = chr;
     }
 }
