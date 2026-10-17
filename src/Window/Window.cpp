@@ -1131,7 +1131,7 @@ namespace R2NES::Core
         ofn.hwndOwner = NULL;
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "NES ROMs (*.nes, *.zip)\0*.nes;*.zip\0All Files (*.*)\0*.*\0";
+        ofn.lpstrFilter = "NES ROMs (*.nes, *.unf, *.unif, *.zip)\0*.nes;*.unf;*.unif;*.zip\0All Files (*.*)\0*.*\0";
         ofn.nFilterIndex = 1;
         ofn.lpstrFileTitle = NULL;
         ofn.nMaxFileTitle = 0;
@@ -1232,7 +1232,7 @@ namespace R2NES::Core
                 std::string extension = path.extension().string();
                 std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character)
                                { return static_cast<char>(std::tolower(character)); });
-                if ((extension == ".nes" || extension == ".zip") && ImGui::Selectable(name.c_str()))
+                if ((extension == ".nes" || extension == ".unf" || extension == ".unif" || extension == ".zip") && ImGui::Selectable(name.c_str()))
                 {
                     selectedPath = path.string();
                     configManager.addRomToList(selectedPath);
@@ -1481,7 +1481,7 @@ namespace R2NES::Core
 
             ImGui::EndMainMenuBar();
         }
-        
+
         renderFileDialog();
         updateMenuPause(ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId));
     }
