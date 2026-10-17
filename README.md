@@ -10,7 +10,7 @@ R2NES V2 is a Nintendo Entertainment System (NES) emulator written in C++17. It 
 
 The project is actively developed. PPU timing, mapper behavior, and compatibility are still being improved; support for a mapper does not guarantee that every game using it will work correctly.
 
-No ROMs are included. Load your own legally obtained `.nes` image or a `.zip` archive containing a `.nes` image.
+No ROMs are included. Load your own legally obtained `.nes`, `.unf`, or `.unif` image, or a `.zip` archive containing one. UNIF support currently covers the boards listed below.
 
 Prebuilt packages are published on the [GitHub Releases page](https://github.com/jpaulobf/R2NESV2/releases). You can also build the project from source using the instructions below.
 
@@ -19,8 +19,8 @@ Prebuilt packages are published on the [GitHub Releases page](https://github.com
 - **CPU:** Emulation of the NES Ricoh 2A03 CPU, with bus accesses distributed across instruction cycles and synchronized with the PPU.
 - **PPU:** Background and sprite rendering, scrolling, sprite priority, and Sprite 0 Hit. Timing behavior is under active development and is not fully cycle-accurate.
 - **APU:** Pulse 1, Pulse 2, Triangle, Noise, and DMC audio channels, with per-channel controls.
-- **Mappers:** Implementations are present for iNES mapper IDs 0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 90, 187, and 189. Mapper 71 includes BF9097 (Fire Hawk) mirroring, with NES 2.0 submapper 1 support and legacy iNES detection. Mapper 189 combines independent 32 KiB PRG banking with MMC3 CHR banking, mirroring, and IRQs. Accuracy and game compatibility vary; see the [compatibility notes](COMPATIBILITY_LIST.md).
-- **ROM loading:** `.nes` files and `.zip` archives containing a `.nes` file.
+- **Mappers:** Implementations are present for iNES mapper IDs 0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 79, 90, 147, 150, 187, and 189. Mapper 71 includes BF9097 (Fire Hawk) mirroring, with NES 2.0 submapper 1 support and legacy iNES detection. Mappers 79, 147, and 150 add support for the Sachen boards described below; mapper 147 currently implements the 72-pin latch variant. Mapper 189 combines independent 32 KiB PRG banking with MMC3 CHR banking, mirroring, and IRQs. Accuracy and game compatibility vary; see the [compatibility notes](COMPATIBILITY_LIST.md).
+- **ROM loading:** iNES/NES 2.0 images and supported UNIF boards, directly or inside ZIP archives. UNIF content is recognized even when its file is named `.nes`.
 - **Save states:** Three selectable slots, stored under `savestates/` and named for the loaded ROM.
 - **Rewind:** Optional rewind with selectable precision. Snapshots are captured only while rewind is enabled; loading a ROM or save state, resetting, or unloading clears the previous rewind history.
 - **Fast forward:** Temporarily suspends renderer VSync while preserving the menu preference. Audio output is suppressed while the APU channels, sequencer, and DMC continue to run. Turbo buttons follow emulated frames, including during fast forward.
@@ -41,6 +41,25 @@ AxROM (mapper 7) applies bus conflicts only when NES 2.0 submapper 2 explicitly 
 The legacy iNES dump of *Street Fighter II: The World Warrior* with payload CRC32 `96CE586E` incorrectly declares mapper 187. The loader recognizes this specific dump and selects mapper 189 without modifying the ROM or ZIP. Other mapper 187 payloads retain their declared mapper. Boot testing confirmed 201 frames with visible video output; full gameplay compatibility remains unverified.
 
 The [compatibility list](COMPATIBILITY_LIST.md) records game observations and is maintained as testing progresses. It is not a claim of complete compatibility or hardware accuracy.
+
+### Sachen boards and UNIF
+
+The following boards are supported through iNES/NES 2.0 mapper IDs or their UNIF `MAPR` identifiers:
+
+| Mapper | Board / implementation | PRG-ROM | CHR-ROM | Example releases |
+| --- | --- | --- | --- | --- |
+| **3** | `CNROM` | 16 or 32 KiB | 8–128 KiB | *75 Bingo (Sachen-English)* |
+| **79** | NINA-03/06 / Sachen `SA-016-1M` | 32 or 64 KiB | 8–64 KiB | *Galactic Crusader (Sachen)*; *Master Chu & The Drunkard Hu (Sachen)* |
+| **147** | `TC-U01-1.5M`, 72-pin latch | 32 or 64 KiB | 8–128 KiB | *Challenge of the Dragon (Sachen)* |
+| **150** | `Sachen-74LS374N` / SA-015 | 32, 64, or 128 KiB | 8–64 KiB | *Auto-Upturn*; *2-in-1 Cosmo Cop + Cyber Monster*; *2-in-1 Tough Cop + Super Tough Cop* |
+
+The Sachen mappers use 32 KiB PRG and 8 KiB CHR windows, read-only CHR-ROM, and save states, without PRG-RAM or mapper IRQs. Mappers 79/147 have fixed H/V mirroring; mapper 150 controls H/V, single-screen and L-shaped nametable arrangements. Mapper 79 uses conflict-free bank switching; mapper 147 applies AND bus conflicts when its latch is accessed through the PRG-ROM mirror. CNROM retains fixed PRG mapping and AND bus conflicts.
+
+Some Sachen dumps are UNIF images with a `.nes` filename. Their contents and board identifier determine how they load; no header editing or archive conversion is needed. Supported UNIF board names are `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`; `NES-`, `HVC-`, and `UNL-` prefixes are recognized. Other UNIF boards are not yet supported. `MIRR=5` is accepted for mapper 150 because its registers control mirroring; fixed-mirroring boards still require H/V. The loader normalizes supported images in memory and leaves the original files intact.
+
+The mapper 147 JV001 variant used by the original 60-pin release, including its 128 KiB PRG configuration and arithmetic/protection circuit, is not implemented. The Sachen and Color Dreams releases of similarly named games use different hardware and should not all be assigned to mapper 11.
+
+Automated boot checks of the seven archives above reached 201 frames each with visible video and successful save-state restoration. Mapper 150 currently implements the solder-pad setting with CPU D2 connected; its alternate Vcc pad setting and mapper 243 are not implemented. Full gameplay coverage depends on manual testing. See the [Sachen and UNIF test documentation](tests/README.md#sachen-and-unif) for details and commands.
 
 ## Build from source
 
@@ -71,12 +90,6 @@ cmake --build build --config Release --parallel
 ```
 
 The executable and copied resources are placed in `bin/`.
-
-## Regression tests
-
-Standalone tests cover mapper 7, mapper 71, mapper 189, PPU sprite overflow, SDL event waits, and APU audio-output suppression. Mapper tests use generated ROM fixtures; the mapper 189 test also accepts an optional game ROM or ZIP for a boot check.
-
-See [tests/README.md](tests/README.md) for the documented build and run commands. Test coverage is targeted and does not establish complete hardware accuracy or game compatibility.
 
 ## Default controls
 
