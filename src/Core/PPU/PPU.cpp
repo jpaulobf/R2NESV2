@@ -8,6 +8,14 @@
 
 namespace R2NES::Core
 {
+    VRAM &PPU::getVram()
+    {
+        // O visualizador deve acessar os mesmos bytes que atendem as nametables.
+        if (bus && bus->cart && bus->cart->getMapper())
+            if (auto *ciram = bus->cart->getMapper()->getCiram())
+                return *ciram;
+        return vram;
+    }
     namespace
     {
         // Aproximação determinística de ~12 ms em um PPU NTSC (5,37 MHz).
@@ -238,12 +246,12 @@ namespace R2NES::Core
                 if (ppuMask & 0x01)
                     data &= 0x30;
                 data = static_cast<uint8_t>((data & 0x3F) | (ppuIoBusLatch & 0xC0));
-                dataBuffer = ppuFetch(addr & 0x2FFF);
+                dataBuffer = ppuFetch(addr & 0x2FFF, PpuReadContext::Cpu);
             }
             else
             {
                 data = dataBuffer;
-                dataBuffer = ppuFetch(addr);
+                dataBuffer = ppuFetch(addr, PpuReadContext::Cpu);
             }
 
             drivePpuIoBus(data, addr >= 0x3F00 ? 0x3F : 0xFF);
@@ -371,12 +379,12 @@ namespace R2NES::Core
         }
     }
 
-    uint8_t PPU::ppuRead(uint16_t addr) const
+    uint8_t PPU::ppuRead(uint16_t addr, PpuReadContext context) const
     {
         uint8_t data = 0x00;
         addr &= 0x3FFF;
 
-        if (bus && bus->ppuRead(addr, data))
+        if (bus && bus->ppuRead(addr, data, context))
         {
             return data;
         }
@@ -401,19 +409,27 @@ namespace R2NES::Core
         return 0x00;
     }
 
-    uint8_t PPU::ppuFetch(uint16_t addr) const
+    uint8_t PPU::ppuFetch(uint16_t addr, PpuReadContext context)
     {
         addr &= 0x3FFF;
         if (bus)
             bus->ppuAddressUpdated(addr);
-        return ppuRead(addr);
+        if (context == PpuReadContext::Cpu)
+        {
+            if (bus)
+                bus->ppuReadOccurred(addr);
+        }
+        else
+            pendingMapperRead = addr;
+        return ppuRead(addr, context);
     }
 
-    uint8_t PPU::ppuFetchSprite(uint16_t addr) const
+    uint8_t PPU::ppuFetchSprite(uint16_t addr)
     {
         addr &= 0x3FFF;
         if (bus)
             bus->ppuAddressUpdated(addr);
+        pendingMapperRead = addr;
         return ppuReadSprite(addr);
     }
 
@@ -750,7 +766,8 @@ namespace R2NES::Core
                               (uint16_t((sprite.tile & 0xFE) + (row >> 3)) << 4) + (row & 7);
                 else
                     address = ((ppuCtrl & 8) ? 0x1000 : 0) + (uint16_t(sprite.tile) << 4) + row;
-                if (phase == 6) address += 8;
+                if (phase == 6)
+                    address += 8;
             }
         }
         else if (cycle != 336 && cycle != 338)
@@ -760,6 +777,12 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        if (pendingMapperRead != 0xFFFF)
+        {
+            if (bus)
+                bus->ppuReadOccurred(pendingMapperRead);
+            pendingMapperRead = 0xFFFF;
+        }
         clockPpuIoBusDecay();
 
         if (resetRegisterWriteLockoutDots > 0)
@@ -833,7 +856,11 @@ namespace R2NES::Core
                     {
                     case 0:
                         loadBackgroundShifters();
-                        bgNextTileId = ppuFetch(0x2000 | (vramAddr & 0x0FFF));
+                        // Os dois primeiros tiles já foram preparados no fim da linha anterior.
+                        if (bus)
+                            bus->ppuBackgroundTile(cycle >= 321 ? scanline + 1 : scanline,
+                                                   cycle >= 321 ? (cycle - 321) / 8 : (cycle - 1) / 8 + 2);
+                        bgNextTileId = ppuFetch(0x2000 | (vramAddr & 0x0FFF), PpuReadContext::BackgroundTile);
                         break;
                     case 2:
                         bgNextTileAttr = ppuFetch(0x23C0 | (vramAddr & 0x0C00) | ((vramAddr >> 4) & 0x38) | ((vramAddr >> 2) & 0x07));
@@ -1088,7 +1115,7 @@ namespace R2NES::Core
                 oamDataBusLatch = secondaryOam[slot * 4 + secondaryByte];
 
                 if (phase == 0 || phase == 2)
-                    ppuFetch(0x2000 | (vramAddr & 0x0FFF)); // Busca fictícia de nametable
+                    ppuFetch(0x2000 | (vramAddr & 0x0FFF), PpuReadContext::Sprite); // Busca fictícia de nametable
                 else if (phase == 3)
                     nextSprites[slot].xCounter = nextSprites[slot].x;
                 else if (phase == 4)
@@ -1259,7 +1286,7 @@ namespace R2NES::Core
                         spLsb = ppuReadSprite(patternAddress);
                         spMsb = ppuReadSprite(patternAddress + 8);
                         spritePixelColor = static_cast<uint8_t>(((spLsb >> col) & 0x01) |
-                                                                 (((spMsb >> col) & 0x01) << 1));
+                                                                (((spMsb >> col) & 0x01) << 1));
                     }
 
                     if (spritePixelColor == 0)
@@ -1361,6 +1388,7 @@ namespace R2NES::Core
         ppuIoBusDecayCounters.fill(0);
         resetRegisterWriteLockoutDots = PpuRegisterWriteLockoutDots;
         vramAddr = 0;
+        pendingMapperRead = 0xFFFF;
         tempAddr = 0;
         fineX = 0;
         pendingScrollConflictAxes = 0;
@@ -1452,6 +1480,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(frameBuffer.data()), frameBuffer.size() * sizeof(frameBuffer[0]));
         os.write(reinterpret_cast<const char *>(&tilesEnabled), sizeof(tilesEnabled));
         os.write(reinterpret_cast<const char *>(&spritesEnabled), sizeof(spritesEnabled));
+        os.write(reinterpret_cast<const char *>(&pendingMapperRead), sizeof(pendingMapperRead));
     }
 
     void PPU::loadState(std::istream &is, bool includesFrameBuffer)
@@ -1510,5 +1539,8 @@ namespace R2NES::Core
             is.read(reinterpret_cast<char *>(frameBuffer.data()), frameBuffer.size() * sizeof(frameBuffer[0]));
         is.read(reinterpret_cast<char *>(&tilesEnabled), sizeof(tilesEnabled));
         is.read(reinterpret_cast<char *>(&spritesEnabled), sizeof(spritesEnabled));
+        is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
+        if (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000)
+            is.setstate(std::ios::failbit);
     }
 }
