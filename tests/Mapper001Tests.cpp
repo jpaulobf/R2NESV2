@@ -259,9 +259,13 @@ static void consoleTests(const std::filesystem::path &dir)
     check(!nes.loadState(badMapper) && consoleState(nes) == before, "Bad mapper did not roll back console");
     bus.cpuWrite(0x0000, 0x11); bus.cpuCycleCounter = 123;
     std::stringstream restore(before); check(nes.loadState(restore) && consoleState(nes) == before, "New console state restore failed");
-    auto old = before; old[0] = 0x42; old.erase(8, 5); // Original R2NB header.
-    std::stringstream legacy(old); check(nes.loadState(legacy), "Legacy console state rejected");
-    check(bus.cpuCycleCounter == bus.systemClockCounter && bus.cpuDataBus == 0, "Legacy defaults wrong");
+    for (uint8_t version : {0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48})
+    {
+        auto old = before; old[0] = version;
+        if (version == 0x42) old.erase(8, 5); // Original R2NB header.
+        std::stringstream legacy(old);
+        check(!nes.loadState(legacy) && consoleState(nes) == before, "Legacy state accepted or changed console");
+    }
 }
 
 static void nmiTiming(const std::filesystem::path &dir)
