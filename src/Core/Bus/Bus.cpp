@@ -90,7 +90,11 @@ namespace R2NES::Core
     {
         const uint8_t value = readCpuDevice(addr, readOnly);
         if (!readOnly)
+        {
             cpuDataBus = value;
+            if (cart)
+                cart->cpuReadOccurred(addr, value);
+        }
         return value;
     }
 
@@ -98,7 +102,7 @@ namespace R2NES::Core
     {
         uint8_t data = cpuDataBus;
         // Leitura delegada ao cartucho primeiro (mappers podem prover ROM/RAM mapeada)
-        if (cart && cart->cpuRead(addr, data))
+        if (cart && cart->cpuRead(addr, data, readOnly))
         {
             // Cartucho supriu o dado
             return data;
@@ -160,12 +164,24 @@ namespace R2NES::Core
         return data;
     }
 
-    bool Bus::ppuRead(uint16_t addr, uint8_t &data) const
+    bool Bus::ppuRead(uint16_t addr, uint8_t &data, PpuReadContext context) const
     {
         // Delegar leitura de VRAM ao cartucho (CHR/RAM mapeada). Retorna true se tratada.
         if (cart)
-            return cart->ppuRead(addr, data, systemClockCounter);
+            return cart->ppuRead(addr, data, systemClockCounter, context);
         return false;
+    }
+
+    void Bus::ppuReadOccurred(uint16_t addr)
+    {
+        if (cart)
+            cart->ppuReadOccurred(addr);
+    }
+
+    void Bus::ppuBackgroundTile(int16_t scanline, uint8_t column)
+    {
+        if (cart && cart->getMapper())
+            cart->getMapper()->onPpuBackgroundTile(scanline, column);
     }
 
     bool Bus::ppuReadSprite(uint16_t addr, uint8_t &data) const
