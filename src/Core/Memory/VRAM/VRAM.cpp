@@ -54,6 +54,9 @@ namespace R2NES::Core
             // Proteção contra overflow enquanto não houver 4KB reais
             return maskedAddr & 0x07FF;
 
+        case MirrorMode::SACHEN_L:
+            return (maskedAddr & 0x03FF) | ((maskedAddr & 0x0C00) == 0x0C00 ? 0x0400 : 0);
+
         default:
             // Fallback para Vertical (comum em muitos jogos)
             return maskedAddr & 0x07FF;
