@@ -6,6 +6,7 @@
 
 namespace R2NES::Core
 {
+    class VRAM;
     class Mapper
     {
     public:
@@ -14,6 +15,12 @@ namespace R2NES::Core
 
         // Transforma o endereço virtual da CPU em um endereço físico na PRG-ROM
         virtual bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) = 0;
+        virtual bool cpuMapPeek(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
+        {
+            return cpuMapRead(addr, mapped_addr, data);
+        }
+        // Observação do valor efetivamente devolvido por outro dispositivo (ex.: PPUSTATUS).
+        virtual void onCpuRead(uint16_t addr, uint8_t data) {}
         virtual bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
         // Transforma o endereço virtual da PPU em um endereço físico na CHR-ROM
@@ -25,12 +32,22 @@ namespace R2NES::Core
         }
         virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) = 0;
 
-        // Indica que a próxima leitura da PPU busca o padrão de um sprite.
-        virtual void setPpuReadIsSprite(bool isSprite) {}
+        virtual void setPpuReadContext(PpuReadContext context) {}
+        // Compatibilidade com chamadas antigas que identificavam apenas sprites.
+        virtual void setPpuReadIsSprite(bool isSprite)
+        {
+            setPpuReadContext(isSprite ? PpuReadContext::Sprite : PpuReadContext::Cpu);
+        }
 
         // Notifica a mudança dos pinos de endereço da PPU independentemente
         // de o acesso ter sido atendido pelo mapeamento CHR do cartucho.
         virtual void onPpuAddress(uint16_t, uint32_t) {}
+        // Pulso de leitura externa, separado da simples apresentação do endereço.
+        virtual void onPpuRead(uint16_t addr) {}
+        // Posição do tile que o pipeline está preparando, inclusive prefetch da próxima linha.
+        virtual void onPpuBackgroundTile(int16_t scanline, uint8_t column) {}
+        // Mappers que atendem todas as nametables podem expor sua CIRAM autoritativa.
+        virtual VRAM *getCiram() { return nullptr; }
 
         // Notifica o início de uma scanline visível da PPU.
         virtual void onPpuScanlineStart() {}
