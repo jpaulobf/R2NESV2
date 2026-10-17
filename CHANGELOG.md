@@ -4,19 +4,43 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+- Corrigido o carregamento do dump legado de BB Car (CRC32 PRG+CHR `7F9C1DEC`): o mapper 7 do cabeçalho representa NROM com CHR-ROM e espelhamento fixo de uma tela. A identificação exata preserva a rejeição de CHR-ROM no AxROM normal. Validado boot, vídeo e save/load em `.nes` e no ZIP original; gameplay manual pendente.
+
+### Adicionado
+
+- Suporte ao Mapper150 (Sachen SA-015 / `Sachen-74LS374N`), com bancos PRG/CHR, oito registradores legíveis, bits de barramento aberto, save states e espelhamentos H/V, single-screen e em L. Implementado o pad com CPU D2 conectado; o pad alternativo ligado a Vcc permanece pendente.
+- Carregamento UNIF de `NES-CNROM` pelo Mapper003 e de `UNL-Sachen-74LS374N` pelo Mapper150. Verificados os quatro ZIPs de *75 Bingo*, *Auto-Upturn* e dos dois cartuchos 2-in-1, cada um com 201 quadros, vídeo e restauração de save state.
+- Carregamento UNIF das placas Sachen `SA-016-1M` e `TC-U01-1.5M`, incluindo arquivos com extensão `.nes` dentro de ZIPs e arquivos `.unf`/`.unif`. A identificação usa o conteúdo e o campo MAPR, preservando os arquivos originais.
+- Suporte ao Mapper079 (NINA-03/06 / Sachen SA-016), com bancos PRG de 32 KiB, bancos CHR de 8 KiB, espelhamento H/V fixo e seleção sem conflitos de barramento. Permite carregar as versões Sachen de *Galactic Crusader* e *Master Chu & The Drunkard Hu*.
+- Suporte ao Mapper147 (TC-U01-1.5M), variante de 72 pinos usada por *Challenge of the Dragon (Sachen)*, com latch de bancos PRG/CHR e conflitos AND nas escritas pelo espelho da PRG-ROM. A versão JV001 de 60 pinos e a configuração de 128 KiB de PRG não estão implementadas.
+- Save states e suíte `sachen` no CTest para os Mappers079/147 e o parser UNIF, com verificações de bancos, endereços de registradores, ordenação e limites de chunks e rejeição de estados inválidos. Os três ZIPs Sachen avançaram 201 quadros com vídeo e restauração de estado nos testes de inicialização; partidas completas dependem de validação manual.
+
 ### Melhorado
 
 - Revisado o Mapper007 (AxROM) conforme o NesDev, com validação de memória e submappers, espelhamento físico dos bancos PRG e preservação das extensões de 16 KiB espelhados e 512 KiB.
 - Ampliados e integrados ao CTest os testes do Mapper007, cobrindo conflitos de barramento, nametables pela PPU, CHR-RAM, save states e rejeição de imagens inválidas.
 - Revisado o Mapper009 (MMC2), com validação de PRG/CHR e cabeçalhos e testes de regressão para bancos, latches, espelhamento, barramento aberto, depuração e save states.
+- Revisado o Mapper011 (Color Dreams), com validação de memória e cabeçalhos, preservação das extensões de PRG de 16 KiB e CHR-RAM fixa, e testes integrados ao CTest.
 
 ### Corrigido
 
+- Mapper005, segunda revisão (R1): inicialização e reset passam a usar os valores documentados `$5102=1`, `$5103=2` e `$5104=3`, mantendo WRAM protegida e ExRAM em leitura pela CPU, sem acesso como nametable até configuração explícita. Testes cobrem MMC5/MMC5A, preservação de memória e desbloqueio da WRAM. Mantido o formato `R2NI`; validação manual pendente.
+- Mapper005, sétimo lote (item 14): revisão MMC5A explícita com timer de 16 bits, IRQ independente e controles digitais CL3/SL3; reset elétrico separado da inicialização completa, preservando os campos sem reset documentado. O carregador mantém MMC5 por padrão, sem inferir revisão pelo header. A detecção analógica da pausa em M2 e periféricos externos permanecem pendentes; áudio e bateria continuam adiados. Save states `R2NI` incluem revisão/GPIO/timer e rejeitam formatos anteriores. Testes cobrem IRQs simultâneas, DMA, GPIO, preservação no reset e restauração/rollback. Validação manual deste lote pendente; testes iniciais do lote 6 sem regressões relatadas.
+- Mapper005 (MMC5), sexto lote (itens 12 e 13, sem persistência de bateria): capacidades PRG/CHR/WRAM validadas por cabeçalho, bancos e chips de WRAM mapeados com barramento aberto para chips ausentes, acesso aos 128 KiB e instalação de trainers sem liberar proteção. Registradores reconhecidos informam acesso interno, e o visualizador físico usa a CIRAM ativa do mapper. Adicionados testes de memória, cabeçalhos, truncamentos, trainers e restauração. O formato passa a `R2NH`, com WRAM dimensionada e configuração verificada; estados anteriores são rejeitados. Validação manual deste lote pendente.
+- Mapper005 (MMC5), quinto lote (itens 9 e 11): validação semântica e carga atômica dos campos implementados, com testes de rejeição e rollback; split vertical por ExRAM com limites à esquerda/direita, scroll independente, paleta e banco CHR de 4 KiB na ligação CL comercial. A ligação SL e o pino 92 permanecem fora do escopo. Testes incluem pixels da PPU e restauração com split ativo. O formato passa a `R2NG`, rejeitando estados anteriores, inclusive `R2NF`. Áudio adiado para o final; validação manual deste lote pendente.
+- Mapper005 (MMC5), primeiro lote da revisão: índices CHR de 2/4/8 KiB e captura individual dos bits de `$5130` em registradores internos de dez bits, preservando os bancos ao mudar o modo. Adicionados testes de bancos, transições, CHR-RAM/ROM e estados. Testes iniciais do usuário sem regressões relatadas.
+- Mapper005 (MMC5), segundo lote: seleção CHR A/B por contexto de background, sprite e PPUDATA, observação de `$2000/$2001` exatos e atributos estendidos por tile com bancos de 4 KiB, paleta ExRAM e suporte à combinação com fill mode. O visualizador não altera a captura de atributos. Testes incluem leituras reais de `$2007` e pixels renderizados por ROM sintética; testes iniciais do usuário sem regressões relatadas.
+- Mapper005 (MMC5), terceiro lote: linha IRQ derivada dos flags pendente/habilitado e contador de scanlines por pulsos reais de leitura da PPU, com primeira linha zero, detecção no dot 4 e timeout de três ciclos sem leituras. Incluídos os resets documentados por vetores NMI, PPUSTATUS, PPUMASK e OAMDMA, mantendo no relatório as ressalvas de confirmação em hardware do NesDev. Consultas de depuração não reconhecem IRQs. Testes verificam timing com a PPU real, Unlimited Sprites e restauração entre dots 3/4. O console grava `R2NF` e rejeita formatos anteriores, inclusive `R2NE`; testes iniciais do usuário sem regressões relatadas.
+- Mapper005 (MMC5), quarto lote: permissões de ExRAM por modo e atividade de quadro, barramento aberto nas leituras da CPU em modos 0/1 e bloqueio de escrita por nametable em modos 2/3. Escritas da CPU em modos 0/1 fora de quadro são ignoradas como política determinística para o caso incerto documentado pelo NesDev. Ampliados testes de PPUDATA e de consultas de depuração, que preservam o estado completo do console, IRQ e detector parcial. Mantido o formato de estado `R2NF`; validação manual deste lote pendente.
+- `MIRR=5` do UNIF é reconhecido como controle pelo mapper nas placas que o implementam. Modos incompatíveis com a placa e chunks duplicados continuam sendo rejeitados.
+- Arquivos UNIF nomeados `.nes` das duas placas Sachen suportadas passam a ser reconhecidos pelo conteúdo, resolvendo a rejeição por assinatura iNES inválida. O CRC32 usa o payload PRG+CHR normalizado, sem depender dos metadados UNIF.
 - Cartuchos Mapper007 com CHR-ROM, configurações de RAM não suportadas, submappers desconhecidos ou PRG truncada passam a ser rejeitados em vez de executados com memória incorreta.
 - Save states do Mapper007 são validados antes de alterar bancos ou espelhamento, preservando os cinco bytes do formato anterior e recusando estados truncados ou corrompidos.
 - Removida a PRG-RAM fictícia do Mapper009: a placa PxROM usa barramento aberto em `$6000–$7FFF`. Os estados antigos continuam sendo lidos, consumindo o espaço dessa memória sem mapeá-la na CPU.
 - Escritas nos registradores do Mapper009 passam a ser reconhecidas como atendidas; estados inválidos ou truncados são rejeitados antes de alterar o mapper.
 - O visualizador de Pattern Tables consulta o MMC2 sem disparar seus latches de CHR, evitando alterar o jogo durante a depuração.
+- Implementados os conflitos AND de barramento da placa Color Dreams no Mapper011, usando o byte da PRG-ROM no endereço e banco anteriores à escrita. Variantes sem conflitos, como o protótipo *Free Fall*, ainda exigem identificação específica e podem regredir com essa política padrão.
+- No Mapper011, escritas de registrador usam o sentinela de acesso interno; ROMs truncadas e configurações incompatíveis são rejeitadas, e save states inválidos falham sem alterar os bancos, mantendo o formato antigo de dois bytes.
 
 ## [1.0.5] - 2026-10-15
 
