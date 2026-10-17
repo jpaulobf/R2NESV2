@@ -245,6 +245,10 @@ static void testImages(const std::filesystem::path &directory)
     };
     for (bool nes2 : {false, true})
     {
+        // BB Car's dimensions alone must not enable the CRC-specific correction.
+        auto other = makeRom(2, nes2);
+        other[5] = 1; other.resize(16 + 32768 + 8192);
+        reject(other);
         for (unsigned banks : {0, 3, 6, 64}) reject(makeRom(banks, nes2));
         auto bytes = makeRom(8, nes2); bytes.pop_back(); reject(bytes);
         bytes = makeRom(8, nes2); bytes.resize(16 + 0x10000); reject(bytes);
@@ -335,11 +339,73 @@ static void testConsole(const std::filesystem::path &directory)
     }
 }
 
+// Optional local BB Car dump (.nes or .zip); no commercial data in the suite.
+static void testBBCar(const std::filesystem::path &directory, const char *path)
+{
+    Cartridge cart(path);
+    check(cart.isValid(), "Legacy BB Car rejected");
+    check(cart.getRomHash() == "7F9C1DEC", "Expected original BB Car payload");
+    check(cart.getMirrorMode() == MirrorMode::ONESCREEN_LO, "BB Car needs fixed single-screen mirroring");
+    uint8_t chr = 0, after = 0, prg = 0;
+    check(cart.ppuRead(0x1234, chr, 0), "BB Car CHR read failed");
+    check(!cart.ppuWrite(0x1234, chr ^ 0xFF, 0), "BB Car CHR-ROM is writable");
+    check(cart.ppuRead(0x1234, after, 0) && after == chr, "BB Car CHR-ROM changed");
+    check(cart.cpuRead(0x8000, prg), "BB Car PRG read failed");
+    cart.cpuWrite(0x8000, 0x1F, 0);
+    check(cart.cpuRead(0x8000, after) && after == prg, "BB Car PRG bank changed");
+    check(cart.getMirrorMode() == MirrorMode::ONESCREEN_LO, "BB Car mirroring changed on ROM write");
+
+    if (std::filesystem::path(path).extension() == ".nes")
+    {
+        std::ifstream file(path, std::ios::binary);
+        std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(file)), {});
+        auto changed = bytes;
+        changed[16] ^= 1;
+        check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+              "BB Car correction accepted a different payload");
+        for (uint8_t flag : {2, 4, 8})
+        {
+            changed = bytes; changed[6] |= flag;
+            check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+                  "BB Car correction accepted incompatible header flags");
+        }
+        changed = bytes; changed[7] = 8; changed[11] = 7;
+        check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+              "BB Car correction accepted NES 2.0 CHR-ROM configuration");
+        changed = bytes; changed.pop_back();
+        check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+              "BB Car correction accepted truncated payload");
+    }
+    NES nes;
+    nes.insertCartridge(path);
+    check(nes.isCartridgeLoaded(), "BB Car console load failed");
+    bool visible = false;
+    unsigned frames = 0;
+    for (unsigned step = 0; step < 6000000; ++step)
+    {
+        nes.step();
+        if (nes.isFrameComplete())
+        {
+            ++frames;
+            nes.clearFrameComplete();
+            const auto *pixels = nes.getPpu().getFrameBuffer();
+            for (unsigned i = 1; i < 256 * 240; ++i)
+                if (pixels[i] != pixels[0]) { visible = true; break; }
+        }
+    }
+    check(visible && frames > 30, "BB Car did not produce visible video");
+    const auto before = consoleState(nes);
+    nes.reset();
+    std::stringstream saved(before);
+    check(nes.loadState(saved) && consoleState(nes) == before, "BB Car state round trip failed");
+    std::cout << "BB Car boot/video/state OK: " << path << "; frames=" << frames << '\n';
+}
+
 int main(int argc, char **argv)
 {
     try
     {
-        check(argc == 2, "Pass a directory for generated test ROMs");
+        check(argc >= 2, "Pass a directory for generated test ROMs");
         std::filesystem::create_directories(argv[1]);
         testMapper();
         testStates();
@@ -350,6 +416,7 @@ int main(int argc, char **argv)
             testCartridge(argv[1], false, submapper);
             testCartridge(argv[1], true, submapper);
         }
+        for (int i = 2; i < argc; ++i) testBBCar(argv[1], argv[i]);
         std::cout << "Mapper 7 tests passed (banks, mirroring, conflicts, CHR RAM, states, console, invalid images)\n";
         return 0;
     }
