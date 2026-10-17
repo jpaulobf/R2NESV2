@@ -60,10 +60,12 @@ namespace R2NES::Core
 
         // Leitura/escrita pela PPU (área de VRAM/cartucho).
         // Retornam true se o cartucho tratou a operação.
-        bool ppuRead(uint16_t addr, uint8_t &data) const;
+        bool ppuRead(uint16_t addr, uint8_t &data, PpuReadContext context = PpuReadContext::Cpu) const;
         bool ppuPeek(uint16_t addr, uint8_t &data) const;
         bool ppuReadSprite(uint16_t addr, uint8_t &data) const;
         bool ppuWrite(uint16_t addr, uint8_t data);
+        void ppuReadOccurred(uint16_t addr);
+        void ppuBackgroundTile(int16_t scanline, uint8_t column);
 
         // Notificação de início de scanline para o cartucho (mappers que usam scanline IRQs).
         void ppuScanlineStart();
@@ -98,7 +100,7 @@ namespace R2NES::Core
         // Contador de ciclos do sistema (clock global do emulador).
         uint32_t systemClockCounter = 0;
         uint32_t cpuCycleCounter = 0; // Avança por ciclo físico da CPU, inclusive em overclock/DMA.
-        uint8_t cpuDataBus = 0; // Último valor conduzido no barramento; leituras abertas o preservam.
+        uint8_t cpuDataBus = 0;       // Último valor conduzido no barramento; leituras abertas o preservam.
 
         // Registros para a transferência DMA (OAM DMA 0x4014).
         // `dma_transfer` indica que uma DMA está em andamento.
