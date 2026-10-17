@@ -19,16 +19,19 @@ namespace R2NES::Core
         virtual ~Cartridge() = default;
 
         // Leitura/Escrita do lado da CPU
-        bool cpuRead(uint16_t addr, uint8_t &data) const;
+        bool cpuRead(uint16_t addr, uint8_t &data, bool readOnly = false) const;
+        void cpuReadOccurred(uint16_t addr, uint8_t data);
         bool cpuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter,
                       std::optional<uint32_t> cpuCycleCounter = std::nullopt);
 
         // Leitura/Escrita do lado da PPU (Gráficos)
-        bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
+        bool ppuRead(uint16_t addr, uint8_t &data, uint32_t systemClockCounter,
+                     PpuReadContext context = PpuReadContext::Cpu) const;
         bool ppuPeek(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuReadSprite(uint16_t addr, uint8_t &data, uint32_t systemClockCounter) const;
         bool ppuWrite(uint16_t addr, uint8_t data, uint32_t systemClockCounter);
         void ppuAddressUpdated(uint16_t addr, uint32_t systemClockCounter);
+        void ppuReadOccurred(uint16_t addr);
         void ppuScanlineStart();
 
         void saveState(std::ostream &os) const;
