@@ -754,6 +754,57 @@ Mapper 004 (MMC3)
 
 
 -------
+Mapper 007
+-------
+
+| Nome do Jogo | Região | Mapper | Nota | Comentários |
+| --- | --- | --- | --- | --- |
+| Arch Rivals: A Basketbrawl! | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Battletoads | US | 007 | ⭐⭐⭐⭐⭐ | ppu hack - SFI |
+| Battletoads & Double Dragon: The Ultimate Team | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Beetlejuice | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Cabal | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Captain SkyHawk | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Cobra Triangle | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Digger T. Rock: The Legend of the Lost City | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Double Dare | US | 007 | ⭐⭐⭐⭐⭐ | SFI - Maybe not controlling |
+| Indy Heat, Danny Sullivan's | US | 007 | ⭐⭐⭐⭐⭐ | N/A |
+| IronSword: Wizards & Warriors II | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Jeopardy! | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Jeopardy!: 25th Anniversary Edition | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Jeopardy!: Junior Edition | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Marble Madness | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| NARC | US | 007 | ⭐⭐⭐⭐⭐ | SFI |
+| Nightmare on Elm Street, A | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| R.C. Pro-Am | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| R.C. Pro-Am II | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Solar Jetman: Hunt for the Golden Warpship | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Solstice: The Quest for the Staff of Demnos | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Super Off Road, Ivan "Ironman" Stewart's | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Time Lord | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| WWF WrestleMania | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Wheel of Fortune | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Wheel of Fortune featuring Vanna White | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Wheel of Fortune: Family Edition | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Wheel of Fortune: Junior Edition | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Who Framed Roger Rabbit | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Wizards & Warriors | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| Wizards & Warriors III | US | 007 | ⭐⭐⭐⭐⭐ | - |
+| World Games | US | 007 | ⭐⭐⭐⭐⭐ | - |
+
+
+---
+
+### Resumo Estatístico - Mapper 007
+- **Total de entradas documentadas:** 32
+- ⭐⭐⭐⭐⭐ (Perfeito, avaliação registrada): 0 - 0.0%
+- ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
+- ⭐⭐⭐ (Médio): 0 - 0.0%
+- ⭐⭐ (Ruim): 0 - 0.0%
+- ⭐ (Não funciona): 0 - 0.0%
+
+
+-------
 Mapper 009 (NES-PT)
 -------
 
@@ -775,18 +826,18 @@ Mapper 011 (COLORDREAMS)
 | Bible Buffet | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Captain Comic: The Adventure | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Castle of Deceit | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
-| Challenge of the Dragon | US | 011 | ⭐ | Não abre |
+| Challenge of the Dragon | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Chiller | US | 142 | ⭐⭐⭐⭐⭐ | SFI |
 | Crystal Mines | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Escape From Atlantis, The | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Exodus: Journey to the Promised Land | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
-| Galactic Crusader | US | 011 | ⭐ | Não abre |
+| Galactic Crusader | US | 011 |  ⭐⭐⭐⭐⭐ | SFI |
 | Joshua & the Battle of Jericho | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | King Neptune's Adventure | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | King of Kings, The: The Early Years | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Master Chu and the Drunkard Hu | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Menace Beach | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
-| Metal Fighter | US | 011 | ⭐ | Não abre |
+| Metal Fighter | US | 011 |  ⭐⭐⭐⭐⭐ | SFI |
 | Mission Cobra | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Moon Ranger | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
 | Operation Secret Storm | US | 011 | ⭐⭐⭐⭐⭐ | SFI |
@@ -805,13 +856,12 @@ Mapper 011 (COLORDREAMS)
 ---
 
 ### Resumo Estatístico - Mapper 011 (COLORDREAMS)
-- **Total de Jogos Documentados:** 0
-- ⭐⭐⭐⭐⭐ (Perfeito): 28 - 91.0%
+- **Total de Jogos Documentados:** 31
+- ⭐⭐⭐⭐⭐ (Perfeito): 31 - 100.0%
 - ⭐⭐⭐⭐ (Jogável): 0 - 0.0%
 - ⭐⭐⭐ (Médio): 0 - 0.0%
 - ⭐⭐ (Ruim): 0 - 0.0%
-- ⭐ (Não funciona): 3 - 9.0%
-
+- ⭐ (Não funciona): 0 - 0.0%
 
 
 -------
