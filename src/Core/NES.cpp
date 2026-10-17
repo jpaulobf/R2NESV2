@@ -122,7 +122,6 @@ namespace R2NES::Core
                 // chamada acabou de iniciar uma DMA de OAM.
                 if (bus.dma_transfer)
                     break;
-
             }
         }
 
@@ -202,7 +201,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E43; // "R2NC": inclui ciclos da CPU e seu barramento aberto.
+        uint32_t magic = 0x52324E49; // "R2NI": revisão MMC5/MMC5A, GPIO e timer independentes.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
 
         // Salva contador de clocks do sistema
@@ -243,25 +242,29 @@ namespace R2NES::Core
         {
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-            if (!input || (magic != 0x52324E42 && magic != 0x52324E43))
+            // Estados anteriores não identificam a configuração da WRAM do MMC5.
+            if (!input || magic != 0x52324E49)
                 return false;
             input.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
-            if (magic == 0x52324E43)
-            {
-                input.read(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
-                input.read(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
-            }
-            else
-            {
-                bus.cpuCycleCounter = bus.systemClockCounter;
-                bus.cpuDataBus = 0; // Campo ausente nos estados R2NB anteriores.
-            }
-            if (!input) return false;
-            cpu.loadState(input); if (!input) return false;
-            ram.loadState(input); if (!input) return false;
-            ppu.loadState(input, true); if (!input) return false;
-            apu.loadState(input); if (!input) return false;
-            bus.cart->getMapper()->loadState(input); if (!input) return false;
+            input.read(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
+            input.read(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
+            if (!input)
+                return false;
+            cpu.loadState(input);
+            if (!input)
+                return false;
+            ram.loadState(input);
+            if (!input)
+                return false;
+            ppu.loadState(input, true);
+            if (!input)
+                return false;
+            apu.loadState(input);
+            if (!input)
+                return false;
+            bus.cart->getMapper()->loadState(input);
+            if (!input)
+                return false;
             bus.cart->loadState(input);
             return input.good();
         };
