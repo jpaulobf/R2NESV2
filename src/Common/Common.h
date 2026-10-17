@@ -2,6 +2,9 @@
 
 namespace R2NES::Core
 {
+    // Origem do acesso: PPUDATA e fetches de rendering podem selecionar bancos distintos.
+    enum class PpuReadContext { Cpu, Background, Sprite, BackgroundTile };
+
     // Modos de espelhamento (mirroring) usados pelo PPU para mapear bancos de nametables.
     // - HORIZONTAL: espelhamento horizontal clássico (nomeTABLEs 0/1 e 2/3 espelhados)
     // - VERTICAL: espelhamento vertical (0/2 e 1/3 espelhados)
@@ -13,7 +16,9 @@ namespace R2NES::Core
         VERTICAL,
         ONESCREEN_LO,
         ONESCREEN_HI,
-        FOUR_SCREEN
+        FOUR_SCREEN,
+        // Sachen SA-015: páginas CIRAM [0, 0, 0, 1] nas quatro nametables.
+        SACHEN_L
     };
 
     // Estado do mouse mantido pela camada de UI/Window para delegação a visualizadores
