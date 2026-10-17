@@ -39,17 +39,198 @@ memory capacities are rejected instead of approximated.
 
 The mapper payload keeps its previous length; a reserved bit records whether
 there has been a CPU write, including cycle zero. Old payloads remain readable.
-Derived PRG banking is recomputed on load. The console writes format `R2NC`,
-which adds CPU clock and data-bus state, and still reads `R2NB` using the saved
-system clock and zero for its missing bus latch, when memory capacities match.
-Old NES 2.0 states created with an incorrectly sized RAM payload are rejected.
-Older builds cannot read `R2NC`.
+Derived PRG banking is recomputed on load. The console now writes format `R2NI`,
+which preserves CPU clock/data-bus state and the MMC5's ten-bit CHR registers
+and CHR/IRQ/split controls, MMC5A revision/GPIO/timer and the PPU's pending rendering read.
+Previous `R2NB`/`R2NC`/`R2ND`/`R2NE`/`R2NF`/`R2NG`/`R2NH` states are intentionally
+rejected, for every mapper; older builds cannot read `R2NI`.
+Old NES 2.0 states created with an incorrectly
+sized RAM payload are also unsupported.
 Any failed console load restores its previous serialized state.
 
 `reset()` is the emulator's deterministic complete initialization. Its MMC1
 Control value `0x1E` is not a hardware power-up guarantee. A serial bit-7 reset
 preserves CHR mode and mirroring while selecting PRG mode 3. Neither reset
 clears PRG RAM. Game compatibility ratings are not inferred from these tests.
+
+# Mapper 5 regression tests — batches 1 through 7
+
+Second-review R1 coverage checks documented initial memory modes for both
+MMC5 and MMC5A: read-only CPU ExRAM, blocked nametable access, protected
+WRAM, explicit unlock in either order, and memory preservation on reset.
+The test fails before the initial-value fix. State layout remains R2NI.
+
+Implements findings 1 through 9 and 11 through 14 in [Mapper005Review.md](Mapper005Review.md),
+excluding battery-file persistence as explicitly deferred by the user,
+with the hardware uncertainties documented in that review.
+Generated ROMs and direct mapper tests cover all four CHR bank sizes, the A/B
+register windows, all byte values and upper-bit combinations, independent
+capture of `$5130`, changes of CHR mode without rewriting banks, CHR capacity
+wrapping, CHR-ROM protection and CHR-RAM read/write agreement.
+
+Background, sprite and CPU reads now have explicit contexts. Tests cover
+8x8 versus 8x16 sprites, last-written-set PPUDATA selection, PPUMASK gating,
+fully decoded PPUCTRL/PPUMASK addresses and their ignored mirrors. Real
+PPUDATA reads verify selection through the PPU, Bus and Cartridge layers.
+
+Extended-attribute tests check per-tile ExRAM latching for all four nametables
+and sources (both CIRAM pages, ExRAM and fill), all palettes, live `$5130`,
+4 KiB banks independent of CHR mode, PPU address bit 12 being ignored,
+capacity wrapping and restoration of normal attributes when substitutions
+are disabled. CPU, sprite and peek reads must not replace the tile latch.
+The pattern viewer must leave the serialized mapper state unchanged.
+
+ExRAM permission tests exercise every byte of the 1 KiB memory in all four
+modes, both in-frame and outside a frame. CPU reads in modes 0/1 preserve open
+bus; CPU writes require in-frame activity. Mode 2 permits CPU reads/writes;
+mode 3 permits reads only. Nametable reads/writes use ExRAM only in modes 0/1;
+modes 2/3 return zero and ignore writes. All four nametables and their `$3000`
+mirrors are checked, along with real PPUDATA access during blanking and write
+permission after restoring in-frame state and after activity timeout.
+Out-of-frame CPU writes in modes 0/1 are deterministically ignored: NesDev
+allows ignored/corrupted outcomes, so preservation is an emulator policy,
+not a hardware guarantee. Batch 4 preserved R2NF; batch 5 introduces R2NG.
+
+Combined debugger tests compare the entire serialized console before/after
+CPU queries through Bus and NES, CHR/nametable peeks and both pattern viewers,
+while an IRQ is active, an extended tile is latched and a partial scanline
+sequence exists. The sequence must still trigger on its remaining reads.
+A synthetic ROM also checks pixels rendered with normal background set B,
+extended CHR/palette with CIRAM, and extended attributes with fill mode.
+
+State tests cover ten-bit bank values independently of the pending `$5130`
+latch, mode changes after restore, truncated payloads, invalid CHR controls
+and registers, console rollback, CHR-RAM suffix alignment and rejection of
+old console formats. `R2NH` stores each MMC5 CHR register as two little-endian
+bytes. The old trailing fetch-budget byte is replaced by three bytes:
+observed PPUCTRL.5, observed PPUMASK.3/.4 and the last-written-set selector.
+These controls are validated and restored, including a disabled mask and
+last-written B. The extended tile latch is restored between tile and pattern
+fetches; the per-call read context is transient and returns to CPU on load.
+
+Batch 5 extends semantic checks to all implemented mapper controls, detector
+coherence and split state. Truncations across control/memory/tail boundaries,
+invalid modes/protection/fill/IRQ bytes, impossible detector addresses and
+incoherent split coordinates must fail without changing the mapper. Console
+tests also reject semantic errors and verify full rollback. PRG bank bytes,
+memory and other unrestricted register values remain legal. MMC5 16-bit
+words now have explicit little-endian encoding throughout the payload.
+
+Vertical split tests cover left/right regions, thresholds 0/1/8/31, 34 fetch
+positions, scroll values 0/7/8/239/240/255 and vertical wrapping, palettes,
+CHR capacity wrapping and the bank's independence from CHR mode/$5130.
+ExRAM modes and PPUMASK gate substitutions; non-split mode-1 tiles retain
+extended attributes. Real PPU pixels are checked for fine X 0/3/7, displaced
+normal scroll and independent split scrolling. An active split snapshot
+must reproduce identical future pixels and serialized console state.
+
+The implemented commercial CL wiring preserves PPU fine Y; alternate SL
+wiring and electrical pin-92 control are unsupported. Rendering supplies
+target tile coordinates, including next-line prefetch, to the mapper; this
+is not a reconstruction of split counters from arbitrary bus waveforms.
+Mid-frame rendering enable uses nominal screen position, without claiming
+hardware glitch fidelity. A tile-fetch phase distinguishes nametable data
+from attributes even with unusual PPU coarse Y. R2NG appends ten bytes to
+the mapper payload: split control/scroll/bank, signed line (-1 as FFFF),
+Y, column, active-tile selector and 16-bit tile offset. Audio remains deferred.
+
+Batch 6 validates power-of-two PRG (16 KiB..1 MiB) and CHR-ROM (8 KiB..1 MiB),
+or the existing 8 KiB CHR-RAM extension. It rejects unsupported submappers,
+four-screen, incompatible RAM declarations and truncated ROM/trainer data.
+NES 2.0 explicitly controls RAM/NVRAM capacity, including zero; iNES uses
+explicit byte-8 sizes or the legacy 64 KiB compatibility superset when absent.
+Tests also exercise exponent-encoded ROM sizes and direct-constructor rejection.
+
+WRAM profiles cover zero, single 8/32 KiB, dual 8 KiB, dual 32 KiB and single
+128 KiB memory, plus mixed RAM/NVRAM chips of 8/32 KiB. Bit 2 selects the chip
+on commercial profiles, with open bus for missing chips; 128 KiB uses all four
+bank bits. Tests exhaust register bytes and PRG modes, check low/high-window
+aliases, protection and trainer installation without unlocking writes.
+RAM/NVRAM classification only affects emulated memory and snapshots: no
+battery-file loading or saving is implemented.
+
+Recognized register writes return the internal-access sentinel; holes remain
+unhandled. The MMC5 exposes its authoritative CIRAM through PPU::getVram(),
+so the raw viewer edits the memory actually used by nametables. Tests cover
+both pages, mirroring and full console restore through that accessor.
+The generic PPU buffer remains unused for MMC5 nametable service.
+
+R2NH inserts twelve configuration bytes after the 22 audio-register bytes:
+16-bit PRG/CHR bank counts and 32-bit RAM/NVRAM sizes, all little-endian.
+The WRAM payload is sized to installed memory (0..128 KiB), followed by
+ExRAM, CIRAM and the existing detector/split tail. Mismatched cartridge
+capacities are rejected before reading RAM. No allocation size is trusted
+from the state file. That R2NH mapper payload was 3172 bytes plus installed WRAM.
+
+Batch 7 adds eight bytes before that configuration block in R2NI: revision,
+GPIO control/latch/external input levels, a little-endian 16-bit counter,
+running flag and pending timer IRQ flag. The current payload is 3180 bytes
+plus installed WRAM. Cross-revision states are rejected atomically.
+`Configuration::revision` defaults to MMC5; the loader cannot infer MMC5A
+from iNES/NES 2.0, so tests explicitly construct/inject the A revision.
+There is no GUI revision selector or CRC override.
+
+MMC5A tests cover timer byte writes, exact expiry, zero start, independent
+scanline/timer acknowledge, GPIO direction/latch, external pin inputs and
+the combinational /M2 function for peripheral addresses. There is no RAM
+or external device installed at $5800-$5BFF. `expansionPins()` accepts an
+explicit bus phase; no bus callbacks drive an external peripheral.
+Input pins default to zero; undocumented status bits return zero. These
+are deterministic policies. Forcing an active counter to zero stops it
+without a new IRQ; that edge case has not been verified on hardware.
+Console tests check timer expiry during DMA, debugger peeks, deterministic
+future execution after restore, and cross-revision rollback.
+
+`hardwareReset()` handles an explicitly supplied chip-reset event and
+preserves all state whose reset is not documented, including pending video
+IRQ, its target/counter/in-frame and memories. `reset()` and the console
+reset command keep their previous complete deterministic initialization.
+Analog M2-gap detection, pin contention/loads, external devices and audio
+reset behavior remain outside this batch. No wall-clock pause triggers a reset.
+
+IRQ tests cover pending versus enabled state, late enable, disable without
+acknowledge, status acknowledge without counter reset, target zero, targets
+1/119/239/240/255 and reset on the 241st detected scanline. The detector arms
+after three equal `$2xxx` reads and clocks on the following read. Three empty
+system M2 ticks clear in-frame without clearing pending IRQ; continuing PPU
+reads retain activity. Non-read address changes, PPU writes, peeks and the old
+scanline callback must not clock it. NMI vectors, exact-address PPUSTATUS,
+PPUMASK transitions and OAMDMA exercise their documented reset conditions.
+IRQ flags and detector limits are validated before committing mapper state.
+
+Real PPU tests assert scanline-zero detection and IRQ timing at dot 4 for
+both sprite sizes and background tables, all rendering mask combinations
+and Unlimited Sprites on/off. Restoring between dots 3 and 4 must reproduce
+the same console state and IRQ. PPU rendering read pulses are delayed one dot
+from the existing logical fetch, and this pending address is serialized in
+the PPU. CPU PPUDATA pulses are immediate. Extra sprite reads used only by the
+Unlimited Sprites compositor do not emit hardware read pulses.
+
+The mapper payload removes redundant IRQ-active state, stores IRQ booleans
+as validated bytes, narrows idle count to a byte (0..3), and appends one byte
+tracking PPU activity since the last M2 tick. The pending PPU read adds two
+bytes to the PPU payload. CPU debugger reads of `$5204`, PPUSTATUS and the NMI
+vectors must leave the mapper unchanged; actual bus reads exercise their
+side effects. DMA is still handled by the existing console scheduler.
+
+NesDev caveats are preserved in the review: its prose specifies the fourth
+read/dot 4, unlike its simplified pseudocode. OAMDMA reset and immediate
+PPUMASK-disable behavior still have hardware-verification qualifications;
+these tests validate the chosen software model, not electrical measurements.
+
+```powershell
+cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
+cmake --build build --target mapper005-tests -j 4
+ctest --test-dir build -R '^mapper005$' --output-on-failure
+```
+
+Reference: https://www.nesdev.org/wiki/MMC5 (PPU monitoring, CHR banking,
+extended attributes, fill mode and `$5130`).
+Unknown low bits marked `?` in the NesDev write matrix are initialized to zero;
+mode-transition checks assert only documented bits. The documented copy of
+CPU D0 into internal bit 0 is preserved even in the larger bank modes.
+These tests do not establish full MMC5 conformance or gameplay compatibility.
+Manually retest Castlevania III and create new save states before continuing.
 
 # Mapper 2 regression tests
 
@@ -244,6 +425,15 @@ preserving cartridge CHR-RAM. This is not an electrical warm reset or a claim
 that hardware powers on in a guaranteed bank. No game compatibility ratings
 are inferred from the synthetic suite. See the [review in Portuguese](Mapper007Review.md).
 
+Optional BB Car regression: append local `.nes` and/or `.zip` paths to
+`mapper007-tests <fixture-directory>`. The legacy payload CRC `7F9C1DEC`
+is recognized as fixed NROM with CHR-ROM and lower single-screen mirroring,
+as described by the [dump author](https://cah4e3.shedevr.org.ru/dumping_2006.php).
+Tests check ROM protection, fixed banks/mirroring, boot/video for 201 frames,
+and console state restore. An unpacked `.nes` also tests rejection of changed
+payload, incompatible flags, NES 2.0 and truncation. No commercial ROM data
+is included; ordinary mapper 7 images with CHR-ROM remain rejected.
+
 References: https://www.nesdev.org/wiki/AxROM,
 https://www.nesdev.org/wiki/NES_2.0_submappers,
 https://www.nesdev.org/wiki/NES_2.0
@@ -281,6 +471,128 @@ without claiming an electrical warm reset or guaranteed hardware power-up state.
 The synthetic suite does not establish complete Punch-Out!! gameplay
 compatibility. See the [review in Portuguese](Mapper009Review.md).
 
+# Mapper 11 regression tests
+
+```powershell
+cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
+cmake --build build --target mapper011-tests -j 4
+ctest --test-dir build -R '^mapper011$' --output-on-failure
+```
+
+Direct mapper tests exercise all 256 register values at PRG window boundaries,
+all supported PRG/CHR capacities and fixed H/V mirroring. Generated iNES and
+NES 2.0 ROMs verify AND conflicts against the current PRG bank at the written
+address, including successive writes whose source banks contain different bytes.
+Both PRG and CHR selection use the conflicted value. Bits 2/3 are for CIC lockout
+defeat and do not change emulated banking or mirroring.
+
+Standard Color Dreams supports up to 128 KiB each of PRG-ROM and CHR-ROM, with
+32 KiB PRG and 8 KiB CHR windows and no PRG-RAM. Power-of-two capacities are
+required. The pre-existing 16 KiB mirrored PRG and fixed 8 KiB CHR-RAM extensions
+are retained. NES 2.0 accepts only submapper zero, no PRG RAM/NVRAM, and either
+no CHR RAM with CHR-ROM or exactly 8 KiB volatile CHR-RAM without CHR-ROM.
+Battery, trainers, four-screen, declared Misc. ROMs and truncated images fail.
+Legacy iNES byte 8 is ignored; NES 2.0 linear and exponent/multiplier sizes
+are exercised. No submapper assignments from mappers 2/3/7 are borrowed.
+
+Mapper states retain the old two-byte physical bank layout. Every valid bank
+combination restores; truncated or out-of-range states leave the mapper intact.
+Console tests check ROM protection, all CHR-RAM bytes, sprite reads, H/V CIRAM
+aliases, open bus without PRG-RAM, reset and rollback after failed state loads.
+
+No-conflict variants such as the Free Fall prototype still need a verified
+board/dump identification mechanism. Applying standard AND conflicts can break
+those images, including ones that previously ran without conflicts. Mapper 144
+variants are not implemented here. Complete initialization selects bank zero;
+this is not an electrical warm reset or a hardware power-up guarantee.
+Synthetic tests do not establish commercial gameplay compatibility.
+See the [review in Portuguese](Mapper011Review.md).
+
+References: https://www.nesdev.org/wiki/INES_Mapper_011,
+https://www.nesdev.org/wiki/Bus_conflict,
+https://www.nesdev.org/wiki/NES_2.0_submappers
+
+# Sachen and UNIF
+
+This suite covers mappers 79, 147 (72-pin latch), and 150, as well as UNIF loading for these boards and CNROM.
+
+The Sachen ZIPs reported as invalid iNES are actually UNIF images named `.nes`.
+The loader detects their signature and supports MAPR board names `CNROM`
+(mapper 3), `SA-016-1M` (mapper 79), `TC-U01-1.5M` (mapper 147, 72-pin latch),
+and `Sachen-74LS374N` (mapper 150).
+Optional `UNL-`/`NES-`/`HVC-` prefixes, case and outer whitespace are normalized. Other UNIF
+boards are rejected with their board name. Native `.unf`/`.unif` files and these
+extensions inside ZIPs are supported as well.
+
+The parser bounds-checks chunks, rejects duplicates/gaps in ROM chip indices,
+orders PRG/CHR chips by hexadecimal index, validates MIRR per board and refuses
+unsupported versions, RAM/battery configurations and capacities. NAME and other
+unrecognized metadata are skipped. Optional checksum chunks are not verified.
+PRG/CHR data is normalized in memory to NES 2.0; CRC32 uses only the normalized
+PRG+CHR payload, so filenames and UNIF metadata do not affect game identification.
+Original files are never rewritten.
+
+Mapper 79 decodes writes with `(address & $E100) == $4100`, using data bit 3
+for PRG and bits 0-2 for CHR. No extra CNROM-style register is added at $8000.
+The mapper 147 72-pin latch decodes `(address & $4103) == $4102`, using bit 2
+for PRG and bits 3-6 for CHR; writes in the ROM mirror apply AND conflicts.
+Both support 32/64 KiB PRG-ROM, fixed H/V mirroring, read-only CHR and no PRG-RAM.
+CHR capacities are 8-64 KiB for mapper 79 and 8-128 KiB for mapper 147.
+The 60-pin mapper 147 JV001 arithmetic/protection circuit and 128 KiB PRG
+configuration are explicitly unsupported. Two-byte bank states reuse the
+validated mapper 11 implementation and its initialization convention.
+
+Mapper 150 uses an index/data pair decoded by `$C101 == $4100/$4101`. All eight
+registers retain/read three bits; read bits 3-7 remain open bus. Tests exercise
+every register value, all CPU register-address aliases, PRG/CHR bank masks,
+state validation/rollback and all four CIRAM arrangements through the PPU.
+The L-shaped arrangement is `[0,0,0,1]`; the existing MirrorMode enum values
+were preserved by appending the new mode. The new mapper payload is nine bytes
+(index plus eight registers), with mirroring derived from register 7.
+Supported PRG capacities are 32/64/128 KiB and CHR capacities are 8-64 KiB.
+The implemented solder pad connects CPU D2; the alternate Vcc setting and
+mapper 243 are not included. UNIF requires mapper-controlled `MIRR=5` for this
+board and still rejects that mode for fixed-mirroring boards.
+CNROM UNIF maps to NES 2.0 mapper 3 submapper 2, including AND bus conflicts.
+
+```powershell
+cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
+cmake --build build --target sachen-tests -j 4
+ctest --test-dir build -R '^sachen$' --output-on-failure
+```
+
+To add a boot check for one or more local ROMs, pass their paths after the fixture directory:
+
+```powershell
+./bin/sachen-tests.exe build/sachen-test-roms 'C:/ROMs/Challenge of the Dragon (Sachen).zip' 'C:/ROMs/Galactic Crusader (Sachen).zip'
+```
+
+Optional ROM/ZIP paths after the fixture directory run a 6,000,000-cycle boot
+smoke test, checking visible video and a full console save/load round trip.
+The user's seven archives each reached 201 frames and passed state restoration:
+
+| Archive title | MAPR | PRG / CHR | Canonical CRC32 |
+| --- | --- | --- | --- |
+| Challenge of the Dragon (Sachen) | TC-U01-1.5M | 64 / 128 KiB | `7DD0AFC8` |
+| Galactic Crusader (Sachen) | SA-016-1M | 32 / 32 KiB | `3F2450EA` |
+| Master Chu & The Drunkard Hu (Sachen) | SA-016-1M | 32 / 32 KiB | `EB4CCA31` |
+| 2-in-1 Cosmo Cop + Cyber Monster (Sachen) | Sachen-74LS374N | 64 / 64 KiB | `73FB55AC` |
+| 2-in-1 Tough Cop + Super Tough Cop (Sachen) | Sachen-74LS374N | 64 / 64 KiB | `DDCBDA16` |
+| 75 Bingo (Sachen-English) | CNROM | 32 / 32 KiB | `D04A40E6` |
+| Auto-Upturn (Sachen) | Sachen-74LS374N | 32 / 64 KiB | `47918D84` |
+
+These results verify loading and startup, not complete gameplay. The Color Dreams
+releases are different board variants; the Sachen images must not be forced to
+mapper 11 or fixed by replacing only the first four header bytes.
+The emulator build completed and all 15 registered CTest checks passed after
+adding this support; real-archive smoke tests were run separately.
+
+References: https://www.nesdev.org/wiki/UNIF,
+https://www.nesdev.org/wiki/UNIF_to_NES_2.0_Mapping,
+https://www.nesdev.org/wiki/INES_Mapper_079,
+https://www.nesdev.org/wiki/INES_Mapper_147,
+https://www.nesdev.org/wiki/INES_Mapper_150
+
 # Mapper 71 regression tests
 
 These tests use generated ROMs to check bank switching, address boundaries,
@@ -292,7 +604,7 @@ PowerShell and MinGW-w64:
 
 ```powershell
 $mapperSources = (Get-ChildItem src/Core/Cartridge/Mappers -Filter '*.cpp').FullName
-g++ -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper071Tests.cpp src/Core/Cartridge/Cartridge.cpp $mapperSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper071-tests.exe
+g++ -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper071Tests.cpp src/Core/Cartridge/Cartridge.cpp src/Core/Cartridge/UNIF.cpp src/Core/Memory/VRAM/VRAM.cpp $mapperSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper071-tests.exe
 if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
 ./build/mapper071-tests.exe build/mapper071-test-data
 if ($LASTEXITCODE -ne 0) { throw 'Mapper 71 tests failed' }
