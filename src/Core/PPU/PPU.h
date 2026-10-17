@@ -24,7 +24,7 @@ namespace R2NES::Core
         bool nmi = false;
 
         // Comunicação com o barramento interno da PPU ($0000 - $3FFF)
-        uint8_t ppuRead(uint16_t addr) const;
+        uint8_t ppuRead(uint16_t addr, PpuReadContext context = PpuReadContext::Cpu) const;
         uint8_t ppuReadSprite(uint16_t addr) const;
         void ppuWrite(uint16_t addr, uint8_t data);
 
@@ -52,7 +52,7 @@ namespace R2NES::Core
         void loadState(std::istream &is, bool includesFrameBuffer = true);
 
         const std::array<uint8_t, 32> &getPaletteTable() const { return paletteTable; }
-        VRAM &getVram() { return vram; }
+        VRAM &getVram();
         const std::array<uint8_t, 256> &getOamMemory() const { return oamMemory; }
         static const uint32_t *getSystemPalette();
 
@@ -99,6 +99,8 @@ namespace R2NES::Core
         uint8_t ppuStatus = 0x00;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;
+        // Fetches são resolvidos pelo pipeline no dot ímpar; /RD ocorre no seguinte.
+        uint16_t pendingMapperRead = 0xFFFF;
         uint8_t ppuIoBusLatch = 0x00;
         // Tempo restante, em dots da PPU, até cada bit aberto cair para zero.
         std::array<uint32_t, 8> ppuIoBusDecayCounters{};
@@ -149,9 +151,9 @@ namespace R2NES::Core
         int scanlineSpriteCount = 0;
         int nextScanlineSpriteCount = 0;
         std::array<uint8_t, 32> secondaryOam{};
-        uint8_t spriteEvaluationIndex = 0; // n: índice do sprite na OAM primária (0-64)
-        uint8_t spriteEvaluationStartIndex = 0; // n inicial obtido de OAMADDR no dot 65
-        uint8_t spriteEvaluationByteIndex = 0; // m: byte atual do sprite (0-3)
+        uint8_t spriteEvaluationIndex = 0;       // n: índice do sprite na OAM primária (0-64)
+        uint8_t spriteEvaluationStartIndex = 0;  // n inicial obtido de OAMADDR no dot 65
+        uint8_t spriteEvaluationByteIndex = 0;   // m: byte atual do sprite (0-3)
         uint8_t spriteEvaluationBytesCopied = 0; // Bytes copiados para o sprite atual na OAM secundária
         uint8_t spriteEvaluationLatch = 0xFF;
         uint8_t secondaryOamAddress = 0;
@@ -175,8 +177,8 @@ namespace R2NES::Core
         void transferAddressY();
         void loadBackgroundShifters();
         void updateShifters();
-        uint8_t ppuFetch(uint16_t addr) const;
-        uint8_t ppuFetchSprite(uint16_t addr) const;
+        uint8_t ppuFetch(uint16_t addr, PpuReadContext context = PpuReadContext::Background);
+        uint8_t ppuFetchSprite(uint16_t addr);
         uint8_t readPalette(uint16_t addr) const;
         uint8_t effectivePpuMask() const;
         void drivePpuIoBus(uint8_t value, uint8_t drivenBits);
