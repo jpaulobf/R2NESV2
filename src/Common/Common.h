@@ -3,7 +3,13 @@
 namespace R2NES::Core
 {
     // Origem do acesso: PPUDATA e fetches de rendering podem selecionar bancos distintos.
-    enum class PpuReadContext { Cpu, Background, Sprite, BackgroundTile };
+    enum class PpuReadContext
+    {
+        Cpu,
+        Background,
+        Sprite,
+        BackgroundTile
+    };
 
     // Modos de espelhamento (mirroring) usados pelo PPU para mapear bancos de nametables.
     // - HORIZONTAL: espelhamento horizontal clássico (nomeTABLEs 0/1 e 2/3 espelhados)
