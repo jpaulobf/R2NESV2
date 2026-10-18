@@ -12,6 +12,5 @@ namespace R2NES::Core
 
     Util::~Util()
     {
-
     }
 }
