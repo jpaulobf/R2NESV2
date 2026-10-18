@@ -27,6 +27,8 @@ namespace R2NES::Core
     class Window
     {
     public:
+        void showBatteryMessage(const std::string &message);
+        bool confirmBatteryImport(const std::string &message);
         // callbacks
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         using VSyncCallback = std::function<void(bool)>;
@@ -506,7 +508,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.0.8 | FPS: %.2f";
+        std::string title = "R2NESV2 - build 1.1.0 | FPS: %.2f";
         std::string romFile = "";
 
         // Valores Default Scanlines
