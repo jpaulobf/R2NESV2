@@ -3,6 +3,8 @@
 #include "Common/Common.h" // Ou onde seu MirrorMode estiver definido
 #include <iostream>
 #include <istream>
+#include <vector>
+#include <string>
 
 namespace R2NES::Core
 {
@@ -64,6 +66,13 @@ namespace R2NES::Core
         // Serialização para Save / Load states
         virtual void saveState(std::ostream &os) = 0;
         virtual void loadState(std::istream &is) = 0;
+
+        // Somente memória não volátil, em ordem física; nunca registradores ou RAM de trabalho.
+        virtual std::vector<uint8_t> getBatteryData() const;
+        virtual bool setBatteryData(const std::vector<uint8_t> &data);
+        // Conversão proposta, sem aplicar memória ou escrever arquivos. Exige importação explícita.
+        virtual bool convertBatteryData(const std::vector<uint8_t> &source, std::vector<uint8_t> &converted,
+                                        std::string &description) const;
 
         // Define o estado inicial do mapper. Virtual puro não é necessário aqui,
         // permitindo que mappers simples não precisem implementá-lo.
