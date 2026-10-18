@@ -5,7 +5,7 @@
 
 namespace R2NES::Core
 {
-    NES::NES()
+    NES::NES(std::filesystem::path directory) : batteryDirectory(std::move(directory))
     {
         // Conecta os subsistemas no barramento e entre si.
         // A ordem de conexão importa para garantir que cada componente tenha
@@ -23,10 +23,26 @@ namespace R2NES::Core
         reset();
     }
 
-    NES::~NES() {}
+    NES::~NES()
+    {
+        try
+        {
+            flushBattery();
+        }
+        catch (const std::exception &error)
+        {
+            std::cerr << "Battery save failed: " << error.what() << '\n';
+        }
+    }
+
+    bool NES::flushBattery()
+    {
+        return !bus.cart || bus.cart->flushBattery();
+    }
 
     void NES::unload()
     {
+        flushBattery();
         // Ao remover o cartucho, restaura entrada e limpa referência no barramento.
         joysticks.port2Device = R2NES::Core::IO::DeviceType::Gamepad;
         bus.setCartridge(nullptr);
@@ -175,6 +191,9 @@ namespace R2NES::Core
         std::shared_ptr<Cartridge> newCart = std::make_shared<Cartridge>(path);
         if (newCart->isValid())
         {
+            // Salva o anterior antes de ler o novo, inclusive ao recarregar a mesma ROM.
+            flushBattery();
+            newCart->loadBattery(batteryDirectory);
             bus.setCartridge(newCart);
             cartridgeLoaded = true;
             std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: " << newCart->getRomHash() << std::endl;
@@ -201,13 +220,25 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E49; // "R2NI": revisão MMC5/MMC5A, GPIO e timer independentes.
+        uint32_t magic = 0x52324E4B; // "R2NK": identidade do cartucho e transferência DMA completa.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
+        const auto hash = bus.cart->getRomHash();
+        if (hash.size() != 8)
+            return false;
+        os.write(hash.data(), 8);
+        const uint16_t mapperId = bus.cart->getMapperId();
+        os.put(mapperId & 255);
+        os.put(mapperId >> 8);
 
         // Salva contador de clocks do sistema
         os.write(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
         os.write(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
         os.write(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
+        os.put(bus.dma_page);
+        os.put(bus.dma_addr);
+        os.put(bus.dma_data);
+        os.put(bus.dma_transfer);
+        os.put(bus.dma_dummy);
 
         // Salva os estados dos subsistemas (ordem deve ser preservada ao carregar)
         cpu.saveState(os);
@@ -242,12 +273,27 @@ namespace R2NES::Core
         {
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-            // Estados anteriores não identificam a configuração da WRAM do MMC5.
-            if (!input || magic != 0x52324E49)
+            // Estados anteriores não identificam estas configurações de memória.
+            if (!input || magic != 0x52324E4B)
+                return false;
+            // Confere a identidade antes de alterar qualquer componente.
+            char hash[8] = {};
+            input.read(hash, sizeof(hash));
+            const int mapperLow = input.get(), mapperHigh = input.get();
+            if (!input || std::string(hash, sizeof(hash)) != bus.cart->getRomHash() ||
+                (mapperLow | (mapperHigh << 8)) != bus.cart->getMapperId())
                 return false;
             input.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
             input.read(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
             input.read(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
+            bus.dma_page = uint8_t(input.get());
+            bus.dma_addr = uint8_t(input.get());
+            bus.dma_data = uint8_t(input.get());
+            const int dmaActive = input.get(), dmaDummy = input.get();
+            if ((dmaActive != 0 && dmaActive != 1) || (dmaDummy != 0 && dmaDummy != 1))
+                return false;
+            bus.dma_transfer = dmaActive != 0;
+            bus.dma_dummy = dmaDummy != 0;
             if (!input)
                 return false;
             cpu.loadState(input);

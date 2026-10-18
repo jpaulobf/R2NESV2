@@ -16,7 +16,7 @@ namespace R2NES::Core
     public:
         // Construtor / destrutor: inicializam os componentes do console e suas
         // conexões (bus, CPU, PPU, APU, RAM, Joysticks).
-        NES();
+        explicit NES(std::filesystem::path batteryDirectory = "battery");
         ~NES();
 
         // Avança um passo do sistema. honorCPUOverclock=false mantém um clock
@@ -32,6 +32,7 @@ namespace R2NES::Core
 
         // Remove o cartucho atualmente carregado e restaura estado básico.
         void unload();
+        bool flushBattery();
 
         // Acesso aos subsistemas para depuração/inspeção.
         CPU &getCpu() { return cpu; }
@@ -81,5 +82,6 @@ namespace R2NES::Core
         // Estado interno
         bool cartridgeLoaded = false; // Indica se um cartucho está presente
         bool cpuOverclock = false;    // Flag de overclock experimental da CPU
+        std::filesystem::path batteryDirectory;
     };
 }
