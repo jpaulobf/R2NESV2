@@ -9,6 +9,14 @@ namespace R2NES::System
     // Prepara o NES e a Window para uma nova ROM, incluindo o cache inicial do disassembly.
     void GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
     {
+        if (nes.isCartridgeLoaded() && !nes.flushBattery() &&
+            !nes.getBus().cart->hasBatteryLoadError())
+        {
+            window.showBatteryMessage(nes.getBus().cart->getBatteryMessage());
+            // Uma falha de escrita não deve descartar a sessão com progresso novo.
+            window.clearSelectedPath();
+            return;
+        }
         window.uncheckZapperMenu();
         nes.unload();
         cachedDisassembly.clear();
@@ -16,6 +24,20 @@ namespace R2NES::System
         currentRomPath = path;
         std::cout << "GameStateManager: Loading ROM -> " << path << std::endl;
         nes.insertCartridge(path);
+        if (nes.isCartridgeLoaded())
+        {
+            auto cart = nes.getBus().cart;
+            if (cart->canImportBattery())
+            {
+                if (window.confirmBatteryImport(cart->getBatteryMessage()))
+                {
+                    cart->importBattery();
+                    window.showBatteryMessage(cart->getBatteryMessage());
+                }
+            }
+            else if (!cart->getBatteryMessage().empty())
+                window.showBatteryMessage(cart->getBatteryMessage());
+        }
         nes.reset();
 
         window.setPaused(false);
@@ -32,6 +54,13 @@ namespace R2NES::System
     // Descarta o cartucho e remove da Window os estados associados à ROM anterior.
     void GameStateManager::unloadRom(Core::NES &nes, Core::Window &window)
     {
+        if (nes.isCartridgeLoaded() && !nes.flushBattery() &&
+            !nes.getBus().cart->hasBatteryLoadError())
+        {
+            window.showBatteryMessage(nes.getBus().cart->getBatteryMessage());
+            window.clearUnloadRequest();
+            return;
+        }
         std::cout << "GameStateManager: Unloading ROM..." << std::endl;
         nes.unload();
         cachedDisassembly.clear();
