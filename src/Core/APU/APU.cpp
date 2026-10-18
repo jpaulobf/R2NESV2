@@ -793,7 +793,8 @@ namespace R2NES::Core
 
     void APU::saveState(std::ostream &os)
     {
-        auto write = [&os](const auto &value) { writeValue(os, value); };
+        auto write = [&os](const auto &value)
+        { writeValue(os, value); };
         auto saveLength = [&](const LengthCounter &length)
         {
             write(length.count);
@@ -889,7 +890,8 @@ namespace R2NES::Core
 
     void APU::loadState(std::istream &is)
     {
-        auto read = [&is](auto &value) { readValue(is, value); };
+        auto read = [&is](auto &value)
+        { readValue(is, value); };
         auto loadLength = [&](LengthCounter &length)
         {
             read(length.count);
