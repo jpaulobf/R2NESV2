@@ -110,8 +110,7 @@ namespace R2NES::Core
                               {
                                   this->fastForwardEnabled = enabled;
                                   if (!enabled)
-                                      setFastForward(false);
-                              });
+                                      setFastForward(false); });
 
         // Conecta o callback de Rewind
         window->setRewindCallback([this](bool enabled)
@@ -121,8 +120,7 @@ namespace R2NES::Core
                                       {
                                           setRewind(false);
                                           clearRewindStates();
-                                      }
-                                  });
+                                      } });
 
         window->setCPUOverclockCallback([this](bool enabled)
                                         { 
@@ -136,8 +134,7 @@ namespace R2NES::Core
                                      {
                                          paused = p;
                                          resetPlaybackTiming();
-                                     }
-                                 });
+                                     } });
 
         // Verifica os estados iniciais das opções
         this->vsyncEnabled = window->isVSyncEnabled();
@@ -281,8 +278,7 @@ namespace R2NES::Core
                         do
                         {
                             update();
-                        }
-                        while (SDL_GetPerformanceCounter() - batchStart < batchBudget);
+                        } while (SDL_GetPerformanceCounter() - batchStart < batchBudget);
                     }
                     else if (vsyncEnabled)
                     {
@@ -352,6 +348,8 @@ namespace R2NES::Core
 
             waitForNextWork(currentTime, frequency);
         }
+        if (!nes->flushBattery() && nes->getBus().cart && !nes->getBus().cart->hasBatteryLoadError())
+            window->showBatteryMessage(nes->getBus().cart->getBatteryMessage());
     }
 
     void Engine::waitForNextWork(uint64_t iterationStart, uint64_t frequency)
@@ -373,12 +371,12 @@ namespace R2NES::Core
         if (loaded && runningRewind && !rewindStates.empty())
         {
             waitSeconds = std::min(waitSeconds,
-                rewindIntervalSeconds[window->getRewindPrecisionLevel()] - rewindResidualTime);
+                                   rewindIntervalSeconds[window->getRewindPrecisionLevel()] - rewindResidualTime);
         }
         else if (loaded && !paused && !runningRewind && !stepByStep && timeScale > 0.0f)
         {
             waitSeconds = std::min(waitSeconds,
-                (1.0 / targetUPS - 0.0002 - residualTime) / timeScale);
+                                   (1.0 / targetUPS - 0.0002 - residualTime) / timeScale);
         }
 
         // Os acumuladores usam o início da iteração; desconta emulação,
@@ -401,7 +399,7 @@ namespace R2NES::Core
 
         const uint8_t *keyboardState = SDL_GetKeyboardState(nullptr);
         // Consulta contínua garante que o rewind pare ao soltar Caps Lock.
-        //setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
+        // setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
 
         // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
         if (nes->isCartridgeLoaded())
@@ -540,7 +538,7 @@ namespace R2NES::Core
 
     // Controla o rewind e interrompe o áudio pendente ao começar a retroceder.
     void Engine::setRewind(bool enabled)
-    {      
+    {
         // Se não houve mudança, não fazemos nada
         if (runningRewind == enabled || (enabled && (!rewindEnabled || !nes->isCartridgeLoaded())))
             return;
