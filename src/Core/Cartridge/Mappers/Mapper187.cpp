@@ -3,9 +3,9 @@
 namespace R2NES::Core
 {
     Mapper187::Mapper187(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror)
-        : Mapper004(prgBanks, chrBanks, mirror, [] {
-            Configuration config; config.extendedChr = true; return config;
-        }())
+        : Mapper004(prgBanks, chrBanks, mirror, []
+                    {
+            Configuration config; config.extendedChr = true; return config; }())
     {
         reset();
     }
