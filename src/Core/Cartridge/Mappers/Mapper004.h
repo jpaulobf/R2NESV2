@@ -24,6 +24,8 @@ namespace R2NES::Core
         static bool supports(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror, const Configuration &config);
         void loadTrainer(const uint8_t *data);
         ~Mapper004();
+        std::vector<uint8_t> getBatteryData() const override;
+        bool setBatteryData(const std::vector<uint8_t> &data) override;
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data,

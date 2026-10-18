@@ -35,6 +35,20 @@ namespace R2NES::Core
 
     Mapper004::~Mapper004() {}
 
+    std::vector<uint8_t> Mapper004::getBatteryData() const
+    {
+        // A capacidade validada é 8 KiB no MMC3 ou 1 KiB interno no MMC6.
+        return {vPRGRAM, vPRGRAM + configuration.prgNvRamSize};
+    }
+
+    bool Mapper004::setBatteryData(const std::vector<uint8_t> &data)
+    {
+        if (data.size() != configuration.prgNvRamSize)
+            return false;
+        std::copy(data.begin(), data.end(), vPRGRAM);
+        return true;
+    }
+
     void Mapper004::loadTrainer(const uint8_t *data)
     {
         // Instala o trainer sem alterar as permissões elétricas do MMC6.
@@ -413,13 +427,9 @@ namespace R2NES::Core
             return address;
         // NesDev T9552: Mapper 4.5 armazena os bancos na ordem da coluna 2.
         static constexpr uint8_t prgBits[4][4] = {
-            {16,17,15,14}, {17,16,14,15}, {14,15,16,17}, {15,14,17,16}
-        };
+            {16, 17, 15, 14}, {17, 16, 14, 15}, {14, 15, 16, 17}, {15, 14, 17, 16}};
         static constexpr uint8_t chrBits[8][6] = {
-            {15,12,16,17,14,13}, {14,15,13,12,17,16}, {12,13,14,15,16,17},
-            {16,14,12,13,17,15}, {15,13,17,16,12,14}, {14,12,15,16,17,13},
-            {13,16,14,15,12,17}, {12,15,16,17,13,14}
-        };
+            {15, 12, 16, 17, 14, 13}, {14, 15, 13, 12, 17, 16}, {12, 13, 14, 15, 16, 17}, {16, 14, 12, 13, 17, 15}, {15, 13, 17, 16, 12, 14}, {14, 12, 15, 16, 17, 13}, {13, 16, 14, 15, 12, 17}, {12, 15, 16, 17, 13, 14}};
         const uint8_t *bits = chr ? chrBits[scramblingPattern] : prgBits[scramblingPattern & 3];
         // Só as linhas presentes nas tabelas são permutadas. Os bits de
         // endereço restantes conservam seu valor, inclusive o deslocamento no banco.
@@ -433,23 +443,38 @@ namespace R2NES::Core
 
     void Mapper004::saveState(std::ostream &os)
     {
-        const auto write = [&](uint32_t value, unsigned bytes) {
-            for (unsigned i = 0; i < bytes; ++i) os.put(static_cast<char>((value >> (8 * i)) & 0xFF));
+        const auto write = [&](uint32_t value, unsigned bytes)
+        {
+            for (unsigned i = 0; i < bytes; ++i)
+                os.put(static_cast<char>((value >> (8 * i)) & 0xFF));
         };
         // Layout legado Windows: 8219 bytes para MMC3 sem four-screen.
-        write(nTargetRegister, 1); write(bPRGBankMode, 1); write(bCHRInversion, 1);
+        write(nTargetRegister, 1);
+        write(bPRGBankMode, 1);
+        write(bCHRInversion, 1);
         write(static_cast<uint32_t>(mirrorMode), 4);
         os.write(reinterpret_cast<const char *>(pRegister), sizeof(pRegister));
-        write(bIRQEnabled, 1); write(bIRQActive, 1); write(bIRQReload, 1);
-        write(nIRQLatch, 2); write(nIRQCounter, 2);
-        write(bPRGRAMEnabled, 1); write(bPRGRAMWriteProtected, 1);
-        write(nLastA12, 2); write(nA12LowM2Edges, 1);
+        write(bIRQEnabled, 1);
+        write(bIRQActive, 1);
+        write(bIRQReload, 1);
+        write(nIRQLatch, 2);
+        write(nIRQCounter, 2);
+        write(bPRGRAMEnabled, 1);
+        write(bPRGRAMWriteProtected, 1);
+        write(nLastA12, 2);
+        write(nA12LowM2Edges, 1);
         os.write(reinterpret_cast<const char *>(vPRGRAM), sizeof(vPRGRAM));
         // Extensões vêm depois do payload legado. A configuração fixa da
         // ROM determina quais dados adicionais precisam ser salvos e lidos.
-        if (configuration.submapper == 1) { write(mmc6RamEnabled, 1); write(mmc6RamPermissions, 1); }
-        if (configuration.submapper == 3) write(mcAccPrescaler, 1);
-        if (configuration.submapper == 5) write(scramblingPattern, 1);
+        if (configuration.submapper == 1)
+        {
+            write(mmc6RamEnabled, 1);
+            write(mmc6RamPermissions, 1);
+        }
+        if (configuration.submapper == 3)
+            write(mcAccPrescaler, 1);
+        if (configuration.submapper == 5)
+            write(scramblingPattern, 1);
         if (ogMirrorMode == MirrorMode::FOUR_SCREEN)
             os.write(reinterpret_cast<const char *>(extraNametables.data()), extraNametables.size());
     }
@@ -459,34 +484,51 @@ namespace R2NES::Core
         // Toda a leitura ocorre numa cópia: stream truncado ou campo inválido
         // não pode alterar bancos, IRQ, permissões ou RAM do mapper ativo.
         Mapper004 next = *this;
-        const auto read = [&](unsigned bytes) {
+        const auto read = [&](unsigned bytes)
+        {
             uint32_t value = 0;
             for (unsigned i = 0; i < bytes; ++i)
             {
                 const int byte = is.get();
-                if (byte == std::char_traits<char>::eof()) return uint32_t(0);
+                if (byte == std::char_traits<char>::eof())
+                    return uint32_t(0);
                 value |= uint32_t(static_cast<uint8_t>(byte)) << (8 * i);
             }
             return value;
         };
-        const auto readBool = [&](bool &value) {
+        const auto readBool = [&](bool &value)
+        {
             // Valida o byte antes de convertê-lo, evitando representações
             // inválidas de bool provenientes de estados corrompidos.
             const uint32_t byte = read(1);
-            if (byte > 1) is.setstate(std::ios::failbit);
+            if (byte > 1)
+                is.setstate(std::ios::failbit);
             value = byte == 1;
         };
-        next.nTargetRegister = read(1); readBool(next.bPRGBankMode); readBool(next.bCHRInversion);
+        next.nTargetRegister = read(1);
+        readBool(next.bPRGBankMode);
+        readBool(next.bCHRInversion);
         const uint32_t mirror = read(4);
         is.read(reinterpret_cast<char *>(next.pRegister), sizeof(next.pRegister));
-        readBool(next.bIRQEnabled); readBool(next.bIRQActive); readBool(next.bIRQReload);
-        next.nIRQLatch = read(2); next.nIRQCounter = read(2);
-        readBool(next.bPRGRAMEnabled); readBool(next.bPRGRAMWriteProtected);
-        next.nLastA12 = read(2); next.nA12LowM2Edges = read(1);
+        readBool(next.bIRQEnabled);
+        readBool(next.bIRQActive);
+        readBool(next.bIRQReload);
+        next.nIRQLatch = read(2);
+        next.nIRQCounter = read(2);
+        readBool(next.bPRGRAMEnabled);
+        readBool(next.bPRGRAMWriteProtected);
+        next.nLastA12 = read(2);
+        next.nA12LowM2Edges = read(1);
         is.read(reinterpret_cast<char *>(next.vPRGRAM), sizeof(next.vPRGRAM));
-        if (configuration.submapper == 1) { readBool(next.mmc6RamEnabled); next.mmc6RamPermissions = read(1); }
-        if (configuration.submapper == 3) next.mcAccPrescaler = read(1);
-        if (configuration.submapper == 5) next.scramblingPattern = read(1);
+        if (configuration.submapper == 1)
+        {
+            readBool(next.mmc6RamEnabled);
+            next.mmc6RamPermissions = read(1);
+        }
+        if (configuration.submapper == 3)
+            next.mcAccPrescaler = read(1);
+        if (configuration.submapper == 5)
+            next.scramblingPattern = read(1);
         if (ogMirrorMode == MirrorMode::FOUR_SCREEN)
             is.read(reinterpret_cast<char *>(next.extraNametables.data()), next.extraNametables.size());
         const bool fixedMirror = ogMirrorMode == MirrorMode::FOUR_SCREEN || configuration.submapper == 2;
