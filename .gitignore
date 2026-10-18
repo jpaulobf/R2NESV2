@@ -19,3 +19,5 @@ CMakeCache.txt
 out/*
 imgui.ini
 build-linux.sh
+tests/Mapper005Review.md
+tests/Mapper011Review.md
