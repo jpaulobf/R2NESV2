@@ -111,12 +111,12 @@ namespace R2NES::Core
 
             // Decodificação flexível para VRC2b (CPU A0, A1), VRC4e (CPU A2, A3) e VRC4f (CPU A3, A2)
             uint8_t regOffset = 0;
-            regOffset |= (addr & 0x01);                       // A0 -> bit 0 (VRC2b)
-            regOffset |= (addr & 0x02);                       // A1 -> bit 1 (VRC2b)
-            regOffset |= ((addr >> 2) & 0x01);                // A2 -> bit 0 (VRC4e)
-            regOffset |= ((addr >> 2) & 0x02);                // A3 -> bit 1 (VRC4e)
-            regOffset |= ((addr >> 3) & 0x01);                // A3 -> bit 0 (VRC4f)
-            regOffset |= ((addr >> 1) & 0x02);                // A2 -> bit 1 (VRC4f)
+            regOffset |= (addr & 0x01);        // A0 -> bit 0 (VRC2b)
+            regOffset |= (addr & 0x02);        // A1 -> bit 1 (VRC2b)
+            regOffset |= ((addr >> 2) & 0x01); // A2 -> bit 0 (VRC4e)
+            regOffset |= ((addr >> 2) & 0x02); // A3 -> bit 1 (VRC4e)
+            regOffset |= ((addr >> 3) & 0x01); // A3 -> bit 0 (VRC4f)
+            regOffset |= ((addr >> 1) & 0x02); // A2 -> bit 1 (VRC4f)
 
             switch (major)
             {
