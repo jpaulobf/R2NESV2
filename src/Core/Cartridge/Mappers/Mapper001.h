@@ -46,6 +46,9 @@ namespace R2NES::Core
         static bool supports(uint16_t prgBanks, uint16_t chrBanks, const Configuration &configuration);
         ~Mapper001();
 
+        std::vector<uint8_t> getBatteryData() const override;
+        bool setBatteryData(const std::vector<uint8_t> &data) override;
+
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
         bool cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter) override;
         bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter) override;

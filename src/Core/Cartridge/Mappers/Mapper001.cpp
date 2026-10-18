@@ -1,5 +1,6 @@
 #include "Core/Cartridge/Mappers/Mapper001.h"
 #include <stdexcept>
+#include <algorithm>
 
 namespace R2NES::Core
 {
@@ -23,13 +24,20 @@ namespace R2NES::Core
             return false;
         switch (config.submapper)
         {
-        case 0: return true;
-        case 1: return prgBanks == 32 && chrBanks <= 1 && ram == 8192; // SUROM depreciado.
-        case 2: return prgBanks <= 16 && chrBanks <= 1 && ram == 16384; // SOROM depreciado.
-        case 4: return chrBanks <= 1 && ram == 32768; // SXROM depreciado.
-        case 5: return prgBanks == 2 && ram == 0;
-        case 7: return prgBanks <= 16;
-        default: return false; // MMC1A (3/mapper 155), EEPROM 2ME (6) e desconhecidos.
+        case 0:
+            return true;
+        case 1:
+            return prgBanks == 32 && chrBanks <= 1 && ram == 8192; // SUROM depreciado.
+        case 2:
+            return prgBanks <= 16 && chrBanks <= 1 && ram == 16384; // SOROM depreciado.
+        case 4:
+            return chrBanks <= 1 && ram == 32768; // SXROM depreciado.
+        case 5:
+            return prgBanks == 2 && ram == 0;
+        case 7:
+            return prgBanks <= 16;
+        default:
+            return false; // MMC1A (3/mapper 155), EEPROM 2ME (6) e desconhecidos.
         }
     }
 
@@ -43,6 +51,21 @@ namespace R2NES::Core
     }
 
     Mapper001::~Mapper001() {}
+
+    std::vector<uint8_t> Mapper001::getBatteryData() const
+    {
+        // SOROM/SZROM: RAM volátil primeiro, segundo chip ligado à bateria.
+        const auto start = nPRGStaticRAM + configuration.prgRamSize;
+        return {start, start + configuration.prgNvRamSize};
+    }
+
+    bool Mapper001::setBatteryData(const std::vector<uint8_t> &data)
+    {
+        if (data.size() != configuration.prgNvRamSize)
+            return false;
+        std::copy(data.begin(), data.end(), nPRGStaticRAM + configuration.prgRamSize);
+        return true;
+    }
 
     bool Mapper001::cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
     {
