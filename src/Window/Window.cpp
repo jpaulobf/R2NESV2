@@ -19,6 +19,22 @@
 
 namespace R2NES::Core
 {
+    void Window::showBatteryMessage(const std::string &message)
+    {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Bateria do cartucho", message.c_str(), window);
+    }
+
+    bool Window::confirmBatteryImport(const std::string &message)
+    {
+        const SDL_MessageBoxButtonData buttons[] = {
+            {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Manter original"},
+            {0, 1, "Importar com backup"}};
+        const SDL_MessageBoxData dialog{SDL_MESSAGEBOX_WARNING, window, "Importar bateria MMC5",
+                                        message.c_str(), 2, buttons, nullptr};
+        int selected = 0;
+        return SDL_ShowMessageBox(&dialog, &selected) == 0 && selected == 1;
+    }
+
     // Inicializa SDL, renderer, textura de vídeo e contexto ImGui da janela principal.
     Window::Window(const std::string &title, int w, int h, int s)
         : width(w), height(h), scale(s)
