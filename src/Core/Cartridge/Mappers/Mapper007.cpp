@@ -8,7 +8,7 @@ namespace R2NES::Core
 		// AxROM usa CHR-RAM fixa de 8 KiB. Mantém as extensões de PRG de
 		// 16 KiB (espelhada) e 512 KiB (bit 3), sem inventar linhas de banco.
 		return prgBanks >= 1 && prgBanks <= 32 && (prgBanks & (prgBanks - 1)) == 0 &&
-			chrBanks == 0 && (mirror == MirrorMode::HORIZONTAL || mirror == MirrorMode::VERTICAL);
+			   chrBanks == 0 && (mirror == MirrorMode::HORIZONTAL || mirror == MirrorMode::VERTICAL);
 	}
 
 	Mapper007::Mapper007(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror) : Mapper(prgBanks, chrBanks)
