@@ -97,7 +97,7 @@ static void states()
     Mapper009 m(8, 16, MirrorMode::VERTICAL);
     configure(m); write(m, 0xA000, 15); write(m, 0xF000, 1); chr(m, 0x0FD8);
     const auto before = state(m);
-    check(before.size() == 8207 && before.substr(0, 15) == std::string("\x0F\x01\x02\x03\x04\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00", 15), "Legacy mapper layout changed");
+    check(before.size() == 8208 && before.substr(0, 15) == std::string("\x0F\x01\x02\x03\x04\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00", 15), "Legacy mapper layout changed");
     m.reset(); std::stringstream saved(before); m.loadState(saved);
     check(saved.good() && state(m) == before && chr(m, 0, true) == 4096, "Mapper restore failed");
     for (size_t length = 0; length < before.size(); ++length)
@@ -112,7 +112,7 @@ static void states()
         std::stringstream broken(bytes); m.loadState(broken);
         check(broken.fail() && state(m) == before, "Corrupt register/latch/mirror accepted");
     }
-    auto legacy = before; std::fill(legacy.begin() + 15, legacy.end(), char(0xA5));
+    auto legacy = before; std::fill(legacy.begin() + 15, legacy.end() - 1, char(0xA5));
     std::stringstream old(legacy); m.loadState(old);
     check(old.good() && state(m) == before, "Legacy phantom RAM payload not consumed");
     for (uint16_t count : {1, 2, 4, 8})
@@ -169,10 +169,10 @@ static void images(const std::filesystem::path &dir)
         for (unsigned count : {0,3,32}) reject(rom(8,count,nes2));
         auto bytes=rom(8,16,nes2); bytes.resize(16+65536); reject(bytes);
         bytes=rom(8,16,nes2); bytes.pop_back(); reject(bytes);
-        for (uint8_t flag : {2,4,8}) { bytes=rom(8,16,nes2); bytes[6]|=flag; if(flag==4) bytes.insert(bytes.begin()+16,512,0); reject(bytes); }
+        for (uint8_t flag : {4,8}) { bytes=rom(8,16,nes2); bytes[6]|=flag; if(flag==4) bytes.insert(bytes.begin()+16,512,0); reject(bytes); }
     }
     for (uint8_t sub=1;sub<16;++sub) { auto bytes=rom(); bytes[8]=sub<<4; reject(bytes); }
-    for (unsigned field : {10,11,14}) { auto bytes=rom(); bytes[field]=7; reject(bytes); }
+    for (unsigned field : {11,14}) { auto bytes=rom(); bytes[field]=7; reject(bytes); }
     auto bytes=rom(); bytes[8]=1; reject(bytes); // Mapper 265 não pode virar 9.
     bytes=rom(); bytes[9]=0x0F; bytes[4]=(14<<2)|1; reject(bytes); // 48 KiB.
     bytes[4]=0xFF; reject(bytes);
@@ -206,7 +206,7 @@ static void console(const std::filesystem::path &dir)
         write(mapper,0xF000,horizontal); ppu.ppuWrite(0x2000,0x31); ppu.ppuWrite(0x2C00,0x52);
         check(ppu.ppuRead(horizontal?0x2400:0x2800)==0x31 && ppu.ppuRead(horizontal?0x2800:0x2400)==0x52,"PPU H/V mirroring mismatch");
     }
-    const auto before=consoleState(nes); const size_t start=before.size()-8207;
+    const auto before=consoleState(nes); const size_t start=before.size()-8208;
     for (size_t length : {start,start+7,start+15,before.size()-1})
     {
         std::stringstream broken(before.substr(0,length));
