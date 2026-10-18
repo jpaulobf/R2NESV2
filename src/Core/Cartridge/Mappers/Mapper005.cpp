@@ -9,7 +9,8 @@ namespace R2NES::Core
 	{
 		void writeWord(std::ostream &os, uint16_t value)
 		{
-			os.put(value & 255); os.put(value >> 8);
+			os.put(value & 255);
+			os.put(value >> 8);
 		}
 		uint16_t readWord(std::istream &is)
 		{
@@ -19,7 +20,8 @@ namespace R2NES::Core
 		}
 		void writeDword(std::ostream &os, uint32_t value)
 		{
-			writeWord(os, value & 0xFFFF); writeWord(os, value >> 16);
+			writeWord(os, value & 0xFFFF);
+			writeWord(os, value >> 16);
 		}
 		uint32_t readDword(std::istream &is)
 		{
@@ -29,66 +31,158 @@ namespace R2NES::Core
 	}
 	bool Mapper005::supports(uint16_t prgBanks, uint16_t chrBanks, const Configuration &config)
 	{
-		const auto powerOfTwo = [](uint32_t value) { return value && !(value & (value - 1)); };
+		const auto powerOfTwo = [](uint32_t value)
+		{ return value && !(value & (value - 1)); };
 		if (!powerOfTwo(prgBanks) || prgBanks > 64 || chrBanks > 128 ||
 			(chrBanks && !powerOfTwo(chrBanks)) || config.submapper ||
-			(config.revision != Revision::MMC5 && config.revision != Revision::MMC5A)) return false;
+			(config.revision != Revision::MMC5 && config.revision != Revision::MMC5A))
+			return false;
 		const uint64_t total = uint64_t(config.prgRamSize) + config.prgNvRamSize;
 		if (config.prgRamSize && config.prgNvRamSize)
 			return (config.prgRamSize == 8192 || config.prgRamSize == 32768) &&
-				(config.prgNvRamSize == 8192 || config.prgNvRamSize == 32768);
+				   (config.prgNvRamSize == 8192 || config.prgNvRamSize == 32768);
 		return total == 0 || total == 8192 || total == 16384 || total == 32768 || total == 65536 || total == 131072;
 	}
 
 	Mapper005::Mapper005(uint16_t prgBanks, uint16_t chrBanks) : Mapper005(prgBanks, chrBanks, Configuration{}) {}
 
-	Mapper005::Mapper005(uint16_t prgBanks, uint16_t chrBanks, Configuration config) :
-		Mapper(prgBanks, chrBanks), configuration(config)
+	Mapper005::Mapper005(uint16_t prgBanks, uint16_t chrBanks, Configuration config) : Mapper(prgBanks, chrBanks), configuration(config)
 	{
-		if (!supports(prgBanks, chrBanks, config)) throw std::invalid_argument("Unsupported MMC5 memory configuration");
+		if (!supports(prgBanks, chrBanks, config))
+			throw std::invalid_argument("Unsupported MMC5 memory configuration");
 		vPRGRAM.resize(config.prgRamSize + config.prgNvRamSize);
+		configuration.batteryBackedExRam = config.batteryBackedExRam || config.prgNvRamSize != 0;
 		reset();
+	}
+
+	std::vector<uint8_t> Mapper005::getBatteryData() const
+	{
+		// ETROM mantém o primeiro chip. O segundo é RAM de trabalho.
+		std::vector<uint8_t> data(vPRGRAM.begin(), vPRGRAM.begin() + configuration.prgNvRamSize);
+		if (configuration.batteryBackedExRam)
+			data.insert(data.end(), std::begin(vExRAM), std::end(vExRAM));
+		return data;
+	}
+
+	bool Mapper005::setBatteryData(const std::vector<uint8_t> &data)
+	{
+		const size_t size = configuration.prgNvRamSize + (configuration.batteryBackedExRam ? 1024 : 0);
+		if (data.size() != size)
+			return false;
+		std::copy_n(data.begin(), configuration.prgNvRamSize, vPRGRAM.begin());
+		if (configuration.batteryBackedExRam)
+			std::copy_n(data.begin() + configuration.prgNvRamSize, 1024, vExRAM);
+		return true;
+	}
+
+	bool Mapper005::convertBatteryData(const std::vector<uint8_t> &source, std::vector<uint8_t> &converted,
+									   std::string &description) const
+	{
+		if (!configuration.batteryBackedExRam || !configuration.prgNvRamSize)
+			return false;
+		size_t sourceNv = 0;
+		bool hasExRam = false;
+		for (size_t size : {size_t(8192), size_t(16384), size_t(32768), size_t(65536), size_t(131072)})
+		{
+			if (source.size() == size)
+			{
+				sourceNv = size;
+				break;
+			}
+			if (source.size() == size + 1024)
+			{
+				sourceNv = size;
+				hasExRam = true;
+				break;
+			}
+		}
+		if (!sourceNv)
+			return false;
+		const size_t targetNv = configuration.prgNvRamSize;
+		if (sourceNv > targetNv)
+		{
+			// Só reduz perfis maiores se a cauda estiver vazia ou repetir o banco
+			// mantido. Dados distintos exigem análise manual, nunca são descartados.
+			bool zero = true, mirrored = true;
+			for (size_t i = targetNv; i < sourceNv; ++i)
+			{
+				zero &= source[i] == 0;
+				mirrored &= source[i] == source[i % targetNv];
+			}
+			if (!zero && !mirrored)
+			{
+				description = "A conversao descartaria bancos com dados diferentes. O arquivo foi preservado.";
+				return false;
+			}
+		}
+		std::vector<uint8_t> result(targetNv + 1024, 0);
+		std::copy_n(source.begin(), std::min(sourceNv, targetNv), result.begin());
+		if (hasExRam)
+			std::copy_n(source.begin() + sourceNv, 1024, result.begin() + targetNv);
+		description = "Arquivo MMC5 com " + std::to_string(sourceNv) + " bytes de PRG-NVRAM" +
+					  (hasExRam ? " e ExRAM." : ", sem ExRAM. A ExRAM sera inicializada com zeros.") +
+					  "\nDestino: " + std::to_string(targetNv) + " bytes de PRG-NVRAM e 1024 bytes de ExRAM." +
+					  (sourceNv < targetNv ? "\nOs bancos adicionais serao inicializados com zeros." : "") +
+					  "\nO arquivo original sera copiado para um backup antes da conversao.";
+		converted.swap(result);
+		return true;
 	}
 
 	std::optional<uint32_t> Mapper005::getRamOffset(uint8_t bank, uint16_t offset) const
 	{
 		const uint32_t total = vPRGRAM.size();
-		if (!total) return std::nullopt;
+		if (!total)
+			return std::nullopt;
 		// Extensão de um chip de 128 KiB: os quatro bits selecionam dezesseis bancos.
-		if (total == 131072) return (bank & 15) * 8192u + offset;
+		if (total == 131072)
+			return (bank & 15) * 8192u + offset;
 		uint32_t first = total, second = 0;
 		if (configuration.prgRamSize && configuration.prgNvRamSize)
 		{
-			// ETROM: primeiro chip não volátil, segundo volátil (sem persistência aqui).
+			// ETROM: primeiro chip não volátil, segundo volátil.
 			first = configuration.prgNvRamSize;
 			second = configuration.prgRamSize;
 		}
-		else if (total == 16384 || total == 65536) first = second = total / 2;
+		else if (total == 16384 || total == 65536)
+			first = second = total / 2;
 		const bool chip = bank & 4;
 		const uint32_t size = chip ? second : first;
-		if (!size) return std::nullopt; // /CE seleciona um chip ausente: barramento aberto.
+		if (!size)
+			return std::nullopt; // /CE seleciona um chip ausente: barramento aberto.
 		return (chip ? first : 0) + ((bank & 3) * 8192u + offset) % size;
 	}
 
 	void Mapper005::getPrgMapping(uint16_t addr, uint8_t &bank, bool &ram) const
 	{
-		if (addr < 0x8000) { bank = prgBankRegs[0]; ram = true; return; }
+		if (addr < 0x8000)
+		{
+			bank = prgBankRegs[0];
+			ram = true;
+			return;
+		}
 		const uint8_t slot = (addr - 0x8000) / 8192;
 		uint8_t reg = prgBankRegs[slot + 1];
-		if (prgMode == 0) { bank = (prgBankRegs[4] & 0x7C) + slot; ram = false; return; }
+		if (prgMode == 0)
+		{
+			bank = (prgBankRegs[4] & 0x7C) + slot;
+			ram = false;
+			return;
+		}
 		if (prgMode == 1 || (prgMode == 2 && slot < 2))
 		{
 			reg = prgBankRegs[slot < 2 ? 2 : 4];
 			bank = (reg & 0x7E) + (slot & 1);
 		}
-		else bank = reg & 0x7F;
+		else
+			bank = reg & 0x7F;
 		ram = slot < (prgMode == 1 ? 2 : 3) && !(reg & 0x80);
 	}
 
 	void Mapper005::loadTrainer(const uint8_t *trainer)
 	{
 		const auto offset = getRamOffset(0, 0x1000);
-		if (!offset) throw std::invalid_argument("MMC5 trainer requires PRG RAM");
+		if (!offset)
+			throw std::invalid_argument("MMC5 trainer requires PRG RAM");
 		// Instalação física, sem desbloquear a proteção nem simular escritas da CPU.
 		std::copy_n(trainer, 512, vPRGRAM.begin() + *offset);
 	}
@@ -113,8 +207,10 @@ namespace R2NES::Core
 		prgBankRegs[3] = 0;
 		prgBankRegs[4] = 0xFF; // Top bank fixed to last ROM bank
 
-		for (int i = 0; i < 8; i++) chrSetA[i] = 0;
-		for (int i = 0; i < 4; i++) chrSetB[i] = 0;
+		for (int i = 0; i < 8; i++)
+			chrSetA[i] = 0;
+		for (int i = 0; i < 4; i++)
+			chrSetB[i] = 0;
 		chrHigh = 0;
 
 		multA = 0;
@@ -126,7 +222,8 @@ namespace R2NES::Core
 		inFrame = false;
 		scanlineCounter = 0;
 
-		for (int i = 0; i < 22; i++) audioRegs[i] = 0;
+		for (int i = 0; i < 22; i++)
+			audioRegs[i] = 0;
 		expansionControl = 0xC0;
 		expansionLatch = 0;
 		timerCounter = 0;
@@ -170,7 +267,8 @@ namespace R2NES::Core
 
 	uint8_t Mapper005::expansionPins(uint16_t address, bool write, bool m2High) const
 	{
-		if (configuration.revision != Revision::MMC5A) return 0;
+		if (configuration.revision != Revision::MMC5A)
+			return 0;
 		uint8_t levels = 0;
 		for (unsigned pin = 0; pin < 2; ++pin)
 		{
@@ -179,9 +277,11 @@ namespace R2NES::Core
 			{
 				// Função /M2 sobrepõe direção/latch; não há RAM interna em $5800.
 				const bool access = address >= 0x5800 && address <= 0x5BFF && write == (pin == 1);
-				if (!(access && m2High)) levels |= mask;
+				if (!(access && m2High))
+					levels |= mask;
 			}
-			else levels |= (expansionControl & mask ? expansionInputs : expansionLatch) & mask;
+			else
+				levels |= (expansionControl & mask ? expansionInputs : expansionLatch) & mask;
 		}
 		return levels;
 	}
@@ -206,12 +306,16 @@ namespace R2NES::Core
 		// Um tick representa uma subida sistêmica de M2, inclusive em DMA.
 		if (timerRunning)
 		{
-			if (timerCounter && --timerCounter == 0) timerPending = true;
-			if (!timerCounter) timerRunning = false;
+			if (timerCounter && --timerCounter == 0)
+				timerPending = true;
+			if (!timerCounter)
+				timerRunning = false;
 		}
 		// Amostra a atividade de /RD em cada ciclo M2, inclusive durante DMA.
-		if (ppuReadSinceTick) idleCycles = 0;
-		else if (idleCycles < 3) ++idleCycles;
+		if (ppuReadSinceTick)
+			idleCycles = 0;
+		else if (idleCycles < 3)
+			++idleCycles;
 		ppuReadSinceTick = 0;
 		if (idleCycles == 3)
 		{
@@ -234,17 +338,20 @@ namespace R2NES::Core
 	void Mapper005::onCpuRead(uint16_t addr, uint8_t data)
 	{
 		// Observa o valor antes de a PPU limpar VBlank; espelhos não são decodificados.
-		if (addr == 0x2002 && (data & 0x80)) resetScanlineState();
+		if (addr == 0x2002 && (data & 0x80))
+			resetScanlineState();
 	}
 
 	bool Mapper005::mapCpuRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, bool readOnly)
 	{
-		if (!readOnly && (addr == 0xFFFA || addr == 0xFFFB)) resetScanlineState();
+		if (!readOnly && (addr == 0xFFFA || addr == 0xFFFB))
+			resetScanlineState();
 		if (configuration.revision == Revision::MMC5A && (addr == 0x5208 || addr == 0x5209))
 		{
 			// Bits não documentados ficam determinísticos em zero; peek não reconhece IRQ.
 			data = addr == 0x5208 ? expansionPins() : (!timerRunning && timerPending ? 0x80 : 0);
-			if (addr == 0x5209 && !readOnly) timerPending = false;
+			if (addr == 0x5209 && !readOnly)
+				timerPending = false;
 			mapped_addr = 0xFFFFFFFF;
 			return true;
 		}
@@ -260,7 +367,8 @@ namespace R2NES::Core
 		if (addr == 0x5204)
 		{
 			data = (irqPending ? 0x80 : 0x00) | (inFrame ? 0x40 : 0x00);
-			if (!readOnly) irqPending = false;
+			if (!readOnly)
+				irqPending = false;
 			mapped_addr = 0xFFFFFFFF;
 			return true;
 		}
@@ -286,20 +394,24 @@ namespace R2NES::Core
 		{
 			mapped_addr = 0xFFFFFFFF;
 			// Nos modos de vídeo a CPU não dirige a leitura: conserva o barramento aberto.
-			if (exRamMode >= 2) data = vExRAM[addr & 0x03FF];
+			if (exRamMode >= 2)
+				data = vExRAM[addr & 0x03FF];
 			return true;
 		}
 
 		if (addr >= 0x6000)
 		{
-			uint8_t bank = 0; bool ram = false;
+			uint8_t bank = 0;
+			bool ram = false;
 			getPrgMapping(addr, bank, ram);
 			if (ram)
 			{
 				mapped_addr = 0xFFFFFFFF;
-				if (const auto offset = getRamOffset(bank, addr & 0x1FFF)) data = vPRGRAM[*offset];
+				if (const auto offset = getRamOffset(bank, addr & 0x1FFF))
+					data = vPRGRAM[*offset];
 			}
-			else mapped_addr = (bank % (nPRGBanks * 2)) * 8192u + (addr & 0x1FFF);
+			else
+				mapped_addr = (bank % (nPRGBanks * 2)) * 8192u + (addr & 0x1FFF);
 			return true;
 		}
 
@@ -312,9 +424,12 @@ namespace R2NES::Core
 		{
 			if (addr >= 0x5207 && addr <= 0x520A)
 			{
-				if (addr == 0x5207) expansionControl = data & 0xC3;
-				if (addr == 0x5208) expansionLatch = data & 0xC0;
-				if (addr == 0x520A) timerCounter = (timerCounter & 0xFF) | (uint16_t(data) << 8);
+				if (addr == 0x5207)
+					expansionControl = data & 0xC3;
+				if (addr == 0x5208)
+					expansionLatch = data & 0xC0;
+				if (addr == 0x520A)
+					timerCounter = (timerCounter & 0xFF) | (uint16_t(data) << 8);
 				if (addr == 0x5209)
 				{
 					timerCounter = (timerCounter & 0xFF00) | data;
@@ -331,11 +446,13 @@ namespace R2NES::Core
 		}
 		// O MMC5 observa os endereços exatos; os espelhos pertencem apenas à PPU.
 		// Retornar false permite que o barramento entregue a mesma escrita à PPU.
-		if (addr == 0x2000) observedPpuCtrl = data & 0x20;
+		if (addr == 0x2000)
+			observedPpuCtrl = data & 0x20;
 		if (addr == 0x2001)
 		{
 			const uint8_t nextMask = data & 0x18;
-			if (!observedPpuMask && nextMask) resetScanlineState();
+			if (!observedPpuMask && nextMask)
+				resetScanlineState();
 			if (!nextMask)
 			{
 				// Desabilitar rendering encerra o quadro, mas não reconhece a IRQ pendente.
@@ -346,7 +463,8 @@ namespace R2NES::Core
 			observedPpuMask = nextMask;
 		}
 		// O NesDev documenta este reset; a confirmação elétrica de OAMDMA é parcial.
-		if (addr == 0x4014) resetScanlineState();
+		if (addr == 0x4014)
+			resetScanlineState();
 
 		// Audio Registers ($5000 - $5015)
 		if (addr >= 0x5000 && addr <= 0x5015)
@@ -361,15 +479,33 @@ namespace R2NES::Core
 		{
 			switch (addr)
 			{
-			case 0x5100: prgMode = data & 0x03; break;
-			case 0x5101: chrMode = data & 0x03; break;
-			case 0x5102: prgRamProtect1 = data & 0x03; break;
-			case 0x5103: prgRamProtect2 = data & 0x03; break;
-			case 0x5104: exRamMode = data & 0x03; break;
-			case 0x5105: nametableTileMode = data; break;
-			case 0x5106: fillTile = data; break;
-			case 0x5107: fillColor = data & 0x03; break;
-			case 0x5130: chrHigh = data & 0x03; break;
+			case 0x5100:
+				prgMode = data & 0x03;
+				break;
+			case 0x5101:
+				chrMode = data & 0x03;
+				break;
+			case 0x5102:
+				prgRamProtect1 = data & 0x03;
+				break;
+			case 0x5103:
+				prgRamProtect2 = data & 0x03;
+				break;
+			case 0x5104:
+				exRamMode = data & 0x03;
+				break;
+			case 0x5105:
+				nametableTileMode = data;
+				break;
+			case 0x5106:
+				fillTile = data;
+				break;
+			case 0x5107:
+				fillColor = data & 0x03;
+				break;
+			case 0x5130:
+				chrHigh = data & 0x03;
+				break;
 			default:
 				if (addr >= 0x5113 && addr <= 0x5117)
 					prgBankRegs[addr - 0x5113] = data;
@@ -383,7 +519,8 @@ namespace R2NES::Core
 					chrSetB[addr - 0x5128] = captureChrBank(data);
 					lastChrSetB = 1;
 				}
-				else return false; // Lacunas não são registradores do MMC5.
+				else
+					return false; // Lacunas não são registradores do MMC5.
 				break;
 			}
 			mapped_addr = 0xFFFFFFFF;
@@ -393,9 +530,12 @@ namespace R2NES::Core
 		// IRQ & Multiplier ($5200 - $5206)
 		if (addr >= 0x5200 && addr <= 0x5202)
 		{
-			if (addr == 0x5200) splitControl = data & 0xDF;
-			if (addr == 0x5201) splitScroll = data;
-			if (addr == 0x5202) splitBank = data;
+			if (addr == 0x5200)
+				splitControl = data & 0xDF;
+			if (addr == 0x5201)
+				splitScroll = data;
+			if (addr == 0x5202)
+				splitBank = data;
 			mapped_addr = 0xFFFFFFFF;
 			return true;
 		}
@@ -443,10 +583,12 @@ namespace R2NES::Core
 		if (addr >= 0x6000)
 		{
 			mapped_addr = 0xFFFFFFFF;
-			uint8_t bank = 0; bool ram = false;
+			uint8_t bank = 0;
+			bool ram = false;
 			getPrgMapping(addr, bank, ram);
 			if (ram && prgRamProtect1 == 2 && prgRamProtect2 == 1)
-				if (const auto offset = getRamOffset(bank, addr & 0x1FFF)) vPRGRAM[*offset] = data;
+				if (const auto offset = getRamOffset(bank, addr & 0x1FFF))
+					vPRGRAM[*offset] = data;
 			return true; // ROM, RAM protegida ou chip ausente também consomem a escrita.
 		}
 
@@ -469,20 +611,36 @@ namespace R2NES::Core
 		{
 			switch (chrMode)
 			{
-			case 0: bank = (chrSetA[7] & ~7) + page; break;
-			case 1: bank = (chrSetA[(page < 4) ? 3 : 7] & ~3) + (page & 3); break;
-			case 2: bank = (chrSetA[(page >> 1) * 2 + 1] & ~1) + (page & 1); break;
-			case 3: bank = chrSetA[page]; break;
+			case 0:
+				bank = (chrSetA[7] & ~7) + page;
+				break;
+			case 1:
+				bank = (chrSetA[(page < 4) ? 3 : 7] & ~3) + (page & 3);
+				break;
+			case 2:
+				bank = (chrSetA[(page >> 1) * 2 + 1] & ~1) + (page & 1);
+				break;
+			case 3:
+				bank = chrSetA[page];
+				break;
 			}
 		}
 		else
 		{
 			switch (chrMode)
 			{
-			case 0: bank = (chrSetB[3] & ~7) + page; break;
-			case 1: bank = (chrSetB[3] & ~3) + (page & 3); break;
-			case 2: bank = (chrSetB[(page & 2) + 1] & ~1) + (page & 1); break;
-			case 3: bank = chrSetB[page & 3]; break;
+			case 0:
+				bank = (chrSetB[3] & ~7) + page;
+				break;
+			case 1:
+				bank = (chrSetB[3] & ~3) + (page & 3);
+				break;
+			case 2:
+				bank = (chrSetB[(page & 2) + 1] & ~1) + (page & 1);
+				break;
+			case 3:
+				bank = chrSetB[page & 3];
+				break;
 			}
 		}
 		// Mudar $5101 só altera as linhas vindas da PPU, sem recapturar o banco.
@@ -506,8 +664,10 @@ namespace R2NES::Core
 			scanlineCounter = 0;
 			irqPending = false; // A primeira linha reconhece uma IRQ do quadro anterior.
 		}
-		else if (++scanlineCounter == 240) resetScanlineState(); // 241ª linha detectada.
-		else if (irqTargetLine && scanlineCounter == irqTargetLine) irqPending = true;
+		else if (++scanlineCounter == 240)
+			resetScanlineState(); // 241ª linha detectada.
+		else if (irqTargetLine && scanlineCounter == irqTargetLine)
+			irqPending = true;
 	}
 
 	void Mapper005::onPpuRead(uint16_t addr)
@@ -523,13 +683,15 @@ namespace R2NES::Core
 		}
 		if (addr >= 0x2000 && addr <= 0x2FFF)
 			sameAddrReadCount = (addr == lastPpuAddr && sameAddrReadCount) ? sameAddrReadCount + 1 : 1;
-		else sameAddrReadCount = 0;
+		else
+			sameAddrReadCount = 0;
 		lastPpuAddr = addr;
 	}
 
 	bool Mapper005::useChrSetA(PpuReadContext context) const
 	{
-		if (!(observedPpuCtrl & 0x20)) return true; // Sprites 8x8 ignoram o conjunto B.
+		if (!(observedPpuCtrl & 0x20))
+			return true; // Sprites 8x8 ignoram o conjunto B.
 		// Fora dos fetches com substituições habilitadas, o último conjunto escrito
 		// define a janela comum, inclusive para leituras/escritas por PPUDATA.
 		if (context == PpuReadContext::Cpu || !(observedPpuMask & 0x18))
@@ -551,10 +713,12 @@ namespace R2NES::Core
 		{
 			splitY = splitScroll;
 			// Inicialização em meio de quadro mantém a origem alinhada à tela.
-			for (int16_t i = 0; i < line; ++i) splitY = splitY == 239 || splitY == 255 ? 0 : splitY + 1;
+			for (int16_t i = 0; i < line; ++i)
+				splitY = splitY == 239 || splitY == 255 ? 0 : splitY + 1;
 		}
-		else for (int16_t i = splitLine; i < line; ++i)
-			splitY = splitY == 239 || splitY == 255 ? 0 : splitY + 1;
+		else
+			for (int16_t i = splitLine; i < line; ++i)
+				splitY = splitY == 239 || splitY == 255 ? 0 : splitY + 1;
 		splitLine = line;
 		splitColumn = column;
 		splitTileOffset = (splitY >> 3) * 32 + (splitColumn & 31);
@@ -577,7 +741,7 @@ namespace R2NES::Core
 	{
 		const bool background = context == PpuReadContext::Background || context == PpuReadContext::BackgroundTile;
 		const bool split = background && (observedPpuMask & 0x18) &&
-			exRamMode <= 1 && (splitControl & 0x80) && splitTileActive;
+						   exRamMode <= 1 && (splitControl & 0x80) && splitTileActive;
 		if (split && addr < 0x2000)
 		{
 			// Ligação CL comercial: CHR A0-A2 continuam ligados ao fine Y da PPU.
@@ -588,7 +752,8 @@ namespace R2NES::Core
 		if (split && addr >= 0x2000 && addr <= 0x3EFF)
 		{
 			mapped_addr = 0xFFFFFFFF;
-			if (context == PpuReadContext::BackgroundTile || (addr & 0x3FF) < 0x3C0) data = vExRAM[splitTileOffset];
+			if (context == PpuReadContext::BackgroundTile || (addr & 0x3FF) < 0x3C0)
+				data = vExRAM[splitTileOffset];
 			else
 			{
 				const uint16_t attr = 0x3C0 + ((splitTileOffset >> 4) & 0x38) + ((splitTileOffset >> 2) & 7);
@@ -598,7 +763,7 @@ namespace R2NES::Core
 			return true;
 		}
 		const bool extended = exRamMode == 1 && (observedPpuMask & 0x18) &&
-			background;
+							  background;
 		if (addr >= 0x0000 && addr <= 0x1FFF)
 		{
 			uint32_t totalChr1k = (nCHRBanks == 0) ? 8 : (nCHRBanks * 8);
@@ -645,8 +810,12 @@ namespace R2NES::Core
 
 			switch (ntSource)
 			{
-			case 0: data = vCIRAM.readRaw(offset); return true;
-			case 1: data = vCIRAM.readRaw(1024 + offset); return true;
+			case 0:
+				data = vCIRAM.readRaw(offset);
+				return true;
+			case 1:
+				data = vCIRAM.readRaw(1024 + offset);
+				return true;
 			case 2:
 				if (exRamMode == 0 || exRamMode == 1)
 				{
@@ -718,8 +887,16 @@ namespace R2NES::Core
 
 		os.write(reinterpret_cast<const char *>(prgBankRegs), sizeof(prgBankRegs));
 		// Cada banco ocupa dois bytes, em ordem little-endian, inclusive os bits altos.
-		for (uint16_t bank : chrSetA) { os.put(bank & 0xFF); os.put(bank >> 8); }
-		for (uint16_t bank : chrSetB) { os.put(bank & 0xFF); os.put(bank >> 8); }
+		for (uint16_t bank : chrSetA)
+		{
+			os.put(bank & 0xFF);
+			os.put(bank >> 8);
+		}
+		for (uint16_t bank : chrSetB)
+		{
+			os.put(bank & 0xFF);
+			os.put(bank >> 8);
+		}
 		os.write(reinterpret_cast<const char *>(&chrHigh), sizeof(chrHigh));
 
 		os.write(reinterpret_cast<const char *>(&multA), sizeof(multA));
@@ -733,13 +910,20 @@ namespace R2NES::Core
 
 		os.write(reinterpret_cast<const char *>(audioRegs), sizeof(audioRegs));
 		os.put(static_cast<uint8_t>(configuration.revision));
-		os.put(expansionControl); os.put(expansionLatch); os.put(expansionInputs);
+		os.put(expansionControl);
+		os.put(expansionLatch);
+		os.put(expansionInputs);
 		writeWord(os, timerCounter);
-		os.put(timerRunning); os.put(timerPending);
+		os.put(timerRunning);
+		os.put(timerPending);
 		// O tamanho vem da placa, nunca de um arquivo de estado não confiável.
-		writeWord(os, nPRGBanks); writeWord(os, nCHRBanks);
-		writeDword(os, configuration.prgRamSize); writeDword(os, configuration.prgNvRamSize);
-		if (!vPRGRAM.empty()) os.write(reinterpret_cast<const char *>(vPRGRAM.data()), vPRGRAM.size());
+		writeWord(os, nPRGBanks);
+		writeWord(os, nCHRBanks);
+		writeDword(os, configuration.prgRamSize);
+		writeDword(os, configuration.prgNvRamSize);
+		os.put(configuration.batteryBackedExRam);
+		if (!vPRGRAM.empty())
+			os.write(reinterpret_cast<const char *>(vPRGRAM.data()), vPRGRAM.size());
 		os.write(reinterpret_cast<const char *>(vExRAM), sizeof(vExRAM));
 		vCIRAM.saveState(os);
 
@@ -752,9 +936,13 @@ namespace R2NES::Core
 		os.write(reinterpret_cast<const char *>(&observedPpuMask), sizeof(observedPpuMask));
 		os.write(reinterpret_cast<const char *>(&lastChrSetB), sizeof(lastChrSetB));
 		os.put(ppuReadSinceTick);
-		os.put(splitControl); os.put(splitScroll); os.put(splitBank);
+		os.put(splitControl);
+		os.put(splitScroll);
+		os.put(splitBank);
 		writeWord(os, splitLine < 0 ? 0xFFFF : uint16_t(splitLine));
-		os.put(splitY); os.put(splitColumn); os.put(splitTileActive);
+		os.put(splitY);
+		os.put(splitColumn);
+		os.put(splitTileActive);
 		writeWord(os, splitTileOffset);
 	}
 
@@ -763,7 +951,8 @@ namespace R2NES::Core
 		// O console também faz rollback; aqui protegemos o uso isolado do mapper.
 		auto next = std::make_unique<Mapper005>(*this);
 		next->loadStateData(is);
-		if (is) *this = *next;
+		if (is)
+			*this = *next;
 	}
 
 	void Mapper005::loadStateData(std::istream &is)
@@ -784,8 +973,10 @@ namespace R2NES::Core
 			is.read(reinterpret_cast<char *>(bytes), sizeof(bytes));
 			bank = bytes[0] | (uint16_t(bytes[1]) << 8);
 		};
-		for (auto &bank : chrSetA) readBank(bank);
-		for (auto &bank : chrSetB) readBank(bank);
+		for (auto &bank : chrSetA)
+			readBank(bank);
+		for (auto &bank : chrSetB)
+			readBank(bank);
 		is.read(reinterpret_cast<char *>(&chrHigh), sizeof(chrHigh));
 
 		is.read(reinterpret_cast<char *>(&multA), sizeof(multA));
@@ -795,8 +986,10 @@ namespace R2NES::Core
 		const auto readFlag = [&is](bool &flag)
 		{
 			const int value = is.get();
-			if (value != 0 && value != 1) is.setstate(std::ios::failbit);
-			else flag = value != 0;
+			if (value != 0 && value != 1)
+				is.setstate(std::ios::failbit);
+			else
+				flag = value != 0;
 		};
 		readFlag(irqEnable);
 		readFlag(irqPending);
@@ -809,17 +1002,21 @@ namespace R2NES::Core
 		expansionLatch = uint8_t(is.get());
 		expansionInputs = uint8_t(is.get());
 		timerCounter = readWord(is);
-		readFlag(timerRunning); readFlag(timerPending);
+		readFlag(timerRunning);
+		readFlag(timerPending);
 		const uint16_t savedPrg = readWord(is), savedChr = readWord(is);
 		const uint32_t savedRam = readDword(is), savedNvRam = readDword(is);
+		const int savedBatteryExRam = is.get();
 		if (!is || savedRevision != static_cast<uint8_t>(configuration.revision) ||
 			savedPrg != nPRGBanks || savedChr != nCHRBanks ||
-			savedRam != configuration.prgRamSize || savedNvRam != configuration.prgNvRamSize)
+			savedRam != configuration.prgRamSize || savedNvRam != configuration.prgNvRamSize ||
+			savedBatteryExRam != int(configuration.batteryBackedExRam))
 		{
 			is.setstate(std::ios::failbit);
 			return;
 		}
-		if (!vPRGRAM.empty()) is.read(reinterpret_cast<char *>(vPRGRAM.data()), vPRGRAM.size());
+		if (!vPRGRAM.empty())
+			is.read(reinterpret_cast<char *>(vPRGRAM.data()), vPRGRAM.size());
 		is.read(reinterpret_cast<char *>(vExRAM), sizeof(vExRAM));
 		vCIRAM.loadState(is);
 
@@ -836,9 +1033,12 @@ namespace R2NES::Core
 		is.read(reinterpret_cast<char *>(&splitScroll), sizeof(splitScroll));
 		is.read(reinterpret_cast<char *>(&splitBank), sizeof(splitBank));
 		const uint16_t savedLine = readWord(is);
-		if (savedLine == 0xFFFF) splitLine = -1;
-		else if (savedLine < 240) splitLine = savedLine;
-		else is.setstate(std::ios::failbit);
+		if (savedLine == 0xFFFF)
+			splitLine = -1;
+		else if (savedLine < 240)
+			splitLine = savedLine;
+		else
+			is.setstate(std::ios::failbit);
 		is.read(reinterpret_cast<char *>(&splitY), sizeof(splitY));
 		is.read(reinterpret_cast<char *>(&splitColumn), sizeof(splitColumn));
 		is.read(reinterpret_cast<char *>(&splitTileActive), sizeof(splitTileActive));
@@ -854,18 +1054,25 @@ namespace R2NES::Core
 		if (prgMode > 3 || chrMode > 3 || chrHigh > 3 || prgRamProtect1 > 3 ||
 			prgRamProtect2 > 3 || exRamMode > 3 || fillColor > 3 || lastNtAddr > 0x3FF)
 			is.setstate(std::ios::failbit);
-		for (uint16_t bank : chrSetA) if (bank > 0x3FF) is.setstate(std::ios::failbit);
-		for (uint16_t bank : chrSetB) if (bank > 0x3FF) is.setstate(std::ios::failbit);
+		for (uint16_t bank : chrSetA)
+			if (bank > 0x3FF)
+				is.setstate(std::ios::failbit);
+		for (uint16_t bank : chrSetB)
+			if (bank > 0x3FF)
+				is.setstate(std::ios::failbit);
 		if ((observedPpuCtrl & ~0x20) || (observedPpuMask & ~0x18) || lastChrSetB > 1)
 			is.setstate(std::ios::failbit);
 		if (idleCycles > 3 || ppuReadSinceTick > 1 || sameAddrReadCount > 3 || scanlineCounter >= 240 ||
-			(lastPpuAddr != 0xFFFF && lastPpuAddr > 0x3FFF)) is.setstate(std::ios::failbit);
-		if (sameAddrReadCount && (lastPpuAddr < 0x2000 || lastPpuAddr > 0x2FFF)) is.setstate(std::ios::failbit);
+			(lastPpuAddr != 0xFFFF && lastPpuAddr > 0x3FFF))
+			is.setstate(std::ios::failbit);
+		if (sameAddrReadCount && (lastPpuAddr < 0x2000 || lastPpuAddr > 0x2FFF))
+			is.setstate(std::ios::failbit);
 		if (idleCycles == 3 && !ppuReadSinceTick && (inFrame || sameAddrReadCount || lastPpuAddr != 0xFFFF))
 			is.setstate(std::ios::failbit);
 		if ((splitControl & 0x20) || splitLine < -1 || splitLine >= 240 || splitColumn > 33 ||
 			splitTileActive > 1 || splitTileOffset > 1023 ||
 			(splitLine >= 0 && splitTileOffset != (splitY >> 3) * 32 + (splitColumn & 31)) ||
-			(splitLine < 0 && splitTileActive)) is.setstate(std::ios::failbit);
+			(splitLine < 0 && splitTileActive))
+			is.setstate(std::ios::failbit);
 	}
 }

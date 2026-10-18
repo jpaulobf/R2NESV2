@@ -12,18 +12,27 @@ namespace R2NES::Core
 	class Mapper005 : public Mapper
 	{
 	public:
-		enum class Revision : uint8_t { MMC5, MMC5A };
+		enum class Revision : uint8_t
+		{
+			MMC5,
+			MMC5A
+		};
 		struct Configuration
 		{
 			uint32_t prgRamSize = 65536; // Superset legado, sem inferência por CRC.
-			uint32_t prgNvRamSize = 0;   // Capacidade emulada; persistência em disco ainda ausente.
+			uint32_t prgNvRamSize = 0;
 			uint8_t submapper = 0;
 			Revision revision = Revision::MMC5; // iNES/NES 2.0 não identificam a revisão do silício.
+			bool batteryBackedExRam = false;	// Bateria também mantém o 1 KiB interno.
 		};
 		Mapper005(uint16_t prgBanks, uint16_t chrBanks);
 		Mapper005(uint16_t prgBanks, uint16_t chrBanks, Configuration configuration);
 		static bool supports(uint16_t prgBanks, uint16_t chrBanks, const Configuration &configuration);
 		void loadTrainer(const uint8_t *trainer);
+		std::vector<uint8_t> getBatteryData() const override;
+		bool setBatteryData(const std::vector<uint8_t> &data) override;
+		bool convertBatteryData(const std::vector<uint8_t> &source, std::vector<uint8_t> &converted,
+								std::string &description) const override;
 		VRAM *getCiram() override { return &vCIRAM; }
 		~Mapper005() override;
 
@@ -69,7 +78,7 @@ namespace R2NES::Core
 		// Registradores internos de 10 bits, já capturados em unidades de 1 KiB.
 		uint16_t chrSetA[8] = {0}; // $5120 - $5127 (Sprites)
 		uint16_t chrSetB[4] = {0}; // $5128 - $512B (Background)
-		uint8_t chrHigh = 0;						 // $5130 (Upper bits for CHR)
+		uint8_t chrHigh = 0;	   // $5130 (Upper bits for CHR)
 
 		// Multiplier
 		uint8_t multA = 0; // $5205
@@ -91,7 +100,7 @@ namespace R2NES::Core
 		// Memory buffers
 		Configuration configuration;
 		std::vector<uint8_t> vPRGRAM;
-		uint8_t vExRAM[1024] = {0};		   // 1KB ExRAM
+		uint8_t vExRAM[1024] = {0}; // 1KB ExRAM
 		// CIRAM autoritativa do MMC5. A VRAM da PPU não atende suas nametables.
 		VRAM vCIRAM;
 
@@ -105,10 +114,10 @@ namespace R2NES::Core
 		uint8_t lastExRamByte = 0;
 		uint8_t observedPpuCtrl = 0; // Somente PPUCTRL.5 observado em $2000 exato.
 		uint8_t observedPpuMask = 0; // Somente PPUMASK.3/.4 observado em $2001 exato.
-		uint8_t lastChrSetB = 0; // Última escrita em $5120-$512B, para PPUDATA.
-		uint8_t splitControl = 0; // $5200: habilitação, lado e limite em tiles.
-		uint8_t splitScroll = 0;  // $5201: origem vertical carregada no começo do quadro.
-		uint8_t splitBank = 0;    // $5202: banco de 4 KiB, independente de $5130.
+		uint8_t lastChrSetB = 0;	 // Última escrita em $5120-$512B, para PPUDATA.
+		uint8_t splitControl = 0;	 // $5200: habilitação, lado e limite em tiles.
+		uint8_t splitScroll = 0;	 // $5201: origem vertical carregada no começo do quadro.
+		uint8_t splitBank = 0;		 // $5202: banco de 4 KiB, independente de $5130.
 		int16_t splitLine = -1;
 		uint8_t splitY = 0;
 		uint8_t splitColumn = 0;
