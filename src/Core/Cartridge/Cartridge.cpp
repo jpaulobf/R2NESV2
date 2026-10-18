@@ -1,4 +1,5 @@
 #include "Core/Cartridge/Cartridge.h"
+#include "Core/Cartridge/BatterySave.h"
 #include "Core/Cartridge/Mappers/Mapper000.h"
 #include "Core/Cartridge/Mappers/Mapper001.h"
 #include "Core/Cartridge/Mappers/Mapper002.h"
@@ -197,6 +198,101 @@ namespace R2NES::Core
         }
     }
 
+    Cartridge::~Cartridge()
+    {
+        try
+        {
+            flushBattery();
+        }
+        catch (const std::exception &error)
+        {
+            std::cerr << "Battery save failed: " << error.what() << '\n';
+        }
+    }
+
+    bool Cartridge::loadBattery(const std::filesystem::path &directory)
+    {
+        if (!batteryPath.empty())
+            return !batteryLoadFailed;
+        if (!imageValid || !pMapper)
+            return false;
+        if (directory.empty())
+            return true; // Desabilitação explícita, útil em ferramentas/testes.
+        auto data = pMapper->getBatteryData();
+        if (data.empty())
+            return true;
+        batteryPath = directory / (romHash + ".sav");
+        std::string error;
+        const auto result = BatterySave::load(batteryPath, data, error);
+        if (result == BatterySave::LoadResult::Error || !pMapper->setBatteryData(data))
+        {
+            batteryLoadFailed = true; // Não substitui automaticamente um arquivo que não pôde ler.
+            std::vector<uint8_t> source, converted;
+            std::string description, readError;
+            if (BatterySave::readFile(batteryPath, 132096, source, readError))
+                batteryImportAvailable = pMapper->convertBatteryData(source, converted, description);
+            batteryMessage = "Nao foi possivel carregar a bateria: " + batteryPath.string() + "\n" + error +
+                             (description.empty() ? "" : "\n" + description) +
+                             "\nA gravacao automatica desta bateria esta desativada ate reabrir ou importar o arquivo.";
+            std::cerr << "Battery load failed ('" << batteryPath.string() << "'): " << error << '\n';
+            return false;
+        }
+        lastBatteryData = std::move(data);
+        return true;
+    }
+
+    bool Cartridge::importBattery()
+    {
+        if (!batteryImportAvailable || !pMapper)
+            return false;
+        // Releitura impede usar uma proposta antiga se o arquivo mudou no disco.
+        std::vector<uint8_t> source, converted;
+        std::string error;
+        if (!BatterySave::readFile(batteryPath, 132096, source, error) ||
+            !pMapper->convertBatteryData(source, converted, error) ||
+            converted.size() != pMapper->getBatteryData().size())
+        {
+            batteryImportAvailable = false;
+            batteryMessage = "Importacao de bateria recusada. O arquivo foi preservado.\n" + error;
+            return false;
+        }
+        std::filesystem::path backup;
+        if (!BatterySave::backup(batteryPath, backup, error) || !BatterySave::save(batteryPath, converted, error))
+        {
+            batteryMessage = "Nao foi possivel importar a bateria.\n" + error;
+            return false;
+        }
+        if (!pMapper->setBatteryData(converted))
+        {
+            batteryMessage = "O mapper recusou os dados importados. Backup: " + backup.string();
+            return false;
+        }
+        batteryLoadFailed = batteryImportAvailable = false;
+        lastBatteryData = std::move(converted);
+        batteryMessage = "Bateria importada. Original preservado em: " + backup.string();
+        return true;
+    }
+
+    bool Cartridge::flushBattery()
+    {
+        if (batteryLoadFailed)
+            return false;
+        if (batteryPath.empty() || !pMapper)
+            return true;
+        auto data = pMapper->getBatteryData();
+        if (data == lastBatteryData)
+            return true; // Não regrava sessões sem alterações na NVRAM.
+        std::string error;
+        if (!BatterySave::save(batteryPath, data, error))
+        {
+            batteryMessage = "Nao foi possivel gravar a bateria: " + batteryPath.string() + "\n" + error;
+            std::cerr << "Battery save failed ('" << batteryPath.string() << "'): " << error << '\n';
+            return false;
+        }
+        lastBatteryData = std::move(data);
+        return true;
+    }
+
     void Cartridge::clearIrqFlag()
     {
         pMapper->clearIrqFlag();
@@ -281,7 +377,8 @@ namespace R2NES::Core
             mapperID = 0;
             mirror = MirrorMode::ONESCREEN_LO;
             std::cout << "Cartridge: corrected legacy BB Car mapper 7 to fixed NROM "
-                         "with single-screen mirroring (CRC 7F9C1DEC)." << std::endl;
+                         "with single-screen mirroring (CRC 7F9C1DEC)."
+                      << std::endl;
         }
 
         // This legacy SF II dump incorrectly declares mapper 187. Identify the
@@ -334,6 +431,29 @@ namespace R2NES::Core
             mmc5Config.prgNvRamSize = mmc1Config.prgNvRamSize;
         }
         // iNES sem byte 8 explícito conserva o superset histórico de 64 KiB.
+        mmc5Config.batteryBackedExRam = (header.mapper1 & 2) || mmc5Config.prgNvRamSize != 0;
+        if (mapperID == 5 && !isNes2Header && (header.mapper1 & 2))
+        {
+            // ETROM: só o primeiro chip é persistente. Sem tamanho iNES,
+            // conserva dois chips de 32 KiB e mantém o segundo volátil.
+            const uint32_t total = mmc5Config.prgRamSize + mmc5Config.prgNvRamSize;
+            mmc5Config.prgNvRamSize = total == 16384 || total == 65536 ? total / 2 : total;
+            mmc5Config.prgRamSize = total - mmc5Config.prgNvRamSize;
+        }
+        Mapper009::Configuration mmc2Config;
+        if (isNes2Header || (header.mapper1 & 2) || header.prg_ram_size != 0)
+        {
+            mmc2Config.prgRamSize = mmc1Config.prgRamSize;
+            mmc2Config.prgNvRamSize = mmc1Config.prgNvRamSize;
+        }
+
+        // iNES não separa os chips: SOROM/SZROM de 16 KiB têm só o segundo
+        // chip (8 KiB) ligado à bateria. NES 2.0 mantém os tamanhos explícitos.
+        if (mapperID == 1 && !isNes2Header && mmc1Config.prgNvRamSize == 16384)
+        {
+            mmc1Config.prgRamSize = 8192;
+            mmc1Config.prgNvRamSize = 8192;
+        }
 
         size_t prgSize = size_t(header.prg_chunks) * 16384;
         size_t chrSize = size_t(header.chr_chunks) * 8192;
@@ -408,9 +528,10 @@ namespace R2NES::Core
         }
         if (mapperID == 9)
         {
-            // MMC2/PxROM: apenas PRG-ROM e CHR-ROM, sem RAM ou variantes declaradas.
-            if (!Mapper009::supports(prgBanks, chrBanks, mirror) || (header.mapper1 & 6) ||
-                (isNes2Header && (submapper != 0 || header.tv_system2 != 0 ||
+            // PxROM padrão não tem RAM; aceita extensão externa explícita no header.
+            if (!Mapper009::supports(prgBanks, chrBanks, mirror, mmc2Config) || (header.mapper1 & 4) ||
+                (isNes2Header && (header.mapper1 & 2) && !mmc2Config.prgNvRamSize) ||
+                (isNes2Header && (submapper != 0 ||
                                   static_cast<uint8_t>(header.unused[0]) != 0 ||
                                   (static_cast<uint8_t>(header.unused[3]) & 3) != 0)))
             {
@@ -463,7 +584,7 @@ namespace R2NES::Core
             if (!Mapper005::supports(prgBanks, chrBanks, mmc5Config) || mirror == MirrorMode::FOUR_SCREEN ||
                 ((header.mapper1 & 4) && mmc5Config.prgRamSize + mmc5Config.prgNvRamSize == 0) ||
                 (isNes2Header && (chrRam != (chrBanks == 0 ? 7 : 0) ||
-                    (static_cast<uint8_t>(header.unused[3]) & 3) != 0)))
+                                  (static_cast<uint8_t>(header.unused[3]) & 3) != 0)))
             {
                 std::cerr << "Error: Unsupported MMC5 memory/submapper configuration." << std::endl;
                 return false;
@@ -584,7 +705,7 @@ namespace R2NES::Core
             pMapper = std::make_shared<Mapper007>(prgBanks, chrBanks, mirror);
             break;
         case 9:
-            pMapper = std::make_shared<Mapper009>(prgBanks, chrBanks, mirror);
+            pMapper = std::make_shared<Mapper009>(prgBanks, chrBanks, mirror, mmc2Config);
             break;
         case 11:
             pMapper = std::make_shared<Mapper011>(prgBanks, chrBanks, mirror);
@@ -632,14 +753,15 @@ namespace R2NES::Core
 
     void Cartridge::cpuReadOccurred(uint16_t addr, uint8_t data)
     {
-        if (pMapper) pMapper->onCpuRead(addr, data);
+        if (pMapper)
+            pMapper->onCpuRead(addr, data);
     }
 
     bool Cartridge::cpuRead(uint16_t addr, uint8_t &data, bool readOnly) const
     {
         uint32_t mapped_addr = 0;
         if (pMapper && (readOnly ? pMapper->cpuMapPeek(addr, mapped_addr, data)
-                                : pMapper->cpuMapRead(addr, mapped_addr, data)))
+                                 : pMapper->cpuMapRead(addr, mapped_addr, data)))
         {
             if (mapped_addr == 0xFFFFFFFF)
                 return true; // Dado já preenchido pelo Mapper (ex: PRG RAM)
@@ -693,7 +815,8 @@ namespace R2NES::Core
                             PpuReadContext context) const
     {
         uint32_t mapped_addr = 0;
-        if (!pMapper) return false;
+        if (!pMapper)
+            return false;
         pMapper->setPpuReadContext(context);
         const bool handled = pMapper->ppuMapRead(addr, mapped_addr, data, systemClockCounter);
         pMapper->setPpuReadContext(PpuReadContext::Cpu);
@@ -737,7 +860,8 @@ namespace R2NES::Core
 
     void Cartridge::ppuReadOccurred(uint16_t addr)
     {
-        if (pMapper) pMapper->onPpuRead(addr);
+        if (pMapper)
+            pMapper->onPpuRead(addr);
     }
 
     void Cartridge::ppuScanlineStart()
