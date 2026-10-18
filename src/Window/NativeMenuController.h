@@ -117,7 +117,7 @@ namespace R2NES::Core
 
         // Controles de entrada/hacks
         bool invertBAYB = false; // inverte botões BA/YB
-        bool useZapper = false;   // habilita Zapper
+        bool useZapper = false;  // habilita Zapper
         bool unlimitedSprites = false;
         bool fastForwardEnabled = false;
         bool cpuOverclockEnabled = false;
