@@ -28,9 +28,49 @@ MMC1 supports power-of-two PRG sizes up to 512 KiB and CHR-ROM up to 128 KiB or
 8 KiB CHR-RAM. CHR capacities up to 8 KiB leave the extra bank lines available
 for SNROM/SOROM/SUROM/SXROM, including their CHR-ROM variants. SZROM uses CHR.4
 for its two RAM banks. NES 2.0 PRG-RAM and PRG-NVRAM declarations are stored
-separately, with a supported combined capacity of 0/8/16/32 KiB. No automatic
-battery-file persistence is implemented. Ambiguous iNES headers retain the old
+separately, with a supported combined capacity of 0/8/16/32 KiB. Automatic
+battery-file persistence is implemented for MMC1 as described below. Ambiguous iNES headers retain the old
 8 KiB default; specify RAM sizes explicitly for SOROM/SXROM/SZROM.
+
+MMC1 battery tests run as part of `mapper001`. `Mapper::getBatteryData()` /
+`setBatteryData()` expose only NVRAM in physical bank order; default methods
+in `Mapper.cpp` expose no persistent memory unless a mapper overrides them. MMC1 stores
+volatile RAM first and NVRAM after it, including the second battery-backed
+chip of mixed SOROM/SZROM configurations. Legacy iNES declarations of 16 KiB
+with battery are interpreted as 8 KiB volatile + 8 KiB persistent; NES 2.0
+retains its explicit split. All-NVRAM SXROM preserves A13/A14 bank order.
+
+`BatterySave` handles raw files and size validation without mapper knowledge.
+`NES` attaches persistence when inserting a cartridge, using a configurable
+directory (default `battery/`, relative to the working directory); an empty
+directory disables file persistence. Standalone `Cartridge` construction
+does not load files until `loadBattery(directory)` is called. Files are named
+`<ROM CRC32>.sav`; the existing ROM hash excludes the iNES header and is based
+on extracted contents for ZIPs. Changing ROM content creates a different identity.
+
+Battery data is loaded before connecting the cartridge. Changed bytes are
+flushed on replacement/unload, normal console/cartridge destruction, or an
+explicit `flushBattery()`. There is no periodic save during play in this batch.
+Unchanged memory creates no file and existing unchanged files are not rewritten.
+The file is written to a neighboring temporary path and replaces the destination
+only after a successful complete write. Windows uses `MoveFileExW` with replace;
+other platforms use rename. This is not a guarantee against hardware power loss.
+Incorrect sizes or unreadable files leave emulated memory untouched, log an
+error, and disable automatic overwrite of that file for the current cartridge.
+The interface reports the failure. Recognized MMC5 layouts offer explicit import
+with a backup; otherwise keep/correct the file and reopen the ROM to retry loading.
+Write failures prevent the interface from replacing/unloading the active session
+with new progress. Exit reports the failure before normal shutdown.
+
+Battery and snapshots are separate. A snapshot restores emulated NVRAM but
+does not immediately write it to disk; the next normal flush persists the
+current NVRAM, including changes from snapshots/rewind. MMC1 payload layout is unchanged.
+Synthetic tests cover iNES Zelda-like headers, mixed SOROM/SZROM, SXROM bank
+order, reset, new console sessions, rename/reload, lifecycle flush with retained
+cartridge references, no-battery games, truncation/oversize and failed replacement.
+Tests use unique directories under the fixture directory, not real game saves.
+Manual test: save within Zelda, close normally, reopen the ROM and check the
+game's own file-selection screen without loading a save state.
 
 Submapper 5 has fixed 32 KiB PRG and submapper 7 uses header H/V mirroring.
 Deprecated submappers 1/2/4 require matching memory sizes. Unsupported EEPROM
@@ -39,11 +79,14 @@ memory capacities are rejected instead of approximated.
 
 The mapper payload keeps its previous length; a reserved bit records whether
 there has been a CPU write, including cycle zero. Old payloads remain readable.
-Derived PRG banking is recomputed on load. The console now writes format `R2NI`,
+Derived PRG banking is recomputed on load. The console now writes format `R2NK`,
 which preserves CPU clock/data-bus state and the MMC5's ten-bit CHR registers
 and CHR/IRQ/split controls, MMC5A revision/GPIO/timer and the PPU's pending rendering read.
-Previous `R2NB`/`R2NC`/`R2ND`/`R2NE`/`R2NF`/`R2NG`/`R2NH` states are intentionally
-rejected, for every mapper; older builds cannot read `R2NI`.
+Its 28-byte header includes the ROM's eight ASCII CRC32 characters, mapper ID,
+clock counters, CPU data bus and all five OAM DMA fields. ROM identity is checked
+before changing components, and DMA boolean bytes must be 0 or 1.
+Previous `R2NB`/`R2NC`/`R2ND`/`R2NE`/`R2NF`/`R2NG`/`R2NH`/`R2NI`/`R2NJ` states are intentionally
+rejected, for every mapper; older builds cannot read `R2NK`.
 Old NES 2.0 states created with an incorrectly
 sized RAM payload are also unsupported.
 Any failed console load restores its previous serialized state.
@@ -53,16 +96,70 @@ Control value `0x1E` is not a hardware power-up guarantee. A serial bit-7 reset
 preserves CHR mode and mirroring while selecting PRG mode 3. Neither reset
 clears PRG RAM. Game compatibility ratings are not inferred from these tests.
 
+# Shared battery persistence — Mappers 1, 4, 5 and explicit 9 extensions
+
+```powershell
+cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
+cmake --build build --target battery-tests -j 4
+ctest --test-dir build -R '^(battery|mapper001)$' --output-on-failure
+```
+
+`battery` complements the MMC1 tests with MMC3 (8 KiB) and MMC6 (1 KiB),
+MMC5 mixed 8/32 KiB chip profiles and internal ExRAM, and explicit MMC2 external
+RAM. It checks import size/atomicity, reset preservation, physical mapping,
+volatile exclusion, real files, new console sessions and snapshot configuration.
+Header tests include NES 2.0 sizes, iNES compatibility profiles and invalid MMC2 RAM.
+MMC6/StarTropics requires NES 2.0 submapper 1 with 1 KiB NVRAM for the precise
+MMC6 path. Legacy iNES remains the existing MMC3 interpretation; no CRC-based
+MMC6 autodetection was added. All ten synthetic regression suites, including
+`battery`, passed after this expansion, and the application was rebuilt.
+
+For MMC5, PRG-NVRAM is the first chip and volatile RAM the second on mixed
+profiles. iNES with battery and explicit 16/64 KiB splits these in half. With
+no explicit byte-8 size, the existing 64 KiB superset is kept as 32 KiB NVRAM
+plus 32 KiB volatile RAM. NES 2.0 preserves its explicit capacities. The chip's
+internal 1 KiB ExRAM is battery-backed when the cartridge has battery or PRG-NVRAM;
+`Configuration::batteryBackedExRam` also allows explicit internal-only battery.
+Raw battery files concatenate PRG-NVRAM in physical order and 1024 ExRAM bytes.
+An MMC5 save containing PRG-NVRAM alone fails the exact-size check and is
+preserved; no implicit conversion is made. The interface can explicitly import
+recognized 8/16/32/64/128 KiB PRG-NVRAM layouts, with or without appended ExRAM.
+Missing ExRAM and additional target banks are initialized to zero. Reducing the
+capacity is allowed only when discarded bytes are zero or repeat retained banks;
+distinct discarded data is rejected. The source is read again before import,
+copied to `.sav.bak` (or a free numbered suffix), then replaced atomically.
+Declining import leaves the file untouched and automatic overwrite disabled.
+Tests cover these conversions, stale proposals, exact backup contents and reload.
+References: [ExROM](https://www.nesdev.org/wiki/ExROM),
+[ExRAM battery research](https://www.nesdev.org/wiki/Talk:MMC5).
+
+Standard NES Punch-Out!!/PxROM has no battery-backed RAM. Mapper 9's optional
+8 KiB external RAM is an explicit board extension, not an automatic game-save
+feature for the original game or a complete PlayChoice-10 implementation.
+References: [MMC4 comparison with MMC2](https://www.nesdev.org/wiki/MMC4),
+[external RAM circuit, including PlayChoice Punch-Out!!](https://www.nesdev.org/wiki/PRG_RAM_circuit).
+
+The original lifecycle policy is unchanged: no periodic writes, flush only on
+explicit request, cartridge replacement/unload or normal destruction. Battery
+files remain separate from snapshots. R2NJ introduced MMC5 battery-backed ExRAM
+configuration and MMC2 external RAM type; current R2NK additionally records
+cartridge identity and OAM DMA state. Tests restore an active DMA after it has
+completed and compare the subsequent console state, reject different ROMs and
+mappers with matching capacities, and check rollback on malformed states.
+Older snapshots are intentionally rejected; existing MMC1 battery files are unchanged.
+Manual gameplay validation is pending for the new mappers; Zelda/MMC1 passed
+the user's manual persistence test before this expansion.
+
 # Mapper 5 regression tests — batches 1 through 7
 
 Second-review R1 coverage checks documented initial memory modes for both
 MMC5 and MMC5A: read-only CPU ExRAM, blocked nametable access, protected
 WRAM, explicit unlock in either order, and memory preservation on reset.
-The test fails before the initial-value fix. State layout remains R2NI.
+The test fails before the initial-value fix, which retained R2NI at that stage.
 
 Implements findings 1 through 9 and 11 through 14 in [Mapper005Review.md](Mapper005Review.md),
-excluding battery-file persistence as explicitly deferred by the user,
-with the hardware uncertainties documented in that review.
+with the hardware uncertainties documented in that review. Battery-file
+persistence was added subsequently; see the shared battery suite below.
 Generated ROMs and direct mapper tests cover all four CHR bank sizes, the A/B
 register windows, all byte values and upper-bit combinations, independent
 capture of `$5130`, changes of CHR mode without rewriting banks, CHR capacity
@@ -146,8 +243,8 @@ WRAM profiles cover zero, single 8/32 KiB, dual 8 KiB, dual 32 KiB and single
 on commercial profiles, with open bus for missing chips; 128 KiB uses all four
 bank bits. Tests exhaust register bytes and PRG modes, check low/high-window
 aliases, protection and trainer installation without unlocking writes.
-RAM/NVRAM classification only affects emulated memory and snapshots: no
-battery-file loading or saving is implemented.
+RAM/NVRAM classification now also controls file persistence, using only the
+first NVRAM chip and battery-backed ExRAM. The second volatile chip is excluded.
 
 Recognized register writes return the internal-access sentinel; holes remain
 unhandled. The MMC5 exposes its authoritative CIRAM through PPU::getVram(),
@@ -164,8 +261,10 @@ from the state file. That R2NH mapper payload was 3172 bytes plus installed WRAM
 
 Batch 7 adds eight bytes before that configuration block in R2NI: revision,
 GPIO control/latch/external input levels, a little-endian 16-bit counter,
-running flag and pending timer IRQ flag. The current payload is 3180 bytes
-plus installed WRAM. Cross-revision states are rejected atomically.
+running flag and pending timer IRQ flag. That payload was 3180 bytes plus WRAM.
+R2NJ inserts a battery-backed ExRAM configuration byte after the twelve capacity
+bytes, making the current payload 3181 bytes plus installed WRAM. A mismatch in
+capacity, revision or ExRAM battery configuration rejects the load atomically.
 `Configuration::revision` defaults to MMC5; the loader cannot infer MMC5A
 from iNES/NES 2.0, so tests explicitly construct/inject the A revision.
 There is no GUI revision selector or CRC override.
@@ -329,7 +428,7 @@ Sharp MMC3, MMC6, hard-wired mirroring, MC-ACC, NEC MMC3, and T9552. Unsupported
 submappers, RAM sizes, mixed volatile/nonvolatile PRG memory, CHR-NVRAM, Misc.
 ROMs and truncated images are rejected. Regular PRG-RAM/NVRAM capacities are
 0/8 KiB; MMC6 requires 1 KiB. Battery-backed memory participates in save states;
-automatic .sav file persistence is still a separate, unimplemented feature.
+automatic .sav persistence now covers the declared 8 KiB MMC3 or 1 KiB MMC6 NVRAM.
 Ambiguous iNES headers retain the MMC3 interpretation and historical 8 KiB RAM
 default; use NES 2.0 to identify MMC6/MC-ACC/NEC/T9552 explicitly.
 
@@ -449,9 +548,11 @@ ctest --test-dir build -R '^mapper009$' --output-on-failure
 Generated ROMs cover power-of-two PRG capacities of 32/64/128 KiB and CHR-ROM
 capacities from 8 through 128 KiB, iNES/NES 2.0 linear and exponent/multiplier
 sizes, all register values, ignored bits, physical bank mirroring and the fixed
-last three 8 KiB PRG banks. Unsupported sizes, submappers, RAM/NVRAM, four-screen,
-trainers, battery flags, Misc. ROMs and truncated images are rejected.
-Legacy iNES byte 8 is ignored; NES 2.0 requires zero PRG/CHR RAM declarations.
+last three 8 KiB PRG banks. Unsupported sizes, submappers, mixed RAM/NVRAM,
+four-screen, trainers, CHR-RAM, Misc. ROMs and truncated images are rejected.
+An optional single 8 KiB external PRG-RAM/NVRAM chip may be declared explicitly.
+NES 2.0 supplies exact sizes; iNES battery enables 8 KiB by default, or byte 8
+may explicitly declare one unit. Without these declarations, there is no RAM.
 
 Latch tests read every CHR address from both FD and FE initial states. The
 triggering read uses the old bank; only subsequent reads use the new one.
@@ -460,9 +561,12 @@ $1FD8-$1FDF/$1FE8-$1FEF. Peeks and writes do not change latches. Console tests
 also check sprite reads, real versus debugger PPUDATA reads, both nametable
 mirroring modes and Pattern Table viewer isolation.
 
-PxROM has no PRG-RAM: $6000-$7FFF remains open bus. States retain the old Windows
-8207-byte mapper layout with explicit little-endian mirroring. The old 8192-byte
-phantom RAM payload is consumed and ignored; new states write zero padding.
+Standard PxROM has no PRG-RAM: $6000-$7FFF remains open bus. An explicit external
+RAM extension enables read/write there and persists it only if nonvolatile.
+This models an additional chip; it does not emulate a complete PlayChoice-10.
+R2NJ uses an 8208-byte mapper payload: registers, little-endian mirroring,
+8192 bytes of external RAM (zero padding when absent), then one byte indicating
+absent/volatile/nonvolatile memory. A configuration mismatch is rejected.
 Register/latch/mirror values and every truncated mapper payload length are
 validated before committing. Console tests verify restoration and rollback.
 
@@ -604,7 +708,7 @@ PowerShell and MinGW-w64:
 
 ```powershell
 $mapperSources = (Get-ChildItem src/Core/Cartridge/Mappers -Filter '*.cpp').FullName
-g++ -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper071Tests.cpp src/Core/Cartridge/Cartridge.cpp src/Core/Cartridge/UNIF.cpp src/Core/Memory/VRAM/VRAM.cpp $mapperSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper071-tests.exe
+g++ -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper071Tests.cpp src/Core/Cartridge/Cartridge.cpp src/Core/Cartridge/BatterySave.cpp src/Core/Cartridge/UNIF.cpp src/Core/Memory/VRAM/VRAM.cpp $mapperSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper071-tests.exe
 if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
 ./build/mapper071-tests.exe build/mapper071-test-data
 if ($LASTEXITCODE -ne 0) { throw 'Mapper 71 tests failed' }
