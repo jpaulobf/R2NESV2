@@ -4,11 +4,10 @@
 #include <cstdint>
 #include <string>
 #include "imgui.h"
+#include "MemoryAccess.h"
 
 namespace R2NES::Core
 {
-    class VRAM;
-
     class VRamViewer
     {
     public:
@@ -23,8 +22,8 @@ namespace R2NES::Core
         void close();
 
         // Renderiza o conteúdo da VRAM dentro de uma janela ImGui.
-        // Recebe ponteiro para o objeto `VRAM` para leitura/escrita direta.
-        void render(VRAM *vram);
+        // Utiliza os callbacks de leitura/escrita apenas durante esta chamada.
+        void render(const MemoryAccess &memory);
 
         // Encaminha eventos SDL para o contexto ImGui desta janela.
         void handleEvent(SDL_Event *e);

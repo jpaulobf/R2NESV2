@@ -1,6 +1,5 @@
 #include "RamViewer.h"
 #include "ScopedImGuiContext.h"
-#include "Core/Memory/RAM/RAM.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
 #include <iomanip>
@@ -113,9 +112,9 @@ namespace R2NES::Core
     }
 
     // Renderiza o conteúdo da RAM em linhas de 16 bytes e permite edição de um byte.
-    void RamViewer::render(RAM *ram)
+    void RamViewer::render(const MemoryAccess &memory)
     {
-        if (!visible || !renderer || !ram || !imguiContext)
+        if (!visible || !renderer || !imguiContext || !memory.read || memory.size == 0 || memory.size > 0x10000)
             return;
 
         ScopedImGuiContext scope(imguiContext);
@@ -127,7 +126,7 @@ namespace R2NES::Core
         ImGui::SetNextWindowSize(ImVec2(512, 600));
         ImGui::Begin("RAM Viewer", &visible, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
 
-        size_t ramSize = ram->getSize();
+        const auto ramSize = memory.size;
 
         // Endereços inicial e final controláveis pelo usuário
         static uint16_t startAddr = 0x0000;
@@ -148,18 +147,18 @@ namespace R2NES::Core
         ImGui::Separator();
 
         // Exibe linhas de 16 bytes com coluna ASCII à direita
-        for (uint16_t addr = startAddr; addr <= endAddr; addr += 16)
+        for (std::size_t addr = startAddr; addr <= endAddr; addr += 16)
         {
-            ImGui::Text("%04X |", addr);
+            ImGui::Text("%04X |", static_cast<unsigned>(addr));
             ImGui::SameLine();
 
             std::string ascii_line;
             for (int i = 0; i < 16; ++i)
             {
-                uint16_t current_byte_addr = addr + i;
+                const auto current_byte_addr = addr + i;
                 if (current_byte_addr <= endAddr)
                 {
-                    uint8_t byte_value = ram->read(current_byte_addr);
+                    uint8_t byte_value = memory.read(static_cast<uint16_t>(current_byte_addr));
                     ImGui::Text("%02X", byte_value);
                     ImGui::SameLine();
 
@@ -186,10 +185,12 @@ namespace R2NES::Core
         ImGui::InputScalar("Address", ImGuiDataType_U16, &editAddr, NULL, NULL, "%04X", ImGuiInputTextFlags_CharsHexadecimal);
         ImGui::InputScalar("Value", ImGuiDataType_U8, &editValue, NULL, NULL, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
         ImGui::SameLine();
+        ImGui::BeginDisabled(!memory.write);
         if (ImGui::Button("Write") && editAddr < ramSize)
         {
-            ram->write(editAddr, editValue);
+            memory.write(editAddr, editValue);
         }
+        ImGui::EndDisabled();
 
         ImGui::EndChild();
         ImGui::End();

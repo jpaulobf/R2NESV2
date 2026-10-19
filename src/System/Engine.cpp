@@ -753,7 +753,11 @@ namespace R2NES::Core
         // Se o VRAM Viewer estiver aberto, envia os dados da PPU
         if (window->isVramViewerOpen() && nes->isCartridgeLoaded())
         {
-            window->updateVramViewer(&nes->getPpu().getVram());
+            auto *vram = &nes->getPpu().getVram();
+            // Expõe a VRAM física, sem aplicar o espelhamento das nametables.
+            window->updateVramViewer({vram->getSize(),
+                                      [vram](uint16_t address) { return vram->readRaw(address); },
+                                      [vram](uint16_t address, uint8_t value) { vram->writeRaw(address, value); }});
         }
 
         // Se o Disassembler estiver aberto, atualiza-o
@@ -779,7 +783,11 @@ namespace R2NES::Core
         // Se o RamViewer estiver aberto, atualiza-o
         if (window->isRamViewerOpen() && nes->isCartridgeLoaded())
         {
-            window->updateRamViewer(nes->getBus().ram);
+            auto *ram = nes->getBus().ram;
+            if (ram)
+                window->updateRamViewer({ram->getSize(),
+                                         [ram](uint16_t address) { return ram->read(address); },
+                                         [ram](uint16_t address, uint8_t value) { ram->write(address, value); }});
         }
     }
 }

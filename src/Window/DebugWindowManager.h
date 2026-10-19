@@ -11,12 +11,10 @@
 #include "RamViewer.h"
 #include "TileViewer.h"
 #include "VRamViewer.h"
+#include "MemoryAccess.h"
 
 namespace R2NES::Core
 {
-    class RAM;
-    class VRAM;
-
     // Identifica a janela de depuração afetada por um evento de fechamento.
     enum class DebugWindow
     {
@@ -64,11 +62,11 @@ namespace R2NES::Core
         // Encaminha os dados atuais da emulação ao viewer correspondente.
         void updateTileViewer(const uint32_t *pixels0, const uint32_t *pixels1);
         void updatePaletteViewer(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette);
-        void updateRamViewer(RAM *ram);
+        void updateRamViewer(const MemoryAccess &memory);
         void updateDisassembler(uint16_t pc, const std::map<uint16_t, std::string> &disassembly,
                                 bool &stepByStep, bool &stepRequested, uint8_t a, uint8_t x, uint8_t y, uint8_t stkp, uint8_t status);
         void updateOamViewer(const std::array<uint8_t, 256> &oam);
-        void updateVramViewer(VRAM *vram);
+        void updateVramViewer(const MemoryAccess &memory);
 
         // Informa se cada janela auxiliar está aberta.
         bool isTileViewerOpen() const;

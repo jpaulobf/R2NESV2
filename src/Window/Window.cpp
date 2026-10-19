@@ -1627,9 +1627,9 @@ namespace R2NES::Core
     }
 
     // Atualiza o RAM Viewer somente enquanto sua janela existir.
-    void Window::updateRamViewer(RAM *ram)
+    void Window::updateRamViewer(const MemoryAccess &memory)
     {
-        debugWindowManager.updateRamViewer(ram);
+        debugWindowManager.updateRamViewer(memory);
     }
 
     // Abre o visualizador de VRAM junto à janela principal.
@@ -1643,9 +1643,9 @@ namespace R2NES::Core
     }
 
     // Atualiza o VRAM Viewer somente enquanto sua janela existir.
-    void Window::updateVramViewer(VRAM *vram)
+    void Window::updateVramViewer(const MemoryAccess &memory)
     {
-        debugWindowManager.updateVramViewer(vram);
+        debugWindowManager.updateVramViewer(memory);
     }
 
     // Abre o visualizador da memória de atributos de sprites.

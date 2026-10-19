@@ -18,14 +18,11 @@
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 #include "imgui.h"
-#include "Core/Memory/RAM/RAM.h"
-#include "Core/Memory/VRAM/VRAM.h"
+#include "MemoryAccess.h"
 #include "VRamViewer.h"
 
 namespace R2NES::Core
 {
-    class RAM;
-
     class Window
     {
     public:
@@ -172,13 +169,13 @@ namespace R2NES::Core
         void updatePaletteViewer(const std::array<uint8_t, 32> &paletteTable, const uint32_t *systemPalette);
 
         /* Atualiza os dados e renderiza a janela do RamViewer se estiver aberta. */
-        void updateRamViewer(RAM *ram);
+        void updateRamViewer(const MemoryAccess &memory);
 
         /* Inicializa e exibe a janela do VRAM Viewer. */
         void openVramViewer();
 
         /* Atualiza os dados da VRAM na janela de debug. */
-        void updateVramViewer(VRAM *vram);
+        void updateVramViewer(const MemoryAccess &memory);
 
         /* Inicializa e exibe a janela do OAM Viewer. */
         void openOamViewer();

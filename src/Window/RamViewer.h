@@ -4,11 +4,10 @@
 #include <cstdint>
 #include <string>
 #include "imgui.h"
+#include "MemoryAccess.h"
 
 namespace R2NES::Core
 {
-    class RAM;
-
     /**
      * @brief Visualizador da RAM principal (Work RAM) com edição in-place.
      *
@@ -37,10 +36,10 @@ namespace R2NES::Core
         void close();
 
         /**
-         * @brief Renderiza o conteúdo da RAM fornecida.
-         * @param ram Ponteiro para o objeto `RAM` a ser visualizado.
+         * @brief Renderiza os bytes fornecidos e permite edição quando disponível.
+         * @param memory Acesso à memória, utilizado apenas durante esta chamada.
          */
-        void render(RAM *ram);
+        void render(const MemoryAccess &memory);
 
         /** Encaminha eventos SDL para o ImGui do visualizador. */
         void handleEvent(SDL_Event *e);

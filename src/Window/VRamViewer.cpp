@@ -1,6 +1,5 @@
 #include "VRamViewer.h"
 #include "ScopedImGuiContext.h"
-#include "Core/Memory/VRAM/VRAM.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
 #include <iomanip>
@@ -87,9 +86,9 @@ namespace R2NES::Core
             SDL_SetWindowPosition(window, parentX - 512, parentY + 300);
     }
 
-    void VRamViewer::render(VRAM *vram)
+    void VRamViewer::render(const MemoryAccess &memory)
     {
-        if (!visible || !renderer || !vram || !imguiContext)
+        if (!visible || !renderer || !imguiContext || !memory.read || memory.size == 0 || memory.size > 0x10000)
             return;
 
         ScopedImGuiContext scope(imguiContext);
@@ -106,14 +105,14 @@ namespace R2NES::Core
         ImGui::Text("Addr | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII");
         ImGui::Separator();
 
-        for (uint16_t addr = 0; addr < vram->getSize(); addr += 16)
+        for (std::size_t addr = 0; addr < memory.size; addr += 16)
         {
-            ImGui::Text("%04X |", addr);
+            ImGui::Text("%04X |", static_cast<unsigned>(addr));
             ImGui::SameLine();
             std::string ascii_line;
-            for (int i = 0; i < 16; ++i)
+            for (int i = 0; i < 16 && addr + i < memory.size; ++i)
             {
-                uint8_t byte_value = vram->readRaw(addr + i);
+                uint8_t byte_value = memory.read(static_cast<uint16_t>(addr + i));
                 ImGui::Text("%02X", byte_value);
                 ImGui::SameLine();
                 ascii_line += (byte_value >= 0x20 && byte_value <= 0x7E) ? (char)byte_value : '.';
@@ -130,11 +129,12 @@ namespace R2NES::Core
         ImGui::InputScalar("Address", ImGuiDataType_U16, &editAddr, NULL, NULL, "%04X", ImGuiInputTextFlags_CharsHexadecimal);
         ImGui::InputScalar("Value", ImGuiDataType_U8, &editValue, NULL, NULL, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
         ImGui::SameLine();
-        if (ImGui::Button("Write") && editAddr < vram->getSize())
+        ImGui::BeginDisabled(!memory.write);
+        if (ImGui::Button("Write") && editAddr < memory.size)
         {
-            // Escrita direta na VRAM (utilize com cautela — pode alterar estado do PPU)
-            vram->writeRaw(editAddr, editValue);
+            memory.write(editAddr, editValue);
         }
+        ImGui::EndDisabled();
 
         ImGui::End();
 

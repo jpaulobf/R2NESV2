@@ -121,9 +121,9 @@ namespace R2NES::Core
     }
 
     // Atualiza o conteúdo exibido da RAM da CPU.
-    void DebugWindowManager::updateRamViewer(RAM *ram)
+    void DebugWindowManager::updateRamViewer(const MemoryAccess &memory)
     {
-        ramViewer.render(ram);
+        ramViewer.render(memory);
     }
 
     // Atualiza instruções, registradores e controles de execução do desassembly.
@@ -140,9 +140,9 @@ namespace R2NES::Core
     }
 
     // Atualiza o conteúdo exibido da VRAM da PPU.
-    void DebugWindowManager::updateVramViewer(VRAM *vram)
+    void DebugWindowManager::updateVramViewer(const MemoryAccess &memory)
     {
-        vramViewer.render(vram);
+        vramViewer.render(memory);
     }
 
     // Expõe o estado de visibilidade de cada viewer à Window e ao menu nativo.
