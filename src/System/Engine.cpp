@@ -13,7 +13,6 @@ namespace R2NES::Core
         // Inicializa os componentes principais
         window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
         nes = std::make_unique<NES>();
-        window->setCheatBus(&nes->getBus());
         // Keep project cheats accessible when the executable is started from bin/.
         if (!std::filesystem::is_directory("cheats"))
         {
@@ -44,6 +43,41 @@ namespace R2NES::Core
         window->createMenu();
 
         // ----------------------  Callbacks ------------------------------------//
+        // Expõe apenas os dados do menu; o acesso ao Bus permanece na Engine.
+        window->setCheatMenuCallback([this]()
+                                     {
+                                         Window::CheatMenuState state;
+                                         const auto &bus = nes->getBus();
+                                         state.available = static_cast<bool>(bus.cart);
+                                         state.enabled = state.available && bus.cheats.isEnabled();
+                                         if (state.available)
+                                         {
+                                             const auto &entries = bus.cheats.getEntries();
+                                             state.entries.reserve(entries.size());
+                                             for (const auto &entry : entries)
+                                                 state.entries.push_back({entry.description, entry.enabled, entry.valid()});
+                                         }
+                                         return state;
+                                     });
+
+        window->setCheatsEnabledCallback([this](bool enabled)
+                                         {
+                                             auto &bus = nes->getBus();
+                                             if (!bus.cart)
+                                                 return;
+                                             bus.cheats.setEnabled(enabled);
+                                             bus.cheats.applyRam(bus);
+                                         });
+
+        window->setCheatEntryEnabledCallback([this](std::size_t index, bool enabled)
+                                             {
+                                                 auto &bus = nes->getBus();
+                                                 if (!bus.cart)
+                                                     return;
+                                                 bus.cheats.setEntryEnabled(index, enabled);
+                                                 bus.cheats.applyRam(bus);
+                                             });
+
         // Conecta o callback da janela à função da Engine
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
                                { this->handleKeyboard(key, isPressed); });

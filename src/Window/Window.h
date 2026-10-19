@@ -7,6 +7,8 @@
 #include <map>
 #include <functional>
 #include <memory>
+#include <vector>
+#include <cstddef>
 #include "DebugWindowManager.h"
 #include "TileViewer.h"
 #include "PaletteViewer.h"
@@ -23,12 +25,25 @@
 namespace R2NES::Core
 {
     class RAM;
-    class Bus;
 
     class Window
     {
     public:
-        void setCheatBus(Bus *bus) { cheatBus = bus; }
+        // Dados de apresentação do menu, sem expor o gerenciador de cheats.
+        struct CheatMenuEntry
+        {
+            std::string description;
+            bool enabled = false;
+            bool valid = false;
+        };
+
+        struct CheatMenuState
+        {
+            bool available = false;
+            bool enabled = false;
+            std::vector<CheatMenuEntry> entries;
+        };
+
         void showBatteryMessage(const std::string &message);
         bool confirmBatteryImport(const std::string &message);
         // callbacks
@@ -55,6 +70,13 @@ namespace R2NES::Core
         using TilesCallback = std::function<void(bool)>;
         using SpritesCallback = std::function<void(bool)>;
         using CPUOverclockCallback = std::function<void(bool)>;
+        using CheatMenuCallback = std::function<CheatMenuState()>;
+        using CheatsEnabledCallback = std::function<void(bool)>;
+        using CheatEntryEnabledCallback = std::function<void(std::size_t, bool)>;
+
+        void setCheatMenuCallback(CheatMenuCallback cb) { cheatMenuCallback = cb; }
+        void setCheatsEnabledCallback(CheatsEnabledCallback cb) { cheatsEnabledCallback = cb; }
+        void setCheatEntryEnabledCallback(CheatEntryEnabledCallback cb) { cheatEntryEnabledCallback = cb; }
 
         /* Construtor da classe Window: inicializa a janela SDL, o renderer e as texturas. */
         Window(const std::string &title, int width, int height, int scale);
@@ -506,7 +528,6 @@ namespace R2NES::Core
         bool closed = false;
         bool resetRequested = false;
         bool unloadRequested = false;
-        Bus *cheatBus = nullptr;
         bool fileDialogOpen = false;
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
@@ -542,6 +563,9 @@ namespace R2NES::Core
         TilesCallback tilesCallback = nullptr;
         SpritesCallback spritesCallback = nullptr;
         CPUOverclockCallback cpuOverclockCallback = nullptr;
+        CheatMenuCallback cheatMenuCallback = nullptr;
+        CheatsEnabledCallback cheatsEnabledCallback = nullptr;
+        CheatEntryEnabledCallback cheatEntryEnabledCallback = nullptr;
 
         // Suporte para até 2 controles
         SDL_GameController *controllers[2] = {nullptr, nullptr};

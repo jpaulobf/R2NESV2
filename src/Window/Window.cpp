@@ -1,5 +1,4 @@
 #include "Window.h"
-#include "Core/Bus/Bus.h"
 #include "ScopedImGuiContext.h"
 #include <iostream>
 #include <algorithm>
@@ -1477,26 +1476,25 @@ namespace R2NES::Core
 
             if (ImGui::BeginMenu("Cheats"))
             {
-                const bool available = cartLoaded && cheatBus && cheatBus->cart;
-                const bool enabled = available && cheatBus->cheats.isEnabled();
-                if (ImGui::MenuItem("Enable Cheats", nullptr, enabled, available))
+                const auto state = cheatMenuCallback ? cheatMenuCallback() : CheatMenuState{};
+                const bool available = cartLoaded && state.available;
+                const bool enabled = available && state.enabled;
+                if (ImGui::MenuItem("Enable Cheats", nullptr, enabled, available && static_cast<bool>(cheatsEnabledCallback)))
                 {
-                    cheatBus->cheats.setEnabled(!enabled);
-                    cheatBus->cheats.applyRam(*cheatBus);
+                    cheatsEnabledCallback(!enabled);
                 }
                 if (ImGui::BeginMenu("Cheat List", enabled))
                 {
-                    const auto &entries = cheatBus->cheats.getEntries();
+                    const auto &entries = state.entries;
                     for (size_t i = 0; i < entries.size(); ++i)
                     {
                         const auto &entry = entries[i];
                         ImGui::PushID(static_cast<int>(i));
                         // Descriptions may contain ImGui's hidden-label separator.
                         const auto label = entry.description + "###cheat";
-                        if (ImGui::MenuItem(label.c_str(), nullptr, entry.enabled, entry.valid()))
+                        if (ImGui::MenuItem(label.c_str(), nullptr, entry.enabled, entry.valid && static_cast<bool>(cheatEntryEnabledCallback)))
                         {
-                            cheatBus->cheats.setEntryEnabled(i, !entry.enabled);
-                            cheatBus->cheats.applyRam(*cheatBus);
+                            cheatEntryEnabledCallback(i, !entry.enabled);
                         }
                         ImGui::PopID();
                     }
