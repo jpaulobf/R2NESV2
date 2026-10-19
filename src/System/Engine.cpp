@@ -13,6 +13,18 @@ namespace R2NES::Core
         // Inicializa os componentes principais
         window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
         nes = std::make_unique<NES>();
+        window->setCheatBus(&nes->getBus());
+        // Keep project cheats accessible when the executable is started from bin/.
+        if (!std::filesystem::is_directory("cheats"))
+        {
+            if (char *basePath = SDL_GetBasePath())
+            {
+                const auto base = std::filesystem::path(basePath);
+                SDL_free(basePath);
+                const auto projectCheats = base.parent_path().parent_path() / "cheats";
+                nes->setCheatDirectory(std::filesystem::is_directory(projectCheats) ? projectCheats : base / "cheats");
+            }
+        }
         audioManager = std::make_unique<R2NES::System::AudioManager>();
         inputManager = std::make_unique<R2NES::System::InputManager>();
         stateManager = std::make_unique<R2NES::System::GameStateManager>();
