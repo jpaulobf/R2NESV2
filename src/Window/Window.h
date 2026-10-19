@@ -23,10 +23,12 @@
 namespace R2NES::Core
 {
     class RAM;
+    class Bus;
 
     class Window
     {
     public:
+        void setCheatBus(Bus *bus) { cheatBus = bus; }
         void showBatteryMessage(const std::string &message);
         bool confirmBatteryImport(const std::string &message);
         // callbacks
@@ -504,6 +506,7 @@ namespace R2NES::Core
         bool closed = false;
         bool resetRequested = false;
         bool unloadRequested = false;
+        Bus *cheatBus = nullptr;
         bool fileDialogOpen = false;
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;

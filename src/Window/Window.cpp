@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "Core/Bus/Bus.h"
 #include "ScopedImGuiContext.h"
 #include <iostream>
 #include <algorithm>
@@ -1470,6 +1471,36 @@ namespace R2NES::Core
                         debugWindowManager.closeOamViewer();
                     else
                         openOamViewer();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Cheats"))
+            {
+                const bool available = cartLoaded && cheatBus && cheatBus->cart;
+                const bool enabled = available && cheatBus->cheats.isEnabled();
+                if (ImGui::MenuItem("Enable Cheats", nullptr, enabled, available))
+                {
+                    cheatBus->cheats.setEnabled(!enabled);
+                    cheatBus->cheats.applyRam(*cheatBus);
+                }
+                if (ImGui::BeginMenu("Cheat List", enabled))
+                {
+                    const auto &entries = cheatBus->cheats.getEntries();
+                    for (size_t i = 0; i < entries.size(); ++i)
+                    {
+                        const auto &entry = entries[i];
+                        ImGui::PushID(static_cast<int>(i));
+                        // Descriptions may contain ImGui's hidden-label separator.
+                        const auto label = entry.description + "###cheat";
+                        if (ImGui::MenuItem(label.c_str(), nullptr, entry.enabled, entry.valid()))
+                        {
+                            cheatBus->cheats.setEntryEnabled(i, !entry.enabled);
+                            cheatBus->cheats.applyRam(*cheatBus);
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndMenu();
                 }
                 ImGui::EndMenu();
             }
