@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Cheats/CheatManager.h"
 #include <cstdint>
 #include <memory>
 #include "Common/Common.h"
@@ -96,6 +97,7 @@ namespace R2NES::Core
         CPU *cpu = nullptr;
         IO::Joysticks *joysticks = nullptr;
         std::shared_ptr<Cartridge> cart;
+        CheatManager cheats;
 
         // Contador de ciclos do sistema (clock global do emulador).
         uint32_t systemClockCounter = 0;

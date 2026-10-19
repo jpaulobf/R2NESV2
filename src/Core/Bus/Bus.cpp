@@ -27,6 +27,7 @@ namespace R2NES::Core
 
     void Bus::setCartridge(const std::shared_ptr<Cartridge> &cartridge)
     {
+        cheats.clear();
         this->cart = cartridge;
     }
 
@@ -88,12 +89,13 @@ namespace R2NES::Core
 
     uint8_t Bus::cpuRead(uint16_t addr, bool readOnly)
     {
-        const uint8_t value = readCpuDevice(addr, readOnly);
+        const uint8_t original = readCpuDevice(addr, readOnly);
+        const uint8_t value = cheats.filterRead(addr, original);
         if (!readOnly)
         {
             cpuDataBus = value;
             if (cart)
-                cart->cpuReadOccurred(addr, value);
+                cart->cpuReadOccurred(addr, original);
         }
         return value;
     }
