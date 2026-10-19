@@ -47,8 +47,8 @@ namespace R2NES::System
             cachedDisassembly = nes.getCpu().disassemble(0x8000, 0xFFFF);
 
         window.clearSelectedPath();
-        window.setRomFile(std::filesystem::path(path).filename().string());
-        window.setCartLoaded(true);
+        window.setRomFile(nes.isCartridgeLoaded() ? std::filesystem::path(path).filename().string() : "");
+        window.setCartLoaded(nes.isCartridgeLoaded());
     }
 
     // Descarta o cartucho e remove da Window os estados associados à ROM anterior.
