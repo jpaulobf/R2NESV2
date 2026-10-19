@@ -33,6 +33,7 @@ namespace R2NES::Core
         // Remove o cartucho atualmente carregado e restaura estado básico.
         void unload();
         bool flushBattery();
+        void setCheatDirectory(std::filesystem::path directory) { cheatDirectory = std::move(directory); }
 
         // Acesso aos subsistemas para depuração/inspeção.
         CPU &getCpu() { return cpu; }
@@ -68,6 +69,7 @@ namespace R2NES::Core
         void setCPUOverclock(bool enabled) { cpuOverclock = enabled; }
 
     private:
+        std::filesystem::path cheatDirectory = "cheats";
         void serviceIRQ();
         bool startDmcDma();
 

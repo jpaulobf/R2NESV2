@@ -79,6 +79,7 @@ namespace R2NES::Core
 
     void NES::step(bool honorCPUOverclock)
     {
+        bus.cheats.applyRam(bus);
         // 1) DMA OAM tem prioridade: enquanto um DMA estiver ativo, a CPU fica "suspensa"
         //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
         if (bus.dma_transfer)
@@ -195,11 +196,13 @@ namespace R2NES::Core
             flushBattery();
             newCart->loadBattery(batteryDirectory);
             bus.setCartridge(newCart);
+            bus.cheats.load(cheatDirectory / (newCart->getRomHash() + ".cht"));
             cartridgeLoaded = true;
             std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: " << newCart->getRomHash() << std::endl;
         }
         else
         {
+            bus.cheats.clear();
             cartridgeLoaded = false;
             std::cerr << "Failed to load cartridge '" << path << "'." << std::endl;
         }
