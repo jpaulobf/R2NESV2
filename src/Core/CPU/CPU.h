@@ -85,10 +85,14 @@ namespace R2NES::Core
         // Estrutura para representar uma instrução do 6502
         struct INSTRUCTION
         {
+            enum class Kind : uint8_t { Read, Store, Rmw, Branch };
+
             std::string name;
             uint8_t (CPU::*operate)(void) = nullptr;  // Função da Operação
             uint8_t (CPU::*addrmode)(void) = nullptr; // Função do Modo de Endereçamento
             uint8_t cycles = 0;                       // Ciclos base
+            // Derivado da operação ao construir a tabela; não integra o savestate.
+            Kind kind = Kind::Read;
         };
 
         std::vector<INSTRUCTION> lookup; // Tabela de 256 opcodes

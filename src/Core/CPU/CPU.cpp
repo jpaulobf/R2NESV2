@@ -269,6 +269,24 @@ namespace R2NES::Core
             {"INC", &CPU::INC, &CPU::ABX, 7},
             {"ISB", &CPU::ISC, &CPU::ABX, 7},
         };
+
+        // Classifica uma vez, evitando cadeias de comparações de ponteiros
+        // de funções-membro em cada ciclo da instrução.
+        for (auto &instruction : lookup)
+        {
+            const auto op = instruction.operate;
+            if (op == &CPU::STA || op == &CPU::STX || op == &CPU::STY ||
+                op == &CPU::SAX || op == &CPU::SHA || op == &CPU::SHX ||
+                op == &CPU::SHY || op == &CPU::TAS)
+                instruction.kind = INSTRUCTION::Kind::Store;
+            else if (op == &CPU::ASL || op == &CPU::LSR || op == &CPU::ROL || op == &CPU::ROR ||
+                     op == &CPU::INC || op == &CPU::DEC || op == &CPU::SLO || op == &CPU::RLA ||
+                     op == &CPU::SRE || op == &CPU::RRA || op == &CPU::DCP || op == &CPU::ISC)
+                instruction.kind = INSTRUCTION::Kind::Rmw;
+            else if (op == &CPU::BCC || op == &CPU::BCS || op == &CPU::BEQ || op == &CPU::BMI ||
+                     op == &CPU::BNE || op == &CPU::BPL || op == &CPU::BVC || op == &CPU::BVS)
+                instruction.kind = INSTRUCTION::Kind::Branch;
+        }
     }
 
     CPU::~CPU()
@@ -422,7 +440,8 @@ namespace R2NES::Core
         // durante VBlank) só será aceita após a próxima instrução.
         // Branches também fazem polling antes do fetch do deslocamento;
         // sem cruzar página, o ciclo extra do branch não faz outro polling.
-        const bool nmiPoll = isBranchInstruction()
+        const bool branch = isBranchInstruction();
+        const bool nmiPoll = branch
                                  ? (microCycle == 1 || (pageCrossed && cycles == 1))
                                  : cycles == 1;
         if (nmiPoll && pendingNmi)
@@ -431,7 +450,7 @@ namespace R2NES::Core
         // O nível IRQ é amostrado no penúltimo ciclo da instrução, antes
         // de avançar a PPU para os dots seguintes. Branches fazem um polling
         // no ciclo do deslocamento e outro ao cruzar a página.
-        const bool irqPoll = isBranchInstruction()
+        const bool irqPoll = branch
                                  ? (microCycle == 1 || (pageCrossed && cycles == 1))
                                  : cycles == 2;
         if (irqPoll && irqLine && GetFlag(I) == 0)
@@ -460,25 +479,17 @@ namespace R2NES::Core
 
     bool CPU::isStoreInstruction() const
     {
-        auto op = lookup[opcode].operate;
-        return op == &CPU::STA || op == &CPU::STX || op == &CPU::STY ||
-               op == &CPU::SAX || op == &CPU::SHA || op == &CPU::SHX ||
-               op == &CPU::SHY || op == &CPU::TAS;
+        return lookup[opcode].kind == INSTRUCTION::Kind::Store;
     }
 
     bool CPU::isRmwInstruction() const
     {
-        auto op = lookup[opcode].operate;
-        return op == &CPU::ASL || op == &CPU::LSR || op == &CPU::ROL || op == &CPU::ROR ||
-               op == &CPU::INC || op == &CPU::DEC || op == &CPU::SLO || op == &CPU::RLA ||
-               op == &CPU::SRE || op == &CPU::RRA || op == &CPU::DCP || op == &CPU::ISC;
+        return lookup[opcode].kind == INSTRUCTION::Kind::Rmw;
     }
 
     bool CPU::isBranchInstruction() const
     {
-        auto op = lookup[opcode].operate;
-        return op == &CPU::BCC || op == &CPU::BCS || op == &CPU::BEQ || op == &CPU::BMI ||
-               op == &CPU::BNE || op == &CPU::BPL || op == &CPU::BVC || op == &CPU::BVS;
+        return lookup[opcode].kind == INSTRUCTION::Kind::Branch;
     }
 
     void CPU::executeReadOperation()
@@ -492,11 +503,6 @@ namespace R2NES::Core
     void CPU::executeInstructionCycle()
     {
         const uint8_t c = microCycle;
-        const auto mode = lookup[opcode].addrmode;
-        const auto op = lookup[opcode].operate;
-        const bool store = isStoreInstruction();
-        const bool rmw = isRmwInstruction();
-
         if (interruptKind != 0)
         {
             if (interruptKind == 3)
@@ -536,6 +542,11 @@ namespace R2NES::Core
             }
             return;
         }
+
+        const auto mode = lookup[opcode].addrmode;
+        const auto op = lookup[opcode].operate;
+        const bool store = isStoreInstruction();
+        const bool rmw = isRmwInstruction();
 
         if (isBranchInstruction())
         {
