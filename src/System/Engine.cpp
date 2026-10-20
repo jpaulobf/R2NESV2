@@ -1,5 +1,5 @@
 #include "Engine.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -16,10 +16,9 @@ namespace R2NES::Core
         // Keep project cheats accessible when the executable is started from bin/.
         if (!std::filesystem::is_directory("cheats"))
         {
-            if (char *basePath = SDL_GetBasePath())
+            if (const char *basePath = SDL_GetBasePath())
             {
                 const auto base = std::filesystem::path(basePath);
-                SDL_free(basePath);
                 const auto projectCheats = base.parent_path().parent_path() / "cheats";
                 nes->setCheatDirectory(std::filesystem::is_directory(projectCheats) ? projectCheats : base / "cheats");
             }
@@ -57,8 +56,7 @@ namespace R2NES::Core
                                              for (const auto &entry : entries)
                                                  state.entries.push_back({entry.description, entry.enabled, entry.valid()});
                                          }
-                                         return state;
-                                     });
+                                         return state; });
 
         window->setCheatsEnabledCallback([this](bool enabled)
                                          {
@@ -66,8 +64,7 @@ namespace R2NES::Core
                                              if (!bus.cart)
                                                  return;
                                              bus.cheats.setEnabled(enabled);
-                                             bus.cheats.applyRam(bus);
-                                         });
+                                             bus.cheats.applyRam(bus); });
 
         window->setCheatEntryEnabledCallback([this](std::size_t index, bool enabled)
                                              {
@@ -75,19 +72,18 @@ namespace R2NES::Core
                                                  if (!bus.cart)
                                                      return;
                                                  bus.cheats.setEntryEnabled(index, enabled);
-                                                 bus.cheats.applyRam(bus);
-                                             });
+                                                 bus.cheats.applyRam(bus); });
 
         // Conecta o callback da janela à função da Engine
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
                                { this->handleKeyboard(key, isPressed); });
 
         // Conecta o callback de controle
-        window->setControllerCallback([this](int player, SDL_GameControllerButton button, bool isPressed)
+        window->setControllerCallback([this](int player, SDL_GamepadButton button, bool isPressed)
                                       { this->inputManager->handleJoystick(player, button, isPressed, *nes); });
 
         // Conecta o callback de gatilhos do controle
-        window->setControllerTriggerCallback([this](int player, SDL_GameControllerAxis axis, bool isPressed)
+        window->setControllerTriggerCallback([this](int player, SDL_GamepadAxis axis, bool isPressed)
                                              { this->handleJoystickTrigger(player, axis, isPressed, *nes); });
 
         // Conecta o callback de VSync para sincronizar o loop da Engine
@@ -226,7 +222,7 @@ namespace R2NES::Core
     }
 
     // Direciona o evento de gatilho do gamepad ao controlador emulado do jogador correto.
-    void Engine::handleJoystickTrigger(int playerNum, SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes)
+    void Engine::handleJoystickTrigger(int playerNum, SDL_GamepadAxis axis, bool isPressed, Core::NES &nes)
     {
         if (playerNum == 1)
         {
@@ -239,28 +235,28 @@ namespace R2NES::Core
     }
 
     // Atualiza exclusivamente os gatilhos do primeiro controle.
-    void Engine::handleJoystickTrigger1(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes)
+    void Engine::handleJoystickTrigger1(SDL_GamepadAxis axis, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
-        if (axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+        if (axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
         {
             this->setRewind(this->rewindEnabled && isPressed);
         }
-        else if (axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        else if (axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
         {
             this->setFastForward(this->fastForwardEnabled && isPressed);
         }
     }
 
     // Atualiza exclusivamente os gatilhos do segundo controle.
-    void Engine::handleJoystickTrigger2(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes)
+    void Engine::handleJoystickTrigger2(SDL_GamepadAxis axis, bool isPressed, Core::NES &nes)
     {
         auto &joy2 = nes.getJoysticks().controller2;
-        if (axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT)
+        if (axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER)
         {
             this->setRewind(this->rewindEnabled && isPressed);
         }
-        else if (axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        else if (axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER)
         {
             this->setFastForward(this->fastForwardEnabled && isPressed);
         }
@@ -443,9 +439,8 @@ namespace R2NES::Core
     {
         window->pollEvents();
 
-        const uint8_t *keyboardState = SDL_GetKeyboardState(nullptr);
-        // Consulta contínua garante que o rewind pare ao soltar Caps Lock.
-        // setRewind(rewindEnabled && keyboardState[SDL_SCANCODE_CAPSLOCK]);
+        // Consulta contínua do estado do teclado.
+        const bool *keyboardState = SDL_GetKeyboardState(nullptr);
 
         // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
         if (nes->isCartridgeLoaded())
@@ -535,7 +530,7 @@ namespace R2NES::Core
         case SDLK_CAPSLOCK:
             this->setRewind(this->rewindEnabled && isPressed);
             break;
-        case SDLK_p:
+        case SDLK_P:
         case SDLK_PAUSE:
             if (isPressed && nes->isCartridgeLoaded())
             {
@@ -756,8 +751,10 @@ namespace R2NES::Core
             auto *vram = &nes->getPpu().getVram();
             // Expõe a VRAM física, sem aplicar o espelhamento das nametables.
             window->updateVramViewer({vram->getSize(),
-                                      [vram](uint16_t address) { return vram->readRaw(address); },
-                                      [vram](uint16_t address, uint8_t value) { vram->writeRaw(address, value); }});
+                                      [vram](uint16_t address)
+                                      { return vram->readRaw(address); },
+                                      [vram](uint16_t address, uint8_t value)
+                                      { vram->writeRaw(address, value); }});
         }
 
         // Se o Disassembler estiver aberto, atualiza-o
@@ -786,8 +783,10 @@ namespace R2NES::Core
             auto *ram = nes->getBus().ram;
             if (ram)
                 window->updateRamViewer({ram->getSize(),
-                                         [ram](uint16_t address) { return ram->read(address); },
-                                         [ram](uint16_t address, uint8_t value) { ram->write(address, value); }});
+                                         [ram](uint16_t address)
+                                         { return ram->read(address); },
+                                         [ram](uint16_t address, uint8_t value)
+                                         { ram->write(address, value); }});
         }
     }
 }

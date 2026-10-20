@@ -8,7 +8,7 @@
 #include <vector>
 #include <deque>
 #include "Core/IO/NESButtons.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include "System/AudioManager.h"
 #include "System/InputManager.h"
 #include "System/GameStateManager.h"
@@ -41,13 +41,13 @@ namespace R2NES::Core
         void handleKeyboard(SDL_Keycode key, bool isPressed);
 
         // Direciona um evento de gatilho do controle SDL para o jogador correspondente.
-        void handleJoystickTrigger(int playerNum, SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes);
+        void handleJoystickTrigger(int playerNum, SDL_GamepadAxis axis, bool isPressed, Core::NES &nes);
 
         // Aplica gatilhos do primeiro controle físico.
-        void handleJoystickTrigger1(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes);
+        void handleJoystickTrigger1(SDL_GamepadAxis axis, bool isPressed, Core::NES &nes);
 
         // Aplica gatilhos do segundo controle físico.
-        void handleJoystickTrigger2(SDL_GameControllerAxis axis, bool isPressed, Core::NES &nes);
+        void handleJoystickTrigger2(SDL_GamepadAxis axis, bool isPressed, Core::NES &nes);
 
         // Registra callbacks da janela e sincroniza as opções iniciais com o NES.
         void init();
