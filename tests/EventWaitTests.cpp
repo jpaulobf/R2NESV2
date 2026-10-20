@@ -1,4 +1,4 @@
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 #include <stdexcept>
 
@@ -8,10 +8,10 @@ static void check(bool condition, const char *message)
         throw std::runtime_error(message);
 }
 
-static Uint32 pushWakeup(Uint32, void *)
+static Uint32 SDLCALL pushWakeup(void *, SDL_TimerID, Uint32)
 {
     SDL_Event event{};
-    event.type = SDL_USEREVENT;
+    event.type = SDL_EVENT_USER;
     event.user.code = 71;
     SDL_PushEvent(&event);
     return 0;
@@ -24,24 +24,23 @@ static void checkEventPreserved()
     bool found = false;
     for (int attempt = 0; attempt < 3 && !found; ++attempt)
         while (SDL_PollEvent(&event))
-            if (event.type == SDL_USEREVENT && event.user.code == 71)
+            if (event.type == SDL_EVENT_USER && event.user.code == 71)
                 found = true;
     check(found, "Wait consumed the event instead of leaving it for pollEvents");
 }
 
 int main(int, char **)
 {
-    SDL_SetMainReady();
     try
     {
-        check(SDL_Init(SDL_INIT_EVENTS | SDL_INIT_TIMER) == 0, "SDL init failed");
-        SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT);
+        check(SDL_Init(SDL_INIT_EVENTS), "SDL init failed");
+        SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
         const Uint64 start = SDL_GetPerformanceCounter();
         check(SDL_WaitEventTimeout(nullptr, 20) == 0, "Unexpected event during idle wait");
         const double idleMs = 1000.0 * (SDL_GetPerformanceCounter() - start) / SDL_GetPerformanceFrequency();
         check(idleMs >= 15.0, "Idle wait returned too early");
 
-        pushWakeup(0, nullptr);
+        pushWakeup(nullptr, 0, 0);
         check(SDL_WaitEventTimeout(nullptr, 250) == 1, "Pending event did not wake wait");
         checkEventPreserved();
 
