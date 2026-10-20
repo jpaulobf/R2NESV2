@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 
 # Força o uso do compilador real e desativa o launcher do ccache que está quebrando no Windows
 set(CMAKE_C_COMPILER gcc CACHE FILEPATH "" FORCE)
@@ -29,18 +29,18 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 include(FetchContent)
 
-# Declara a dependência do SDL2 buscando direto do GitHub oficial
+# Versões estáveis fixadas para builds reproduzíveis.
 FetchContent_Declare(
-  SDL2
+  SDL3
   GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG        release-2.30.3 # Versão estável do SDL2
+  GIT_TAG        release-3.4.18
   GIT_SHALLOW    TRUE
 )
 
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG        v1.90.6
+  GIT_TAG        v1.93.0
 )
 
 FetchContent_Declare(
@@ -55,8 +55,14 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) # Força tudo como estático (.a)
 # Silencia os erros de tipos de ponteiro da libzip no MinGW/GCC 13
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-incompatible-pointer-types")
 
-# Baixa e torna o SDL2 disponível para o projeto
-FetchContent_MakeAvailable(SDL2)
+# Mantém o executável independente de uma DLL SDL e habilita a API GPU.
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_GPU ON CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(SDL3)
 FetchContent_MakeAvailable(imgui)
 
 # Precisamos configurar a zlib primeiro
@@ -64,14 +70,14 @@ FetchContent_MakeAvailable(imgui)
 set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(zlib)
 
-# Adiciona os arquivos de backend do ImGui (SDL2 + SDL_Renderer2)
+# Backends nativos do ImGui para SDL3 e SDL_Renderer.
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
 )
 
 # Cria o executável
@@ -92,10 +98,9 @@ target_include_directories(R2NESV2 PRIVATE
     ${zlib_BINARY_DIR}
 )
 
-# Linka o SDL2 e zlib ao executável
+# SDL3 fornece o ponto de entrada por SDL_main.h, sem SDLmain separado.
 target_link_libraries(R2NESV2 PRIVATE 
-    SDL2::SDL2main 
-    SDL2::SDL2-static 
+    SDL3::SDL3-static
     zlibstatic
 )
 
@@ -108,6 +113,30 @@ add_custom_command(TARGET R2NESV2 POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(audio-manager-tests tests/AudioManagerTests.cpp src/System/AudioManager.cpp)
+  target_include_directories(audio-manager-tests PRIVATE src)
+  target_link_libraries(audio-manager-tests PRIVATE SDL3::SDL3-static)
+  add_test(NAME audio-manager COMMAND audio-manager-tests)
+  set_tests_properties(audio-manager PROPERTIES ENVIRONMENT "SDL_AUDIO_DRIVER=dummy" TIMEOUT 10)
+
+  add_executable(event-wait-tests tests/EventWaitTests.cpp)
+  target_link_libraries(event-wait-tests PRIVATE SDL3::SDL3-static)
+  add_test(NAME event-wait COMMAND event-wait-tests)
+
+  file(GLOB WINDOW_TEST_SOURCES CONFIGURE_DEPENDS "src/Window/*.cpp")
+  add_executable(sdl3-integration-tests tests/SDL3IntegrationTests.cpp
+    ${WINDOW_TEST_SOURCES} ${IMGUI_SOURCES}
+    src/System/AudioManager.cpp src/Util/ConfigManager.cpp)
+  target_include_directories(sdl3-integration-tests PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+  target_link_libraries(sdl3-integration-tests PRIVATE SDL3::SDL3-static)
+  add_test(NAME sdl3-integration COMMAND sdl3-integration-tests)
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data")
+  set_tests_properties(sdl3-integration PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data"
+    ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_AUDIO_DRIVER=dummy;SDL_RENDER_DRIVER=software"
+    TIMEOUT 30)
+  set_tests_properties(event-wait PROPERTIES TIMEOUT 10)
+
   file(GLOB MAPPER_SOURCES CONFIGURE_DEPENDS "src/Core/Cartridge/Mappers/*.cpp")
   add_executable(mapper002-tests tests/Mapper002Tests.cpp
     src/Core/Cartridge/Cartridge.cpp src/Core/Cartridge/BatterySave.cpp src/Core/Memory/VRAM/VRAM.cpp ${MAPPER_SOURCES})
