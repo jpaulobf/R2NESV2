@@ -113,6 +113,10 @@ add_custom_command(TARGET R2NESV2 POST_BUILD
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(snapshot-buffer-tests tests/SnapshotBufferTests.cpp)
+  target_include_directories(snapshot-buffer-tests PRIVATE src)
+  add_test(NAME snapshot-buffer COMMAND snapshot-buffer-tests)
+
   add_executable(audio-manager-tests tests/AudioManagerTests.cpp src/System/AudioManager.cpp)
   target_include_directories(audio-manager-tests PRIVATE src)
   target_link_libraries(audio-manager-tests PRIVATE SDL3::SDL3-static)
