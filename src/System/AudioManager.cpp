@@ -15,22 +15,16 @@ namespace R2NES::System
         close();
     }
 
-    // Solicita um dispositivo mono com amostras float e armazena a frequência concedida.
+    // SDL converte as amostras mono float da APU para a saída padrão do sistema.
     void AudioManager::initialize()
     {
-        SDL_AudioSpec want, have;
-        SDL_zero(want);
-        want.freq = 44100;
-        want.format = AUDIO_F32SYS;
-        want.channels = 1;
-        want.samples = 512;
-
-        audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-        if (audioDevice > 0)
+        close();
+        const SDL_AudioSpec format{SDL_AUDIO_F32, 1, sampleRate};
+        audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &format, nullptr, nullptr);
+        if (audioStream)
         {
-            std::cout << "Audio: Device opened successfully (ID: " << audioDevice << ")" << std::endl;
-            SDL_PauseAudioDevice(audioDevice, 0);
-            sampleRate = have.freq;
+            // SDL abre o dispositivo pausado. A reprodução só começa com reserva.
+            std::cout << "Audio: Device stream opened successfully" << std::endl;
         }
         else
         {
@@ -41,11 +35,13 @@ namespace R2NES::System
     // Fecha o dispositivo somente quando sua criação foi bem-sucedida.
     void AudioManager::close()
     {
-        if (audioDevice > 0)
+        if (audioStream)
         {
-            SDL_CloseAudioDevice(audioDevice);
-            audioDevice = 0;
+            SDL_DestroyAudioStream(audioStream);
+            audioStream = nullptr;
         }
+        audioBuffer.clear();
+        playbackStarted = false;
     }
 
     // Agrupa amostras para reduzir chamadas à fila SDL durante a geração do quadro.
@@ -54,21 +50,37 @@ namespace R2NES::System
         audioBuffer.push_back(sample);
     }
 
-    // Mantém a fila curta durante a reprodução.
+    // Absorve pequenas variações de custo dos quadros sem cortar áudio pendente.
     void AudioManager::queueAudio()
     {
-        if (audioDevice > 0 && !audioBuffer.empty())
+        if (audioStream && !audioBuffer.empty())
         {
-            // Latência alvo de ~3 frames (~50ms)
-            Uint32 maxSafeBytes = sampleRate * sizeof(float) / 20;
-
-            // Se o buffer engasgar e acumular áudio velho, limpamos
-            if (SDL_GetQueuedAudioSize(audioDevice) > maxSafeBytes)
+            const int bytesPerSecond = sampleRate * static_cast<int>(sizeof(float));
+            const int startupBytes = bytesPerSecond / 20; // ~3 quadros / 50 ms.
+            const int maximumBytes = bytesPerSecond / 4;  // Recuperação de atraso >250 ms.
+            const int queued = SDL_GetAudioStreamQueued(audioStream);
+            if (queued < 0)
             {
-                SDL_ClearQueuedAudio(audioDevice);
+                std::cerr << "Audio: Could not query queued samples: " << SDL_GetError() << std::endl;
+                audioBuffer.clear();
+                return;
             }
 
-            SDL_QueueAudio(audioDevice, audioBuffer.data(), audioBuffer.size() * sizeof(float));
+            // Um esgotamento real precisa reconstruir a reserva, assim como uma pausa.
+            // O limite antigo de 50 ms descartava áudio válido após pequenos atrasos.
+            if (queued > maximumBytes ||
+                (playbackStarted && queued == 0 && SDL_GetAudioStreamAvailable(audioStream) == 0))
+                resetStream();
+
+            if (!SDL_PutAudioStreamData(audioStream, audioBuffer.data(), static_cast<int>(audioBuffer.size() * sizeof(float))))
+                std::cerr << "Audio: Could not queue samples: " << SDL_GetError() << std::endl;
+            else if (!playbackStarted && SDL_GetAudioStreamQueued(audioStream) >= startupBytes)
+            {
+                if (SDL_ResumeAudioStreamDevice(audioStream))
+                    playbackStarted = true;
+                else
+                    std::cerr << "Audio: Could not start playback: " << SDL_GetError() << std::endl;
+            }
         }
         audioBuffer.clear();
     }
@@ -77,9 +89,18 @@ namespace R2NES::System
     void AudioManager::clearQueuedAudio()
     {
         audioBuffer.clear();
-        if (audioDevice > 0)
+        resetStream();
+    }
+
+    void AudioManager::resetStream()
+    {
+        if (audioStream)
         {
-            SDL_ClearQueuedAudio(audioDevice);
+            if (!SDL_PauseAudioStreamDevice(audioStream))
+                std::cerr << "Audio: Could not pause playback: " << SDL_GetError() << std::endl;
+            if (!SDL_ClearAudioStream(audioStream))
+                std::cerr << "Audio: Could not clear queued samples: " << SDL_GetError() << std::endl;
         }
+        playbackStarted = false;
     }
 }

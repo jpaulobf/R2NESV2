@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <vector>
 
 namespace R2NES::System
@@ -30,17 +30,26 @@ namespace R2NES::System
         // Descarta o áudio ainda aguardando reprodução no dispositivo SDL.
         void clearQueuedAudio();
 
-        // Retorna a taxa efetiva negociada com o dispositivo de áudio.
+        // Retorna a taxa das amostras da APU; SDL converte para o formato do dispositivo.
         int getSampleRate() const { return sampleRate; }
 
+        // Retorna verdadeiro se o dispositivo de áudio foi inicializado com sucesso.
+        bool isInitialized() const { return audioStream != nullptr; }
+
     private:
-        // Identificador do dispositivo aberto; zero representa ausência de dispositivo.
-        SDL_AudioDeviceID audioDevice = 0;
+        friend struct AudioManagerTestAccess;
+
+        // Interrompe o consumo e prepara uma nova reserva de áudio.
+        void resetStream();
+
+        // O stream criado por SDL_OpenAudioDeviceStream também possui o dispositivo.
+        SDL_AudioStream *audioStream = nullptr;
+        bool playbackStarted = false;
 
         // Acumula amostras até a Engine finalizar o quadro atual.
         std::vector<float> audioBuffer;
 
-        // Valor padrão usado caso a negociação com SDL não substitua a frequência.
+        // Formato de entrada do stream, independente da frequência física da saída.
         int sampleRate = 44100;
     };
 }
