@@ -8,6 +8,8 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### Adicionado
 
+- Testes de regressão para o buffer de snapshots, os 256 opcodes da CPU em oito cenários por opcode e o decaimento do barramento de I/O da PPU, incluindo vencimentos independentes por bit e restauração de save states. Integrados ao CTest também os 48 casos existentes de sprite overflow.
+- Testes de integração SDL3 com drivers de áudio/vídeo dummy, renderização por software e gamepads virtuais, permitindo execução sem sessão gráfica.
 - Bateria integrada aos Mappers004 (MMC3 e MMC6), 005 e à extensão de RAM externa do Mapper009 declarada pelo cabeçalho. MMC6 persiste 1 KiB; MMC5 guarda PRG-NVRAM do primeiro chip e ExRAM interna, mantendo RAM volátil separada nas placas ETROM. No iNES MMC5 sem tamanho explícito, o superset de 64 KiB passa a separar 32 KiB persistentes e 32 KiB voláteis quando há bateria. 
 - Política de gravação ao fechar/trocar/descarregar, sem autosave periódico. Suíte CTest `battery` com arquivos reais e novas sessões; validação manual pendente.
 - Infraestrutura comum de bateria: contrato de memória persistente em `Mapper`/`Mapper.cpp`, leitura/gravação de arquivos em `BatterySave` e coordenação pelo cartucho/console. Primeiro mapper integrado: MMC1, incluindo Zelda, RAM/NVRAM explícita e segundo chip persistente de SOROM/SZROM. Arquivos binários `battery/<CRC32>.sav` são carregados ao abrir a ROM e gravados quando houver alterações ao trocar/descarregar o jogo ou fechar normalmente. Escrita temporária com substituição do destino, validação de tamanho e preservação de arquivos que falharam na leitura. Testes cobrem reinício do console, reset, bancos, save states, arquivos inválidos e falhas de gravação.
@@ -20,6 +22,13 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### Melhorado
 
+- Migrada a interface, eventos, controles e saída de áudio para SDL3, com backends nativos do Dear ImGui. SDL3 é vinculada estaticamente; a saída de vídeo usa `SDL_Renderer`.
+- Engine: captura de rewind escreve diretamente no buffer do snapshot e reutiliza memória dos estados removidos do histórico, reduzindo alocações e cópias. Removida uma consulta ao teclado cujo resultado não era usado.
+- NES: aplicação de cheats de RAM é dispensada quando não há patches ativos; encaminhamentos de clock e IRQ do cartucho ficam disponíveis para otimização pelo compilador, preservando as chamadas ao mapper.
+- CPU: classificação de branches, escritas e operações read-modify-write calculada ao construir a tabela de opcodes, reduzindo comparações de ponteiros de função a cada ciclo. A classificação é compartilhada entre as consultas de IRQ/NMI do mesmo ciclo.
+- PPU: decaimento do barramento de I/O usa uma contagem até o próximo vencimento, atualizando os oito contadores quando necessário. Preservados os vencimentos por bit e o formato dos save states. Removidos controles de depuração sem uso do caminho de composição dos pixels.
+- As otimizações de CPU e PPU foram comparadas com as versões anteriores em modos normal, overclock e saída de áudio suprimida, com coincidência dos estados completos, framebuffer e áudio nos cenários verificados. Os ganhos de desempenho dependem da ROM e do modo de execução.
+- Documentação de apresentação simplificada, mantendo instruções para Windows/Linux e referências para compatibilidade, testes e detalhes dos mappers.
 - Revisado o Mapper007 (AxROM) conforme o NesDev, com validação de memória e submappers, espelhamento físico dos bancos PRG e preservação das extensões de 16 KiB espelhados e 512 KiB.
 - Ampliados e integrados ao CTest os testes do Mapper007, cobrindo conflitos de barramento, nametables pela PPU, CHR-RAM, save states e rejeição de imagens inválidas.
 - Revisado o Mapper009 (MMC2), com validação de PRG/CHR e cabeçalhos e testes de regressão para bancos, latches, espelhamento, barramento aberto, depuração e save states.
@@ -27,6 +36,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ### Corrigido
 
+- Rewind passa a solicitar apresentação pelo caminho comum do loop, evitando duas renderizações e, com VSync ativo, duas esperas na mesma iteração.
 - Save states `R2NK` preservam os cinco campos da DMA de OAM e conferem CRC32 da ROM e mapper antes de carregar componentes. Estados anteriores são rejeitados; arquivos de bateria mantêm seu formato.
 - Bateria MMC5: importação explícita de layouts reconhecidos, com backup sem sobrescrever cópias anteriores, preenchimento de memória ausente com zeros e recusa de redução que descartaria dados distintos. Erros de leitura/gravação aparecem na interface; falhas ao gravar impedem trocar/descarregar a sessão com progresso novo. Dez suítes automatizadas passaram e o aplicativo compilou; validação manual dos diálogos pendente.
 - Mapper005, segunda revisão (R1): inicialização e reset passam a usar os valores documentados `$5102=1`, `$5103=2` e `$5104=3`, mantendo WRAM protegida e ExRAM em leitura pela CPU, sem acesso como nametable até configuração explícita. Testes cobrem MMC5/MMC5A, preservação de memória e desbloqueio da WRAM. Mantido o formato `R2NI`; validação manual pendente.
