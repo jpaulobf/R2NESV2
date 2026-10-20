@@ -455,24 +455,53 @@ namespace R2NES::Core
 
     void PPU::drivePpuIoBus(uint8_t value, uint8_t drivenBits)
     {
+        synchronizePpuIoBusDecay();
         const uint8_t retainedBits = static_cast<uint8_t>(~drivenBits);
         ppuIoBusLatch = static_cast<uint8_t>((ppuIoBusLatch & retainedBits) | (value & drivenBits));
 
+        ppuIoBusDecayNext = 0;
         for (uint8_t bit = 0; bit < 8; ++bit)
         {
+            uint32_t &counter = ppuIoBusDecayCounters[bit];
             if (drivenBits & (1u << bit))
-                ppuIoBusDecayCounters[bit] = PpuIoBusDecayDots;
+                counter = PpuIoBusDecayDots;
+            if (counter > 0 && (ppuIoBusDecayNext == 0 || counter < ppuIoBusDecayNext))
+                ppuIoBusDecayNext = counter;
         }
     }
 
     void PPU::clockPpuIoBusDecay()
     {
+        if (ppuIoBusDecayNext == 0)
+            return;
+        ++ppuIoBusDecayElapsed;
+        if (--ppuIoBusDecayNext == 0)
+            synchronizePpuIoBusDecay();
+    }
+
+    void PPU::synchronizePpuIoBusDecay()
+    {
+        // Materializa os mesmos valores que oito decrementos por dot
+        // produziriam, inclusive quando só alguns bits foram recarregados.
+        ppuIoBusDecayNext = 0;
         for (uint8_t bit = 0; bit < 8; ++bit)
         {
             uint32_t &counter = ppuIoBusDecayCounters[bit];
-            if (counter > 0 && --counter == 0)
+            if (counter == 0)
+                continue;
+            if (counter <= ppuIoBusDecayElapsed)
+            {
+                counter = 0;
                 ppuIoBusLatch &= static_cast<uint8_t>(~(1u << bit));
+            }
+            else
+            {
+                counter -= ppuIoBusDecayElapsed;
+                if (ppuIoBusDecayNext == 0 || counter < ppuIoBusDecayNext)
+                    ppuIoBusDecayNext = counter;
+            }
         }
+        ppuIoBusDecayElapsed = 0;
     }
 
     bool PPU::isRenderingActive() const
@@ -1242,13 +1271,6 @@ namespace R2NES::Core
                     const uint8_t spriteY = sprite.y;
                     const uint8_t spriteX = sprite.x;
 
-                    // Debug: se Sprite 0 mudou de posição, avisa
-                    if (i == 0 && (spriteY != lastSprite0Y || spriteX != lastSprite0X))
-                    {
-                        lastSprite0Y = spriteY;
-                        lastSprite0X = spriteX;
-                    }
-
                     uint8_t spritePixelColor = 0;
                     const uint8_t spriteAttrib = sprite.attributes;
 
@@ -1313,10 +1335,7 @@ namespace R2NES::Core
 
                         if (spritesEnabled)
                         {
-                            if (i == 0 && usedDebugColors)
-                                frameBuffer[scanline * 256 + (cycle - 1)] = 0xFFFF00FF;
-                            else
-                                frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[readPalette(palAddr) & 0x3F];
+                            frameBuffer[scanline * 256 + (cycle - 1)] = currentPalette[readPalette(palAddr) & 0x3F];
                         }
                     }
 
@@ -1386,6 +1405,8 @@ namespace R2NES::Core
         addressLatch = 0;
         ppuIoBusLatch = 0x00;
         ppuIoBusDecayCounters.fill(0);
+        ppuIoBusDecayElapsed = 0;
+        ppuIoBusDecayNext = 0;
         resetRegisterWriteLockoutDots = PpuRegisterWriteLockoutDots;
         vramAddr = 0;
         pendingMapperRead = 0xFFFF;
@@ -1430,6 +1451,7 @@ namespace R2NES::Core
 
     void PPU::saveState(std::ostream &os)
     {
+        synchronizePpuIoBusDecay();
         vram.saveState(os);
         os.write(reinterpret_cast<const char *>(&ppuCtrl), sizeof(ppuCtrl));
         os.write(reinterpret_cast<const char *>(&ppuMask), sizeof(ppuMask));
@@ -1504,6 +1526,8 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&ppuIoBusLatch), sizeof(ppuIoBusLatch));
         is.read(reinterpret_cast<char *>(ppuIoBusDecayCounters.data()),
                 ppuIoBusDecayCounters.size() * sizeof(ppuIoBusDecayCounters[0]));
+        ppuIoBusDecayElapsed = 0;
+        synchronizePpuIoBusDecay();
         is.read(reinterpret_cast<char *>(&resetRegisterWriteLockoutDots), sizeof(resetRegisterWriteLockoutDots));
         is.read(reinterpret_cast<char *>(&scanline), sizeof(scanline));
         is.read(reinterpret_cast<char *>(&cycle), sizeof(cycle));

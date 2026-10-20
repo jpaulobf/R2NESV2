@@ -104,6 +104,10 @@ namespace R2NES::Core
         uint8_t ppuIoBusLatch = 0x00;
         // Tempo restante, em dots da PPU, até cada bit aberto cair para zero.
         std::array<uint32_t, 8> ppuIoBusDecayCounters{};
+        // Contadores relativos à última sincronização. Estes dois valores são
+        // derivados e não alteram o formato dos savestates.
+        uint32_t ppuIoBusDecayElapsed = 0;
+        uint32_t ppuIoBusDecayNext = 0;
         // $2000, $2001, $2005 e $2006 ignoram escritas durante a inicialização.
         uint32_t resetRegisterWriteLockoutDots = 0;
 
@@ -123,8 +127,6 @@ namespace R2NES::Core
         // O hit é sinalizado um dot depois da composição do pixel coincidente.
         // O bit de status permanece setado até o início do pré-render.
         bool sprite0HitPending = false;
-        uint32_t lastSprite0Y = 0xFF;
-        uint32_t lastSprite0X = 0xFF;
 
         // Estado da renderização
         int16_t scanline = 0;
@@ -164,7 +166,6 @@ namespace R2NES::Core
         uint32_t frameCounter = 0;
         bool tilesEnabled = true;
         bool spritesEnabled = true;
-        bool usedDebugColors = false;
 
         // Métodos auxiliares para Loopy Registers
         void incrementScrollX();
@@ -183,6 +184,7 @@ namespace R2NES::Core
         uint8_t effectivePpuMask() const;
         void drivePpuIoBus(uint8_t value, uint8_t drivenBits);
         void clockPpuIoBusDecay();
+        void synchronizePpuIoBusDecay();
         void incrementDataAddress();
         bool isRenderingOamAccess() const;
         bool isRenderingActive() const;
