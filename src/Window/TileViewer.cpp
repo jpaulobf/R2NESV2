@@ -31,15 +31,18 @@ namespace R2NES::Core
 
         // Uma Pattern Table é 128x128. Exibiremos as duas lado a lado (256x128).
         // Aplicamos uma escala de 2x para facilitar a visualização (512x256).
-        window = SDL_CreateWindow(
-            "R2NES v2 - Pattern Table Viewer",
-            parentX + parentW, parentY,
-            512, 256,
-            SDL_WINDOW_SHOWN);
+        window = SDL_CreateWindow("R2NES v2 - Pattern Table Viewer", 512, 256, 0);
 
         if (window)
         {
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            SDL_SetWindowPosition(window, parentX + parentW, parentY);
+            renderer = SDL_CreateRenderer(window, nullptr);
+            if (!renderer)
+            {
+                SDL_DestroyWindow(window);
+                window = nullptr;
+                return;
+            }
 
             // Define a cor de fundo como preto e limpa a janela imediatamente
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -50,6 +53,22 @@ namespace R2NES::Core
             // As texturas usam formato ARGB8888 e serão atualizadas por `SDL_UpdateTexture`.
             tileTexture[0] = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
             tileTexture[1] = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 128);
+            if (!tileTexture[0] || !tileTexture[1])
+            {
+                SDL_DestroyTexture(tileTexture[0]);
+                SDL_DestroyTexture(tileTexture[1]);
+                tileTexture[0] = tileTexture[1] = nullptr;
+                SDL_DestroyRenderer(renderer);
+                SDL_DestroyWindow(window);
+                renderer = nullptr;
+                window = nullptr;
+                return;
+            }
+            for (auto *texture : tileTexture)
+            {
+                SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+                SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
+            }
 
             visible = true;
         }
@@ -94,11 +113,11 @@ namespace R2NES::Core
         SDL_RenderClear(renderer);
 
         // Destinos dimensionados para aplicar escala 2x (128->256)
-        SDL_Rect dest0 = {0, 0, 256, 256};
-        SDL_Rect dest1 = {256, 0, 256, 256};
+        SDL_FRect dest0 = {0, 0, 256, 256};
+        SDL_FRect dest1 = {256, 0, 256, 256};
 
-        SDL_RenderCopy(renderer, tileTexture[0], nullptr, &dest0);
-        SDL_RenderCopy(renderer, tileTexture[1], nullptr, &dest1);
+        SDL_RenderTexture(renderer, tileTexture[0], nullptr, &dest0);
+        SDL_RenderTexture(renderer, tileTexture[1], nullptr, &dest1);
 
         // Apresenta o frame na tela.
         SDL_RenderPresent(renderer);

@@ -1,8 +1,8 @@
 #include "Disassembler.h"
 #include "ScopedImGuiContext.h"
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
 #include <iostream>
 #include <iomanip>
 
@@ -19,8 +19,8 @@ namespace R2NES::Core
             if (imguiContext)
             {
                 ScopedImGuiContext scope(imguiContext);
-                ImGui_ImplSDLRenderer2_Shutdown();
-                ImGui_ImplSDL2_Shutdown();
+                ImGui_ImplSDLRenderer3_Shutdown();
+                ImGui_ImplSDL3_Shutdown();
             }
             SDL_DestroyRenderer(renderer);
             SDL_DestroyWindow(window);
@@ -40,21 +40,24 @@ namespace R2NES::Core
             return;
         }
 
-        window = SDL_CreateWindow(
-            "R2NES v2 - Disassembler",
-            parentX + parentW, parentY + 300,
-            512, 300,
-            SDL_WINDOW_SHOWN);
+        window = SDL_CreateWindow("R2NES v2 - Disassembler", 512, 300, 0);
 
         if (window)
         {
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            SDL_SetWindowPosition(window, parentX + parentW, parentY + 300);
+            renderer = SDL_CreateRenderer(window, nullptr);
+            if (!renderer)
+            {
+                SDL_DestroyWindow(window);
+                window = nullptr;
+                return;
+            }
 
             imguiContext = ImGui::CreateContext();
             {
                 ScopedImGuiContext scope(imguiContext);
-                ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-                ImGui_ImplSDLRenderer2_Init(renderer);
+                ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+                ImGui_ImplSDLRenderer3_Init(renderer);
             }
             visible = true;
         }
@@ -85,7 +88,7 @@ namespace R2NES::Core
             if (winId == 0 || winId == SDL_GetWindowID(window))
             {
                 ScopedImGuiContext scope(imguiContext);
-                ImGui_ImplSDL2_ProcessEvent(e);
+                ImGui_ImplSDL3_ProcessEvent(e);
             }
         }
     }
@@ -106,8 +109,8 @@ namespace R2NES::Core
 
         ScopedImGuiContext scope(imguiContext);
 
-        ImGui_ImplSDLRenderer2_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImGui_ImplSDLRenderer3_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -204,7 +207,7 @@ namespace R2NES::Core
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         ImGui::Render();
-        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
 }

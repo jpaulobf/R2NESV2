@@ -1,7 +1,7 @@
 #include "VRamViewer.h"
 #include "ScopedImGuiContext.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
@@ -17,8 +17,8 @@ namespace R2NES::Core
             if (imguiContext)
             {
                 ScopedImGuiContext scope(imguiContext);
-                ImGui_ImplSDLRenderer2_Shutdown();
-                ImGui_ImplSDL2_Shutdown();
+                ImGui_ImplSDLRenderer3_Shutdown();
+                ImGui_ImplSDL3_Shutdown();
             }
             if (renderer)
                 SDL_DestroyRenderer(renderer);
@@ -37,11 +37,17 @@ namespace R2NES::Core
             return;
         }
         // Cria a janela posicionada à esquerda do pai e um pouco abaixo
-        window = SDL_CreateWindow("R2NES v2 - VRAM Viewer", parentX - 512, parentY + 300, 512, 400, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        window = SDL_CreateWindow("R2NES v2 - VRAM Viewer", 512, 400, SDL_WINDOW_RESIZABLE);
         if (window)
         {
             // Renderer acelerado para apresentar os comandos do ImGui
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+            renderer = SDL_CreateRenderer(window, nullptr);
+            if (!renderer)
+            {
+                SDL_DestroyWindow(window);
+                window = nullptr;
+                return;
+            }
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
             SDL_RenderPresent(renderer);
@@ -49,8 +55,8 @@ namespace R2NES::Core
             imguiContext = ImGui::CreateContext();
             {
                 ScopedImGuiContext scope(imguiContext);
-                ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-                ImGui_ImplSDLRenderer2_Init(renderer);
+                ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+                ImGui_ImplSDLRenderer3_Init(renderer);
             }
             visible = true;
         }
@@ -75,7 +81,7 @@ namespace R2NES::Core
             if (winId == 0 || winId == SDL_GetWindowID(window))
             {
                 ScopedImGuiContext scope(imguiContext);
-                ImGui_ImplSDL2_ProcessEvent(e);
+                ImGui_ImplSDL3_ProcessEvent(e);
             }
         }
     }
@@ -92,8 +98,8 @@ namespace R2NES::Core
             return;
 
         ScopedImGuiContext scope(imguiContext);
-        ImGui_ImplSDLRenderer2_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
+        ImGui_ImplSDLRenderer3_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -142,7 +148,7 @@ namespace R2NES::Core
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         ImGui::Render();
-        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
 }
