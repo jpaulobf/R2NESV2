@@ -2,7 +2,7 @@
 
 #include <string>
 #include <map>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 namespace R2NES::Core
 {
