@@ -735,14 +735,41 @@ This headless SDL test checks timeout behavior, wakeup on pending and newly
 arriving events, and event retention for `Window::pollEvents()`. It does not
 measure CPU usage or validate the full Engine loop on a graphics driver.
 
-Run from `build/` after building the emulator, reusing its SDL linker settings:
+Run from the repository root after configuring CMake:
 
 ```powershell
-g++ -std=c++17 -I_deps/sdl2-src/include ../tests/EventWaitTests.cpp '@CMakeFiles/R2NESV2.dir/linkLibs.rsp' -o event-wait-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
-./event-wait-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'Event wait tests failed' }
+cmake --build build --target event-wait-tests
+ctest --test-dir build -R '^event-wait$' --output-on-failure
 ```
+
+## SDL3 integration
+
+`audio-manager-tests` controls the real SDL audio stream with the dummy device
+paused, so queue assertions do not depend on playback timing. It checks that
+100 ms of unplayed audio survives the next frame, playback waits for a 50 ms
+reserve after clearing, and underruns and repeated menu pauses rebuild that
+reserve before resuming.
+
+```powershell
+cmake --build build --target audio-manager-tests
+ctest --test-dir build -R '^audio-manager$' --output-on-failure
+```
+
+`sdl3-integration-tests` exercises the real Window, debug viewers, ImGui SDL3
+backends and AudioManager using SDL's dummy video/audio drivers and software
+renderer. It checks memory callback bounds, read-only memory, all six viewers,
+ImGui context restoration, keyboard isolation between windows, routing of two
+virtual gamepads while ignoring a third, hotplug removal, event handling, audio
+queueing/clearing/reopening, and destruction before SDL shutdown.
+
+```powershell
+cmake --build build --target sdl3-integration-tests
+ctest --test-dir build -R '^sdl3-integration$' --output-on-failure
+```
+
+CTest supplies the dummy driver environment and an isolated working directory.
+These tests do not validate physical controllers, audible output, GPU drivers,
+or interactive fullscreen behavior.
 
 ## APU output suppression
 
