@@ -122,7 +122,9 @@ O rewind reutiliza a serialização em streams e mantém um histórico limitado 
 
 ## Build e verificação
 
-O projeto usa CMake 3.14 ou superior e C++17. O `CMakeLists.txt` configura GCC/G++ e obtém as dependências por `FetchContent`: SDL2 `release-2.30.3`, Dear ImGui `v1.90.6` e zlib `v1.3.1`. O executável e os recursos copiados ficam em `bin/`. Há instruções de build para Windows/MinGW e Linux no [README](README.md).
+O projeto usa CMake 3.16 ou superior e C++17. O `CMakeLists.txt` configura GCC/G++ e obtém as dependências por `FetchContent`: SDL3 `release-3.4.18`, Dear ImGui `v1.93.0` e zlib `v1.3.1`. O executável e os recursos copiados ficam em `bin/`. Há instruções de build para Windows/MinGW e Linux no [README](README.md).
+
+A interface usa os backends ImGui `sdl3` e `sdlrenderer3`. O áudio recebe amostras mono float de 44,1 kHz por `SDL_AudioStream`, que faz a conversão para o dispositivo físico. Os gamepads são associados aos jogadores por `SDL_JoystickID`. A sessão SDL permanece ativa até que todos os viewers tenham sido destruídos. A API GPU está habilitada no build; a renderização atual continua usando `SDL_Renderer`, com shaders GPU previstos para uma alteração futura.
 
 Os testes usam ROMs sintéticas e, em alguns casos, ROMs externas opcionais para diagnósticos ou inicialização. Existem alvos CMake/CTest para os mappers 1, 2, 3, 4, 7 e 9; outros testes possuem comandos próprios documentados em [tests/README.md](tests/README.md), incluindo mapper 71/189, sprite overflow, espera de eventos e supressão de áudio.
 
