@@ -79,7 +79,8 @@ namespace R2NES::Core
 
     void NES::step(bool honorCPUOverclock)
     {
-        bus.cheats.applyRam(bus);
+        if (bus.cheats.hasActiveRamPatches())
+            bus.cheats.applyRam(bus);
         // 1) DMA OAM tem prioridade: enquanto um DMA estiver ativo, a CPU fica "suspensa"
         //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
         if (bus.dma_transfer)

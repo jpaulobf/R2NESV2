@@ -53,12 +53,18 @@ namespace R2NES::Core
         std::string getRomHash() const { return romHash; }
         uint16_t getMapperId() const { return mapperID; }
 
-        void tick();
+        // Chamados a cada ciclo pelo NES: mantém o encaminhamento visível
+        // ao compilador, sem uma chamada intermediária fora de linha.
+        void tick()
+        {
+            if (pMapper)
+                pMapper->tick();
+        }
 
         void clearIrqFlag();
 
         // Retorna se o Mapper está solicitando uma interrupção (IRQ)
-        bool getIrqFlag() const;
+        bool getIrqFlag() const { return pMapper && pMapper->getIrqFlag(); }
 
         // Retorna o modo de espelhamento (Mirror Mode) definido pelo cartucho
         MirrorMode getMirrorMode() const;

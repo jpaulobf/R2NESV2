@@ -298,14 +298,6 @@ namespace R2NES::Core
         pMapper->clearIrqFlag();
     }
 
-    void Cartridge::tick()
-    {
-        if (pMapper)
-        {
-            pMapper->tick();
-        }
-    }
-
     bool Cartridge::loadFromBuffer(const std::vector<uint8_t> &buffer)
     {
         if (buffer.size() >= 4 && std::memcmp(buffer.data(), "UNIF", 4) == 0)
@@ -909,13 +901,6 @@ namespace R2NES::Core
             return pMapper->getMirrorMode();
         }
         return mirror;
-    }
-
-    bool Cartridge::getIrqFlag() const
-    {
-        if (pMapper)
-            return pMapper->getIrqFlag();
-        return false;
     }
 
     std::string Cartridge::calculateRomHash(const std::vector<uint8_t> &buffer)

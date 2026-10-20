@@ -32,6 +32,8 @@ namespace R2NES::Core
         void load(const std::filesystem::path &path);
         void clear();
         bool isEnabled() const { return enabled; }
+        // Permite pular a aplicação por ciclo quando não há RAM a congelar.
+        bool hasActiveRamPatches() const { return enabled && !ramPatches.empty(); }
         void setEnabled(bool value) { enabled = value; }
         void setEntryEnabled(size_t index, bool value);
         const std::vector<Entry> &getEntries() const { return entries; }
