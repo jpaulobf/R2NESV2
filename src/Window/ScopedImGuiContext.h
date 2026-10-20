@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <cstdint>
 #include "imgui.h"
 
@@ -23,8 +23,7 @@ namespace R2NES::Core
 
         ~ScopedImGuiContext()
         {
-            if (previousContext)
-                ImGui::SetCurrentContext(previousContext);
+            ImGui::SetCurrentContext(previousContext);
         }
 
         ScopedImGuiContext(const ScopedImGuiContext &) = delete;
@@ -42,23 +41,23 @@ namespace R2NES::Core
     {
         if (!e)
             return 0;
+        if (e->type >= SDL_EVENT_WINDOW_FIRST && e->type <= SDL_EVENT_WINDOW_LAST)
+            return e->window.windowID;
         switch (e->type)
         {
-        case SDL_WINDOWEVENT:
-            return e->window.windowID;
-        case SDL_KEYDOWN:
-        case SDL_KEYUP:
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP:
             return e->key.windowID;
-        case SDL_TEXTEDITING:
+        case SDL_EVENT_TEXT_EDITING:
             return e->edit.windowID;
-        case SDL_TEXTINPUT:
+        case SDL_EVENT_TEXT_INPUT:
             return e->text.windowID;
-        case SDL_MOUSEMOTION:
+        case SDL_EVENT_MOUSE_MOTION:
             return e->motion.windowID;
-        case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEBUTTONUP:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_BUTTON_UP:
             return e->button.windowID;
-        case SDL_MOUSEWHEEL:
+        case SDL_EVENT_MOUSE_WHEEL:
             return e->wheel.windowID;
         default:
             return 0;
