@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [Unreleased]
+## [1.1.1] - 2026-10-20
 
 - Corrigido o carregamento do dump legado de BB Car (CRC32 PRG+CHR `7F9C1DEC`): o mapper 7 do cabeçalho representa NROM com CHR-ROM e espelhamento fixo de uma tela. A identificação exata preserva a rejeição de CHR-ROM no AxROM normal. Validado boot, vídeo e save/load em `.nes` e no ZIP original; gameplay manual pendente.
 
