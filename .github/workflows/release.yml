@@ -84,7 +84,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-linux:
-    runs-on: ubuntu-latest
+    # Compila com glibc 2.35 e GCC 11 para suportar Ubuntu 22.04, incluindo WSL.
+    # Evita que ubuntu-latest eleve os requisitos de runtime do pacote.
+    runs-on: ubuntu-22.04
     needs: build-windows
     permissions:
       contents: write
@@ -99,7 +101,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake git libpulse-dev libasound2-dev \
-            libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxfixes-dev \
+            libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxfixes-dev libxtst-dev \
             libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev \
             libegl1-mesa-dev libgl1-mesa-dev libgles-dev libdrm-dev libgbm-dev
 
