@@ -67,11 +67,11 @@ Automated boot checks of the seven archives above reached 201 frames each with v
 
 ### Requirements
 
-- CMake 3.14 or newer
+- CMake 3.16 or newer
 - A C++17 compiler
-- Git and an internet connection for CMake to fetch SDL2, Dear ImGui, and zlib during configuration
+- Git and an internet connection for CMake to fetch SDL 3.4.18, Dear ImGui 1.93.0, and zlib during configuration
 - On Windows, MinGW-w64 with GCC, G++, and `mingw32-make`
-- On Linux, the system development libraries required to build SDL2; the [release workflow](.github/workflows/release.yml) lists the packages used by CI
+- On Linux, the system development libraries required to build SDL3; the [release workflow](.github/workflows/release.yml) lists the packages used by CI
 
 ### Windows (MinGW-w64)
 
@@ -92,6 +92,13 @@ cmake --build build --config Release --parallel
 ```
 
 The executable and copied resources are placed in `bin/`.
+
+Run the configured tests with `ctest --test-dir build --output-on-failure`.
+The SDL integration test uses software rendering, dummy audio/video drivers,
+and virtual gamepads, so it also runs without a desktop session.
+
+SDL3 is linked statically with its GPU API enabled. Display output currently
+uses `SDL_Renderer`; custom GPU shaders remain a future rendering change.
 
 ## Default controls
 
