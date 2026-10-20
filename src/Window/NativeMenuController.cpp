@@ -5,7 +5,6 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <SDL_syswm.h>
 #endif
 
 namespace R2NES::Core
@@ -28,12 +27,9 @@ namespace R2NES::Core
     void NativeMenuController::createMenu(SDL_Window *window, const NativeMenuState &state) const
     {
 #ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (!SDL_GetWindowWMInfo(window, &wmInfo))
+        HWND hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        if (!hwnd)
             return;
-
-        HWND hwnd = wmInfo.info.win.window;
         if (HMENU oldMenu = GetMenu(hwnd))
             DestroyMenu(oldMenu);
 
@@ -183,11 +179,9 @@ namespace R2NES::Core
     void NativeMenuController::setChecked(SDL_Window *window, int commandId, bool checked) const
     {
 #ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
+        if (HWND hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)))
         {
-            if (HMENU menu = GetMenu(wmInfo.info.win.window))
+            if (HMENU menu = GetMenu(hwnd))
                 CheckMenuItem(menu, commandId, MF_BYCOMMAND | (checked ? MF_CHECKED : MF_UNCHECKED));
         }
 #else
@@ -200,11 +194,9 @@ namespace R2NES::Core
     bool NativeMenuController::isChecked(SDL_Window *window, int commandId) const
     {
 #ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
+        if (HWND hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)))
         {
-            if (HMENU menu = GetMenu(wmInfo.info.win.window))
+            if (HMENU menu = GetMenu(hwnd))
                 return (GetMenuState(menu, commandId, MF_BYCOMMAND) & MF_CHECKED) != 0;
         }
 #else
