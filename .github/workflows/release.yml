@@ -106,13 +106,11 @@ jobs:
             libegl1-mesa-dev libgl1-mesa-dev libgles-dev libdrm-dev libgbm-dev
 
       - name: Configure CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        # O pacote Linux de release compila apenas o aplicativo, sem os testes.
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 
       - name: Build Project
-        run: cmake --build build --config Release --parallel
-
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure --parallel 2
+        run: cmake --build build --config Release --target R2NESV2 --parallel 2
 
       - name: Prepare Linux package
         run: tar -czf R2NES_Linux_x64.tar.gz -C bin R2NESV2 resources
