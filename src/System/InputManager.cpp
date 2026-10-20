@@ -3,8 +3,8 @@
 
 namespace R2NES::System
 {
-    SDL_KeyCode defaultKeyMap[] = {SDLK_j, SDLK_k, SDLK_i, SDLK_u, SDLK_BACKSPACE, SDLK_RETURN, SDLK_w, SDLK_s, SDLK_a, SDLK_d};
-    SDL_GameControllerButton defaultControllerMap[] = {SDL_CONTROLLER_BUTTON_A, SDL_CONTROLLER_BUTTON_B, SDL_CONTROLLER_BUTTON_X, SDL_CONTROLLER_BUTTON_Y, SDL_CONTROLLER_BUTTON_BACK, SDL_CONTROLLER_BUTTON_START, SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT};
+    SDL_Keycode defaultKeyMap[] = {SDLK_J, SDLK_K, SDLK_I, SDLK_U, SDLK_BACKSPACE, SDLK_RETURN, SDLK_W, SDLK_S, SDLK_A, SDLK_D};
+    SDL_GamepadButton defaultControllerMap[] = {SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST, SDL_GAMEPAD_BUTTON_WEST, SDL_GAMEPAD_BUTTON_NORTH, SDL_GAMEPAD_BUTTON_BACK, SDL_GAMEPAD_BUTTON_START, SDL_GAMEPAD_BUTTON_DPAD_UP, SDL_GAMEPAD_BUTTON_DPAD_DOWN, SDL_GAMEPAD_BUTTON_DPAD_LEFT, SDL_GAMEPAD_BUTTON_DPAD_RIGHT};
 
     // Define os controles padrão de teclado, gamepad e turbo do jogador 1.
     InputManager::InputManager()
@@ -123,7 +123,7 @@ namespace R2NES::System
     }
 
     // Direciona o evento do gamepad ao controlador emulado do jogador correto.
-    void InputManager::handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
+    void InputManager::handleJoystick(int playerNum, SDL_GamepadButton button, bool isPressed, Core::NES &nes)
     {
         if (playerNum == 1)
         {
@@ -136,7 +136,7 @@ namespace R2NES::System
     }
 
     // Atualiza o controle 1 e ativa ou desativa os botões turbo associados.
-    void InputManager::handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
+    void InputManager::handleJoystick1(SDL_GamepadButton button, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
         auto it = player1ControllerMap.find(button);
@@ -159,7 +159,7 @@ namespace R2NES::System
     }
 
     // Atualiza exclusivamente os botões convencionais do segundo controle.
-    void InputManager::handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES &nes)
+    void InputManager::handleJoystick2(SDL_GamepadButton button, bool isPressed, Core::NES &nes)
     {
         auto &joy2 = nes.getJoysticks().controller2;
         auto it = player2ControllerMap.find(button);

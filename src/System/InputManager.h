@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/IO/NESButtons.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <map>
 #include <cstdint>
 
@@ -24,7 +24,7 @@ namespace R2NES::System
         void handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES &nes);
 
         // Direciona um evento de controle SDL para o jogador correspondente.
-        void handleJoystick(int playerNum, SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
+        void handleJoystick(int playerNum, SDL_GamepadButton button, bool isPressed, Core::NES &nes);
 
         // Configura a associação dos botões físicos A/B/X/Y e seus atalhos turbo.
         void configureABBAButtons(bool invert);
@@ -37,10 +37,10 @@ namespace R2NES::System
 
     private:
         // Aplica botões e turbo do primeiro controle físico.
-        void handleJoystick1(SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
+        void handleJoystick1(SDL_GamepadButton button, bool isPressed, Core::NES &nes);
 
         // Aplica botões do segundo controle físico.
-        void handleJoystick2(SDL_GameControllerButton button, bool isPressed, Core::NES &nes);
+        void handleJoystick2(SDL_GamepadButton button, bool isPressed, Core::NES &nes);
 
         // Mapeamento de teclas para o Player 1 e 2
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
@@ -48,9 +48,9 @@ namespace R2NES::System
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1TurboKeyMap;
 
         // Mapeamento de botões de controle
-        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1ControllerMap;
-        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player2ControllerMap;
-        std::map<SDL_GameControllerButton, R2NES::Core::IO::NESButtons> player1TurboControllerMap;
+        std::map<SDL_GamepadButton, R2NES::Core::IO::NESButtons> player1ControllerMap;
+        std::map<SDL_GamepadButton, R2NES::Core::IO::NESButtons> player2ControllerMap;
+        std::map<SDL_GamepadButton, R2NES::Core::IO::NESButtons> player1TurboControllerMap;
 
         // Mantêm os botões turbo pressionados entre os pulsos gerados em update().
         bool turboA = false;
