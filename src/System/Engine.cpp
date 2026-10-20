@@ -1,6 +1,6 @@
 #include "Engine.h"
+#include "SnapshotBuffer.h"
 #include <SDL3/SDL.h>
-#include <iostream>
 #include <sstream>
 #include <cmath>
 #include <algorithm>
@@ -300,10 +300,12 @@ namespace R2NES::Core
             // Só processa o timing e a atualização se houver um cartucho carregado no NES
             if (nes->isCartridgeLoaded())
             {
+                // O rewind solicita apresentação no caminho comum, evitando dois
+                // renders (e duas esperas por VSync) na mesma iteração.
+                bool rewindFrameReady = false;
                 if (runningRewind)
                 {
-                    if (updateRewind(deltaTime))
-                        render();
+                    rewindFrameReady = updateRewind(deltaTime);
                 }
                 else if (!paused)
                 {
@@ -348,7 +350,7 @@ namespace R2NES::Core
                 {
                     const double renderInterval = 1.0 / targetFPS;
                     renderResidualTime += deltaTime;
-                    if (renderResidualTime >= renderInterval)
+                    if (rewindFrameReady || renderResidualTime >= renderInterval)
                     {
                         render();
                         // Preserva a fração excedente também durante fast-forward.
@@ -363,7 +365,7 @@ namespace R2NES::Core
                 {
                     double renderInterval = 1.0 / targetFPS;
                     renderResidualTime += deltaTime;
-                    if (renderResidualTime >= renderInterval)
+                    if (rewindFrameReady || renderResidualTime >= renderInterval)
                     {
                         render();
                         // Preserva somente a fração excedente para manter a cadência de renderização.
@@ -438,9 +440,6 @@ namespace R2NES::Core
     void Engine::processEmulatorInput()
     {
         window->pollEvents();
-
-        // Consulta contínua do estado do teclado.
-        const bool *keyboardState = SDL_GetKeyboardState(nullptr);
 
         // Suporte à Zapper: Passa a posição da mira (mouse) e o estado do gatilho para o hardware
         if (nes->isCartridgeLoaded())
@@ -603,21 +602,29 @@ namespace R2NES::Core
 
         framesSinceLastRewindState = 0;
 
-        std::ostringstream state(std::ios::binary | std::ios::out);
-        if (!nes->saveState(state))
-            return;
-
         const size_t maximumStates = static_cast<size_t>(
             std::ceil(rewindHistorySeconds * targetUPS / rewindStateIntervalFrames[window->getRewindPrecisionLevel()]));
         if (maximumStates == 0)
             return;
 
+        // Durante o preenchimento inicial, evita crescimento incremental do buffer.
+        if (!rewindStates.empty())
+            rewindCaptureBuffer.reserve(rewindStates.back().size());
+        R2NES::System::SnapshotBuffer buffer(rewindCaptureBuffer);
+        std::ostream state(&buffer);
+        if (!nes->saveState(state))
+            return;
+
+        std::string snapshot = std::move(rewindCaptureBuffer);
         // Remove os mais antigos e reserva espaço para o próximo snapshot,
         // inclusive quando a mudança de precisão reduz a capacidade.
         while (rewindStates.size() >= maximumStates)
+        {
+            rewindCaptureBuffer.swap(rewindStates.front());
             rewindStates.pop_front();
+        }
 
-        rewindStates.push_back(state.str());
+        rewindStates.push_back(std::move(snapshot));
     }
 
     // Restaura um snapshot recente quando o intervalo de rewind permite uma nova etapa.
@@ -643,6 +650,7 @@ namespace R2NES::Core
     void Engine::clearRewindStates()
     {
         rewindStates.clear();
+        std::string{}.swap(rewindCaptureBuffer);
         framesSinceLastRewindState = 0;
         rewindResidualTime = 0.0;
     }

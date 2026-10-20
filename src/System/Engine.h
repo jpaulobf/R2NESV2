@@ -122,6 +122,8 @@ namespace R2NES::Core
 
         // Histórico em memória: a frente é o estado mais antigo e o fim é o mais recente.
         std::deque<std::string> rewindStates;
+        // Reutiliza a memória de snapshots vencidos na próxima captura.
+        std::string rewindCaptureBuffer;
         int framesSinceLastRewindState = 0;
         double rewindResidualTime = 0.0;
         int rewindStateIntervalFrames[3] = {60, 20, 5};
