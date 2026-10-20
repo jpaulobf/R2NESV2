@@ -33,6 +33,9 @@ jobs:
         run: |
           cmake --build build --config Release
 
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure --parallel 2
+
       - name: Prepare Artifacts
         # Inclui o runtime MinGW necessário para executar o binário em Windows limpo
         shell: pwsh
@@ -105,6 +108,9 @@ jobs:
 
       - name: Build Project
         run: cmake --build build --config Release --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure --parallel 2
 
       - name: Prepare Linux package
         run: tar -czf R2NES_Linux_x64.tar.gz -C bin R2NESV2 resources
