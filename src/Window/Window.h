@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <string>
 #include <cstdint>
 #include <filesystem>
@@ -56,8 +56,8 @@ namespace R2NES::Core
         using RewindCallback = std::function<void(bool)>;
         using UnlimitedSpritesCallback = std::function<void(bool)>;
         using PauseCallback = std::function<void(bool)>;
-        using ControllerCallback = std::function<void(int, SDL_GameControllerButton, bool)>;
-        using ControllerTriggerCallback = std::function<void(int, SDL_GameControllerAxis, bool)>;
+        using ControllerCallback = std::function<void(int, SDL_GamepadButton, bool)>;
+        using ControllerTriggerCallback = std::function<void(int, SDL_GamepadAxis, bool)>;
         using SaveCallback = std::function<void(bool)>;
         using LoadCallback = std::function<void(bool)>;
         using SaveSlotCallback = std::function<void(int)>;
@@ -336,6 +336,10 @@ namespace R2NES::Core
         void noiseOn() { setNoise(true); }
         void dmcOn() { setDMC(true); }
 
+        /* Alterna a interpolação bilinear da textura do jogo. */
+        void setBilinearFiltering(bool enabled);
+        bool isBilinearFilteringEnabled() const { return bilinearFiltering; }
+
         /* Funções para configurar o scanline. */
         void setScanlines(bool enabled);
         void scanlinesOff() { setScanlines(false); }
@@ -432,7 +436,7 @@ namespace R2NES::Core
         void windowBorderlessFullscreen();
 
         /* Função genérica para configurar o modo de tela cheia sem bordas. */
-        void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode, Uint32 flags);
+        void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode);
 
         /* Atualiza o estado do cartucho e recria o menu para refletir as opções disponíveis. */
         void setCartLoaded(bool loaded)
@@ -511,6 +515,14 @@ namespace R2NES::Core
     private:
         void applyVSync(bool enabled);
 
+        // Declarada antes dos viewers para que SDL_Quit execute após sua destruição.
+        struct SDLSession
+        {
+            SDLSession();
+            ~SDLSession();
+            bool initialized = false;
+        } sdlSession;
+
         SDL_Window *window = nullptr;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
@@ -531,6 +543,8 @@ namespace R2NES::Core
 
         std::string title = "R2NESV2 - build 1.1.0 | FPS: %.2f";
         std::string romFile = "";
+
+        bool bilinearFiltering = false;
 
         // Valores Default Scanlines
         bool scanlines = false;
@@ -565,7 +579,7 @@ namespace R2NES::Core
         CheatEntryEnabledCallback cheatEntryEnabledCallback = nullptr;
 
         // Suporte para até 2 controles
-        SDL_GameController *controllers[2] = {nullptr, nullptr};
+        SDL_Gamepad *controllers[2] = {nullptr, nullptr};
 
         // Membros para gerenciamento do modo de exibição
         DisplayMode currentDisplayMode = DisplayMode::WINDOWED;
@@ -579,7 +593,7 @@ namespace R2NES::Core
         bool unlimitedSprites = true;
         bool vsyncEnabled = true;
         bool vsyncSuppressed = false;
-        bool rendererVsyncEnabled = true;
+        bool rendererVsyncEnabled = false;
         bool soundEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;

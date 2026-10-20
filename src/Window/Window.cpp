@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <cctype>
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdl3.h"
 #include <filesystem>
-#include "imgui_impl_sdlrenderer2.h"
+#include "imgui_impl_sdlrenderer3.h"
 #include "Util/ConfigManager.h"
 #include "Common/Common.h"
 
@@ -19,6 +19,16 @@
 
 namespace R2NES::Core
 {
+    Window::SDLSession::SDLSession()
+        : initialized(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_AUDIO))
+    {
+    }
+
+    Window::SDLSession::~SDLSession()
+    {
+        SDL_Quit();
+    }
+
     void Window::showBatteryMessage(const std::string &message)
     {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Bateria do cartucho", message.c_str(), window);
@@ -32,7 +42,7 @@ namespace R2NES::Core
         const SDL_MessageBoxData dialog{SDL_MESSAGEBOX_WARNING, window, "Importar bateria MMC5",
                                         message.c_str(), 2, buttons, nullptr};
         int selected = 0;
-        return SDL_ShowMessageBox(&dialog, &selected) == 0 && selected == 1;
+        return SDL_ShowMessageBox(&dialog, &selected) && selected == 1;
     }
 
     // Inicializa SDL, renderer, textura de vídeo e contexto ImGui da janela principal.
@@ -43,7 +53,7 @@ namespace R2NES::Core
         lastWindowedW = w * s;
         lastWindowedH = h * s;
 
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) < 0)
+        if (!sdlSession.initialized)
         {
             std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
             closed = true;
@@ -51,9 +61,8 @@ namespace R2NES::Core
         }
         window = SDL_CreateWindow(
             title.c_str(),
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             w * scale, h * scale,
-            SDL_WINDOW_SHOWN);
+            0);
 
         if (!window)
         {
@@ -62,14 +71,14 @@ namespace R2NES::Core
             return;
         }
 
-        if (vsyncEnabled)
+        renderer = SDL_CreateRenderer(window, nullptr);
+        if (!renderer)
         {
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+            std::cerr << "Renderer could not be created: " << SDL_GetError() << std::endl;
+            closed = true;
+            return;
         }
-        else
-        {
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-        }
+        applyVSync(vsyncEnabled);
 
         // Garante que o fundo da janela principal também comece preto
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
@@ -80,13 +89,25 @@ namespace R2NES::Core
             SDL_PIXELFORMAT_ARGB8888,
             SDL_TEXTUREACCESS_STREAMING,
             w, h);
+        if (!texture)
+        {
+            std::cerr << "Texture could not be created: " << SDL_GetError() << std::endl;
+            closed = true;
+            return;
+        }
+        SDL_SetTextureScaleMode(texture, bilinearFiltering ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+        SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
 
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         imguiContext = ImGui::CreateContext();
         ImGui::SetCurrentContext(imguiContext);
-        ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-        ImGui_ImplSDLRenderer2_Init(renderer);
+        if (!ImGui_ImplSDL3_InitForSDLRenderer(window, renderer) || !ImGui_ImplSDLRenderer3_Init(renderer))
+        {
+            std::cerr << "ImGui could not initialize: " << SDL_GetError() << std::endl;
+            closed = true;
+            return;
+        }
 
         // Redimensiona a janela para 3x por padrão.
         this->windowResize(currentWindowX);
@@ -103,7 +124,7 @@ namespace R2NES::Core
         {
             if (controllers[i])
             {
-                SDL_GameControllerClose(controllers[i]);
+                SDL_CloseGamepad(controllers[i]);
                 controllers[i] = nullptr;
             }
         }
@@ -112,15 +133,15 @@ namespace R2NES::Core
         {
             ImGui::SetCurrentContext(imguiContext);
             if (ImGui::GetIO().BackendRendererUserData)
-                ImGui_ImplSDLRenderer2_Shutdown();
-            ImGui_ImplSDL2_Shutdown();
+                ImGui_ImplSDLRenderer3_Shutdown();
+            if (ImGui::GetIO().BackendPlatformUserData)
+                ImGui_ImplSDL3_Shutdown();
             ImGui::DestroyContext(imguiContext);
         }
 
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
-        SDL_Quit();
     }
 
     // Distribui eventos SDL entre ImGui, controles, mouse, teclado, menus e janelas auxiliares.
@@ -136,31 +157,31 @@ namespace R2NES::Core
                 if (winId == 0 || winId == SDL_GetWindowID(window))
                 {
                     ImGui::SetCurrentContext(imguiContext);
-                    ImGui_ImplSDL2_ProcessEvent(&e);
+                    ImGui_ImplSDL3_ProcessEvent(&e);
                 }
             }
 
             // Encaminha o evento para os viewers que possuem contexto ImGui próprio.
             debugWindowManager.handleEvent(&e);
 
-            if (e.type == SDL_QUIT)
+            if (e.type == SDL_EVENT_QUIT)
                 closed = true;
 
-            if (e.type == SDL_WINDOWEVENT && e.window.windowID == SDL_GetWindowID(window))
+            if (e.type >= SDL_EVENT_WINDOW_FIRST && e.type <= SDL_EVENT_WINDOW_LAST && e.window.windowID == SDL_GetWindowID(window))
             {
-                if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+                if (e.type == SDL_EVENT_WINDOW_FOCUS_LOST)
                     releaseMenuPause(true);
-                else if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+                else if (e.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
                     menuPauseSuspendedUntilClose = false;
             }
 
             // Sai do modo tela cheia e restaura o menu ao apertar ESC
-            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
+            if (e.type == SDL_EVENT_KEY_DOWN && e.key.windowID == SDL_GetWindowID(window) && e.key.key == SDLK_ESCAPE)
             {
                 if (currentDisplayMode != DisplayMode::WINDOWED)
                 {
                     SDL_SetWindowFullscreen(window, 0);
-                    SDL_SetWindowBordered(window, SDL_TRUE);
+                    SDL_SetWindowBordered(window, true);
                     SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
                     SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
                     createMenu();
@@ -169,32 +190,44 @@ namespace R2NES::Core
             }
 
             // Gerenciamento de Conexão de Controles
-            if (e.type == SDL_CONTROLLERDEVICEADDED)
+            if (e.type == SDL_EVENT_GAMEPAD_ADDED)
             {
-                int deviceIndex = e.cdevice.which;
-                if (SDL_IsGameController(deviceIndex))
+                const SDL_JoystickID deviceId = e.gdevice.which;
+                bool alreadyOpened = false;
+                for (auto *controller : controllers)
+                    if (controller && SDL_GetGamepadID(controller) == deviceId)
+                        alreadyOpened = true;
+                if (!alreadyOpened && SDL_IsGamepad(deviceId))
                 {
                     for (int i = 0; i < 2; ++i)
                     {
                         if (!controllers[i])
                         {
-                            controllers[i] = SDL_GameControllerOpen(deviceIndex);
-                            std::cout << "Controller connected as Player " << (i + 1) << ": "
-                                      << SDL_GameControllerName(controllers[i]) << std::endl;
+                            controllers[i] = SDL_OpenGamepad(deviceId);
+                            if (controllers[i])
+                                std::cout << "Controller connected as Player " << (i + 1) << ": "
+                                          << SDL_GetGamepadName(controllers[i]) << std::endl;
                             break;
                         }
                     }
                 }
             }
-            else if (e.type == SDL_CONTROLLERDEVICEREMOVED)
+            else if (e.type == SDL_EVENT_GAMEPAD_REMOVED)
             {
-                SDL_GameController *removed = SDL_GameControllerFromInstanceID(e.cdevice.which);
                 for (int i = 0; i < 2; ++i)
                 {
-                    if (controllers[i] == removed)
+                    if (controllers[i] && SDL_GetGamepadID(controllers[i]) == e.gdevice.which)
                     {
                         std::cout << "Controller disconnected from Player " << (i + 1) << std::endl;
-                        SDL_GameControllerClose(removed);
+                        if (controllerCallback)
+                            for (int button = 0; button < SDL_GAMEPAD_BUTTON_COUNT; ++button)
+                                controllerCallback(i + 1, static_cast<SDL_GamepadButton>(button), false);
+                        if (controllerTriggerCallback)
+                        {
+                            controllerTriggerCallback(i + 1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, false);
+                            controllerTriggerCallback(i + 1, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, false);
+                        }
+                        SDL_CloseGamepad(controllers[i]);
                         controllers[i] = nullptr;
                         break;
                     }
@@ -202,34 +235,36 @@ namespace R2NES::Core
             }
 
             // Eventos de Botões do Controle
-            else if (e.type == SDL_CONTROLLERBUTTONDOWN || e.type == SDL_CONTROLLERBUTTONUP)
+            else if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || e.type == SDL_EVENT_GAMEPAD_BUTTON_UP)
             {
                 if (controllerCallback)
                 {
-                    int playerNum = (SDL_GameControllerFromInstanceID(e.cbutton.which) == controllers[0]) ? 1 : 2;
-                    controllerCallback(playerNum, (SDL_GameControllerButton)e.cbutton.button, e.type == SDL_CONTROLLERBUTTONDOWN);
+                    for (int i = 0; i < 2; ++i)
+                        if (controllers[i] && SDL_GetGamepadID(controllers[i]) == e.gbutton.which)
+                            controllerCallback(i + 1, static_cast<SDL_GamepadButton>(e.gbutton.button), e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
                 }
             }
 
             // Eventos de Eixo do Controle (ex: gatilhos L2/R2 que aparecem como eixos)
-            else if (e.type == SDL_CONTROLLERAXISMOTION)
+            else if (e.type == SDL_EVENT_GAMEPAD_AXIS_MOTION)
             {
                 // Threshold para considerar o gatilho "pressionado"
                 const int TRIGGER_THRESHOLD = 16000;
 
                 if (controllerTriggerCallback)
                 {
-                    int playerNum = (SDL_GameControllerFromInstanceID(e.caxis.which) == controllers[0]) ? 1 : 2;
-                    controllerTriggerCallback(playerNum, (SDL_GameControllerAxis)e.caxis.axis, e.caxis.value > TRIGGER_THRESHOLD);
+                    for (int i = 0; i < 2; ++i)
+                        if (controllers[i] && SDL_GetGamepadID(controllers[i]) == e.gaxis.which)
+                            controllerTriggerCallback(i + 1, static_cast<SDL_GamepadAxis>(e.gaxis.axis), e.gaxis.value > TRIGGER_THRESHOLD);
                 }
             }
 
             // Captura de Mouse para Zapper
-            if (e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP)
+            if ((e.type == SDL_EVENT_MOUSE_MOTION || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+                getEventWindowID(&e) == SDL_GetWindowID(window))
             {
-                int mouseX, mouseY;
-                SDL_GetMouseState(&mouseX, &mouseY);
-                mouseState.leftButton = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT));
+                float mouseX, mouseY;
+                mouseState.leftButton = (SDL_GetMouseState(&mouseX, &mouseY) & SDL_BUTTON_LMASK) != 0;
 
                 int winW, winH;
                 SDL_GetWindowSize(window, &winW, &winH);
@@ -267,409 +302,20 @@ namespace R2NES::Core
                 mouseState.y = std::max(0, std::min(239, mouseState.y));
             }
 
-            if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) && e.key.keysym.sym != SDLK_ESCAPE)
+            if ((e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) &&
+                e.key.windowID == SDL_GetWindowID(window) && e.key.key != SDLK_ESCAPE)
             {
                 if (keyCallback)
                 {
-                    bool isPressed = (e.type == SDL_KEYDOWN);
-                    keyCallback(e.key.keysym.sym, isPressed);
+                    bool isPressed = (e.type == SDL_EVENT_KEY_DOWN);
+                    keyCallback(e.key.key, isPressed);
                 }
             }
-
-            // Trata mensagens do Menu do Windows
-#if 0
-            if (e.type == SDL_SYSWMEVENT)
-            {
-                if (e.syswm.msg->msg.win.msg == WM_COMMAND)
-                {
-                    if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_OPEN)
-                    {
-                        openFileDialog();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_RESET)
-                    {
-                        reset();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_EXIT)
-                    {
-                        closed = true;
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_UNLOAD)
-                    {
-                        unload();
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_SAVE)
-                    {
-                        this->setLoad(false);
-                        this->setSave(true);
-                        std::cout << "Saving State - Slot " << this->getSaveSlot() << "..." << std::endl;
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_FILE_LOAD)
-                    {
-                        this->setSave(false);
-                        this->setLoad(true);
-                        std::cout << "Loading State - Slot " << this->getSaveSlot() << "..." << std::endl;
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_FILE_SAVE_SLOT_1 &&
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_FILE_SAVE_SLOT_3)
-                    {
-                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        this->setSaveSlot(id - IDM_FILE_SAVE_SLOT_1 + 1);
-                        createMenu(); // Atualiza os radio buttons de slot no menu
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_RECENT_FILE_BASE_ID && LOWORD(e.syswm.msg->msg.win.wParam) < IDM_RECENT_FILE_BASE_ID + 10)
-                    {
-                        int index = LOWORD(e.syswm.msg->msg.win.wParam) - IDM_RECENT_FILE_BASE_ID;
-                        const auto &recentRoms = configManager.getRecentRoms();
-                        if (index < recentRoms.size())
-                        {
-                            auto it = recentRoms.begin();
-                            std::advance(it, index);
-                            selectedPath = *it;
-                            configManager.addRomToList(selectedPath);
-                            createMenu();
-                        }
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_TILE_VIEWER)
-                    {
-                        nativeMenuController.setChecked(window, IDM_DEBUG_TILE_VIEWER, true);
-                        openTileViewer();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_PALETTE_VIEWER)
-                    {
-                        nativeMenuController.setChecked(window, IDM_DEBUG_PALETTE_VIEWER, true);
-                        openPaletteViewer();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_DISASSEMBLER)
-                    {
-                        nativeMenuController.setChecked(window, IDM_DEBUG_DISASSEMBLER, true);
-                        openDisassembler();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_RAM_VIEWER)
-                    {
-                        nativeMenuController.setChecked(window, IDM_DEBUG_RAM_VIEWER, true);
-                        openRamViewer();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_OAM_VIEWER)
-                    {
-                        nativeMenuController.setChecked(window, IDM_DEBUG_OAM_VIEWER, true);
-                        openOamViewer();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_DEBUG_VRAM_VIEWER)
-                    {
-                        nativeMenuController.setChecked(window, IDM_DEBUG_VRAM_VIEWER, true);
-                        openVramViewer();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_VSYNC)
-                    {
-                        toggleMarkMenuItem(IDM_VIEW_VSYNC, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->vsyncOff();
-                            else
-                                this->vsyncOn(); });
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_1X)
-                    {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_CHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_UNCHECKED);
-                        windowResize(1);
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_2X)
-                    {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_CHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_UNCHECKED);
-                        windowResize(2);
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_3X)
-                    {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_CHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_UNCHECKED);
-                        windowResize(3);
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_4X)
-                    {
-                        HMENU hMenu = GetMenu(e.syswm.msg->msg.win.hwnd);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_4X, MF_BYCOMMAND | MF_CHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_1X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_2X, MF_BYCOMMAND | MF_UNCHECKED);
-                        CheckMenuItem(hMenu, IDM_VIEW_WINDOW_3X, MF_BYCOMMAND | MF_UNCHECKED);
-                        windowResize(4);
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH)
-                    {
-                        windowBorderlessFullscreenStretch();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN)
-                    {
-                        windowBorderlessFullscreen();
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_SCANLINES)
-                    {
-                        toggleMarkMenuItem(IDM_VIEW_SCANLINES, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->scanlinesOff();
-                            else
-                                this->scanlinesOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_CROP_OVERSCAN)
-                    {
-                        toggleMarkMenuItem(IDM_VIEW_CROP_OVERSCAN, [this](bool currentlyChecked)
-                                           {
-                            // Inverte o estado atual (atribuindo a uma variável membro)
-                            this->cropOverscan = !this->cropOverscan; // Usa o estado atual da variável
-
-                            // Se ativou o crop normal, desativa o full crop
-                            if (this->cropOverscan) {
-                                this->fullCropOverscan = false;
-                                nativeMenuController.setChecked(window, IDM_VIEW_FULLCROP_OVERSCAN, false);
-                            }
-
-                            // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
-                            if (this->currentDisplayMode == DisplayMode::WINDOWED) {
-                                this->windowResize(this->currentWindowX);
-                            }
-
-                            std::cout << "Window: Crop Overscan " << (this->cropOverscan ? "On" : "Off") << std::endl; });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_VIEW_FULLCROP_OVERSCAN)
-                    {
-                        toggleMarkMenuItem(IDM_VIEW_FULLCROP_OVERSCAN, [this](bool currentlyChecked)
-                                           {
-                            // Inverte o estado atual (atribuindo a uma variável membro)
-                            this->fullCropOverscan = !this->fullCropOverscan; // Usa o estado atual da variável
-
-                            // Se ativou o full crop, desativa o crop normal
-                            if (this->fullCropOverscan) {
-                                this->cropOverscan = false;
-                                nativeMenuController.setChecked(window, IDM_VIEW_CROP_OVERSCAN, false);
-                            }
-
-                            // Se estiver em modo janela, redimensiona para ajustar ao novo conteúdo
-                            if (this->currentDisplayMode == DisplayMode::WINDOWED) {
-                                this->windowResize(this->currentWindowX);
-                            }
-
-                            std::cout << "Window: Full Crop Overscan " << (this->fullCropOverscan ? "On" : "Off") << std::endl; });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SCANLINES_LEVEL_5 &&
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SCANLINES_LEVEL_25)
-                    {
-                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_5)
-                            scanlinesTransparency = 5;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_10)
-                            scanlinesTransparency = 10;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_15)
-                            scanlinesTransparency = 15;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_20)
-                            scanlinesTransparency = 20;
-                        if (id == IDM_VIEW_SCANLINES_LEVEL_25)
-                            scanlinesTransparency = 25;
-                        createMenu(); // Atualiza os checks no menu
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_RENDER &&
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_RENDER_SPRITES)
-                    {
-                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        if (id == IDM_VIEW_RENDER_TILES)
-                            this->toggleTiles();
-                        if (id == IDM_VIEW_RENDER_SPRITES)
-                            this->toggleSprites();
-                        createMenu();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_PALETTE_DEFAULT &&
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_PALETTE_NEON)
-                    {
-                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        if (id == IDM_VIEW_PALETTE_DEFAULT)
-                            setPalettePreset(PaletteType::DEFAULT);
-                        if (id == IDM_VIEW_PALETTE_SMOOTH)
-                            setPalettePreset(PaletteType::SMOOTH);
-                        if (id == IDM_VIEW_PALETTE_NESTOPIA)
-                            setPalettePreset(PaletteType::NESTOPIA);
-                        if (id == IDM_VIEW_PALETTE_WAVEBEAM)
-                            setPalettePreset(PaletteType::WAVEBEAM);
-                        if (id == IDM_VIEW_PALETTE_NEON)
-                            setPalettePreset(PaletteType::NEON);
-                        createMenu();
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_VIEW_SHADERS_NONE &&
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_VIEW_SHADERS_XBRZMULTI)
-                    {
-                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        if (id == IDM_VIEW_SHADERS_NONE)
-                            setShader(ShaderType::NONE);
-                        if (id == IDM_VIEW_SHADERS_SCANLINES)
-                            setShader(ShaderType::SCANLINES);
-                        if (id == IDM_VIEW_SHADERS_CRT)
-                            setShader(ShaderType::CRT);
-                        if (id == IDM_VIEW_SHADERS_CRT3D)
-                            setShader(ShaderType::CRT3D);
-                        if (id == IDM_VIEW_SHADERS_SCALEFX)
-                            setShader(ShaderType::SCALEFX);
-                        if (id == IDM_VIEW_SHADERS_XBRZMULTI)
-                            setShader(ShaderType::XBRZMULTI);
-                        createMenu();
-                    }
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_UNLIMITED_SPRITES)
-                    {
-                        toggleMarkMenuItem(IDM_HACKS_UNLIMITED_SPRITES, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->unlimitedSpritesOff();
-                            else
-                                this->unlimitedSpritesOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_FAST_FORWARD)
-                    {
-                        toggleMarkMenuItem(IDM_HACKS_FAST_FORWARD, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->fastForwardOff();
-                            else
-                                this->fastForwardOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_REWIND)
-                    {
-                        toggleMarkMenuItem(IDM_HACKS_REWIND, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->rewindOff();
-                            else
-                                this->rewindOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) >= IDM_HACKS_REWIND_LEVEL_LIGHT &&
-                             LOWORD(e.syswm.msg->msg.win.wParam) <= IDM_HACKS_REWIND_LEVEL_PRECISE)
-                    {
-                        int id = LOWORD(e.syswm.msg->msg.win.wParam);
-                        if (id == IDM_HACKS_REWIND_LEVEL_LIGHT)
-                            this->setRewindPrecision(0);
-                        else if (id == IDM_HACKS_REWIND_LEVEL_NORMAL)
-                            this->setRewindPrecision(1);
-                        else if (id == IDM_HACKS_REWIND_LEVEL_PRECISE)
-                            this->setRewindPrecision(2);
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_HACKS_CPU_OVERCLOCK)
-                    {
-                        toggleMarkMenuItem(IDM_HACKS_CPU_OVERCLOCK, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->overclockCPUOff();
-                            else
-                                this->overclockCPUOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_SOUND)
-                    {
-                        toggleMarkMenuItem(IDM_SOUND_SOUND, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->soundOff();
-                            else
-                                this->soundOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_PULSE1)
-                    {
-                        toggleMarkMenuItem(IDM_SOUND_PULSE1, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->pulse1Off();
-                            else
-                                this->pulse1On(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_PULSE2)
-                    {
-                        toggleMarkMenuItem(IDM_SOUND_PULSE2, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->pulse2Off();
-                            else
-                                this->pulse2On(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_TRIANGLE)
-                    {
-                        toggleMarkMenuItem(IDM_SOUND_TRIANGLE, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->triangleOff();
-                            else
-                                this->triangleOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_NOISE)
-                    {
-                        toggleMarkMenuItem(IDM_SOUND_NOISE, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->noiseOff();
-                            else
-                                this->noiseOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_SOUND_DMC)
-                    {
-                        toggleMarkMenuItem(IDM_SOUND_DMC, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->dmcOff();
-                            else
-                                this->dmcOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_INPUT_INVERT_BAYB)
-                    {
-                        toggleMarkMenuItem(IDM_INPUT_INVERT_BAYB, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->invertBAYBOff();
-                            else
-                                this->invertBAYBOn(); });
-                    }
-
-                    else if (LOWORD(e.syswm.msg->msg.win.wParam) == IDM_INPUT_USE_ZAPPER)
-                    {
-                        toggleMarkMenuItem(IDM_INPUT_USE_ZAPPER, [this](bool currentlyChecked)
-                                           {
-                            if (currentlyChecked)
-                                this->useZapperOff();
-                            else
-                                this->useZapperOn(); });
-                    }
-                }
-            }
-#endif
 
             // Trata o fechamento de janelas individuais
-            if (e.type == SDL_WINDOWEVENT)
+            if (e.type >= SDL_EVENT_WINDOW_FIRST && e.type <= SDL_EVENT_WINDOW_LAST)
             {
-                if (e.window.event == SDL_WINDOWEVENT_CLOSE)
+                if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
                 {
                     if (e.window.windowID == SDL_GetWindowID(window))
                     {
@@ -691,7 +337,7 @@ namespace R2NES::Core
                         }
                     }
                 }
-                else if (e.window.event == SDL_WINDOWEVENT_MOVED)
+                else if (e.type == SDL_EVENT_WINDOW_MOVED)
                 {
                     // Se a janela principal for movida, reposiciona a Tile Viewer
                     if (e.window.windowID == SDL_GetWindowID(window))
@@ -723,408 +369,9 @@ namespace R2NES::Core
         this->shader = shader;
     }
 
-    // Reconstrói o menu nativo conforme o estado atual da ROM, visualizadores e opções.
+    // Mantido para compatibilidade; o menu ImGui consulta o estado a cada quadro.
     void Window::createMenu()
     {
-#if 0
-        NativeMenuState menuState;
-        menuState.cartLoaded = cartLoaded;
-        menuState.recentRoms.assign(configManager.getRecentRoms().begin(), configManager.getRecentRoms().end());
-        menuState.saveSlot = saveSlot;
-        menuState.disassemblerOpen = isDisassemblerOpen();
-        menuState.ramViewerOpen = isRamViewerOpen();
-        menuState.tileViewerOpen = isTileViewerOpen();
-        menuState.vramViewerOpen = isVramViewerOpen();
-        menuState.paletteViewerOpen = isPaletteViewerOpen();
-        menuState.oamViewerOpen = isOamViewerOpen();
-        menuState.vsyncEnabled = vsyncEnabled;
-        menuState.windowScale = currentWindowX;
-        menuState.scanlines = scanlines;
-        menuState.cropOverscan = cropOverscan;
-        menuState.fullCropOverscan = fullCropOverscan;
-        menuState.tilesEnabled = tilesEnabled;
-        menuState.spritesEnabled = spritesEnabled;
-        menuState.scanlinesTransparency = scanlinesTransparency;
-        menuState.palettePreset = palettePreset;
-        menuState.shader = shader;
-        menuState.soundEnabled = soundEnabled;
-        menuState.pulse1Enabled = pulse1Enabled;
-        menuState.pulse2Enabled = pulse2Enabled;
-        menuState.triangleEnabled = triangleEnabled;
-        menuState.noiseEnabled = noiseEnabled;
-        menuState.dmcEnabled = dmcEnabled;
-        menuState.invertBAYB = invertBAYB;
-        menuState.useZapper = useZapper;
-        menuState.unlimitedSprites = unlimitedSprites;
-        menuState.fastForwardEnabled = fastForwardEnabled;
-        menuState.cpuOverclockEnabled = cpuOverclockEnabled;
-        menuState.rewindEnabled = rewindEnabled;
-        menuState.rewindPrecisionLevel = rewindPrecisionLevel;
-        nativeMenuController.createMenu(window, menuState);
-        return;
-
-#ifdef _WIN32
-        SDL_SysWMinfo wmInfo;
-        SDL_VERSION(&wmInfo.version);
-        if (SDL_GetWindowWMInfo(window, &wmInfo))
-        {
-            HWND hwnd = wmInfo.info.win.window;
-
-            // Remove e destrói o menu anterior antes de criar um novo (evita memory leaks)
-            HMENU hOldMenu = GetMenu(hwnd);
-            if (hOldMenu)
-                DestroyMenu(hOldMenu);
-
-            // Carrega o ícone do recurso e define na janela
-            HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON));
-            if (hIcon)
-            {
-                SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-                SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
-            }
-
-            HMENU hMenuBar = CreateMenu();
-            HMENU hFileMenu = CreateMenu();
-            HMENU hInputMenu = CreateMenu();
-            HMENU hDebugMenu = CreateMenu();
-            HMENU hDisplayMenu = CreateMenu();
-            HMENU hSoundMenu = CreateMenu();
-            HMENU hHacksMenu = CreateMenu();
-
-            // Adiciona a opção Open ao menu File
-            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open ROM...");
-            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_RESET, L"&Reset");
-            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_UNLOAD, L"&Unload");
-            AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-
-            // Save/Load State
-            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_SAVE, L"&Save State\tF5");
-            AppendMenuW(hFileMenu, MF_STRING | (cartLoaded ? MF_ENABLED : MF_DISABLED), IDM_FILE_LOAD, L"&Load State\tF6");
-
-            HMENU hSaveSlotLevelMenu = CreatePopupMenu();
-            AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 1 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_1, L"Slot 1");
-            AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 2 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_2, L"Slot 2");
-            AppendMenuW(hSaveSlotLevelMenu, MF_STRING | (saveSlot == 3 ? MF_CHECKED : MF_UNCHECKED), IDM_FILE_SAVE_SLOT_3, L"Slot 3");
-
-            AppendMenuW(hFileMenu, MF_POPUP | (cartLoaded ? MF_ENABLED : MF_DISABLED), (UINT_PTR)hSaveSlotLevelMenu, L"&Save State Slot");
-            AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-
-            // Cria o submenu para "Recent Files"
-            HMENU hRecentFilesMenu = CreatePopupMenu();
-            const auto &recentRoms = configManager.getRecentRoms();
-
-            if (recentRoms.empty())
-            {
-                AppendMenuW(hRecentFilesMenu, MF_STRING | MF_GRAYED, 0, L"No Recent Files");
-            }
-            else
-            {
-                int i = 0;
-                for (const auto &romPath : recentRoms)
-                {
-                    // Mostra apenas o nome do arquivo no menu, para não ficar muito largo
-                    std::string fileName = romPath.substr(romPath.find_last_of("\\/") + 1);
-                    AppendMenuA(hRecentFilesMenu, MF_STRING, IDM_RECENT_FILE_BASE_ID + i, fileName.c_str());
-                    if (++i >= 10)
-                        break; // Garante o limite de 10
-                }
-            }
-            AppendMenuW(hFileMenu, MF_POPUP, (UINT_PTR)hRecentFilesMenu, L"&Recent Files");
-            AppendMenuW(hFileMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenuW(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"&Exit");
-
-            if (isDisassemblerOpen())
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_DISASSEMBLER, L"&Disassembler");
-            }
-
-            if (isRamViewerOpen())
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_RAM_VIEWER, L"&RAM Viewer");
-            }
-
-            AppendMenuW(hDebugMenu, MF_SEPARATOR, 0, NULL);
-
-            if (isTileViewerOpen())
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_TILE_VIEWER, L"&Tile Viewer");
-            }
-
-            if (isVramViewerOpen())
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_VRAM_VIEWER, L"&VRAM Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_VRAM_VIEWER, L"&VRAM Viewer");
-            }
-
-            if (isPaletteViewerOpen())
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_PALETTE_VIEWER, L"&Palette Viewer");
-            }
-
-            if (isOamViewerOpen())
-            {
-                AppendMenuW(hDebugMenu, MF_STRING | MF_CHECKED, IDM_DEBUG_OAM_VIEWER, L"&OAM Viewer");
-            }
-            else
-            {
-                AppendMenuW(hDebugMenu, MF_STRING, IDM_DEBUG_OAM_VIEWER, L"&OAM Viewer");
-            }
-
-            if (this->vsyncEnabled)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_VSYNC, L"&VSync");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_VSYNC, L"&VSync");
-            }
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-
-            if (this->currentWindowX == 1)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_1X, L"&1x");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_1X, L"&1x");
-            }
-
-            if (this->currentWindowX == 2)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_2X, L"&2x");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_2X, L"&2x");
-            }
-
-            if (this->currentWindowX == 3)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_3X, L"&3x");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_3X, L"&3x");
-            }
-
-            if (this->currentWindowX == 4)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_WINDOW_4X, L"&4x");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_4X, L"&4x");
-            }
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN_STRETCH, L"&Borderless Fullscreen Stretch");
-            AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_WINDOW_BORDERLESS_FULLSCREEN, L"&Borderless Fullscreen");
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-
-            if (this->scanlines)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_SCANLINES, L"&Scanlines");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_SCANLINES, L"&Scanlines");
-            }
-
-            if (this->cropOverscan)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_CROP_OVERSCAN, L"&Top Crop Overscan (8px)");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_CROP_OVERSCAN, L"&Top Crop Overscan (8px)");
-            }
-
-            if (this->fullCropOverscan)
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING | MF_CHECKED, IDM_VIEW_FULLCROP_OVERSCAN, L"&Full Crop Overscan (8px, 8px, 8px, 8px)");
-            }
-            else
-            {
-                AppendMenuW(hDisplayMenu, MF_STRING, IDM_VIEW_FULLCROP_OVERSCAN, L"&Full Crop Overscan (8px, 8px, 8px, 8px)");
-            }
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            AppendMenuW(hDisplayMenu, MF_STRING | (tilesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_TILES, L"&Render Tiles");
-            AppendMenuW(hDisplayMenu, MF_STRING | (spritesEnabled ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_RENDER_SPRITES, L"&Render Sprites");
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-
-            HMENU hScanlineLevelMenu = CreatePopupMenu();
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 5 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_5, L"5%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 10 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_10, L"10%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 15 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_15, L"15%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 20 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_20, L"20%");
-            AppendMenuW(hScanlineLevelMenu, MF_STRING | (scanlinesTransparency == 25 ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SCANLINES_LEVEL_25, L"25%");
-            AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hScanlineLevelMenu, L"&Scanlines Level");
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-
-            HMENU hPalettesLevelMenu = CreatePopupMenu();
-            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::DEFAULT ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_DEFAULT, L"Default");
-            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::SMOOTH ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_SMOOTH, L"Smooth");
-            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::NESTOPIA ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_NESTOPIA, L"Nestopia Emulator");
-            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::WAVEBEAM ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_WAVEBEAM, L"WaveBeam");
-            AppendMenuW(hPalettesLevelMenu, MF_STRING | (palettePreset == PaletteType::NEON ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_PALETTE_NEON, L"Neon");
-            AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hPalettesLevelMenu, L"&Palettes Preset");
-
-            AppendMenuW(hDisplayMenu, MF_SEPARATOR, 0, NULL);
-            HMENU hShadersLevelMenu = CreatePopupMenu();
-            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::NONE ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_NONE, L"None");
-            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::SCANLINES ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_SCANLINES, L"Scanlines");
-            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::CRT ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_CRT, L"CRT");
-            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::CRT3D ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_CRT3D, L"CRT 3D");
-            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::SCALEFX ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_SCALEFX, L"ScaleFX");
-            AppendMenuW(hShadersLevelMenu, MF_STRING | (shader == ShaderType::XBRZMULTI ? MF_CHECKED : MF_UNCHECKED), IDM_VIEW_SHADERS_XBRZMULTI, L"xBRZ Multi");
-            AppendMenuW(hDisplayMenu, MF_POPUP, (UINT_PTR)hShadersLevelMenu, L"&Shaders");
-
-            if (this->soundEnabled)
-            {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_SOUND, L"&Master Sound");
-            }
-            else
-            {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_SOUND, L"&Master Sound");
-            }
-
-            AppendMenuW(hSoundMenu, MF_SEPARATOR, 0, NULL);
-
-            if (this->pulse1Enabled)
-            {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_PULSE1, L"&Pulse 1");
-            }
-            else
-            {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_PULSE1, L"&Pulse 1");
-            }
-
-            if (this->pulse2Enabled)
-            {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_PULSE2, L"&Pulse 2");
-            }
-            else
-            {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_PULSE2, L"&Pulse 2");
-            }
-
-            if (this->triangleEnabled)
-            {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_TRIANGLE, L"&Triangle");
-            }
-            else
-            {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_TRIANGLE, L"&Triangle");
-            }
-
-            if (this->noiseEnabled)
-            {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_NOISE, L"&Noise");
-            }
-            else
-            {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_NOISE, L"&Noise");
-            }
-
-            if (this->dmcEnabled)
-            {
-                AppendMenuW(hSoundMenu, MF_STRING | MF_CHECKED, IDM_SOUND_DMC, L"&DMC");
-            }
-            else
-            {
-                AppendMenuW(hSoundMenu, MF_STRING, IDM_SOUND_DMC, L"&DMC");
-            }
-
-            if (this->invertBAYB)
-            {
-                AppendMenuW(hInputMenu, MF_STRING | MF_CHECKED, IDM_INPUT_INVERT_BAYB, L"&Invert BA/YB Buttons");
-            }
-            else
-            {
-                AppendMenuW(hInputMenu, MF_STRING, IDM_INPUT_INVERT_BAYB, L"&Invert BA/YB Buttons");
-            }
-
-            if (this->useZapper)
-            {
-                AppendMenuW(hInputMenu, MF_STRING | MF_CHECKED, IDM_INPUT_USE_ZAPPER, L"&Enable Zapper");
-            }
-            else
-            {
-                AppendMenuW(hInputMenu, MF_STRING, IDM_INPUT_USE_ZAPPER, L"&Enable Zapper");
-            }
-
-            if (this->unlimitedSprites)
-            {
-                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_UNLIMITED_SPRITES, L"&Enable Unlimited Sprites");
-            }
-            else
-            {
-                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_UNLIMITED_SPRITES, L"&Enable Unlimited Sprites");
-            }
-
-            if (this->fastForwardEnabled)
-            {
-                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_FAST_FORWARD, L"&Enable Fast Forward");
-            }
-            else
-            {
-                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_FAST_FORWARD, L"&Enable Fast Forward");
-            }
-
-            if (this->cpuOverclockEnabled)
-            {
-                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_CPU_OVERCLOCK, L"&Enable CPU Overclock");
-            }
-            else
-            {
-                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_CPU_OVERCLOCK, L"&Enable CPU Overclock");
-            }
-
-            if (this->rewindEnabled)
-            {
-                AppendMenuW(hHacksMenu, MF_STRING | MF_CHECKED, IDM_HACKS_REWIND, L"&Enable Rewind");
-            }
-            else
-            {
-                AppendMenuW(hHacksMenu, MF_STRING, IDM_HACKS_REWIND, L"&Enable Rewind");
-            }
-
-            // Adiciona o menu File à barra principal
-            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
-            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDisplayMenu, L"&Display");
-            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hSoundMenu, L"&Sound");
-            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hInputMenu, L"&Input");
-            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hDebugMenu, L"&Debug");
-            AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hHacksMenu, L"&Hacks");
-
-            SetMenu(hwnd, hMenuBar);
-        }
-#endif
-#endif
     }
 
     // Abre o seletor de ROMs implementado com Dear ImGui.
@@ -1136,51 +383,6 @@ namespace R2NES::Core
                                   ? std::filesystem::path(lastRomPath)
                                   : std::filesystem::current_path(error);
         fileDialogOpen = true;
-#if 0
-#ifdef _WIN32
-        OPENFILENAMEA ofn;
-        char szFile[260] = {0};
-        char szInitialDir[260] = {0};
-
-        ZeroMemory(&ofn, sizeof(ofn));
-        ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = NULL;
-        ofn.lpstrFile = szFile;
-        ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "NES ROMs (*.nes, *.unf, *.unif, *.zip)\0*.nes;*.unf;*.unif;*.zip\0All Files (*.*)\0*.*\0";
-        ofn.nFilterIndex = 1;
-        ofn.lpstrFileTitle = NULL;
-        ofn.nMaxFileTitle = 0;
-
-        // Set initial directory if available
-        std::string lastRomPath = configManager.getLastRomPath();
-        if (!lastRomPath.empty() && std::filesystem::is_directory(lastRomPath))
-        {
-            strncpy(szInitialDir, lastRomPath.c_str(), sizeof(szInitialDir) - 1);
-            szInitialDir[sizeof(szInitialDir) - 1] = '\0';
-            ofn.lpstrInitialDir = szInitialDir;
-        }
-        else
-        {
-            ofn.lpstrInitialDir = NULL;
-        }
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-        if (GetOpenFileNameA(&ofn) == TRUE)
-        {
-            selectedPath = szFile;
-            configManager.addRomToList(selectedPath);
-
-            std::filesystem::path romFilePath(selectedPath);
-            if (romFilePath.has_parent_path())
-            {
-                configManager.setLastRomPath(romFilePath.parent_path().string());
-            }
-
-            createMenu(); // Atualiza o menu com a nova ROM no topo da lista
-        }
-#endif
-#endif
     }
 
     // Renderiza o diálogo de seleção de arquivos.
@@ -1347,6 +549,8 @@ namespace R2NES::Core
                 if (ImGui::MenuItem("Borderless Fullscreen"))
                     windowBorderlessFullscreen();
                 ImGui::Separator();
+                if (ImGui::MenuItem("Bilinear Filtering", nullptr, bilinearFiltering))
+                    setBilinearFiltering(!bilinearFiltering);
                 if (ImGui::MenuItem("Scanlines", nullptr, scanlines))
                     setScanlines(!scanlines);
                 if (ImGui::MenuItem("Top Crop Overscan (8px)", nullptr, cropOverscan))
@@ -1907,56 +1111,24 @@ namespace R2NES::Core
         if (renderer && rendererVsyncEnabled == enabled)
             return;
 
-        if (renderer && SDL_RenderSetVSync(renderer, enabled ? 1 : 0) == 0)
+        if (renderer && SDL_SetRenderVSync(renderer, enabled ? 1 : 0))
         {
             rendererVsyncEnabled = enabled;
             return;
         }
 
-        // Drivers sem suporte à troca direta usam a recriação do renderer.
-        // 1. Destruir recursos antigos vinculados ao renderer atual
-        if (texture)
-        {
-            SDL_DestroyTexture(texture);
-            texture = nullptr;
-        }
+        // SDL3 configura VSync pela API, sem flags de criação do renderer.
+        // Se o driver não o oferece, a Engine usa sua cadência por relógio.
         if (renderer)
         {
-            ImGui::SetCurrentContext(imguiContext);
-            ImGui_ImplSDLRenderer2_Shutdown();
-            SDL_DestroyRenderer(renderer);
-            renderer = nullptr;
+            std::cerr << "Window: Could not set VSync: " << SDL_GetError() << std::endl;
+            if (enabled && !vsyncSuppressed)
+            {
+                vsyncEnabled = false;
+                if (vsyncCallback)
+                    vsyncCallback(false);
+            }
         }
-
-        // 2. Criar novo renderer com a flag de VSync se solicitado
-        Uint32 flags = SDL_RENDERER_ACCELERATED;
-        if (enabled)
-            flags |= SDL_RENDERER_PRESENTVSYNC;
-
-        renderer = SDL_CreateRenderer(window, -1, flags);
-        if (!renderer)
-        {
-            std::cerr << "Window: Could not recreate renderer: " << SDL_GetError() << std::endl;
-            closed = true;
-            return;
-        }
-        rendererVsyncEnabled = enabled;
-
-        // 3. Restaurar estado do renderer e recriar texturas
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-        texture = SDL_CreateTexture(
-            renderer,
-            SDL_PIXELFORMAT_ARGB8888,
-            SDL_TEXTUREACCESS_STREAMING,
-            width, height);
-        if (!texture)
-        {
-            std::cerr << "Window: Could not recreate texture: " << SDL_GetError() << std::endl;
-            ImGui_ImplSDLRenderer2_Init(renderer);
-            closed = true;
-            return;
-        }
-        ImGui_ImplSDLRenderer2_Init(renderer);
     }
 
     // Ajusta o tamanho visível conforme escala e recorte de overscan atuais.
@@ -1965,9 +1137,9 @@ namespace R2NES::Core
         // Exit fullscreen mode if currently in one
         if (currentDisplayMode != DisplayMode::WINDOWED)
         {
-            SDL_SetWindowFullscreen(window, 0);      // Set to windowed mode
-            SDL_SetWindowBordered(window, SDL_TRUE); // Restore border
-            createMenu();                            // Restaura o menu nativo
+            SDL_SetWindowFullscreen(window, 0);  // Set to windowed mode
+            SDL_SetWindowBordered(window, true); // Restore border
+            createMenu();                        // Restaura o menu nativo
         }
 
         int currentW = width;
@@ -1992,7 +1164,7 @@ namespace R2NES::Core
     }
 
     // Salva o modo janela, remove o menu nativo e entra em fullscreen sem bordas.
-    void Window::setWindowBorderlessFullscreen(DisplayMode dm, Uint32 flags)
+    void Window::setWindowBorderlessFullscreen(DisplayMode dm)
     {
         // Save current windowed state before going fullscreen
         if (currentDisplayMode == DisplayMode::WINDOWED)
@@ -2001,20 +1173,35 @@ namespace R2NES::Core
             SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
         }
 
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-        currentDisplayMode = dm;
+        if (SDL_SetWindowFullscreenMode(window, nullptr) && SDL_SetWindowFullscreen(window, true))
+            currentDisplayMode = dm;
     }
 
     // Entra em fullscreen preenchendo toda a área disponível.
     void Window::windowBorderlessFullscreenStretch()
     {
-        this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_STRETCH, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_STRETCH);
     }
 
     // Entra em fullscreen preservando a proporção de pixels do NES.
     void Window::windowBorderlessFullscreen()
     {
-        this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_ASPECT_8_7, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        this->setWindowBorderlessFullscreen(DisplayMode::FULLSCREEN_ASPECT_8_7);
+    }
+
+    // Altera a interpolação na própria textura, sem recriar o renderer.
+    void Window::setBilinearFiltering(bool enabled)
+    {
+        if (!texture || bilinearFiltering == enabled)
+            return;
+
+        if (!SDL_SetTextureScaleMode(texture, enabled ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST))
+        {
+            std::cerr << "Window: Could not set texture filtering: " << SDL_GetError() << std::endl;
+            return;
+        }
+
+        bilinearFiltering = enabled;
     }
 
     // Atualiza a ativação do filtro de scanlines.
@@ -2113,7 +1300,7 @@ namespace R2NES::Core
 
         // Define a área de origem da textura (Source Rect)
         // Se o Crop estiver ativado, pulamos os primeiros 8 scanlines e reduzimos a altura em 16 (8 topo + 8 base)
-        SDL_Rect src_rect = {0, 0, width, height};
+        SDL_FRect src_rect = {0, 0, static_cast<float>(width), static_cast<float>(height)};
         if (fullCropOverscan)
         {
             src_rect.x = 8;
@@ -2127,12 +1314,12 @@ namespace R2NES::Core
             src_rect.h = height - 16;
         }
 
-        SDL_Rect dest_rect;
+        SDL_FRect dest_rect;
         if (currentDisplayMode == DisplayMode::FULLSCREEN_ASPECT_8_7)
         {
             // Calcula uma área centralizada que preserva a proporção escolhida.
             int current_window_w, current_window_h;
-            SDL_GetWindowSize(window, &current_window_w, &current_window_h);
+            SDL_GetRenderOutputSize(renderer, &current_window_w, &current_window_h);
 
             // Se cortamos 16 pixels de altura (8 topo + 8 base), para manter o mesmo "look" dos pixels
             // (Pixel Aspect Ratio), precisamos ajustar a proporção da tela (Display Aspect Ratio).
@@ -2173,18 +1360,18 @@ namespace R2NES::Core
             dest_rect.x = (current_window_w - render_w) / 2;
             dest_rect.y = (current_window_h - render_h) / 2;
 
-            SDL_RenderCopy(renderer, texture, &src_rect, &dest_rect);
+            SDL_RenderTexture(renderer, texture, &src_rect, &dest_rect);
         }
         else
         {
-            SDL_RenderCopy(renderer, texture, &src_rect, nullptr);
+            SDL_RenderTexture(renderer, texture, &src_rect, nullptr);
         }
 
         if (imguiContext)
         {
             ImGui::SetCurrentContext(imguiContext);
-            ImGui_ImplSDLRenderer2_NewFrame();
-            ImGui_ImplSDL2_NewFrame();
+            ImGui_ImplSDLRenderer3_NewFrame();
+            ImGui_ImplSDL3_NewFrame();
             ImGui::NewFrame();
 
             renderMenu();
@@ -2201,7 +1388,7 @@ namespace R2NES::Core
             }
 
             ImGui::Render();
-            ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+            ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         }
 
         SDL_RenderPresent(renderer);
