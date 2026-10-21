@@ -553,6 +553,17 @@ namespace R2NES::Core
                     setBilinearFiltering(!bilinearFiltering);
                 if (ImGui::MenuItem("Scanlines", nullptr, scanlines))
                     setScanlines(!scanlines);
+                if (ImGui::BeginMenu("Scanlines Level", scanlines))
+                {
+                    for (const int level : {5, 10, 15, 20, 25})
+                    {
+                        const std::string label = std::to_string(level) + "%";
+                        if (ImGui::MenuItem(label.c_str(), nullptr, scanlinesTransparency == level))
+                            scanlinesTransparency = level;
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem("Top Crop Overscan (8px)", nullptr, cropOverscan))
                 {
                     cropOverscan = !cropOverscan;
@@ -574,16 +585,7 @@ namespace R2NES::Core
                     toggleTiles();
                 if (ImGui::MenuItem("Render Sprites", nullptr, spritesEnabled))
                     toggleSprites();
-                if (ImGui::BeginMenu("Scanlines Level", scanlines))
-                {
-                    for (const int level : {5, 10, 15, 20, 25})
-                    {
-                        const std::string label = std::to_string(level) + "%";
-                        if (ImGui::MenuItem(label.c_str(), nullptr, scanlinesTransparency == level))
-                            scanlinesTransparency = level;
-                    }
-                    ImGui::EndMenu();
-                }
+                ImGui::Separator();
                 if (ImGui::BeginMenu("Palette Preset"))
                 {
                     const std::pair<PaletteType, const char *> palettes[] = {{PaletteType::DEFAULT, "Default"}, {PaletteType::SMOOTH, "Smooth"}, {PaletteType::NESTOPIA, "Nestopia Emulator"}, {PaletteType::WAVEBEAM, "WaveBeam"}, {PaletteType::NEON, "Neon"}};
