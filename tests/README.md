@@ -1,3 +1,62 @@
+# Test suite overview
+
+Configure and build with CMake, then run all registered checks:
+
+```sh
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+The standard suite uses generated fixtures; seven MMC3 diagnostic ROMs are
+registered additionally when present in `nestest/blarg` at configuration time.
+Their absence means fewer tests, not a pass for those diagnostics. Optional game
+ROM smoke tests described below are not included in the default CTest run.
+For a build without SDL3 or Dear ImGui, configure with `-DR2NES_BUILD_GUI=OFF`;
+the three SDL-dependent tests are omitted, while the core and snapshot tests
+remain available. See the root README for the complete commands.
+
+Baseline on 2026-11-03: Windows x64, MinGW GCC 15.2.0, CMake 4.3.1,
+Release configuration; incremental build succeeded and all 28 registered
+checks passed, including the seven locally available MMC3 ROM diagnostics.
+This is a point-in-time result, not a claim that other diagnostics passed.
+
+| Area | Automated coverage | Important limits |
+| --- | --- | --- |
+| CPU | Cycle-by-cycle regression over 256 opcodes and selected interrupt and state-restore scenarios | The digest is based on the emulator's previous behavior, not an independent hardware oracle. |
+| PPU | Open-bus decay and sprite overflow regressions; mapper tests exercise selected rendering interactions | These do not cover all timing, rendering, or the diagonal sprite-overflow bug. |
+| APU | Output suppression, DMC requests and stalls, IRQs, and state preservation under suppression | Comparison against normal output checks regression, not complete audio or timing accuracy. |
+| Cartridges | Synthetic mapper, UNIF, battery, cheat and state tests; optional MMC3 diagnostic ROMs | Coverage varies by board and variant; a passing mapper test does not establish full game compatibility. |
+| Application | Snapshot buffer, audio manager, event waits and SDL integration with dummy drivers | Physical devices, audible output and real graphics drivers are not covered. |
+
+Historical CPU/APU diagnostic failures are recorded in the mapper 4 section
+below; they are not registered in the default suite and have not been rechecked
+by simply running CTest. See the individual sections for precise scenarios.
+
+## ROM and ZIP input validation
+
+`rom-file` generates stored and DEFLATE ZIPs, with and without data descriptors,
+and checks cartridge loading. It rejects every truncation of a generated ZIP,
+inconsistent headers, invalid offsets and sizes, oversized ROM declarations,
+encryption, unsupported methods, multi-disk archives, corrupt data and CRC
+mismatches. It checks that a rejected ZIP preserves the active console state and
+that an oversized direct ROM is rejected. `sdl3-integration` also verifies the
+application's failed-load path. These checks are not exhaustive fuzzing or a
+proof of safety against every malformed input.
+
+`state-security` checks selected invalid CPU, PPU and APU save-state fields and
+console rollback. For sanitizer commands, current results and remaining audit
+items, see [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
+
+`mapper-state-security` checks invalid and truncated states for mappers 23,
+40, 66, 71, 90, 187 and 189. It verifies mapper rollback, reachable mapper 23
+states and console rollback after a corrupted mapper 23 flag. Other mapper
+state tests are covered by their individual suites. See the root
+[save-state audit](../STATE_SECURITY_AUDIT.md) for scope and limitations.
+
+ZIP loading reads the central directory and checks the selected entry without
+writing its filename or content to disk. ROMs are limited to 64 MiB and ZIPs to
+128 MiB; ZIP64 and multi-disk archives are intentionally unsupported.
+
 # Mapper 1 regression tests
 
 Generated ROMs cover PRG/CHR modes and boundaries, serial bit order and fifth-write
@@ -477,11 +536,8 @@ mirroring, IRQs, reset, save states, and cartridge loading. Generated mapper 187
 fixtures verify that unrelated ROMs keep their declared mapper.
 
 ```powershell
-$coreSources = (Get-ChildItem src/Core -Filter '*.cpp' -Recurse).FullName
-g++ -O2 -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper189Tests.cpp $coreSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper189-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
-./build/mapper189-tests.exe build/mapper189-test-data
-if ($LASTEXITCODE -ne 0) { throw 'Mapper 189 tests failed' }
+cmake --build build --target mapper189-tests
+ctest --test-dir build -R '^mapper189$' --output-on-failure
 ```
 
 Optionally pass a game ROM/ZIP as a second argument. It runs 6,000,000 CPU cycles
@@ -703,15 +759,11 @@ These tests use generated ROMs to check bank switching, address boundaries,
 CHR-RAM, mirroring, reset, save states, cartridge loading, and the absence of
 bus conflicts. No game ROM is required.
 
-After building the emulator in `build/`, run from the repository root with
-PowerShell and MinGW-w64:
+Run from the repository root after configuring CMake:
 
 ```powershell
-$mapperSources = (Get-ChildItem src/Core/Cartridge/Mappers -Filter '*.cpp').FullName
-g++ -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/Mapper071Tests.cpp src/Core/Cartridge/Cartridge.cpp src/Core/Cartridge/BatterySave.cpp src/Core/Cartridge/UNIF.cpp src/Core/Memory/VRAM/VRAM.cpp $mapperSources build/_deps/zlib-build/libzlibstatic.a -o build/mapper071-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
-./build/mapper071-tests.exe build/mapper071-test-data
-if ($LASTEXITCODE -ne 0) { throw 'Mapper 71 tests failed' }
+cmake --build build --target mapper071-tests
+ctest --test-dir build -R '^mapper071$' --output-on-failure
 ```
 
 ## PPU sprite overflow
@@ -722,11 +774,8 @@ and pre-render clearing, with Unlimited Sprites both enabled and disabled.
 It does not check cycle accuracy or the hardware's diagonal overflow bug.
 
 ```powershell
-$coreSources = (Get-ChildItem src/Core -Filter '*.cpp' -Recurse).FullName
-g++ -O2 -std=c++17 -Isrc -Ibuild/_deps/zlib-src -Ibuild/_deps/zlib-build tests/PPUSpriteOverflowTests.cpp $coreSources build/_deps/zlib-build/libzlibstatic.a -o build/ppu-sprite-overflow-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
-./build/ppu-sprite-overflow-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'PPU sprite overflow tests failed' }
+cmake --build build --target ppu-sprite-overflow-tests
+ctest --test-dir build -R '^ppu-sprite-overflow$' --output-on-failure
 ```
 
 ## Event waits
@@ -781,8 +830,6 @@ transition-related queue clearing preserves the APU state and filters.
 Run from the repository root:
 
 ```powershell
-g++ -O2 -std=c++17 -Isrc tests/APUOutputSuppressionTests.cpp src/Core/APU/APU.cpp -o build/apu-output-suppression-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed' }
-./build/apu-output-suppression-tests.exe
-if ($LASTEXITCODE -ne 0) { throw 'APU output suppression tests failed' }
+cmake --build build --target apu-output-suppression-tests
+ctest --test-dir build -R '^apu-output-suppression$' --output-on-failure
 ```

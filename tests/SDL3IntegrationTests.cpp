@@ -1,9 +1,13 @@
 #include "Window/Window.h"
 #include "Window/ScopedImGuiContext.h"
 #include "System/AudioManager.h"
+#include "System/GameStateManager.h"
+#include "Core/NES.h"
 #include <array>
 #include <cstring>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -64,6 +68,23 @@ static void testAudio()
     check(!audio.isInitialized(), "Audio stream survived close");
     audio.initialize();
     check(audio.isInitialized(), "Audio stream did not reopen");
+}
+
+static void testInvalidRomPreservesSession(Window &window)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N'; rom[1] = 'E'; rom[2] = 'S'; rom[3] = 0x1a; rom[4] = 1;
+    std::ofstream file("session.nes", std::ios::binary);
+    file.write(reinterpret_cast<const char *>(rom.data()), rom.size()); file.close();
+    NES nes(""); nes.setCheatDirectory("no-cheats");
+    R2NES::System::GameStateManager manager;
+    check(manager.loadRom("session.nes", nes, window), "Valid ROM rejected");
+    const auto cart = nes.getBus().cart;
+    std::ostringstream before; check(nes.saveState(before), "Could not save initial state");
+    check(!manager.loadRom("missing.zip", nes, window), "Invalid ROM accepted");
+    std::ostringstream after;
+    check(nes.isCartridgeLoaded() && nes.getBus().cart == cart && nes.saveState(after) &&
+          before.str() == after.str(), "Invalid ROM changed active session");
 }
 
 static void testGamepads(Window &window)
@@ -212,6 +233,7 @@ int main()
             Window window("SDL3 integration", 256, 240, 1);
             check(!window.shouldClose(), "Main window initialization failed");
             testAudio();
+            testInvalidRomPreservesSession(window);
             testGamepads(window);
             testViewers(window);
             window.setVSync(false);
