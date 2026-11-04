@@ -24,7 +24,7 @@ namespace R2NES::System
         ~GameStateManager() = default;
 
         // Carrega uma ROM, reinicializa o NES e sincroniza a interface com o novo cartucho.
-        void loadRom(const std::string &path, Core::NES &nes, Core::Window &window);
+        bool loadRom(const std::string &path, Core::NES &nes, Core::Window &window);
 
         // Remove o cartucho atual e limpa o estado de interface e dados derivados.
         void unloadRom(Core::NES &nes, Core::Window &window);

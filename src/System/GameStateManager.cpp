@@ -7,7 +7,7 @@
 namespace R2NES::System
 {
     // Prepara o NES e a Window para uma nova ROM, incluindo o cache inicial do disassembly.
-    void GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
+    bool GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
     {
         if (nes.isCartridgeLoaded() && !nes.flushBattery() &&
             !nes.getBus().cart->hasBatteryLoadError())
@@ -15,15 +15,19 @@ namespace R2NES::System
             window.showBatteryMessage(nes.getBus().cart->getBatteryMessage());
             // Uma falha de escrita não deve descartar a sessão com progresso novo.
             window.clearSelectedPath();
-            return;
+            return false;
+        }
+        std::cout << "GameStateManager: Loading ROM -> " << path << std::endl;
+        if (!nes.insertCartridge(path))
+        {
+            window.clearSelectedPath();
+            return false;
         }
         window.uncheckZapperMenu();
-        nes.unload();
+        nes.getJoysticks().port2Device = Core::IO::DeviceType::Gamepad;
         cachedDisassembly.clear();
 
         currentRomPath = path;
-        std::cout << "GameStateManager: Loading ROM -> " << path << std::endl;
-        nes.insertCartridge(path);
         if (nes.isCartridgeLoaded())
         {
             auto cart = nes.getBus().cart;
@@ -49,6 +53,7 @@ namespace R2NES::System
         window.clearSelectedPath();
         window.setRomFile(nes.isCartridgeLoaded() ? std::filesystem::path(path).filename().string() : "");
         window.setCartLoaded(nes.isCartridgeLoaded());
+        return true;
     }
 
     // Descarta o cartucho e remove da Window os estados associados à ROM anterior.
