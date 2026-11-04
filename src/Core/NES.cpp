@@ -187,7 +187,7 @@ namespace R2NES::Core
         cpu.setIrqLine(apu.getIrqFlag() || (bus.cart && bus.cart->getIrqFlag()));
     }
 
-    void NES::insertCartridge(const std::string &path)
+    bool NES::insertCartridge(const std::string &path)
     {
         // Cria e valida o cartucho; em caso de sucesso conecta-o ao barramento.
         std::shared_ptr<Cartridge> newCart = std::make_shared<Cartridge>(path);
@@ -200,12 +200,12 @@ namespace R2NES::Core
             bus.cheats.load(cheatDirectory / (newCart->getRomHash() + ".cht"));
             cartridgeLoaded = true;
             std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: " << newCart->getRomHash() << std::endl;
+            return true;
         }
         else
         {
-            bus.cheats.clear();
-            cartridgeLoaded = false;
             std::cerr << "Failed to load cartridge '" << path << "'." << std::endl;
+            return false;
         }
     }
 

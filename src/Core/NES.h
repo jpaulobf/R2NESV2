@@ -25,7 +25,7 @@ namespace R2NES::Core
 
         // Carrega um cartucho a partir de arquivo ROM (path). Valida o cartucho
         // antes de conectá-lo ao barramento.
-        void insertCartridge(const std::string &path);
+        bool insertCartridge(const std::string &path);
 
         // Reseta todo o estado do console para um estado limpo (cold boot simulation).
         void reset();
