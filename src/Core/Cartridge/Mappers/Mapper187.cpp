@@ -83,7 +83,10 @@ namespace R2NES::Core
 
     void Mapper187::loadState(std::istream &is)
     {
-        Mapper004::loadState(is);
-        is.read(reinterpret_cast<char *>(&nromModeRegister), sizeof(nromModeRegister));
+        Mapper187 next(*this);
+        next.Mapper004::loadState(is);
+        is.read(reinterpret_cast<char *>(&next.nromModeRegister), sizeof(nromModeRegister));
+        if (!is) return;
+        *this = next;
     }
 }

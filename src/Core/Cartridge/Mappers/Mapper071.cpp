@@ -1,4 +1,5 @@
 #include "Core/Cartridge/Mappers/Mapper071.h"
+#include <type_traits>
 
 namespace R2NES::Core
 {
@@ -82,7 +83,22 @@ namespace R2NES::Core
 
     void Mapper071::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        is.read(reinterpret_cast<char *>(&mirrorMode), sizeof(mirrorMode));
+        uint8_t bank = 0;
+        using MirrorValue = std::underlying_type_t<MirrorMode>;
+        MirrorValue mirror = 0;
+        is.read(reinterpret_cast<char *>(&bank), sizeof(bank));
+        is.read(reinterpret_cast<char *>(&mirror), sizeof(mirror));
+        const bool validMirror = mirror == static_cast<MirrorValue>(initialMirrorMode) ||
+                                 ((singleScreenMirroring || autoDetectMirroring) &&
+                                  (mirror == static_cast<MirrorValue>(MirrorMode::ONESCREEN_LO) ||
+                                   mirror == static_cast<MirrorValue>(MirrorMode::ONESCREEN_HI)));
+        const unsigned bankMask = singleScreenMirroring ? 7 : 15;
+        if (!is || !validMirror || bank > bankMask || (nPRGBanks ? bank >= nPRGBanks : bank != 0))
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        nPRGBankSelect = bank;
+        mirrorMode = static_cast<MirrorMode>(mirror);
     }
 }

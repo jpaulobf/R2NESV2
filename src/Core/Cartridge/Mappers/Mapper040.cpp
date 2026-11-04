@@ -1,4 +1,5 @@
 #include "Core/Cartridge/Mappers/Mapper040.h"
+#include "Core/Memory/StateRead.h"
 
 namespace R2NES::Core
 {
@@ -112,10 +113,17 @@ namespace R2NES::Core
 
     void Mapper040::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(&prgBank_C000), sizeof(prgBank_C000));
-        is.read(reinterpret_cast<char *>(&bIRQEnabled), sizeof(bIRQEnabled));
-        is.read(reinterpret_cast<char *>(&bIRQActive), sizeof(bIRQActive));
-        is.read(reinterpret_cast<char *>(&irqCounter), sizeof(irqCounter));
+        Mapper040 next(*this);
+        is.read(reinterpret_cast<char *>(&next.prgBank_C000), sizeof(prgBank_C000));
+        readStateBool(is, next.bIRQEnabled);
+        readStateBool(is, next.bIRQActive);
+        is.read(reinterpret_cast<char *>(&next.irqCounter), sizeof(irqCounter));
+        if (!is || next.prgBank_C000 > 7 || next.irqCounter >= 8192)
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        *this = next;
     }
 
     bool Mapper040::getIrqFlag() const

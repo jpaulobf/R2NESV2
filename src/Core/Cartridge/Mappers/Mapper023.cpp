@@ -1,5 +1,7 @@
 #include "Core/Cartridge/Mappers/Mapper023.h"
 #include <cstring>
+#include <type_traits>
+#include "Core/Memory/StateRead.h"
 
 namespace R2NES::Core
 {
@@ -327,24 +329,39 @@ namespace R2NES::Core
 
     void Mapper023::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(&mirrorMode), sizeof(mirrorMode));
-        is.read(reinterpret_cast<char *>(&ogMirrorMode), sizeof(ogMirrorMode));
-        is.read(reinterpret_cast<char *>(&prgBank0), sizeof(prgBank0));
-        is.read(reinterpret_cast<char *>(&prgBank1), sizeof(prgBank1));
-        is.read(reinterpret_cast<char *>(&prgMode), sizeof(prgMode));
-        is.read(reinterpret_cast<char *>(&prgRamEnable), sizeof(prgRamEnable));
-
-        is.read(reinterpret_cast<char *>(vPRGRAM), sizeof(vPRGRAM));
-        is.read(reinterpret_cast<char *>(chrBank), sizeof(chrBank));
-        is.read(reinterpret_cast<char *>(chrBankRegLow), sizeof(chrBankRegLow));
-        is.read(reinterpret_cast<char *>(chrBankRegHigh), sizeof(chrBankRegHigh));
-
-        is.read(reinterpret_cast<char *>(&irqLatch), sizeof(irqLatch));
-        is.read(reinterpret_cast<char *>(&irqCounter), sizeof(irqCounter));
-        is.read(reinterpret_cast<char *>(&irqEnabled), sizeof(irqEnabled));
-        is.read(reinterpret_cast<char *>(&irqEnableOnAck), sizeof(irqEnableOnAck));
-        is.read(reinterpret_cast<char *>(&irqMode), sizeof(irqMode));
-        is.read(reinterpret_cast<char *>(&irqActive), sizeof(irqActive));
-        is.read(reinterpret_cast<char *>(&irqPrescaler), sizeof(irqPrescaler));
+        Mapper023 next(*this);
+        using MirrorValue = std::underlying_type_t<MirrorMode>;
+        MirrorValue mirror = 0, original = 0;
+        is.read(reinterpret_cast<char *>(&mirror), sizeof(mirror));
+        is.read(reinterpret_cast<char *>(&original), sizeof(original));
+        is.read(reinterpret_cast<char *>(&next.prgBank0), sizeof(prgBank0));
+        is.read(reinterpret_cast<char *>(&next.prgBank1), sizeof(prgBank1));
+        readStateBool(is, next.prgMode);
+        readStateBool(is, next.prgRamEnable);
+        is.read(reinterpret_cast<char *>(next.vPRGRAM), sizeof(vPRGRAM));
+        is.read(reinterpret_cast<char *>(next.chrBank), sizeof(chrBank));
+        is.read(reinterpret_cast<char *>(next.chrBankRegLow), sizeof(chrBankRegLow));
+        is.read(reinterpret_cast<char *>(next.chrBankRegHigh), sizeof(chrBankRegHigh));
+        is.read(reinterpret_cast<char *>(&next.irqLatch), sizeof(irqLatch));
+        is.read(reinterpret_cast<char *>(&next.irqCounter), sizeof(irqCounter));
+        readStateBool(is, next.irqEnabled);
+        readStateBool(is, next.irqEnableOnAck);
+        readStateBool(is, next.irqMode);
+        readStateBool(is, next.irqActive);
+        is.read(reinterpret_cast<char *>(&next.irqPrescaler), sizeof(irqPrescaler));
+        bool valid = original == static_cast<MirrorValue>(ogMirrorMode) &&
+                     (mirror == original || (mirror >= static_cast<MirrorValue>(MirrorMode::HORIZONTAL) &&
+                                             mirror <= static_cast<MirrorValue>(MirrorMode::ONESCREEN_HI))) &&
+                     next.prgBank0 <= 31 && next.prgBank1 <= 31 &&
+                     next.irqPrescaler >= 1 && next.irqPrescaler <= 341;
+        for (unsigned i = 0; i < 8; ++i)
+            valid = valid && next.chrBank[i] <= 0x1ff && next.chrBankRegLow[i] <= 15 && next.chrBankRegHigh[i] <= 31;
+        if (!is || !valid)
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        next.mirrorMode = static_cast<MirrorMode>(mirror);
+        *this = next;
     }
 }

@@ -114,7 +114,17 @@ namespace R2NES::Core
 
     void Mapper066::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(&nPRGBankSelect), sizeof(nPRGBankSelect));
-        is.read(reinterpret_cast<char *>(&nCHRBankSelect), sizeof(nCHRBankSelect));
+        uint8_t prg = 0, chr = 0;
+        is.read(reinterpret_cast<char *>(&prg), sizeof(prg));
+        is.read(reinterpret_cast<char *>(&chr), sizeof(chr));
+        const unsigned prgCount = nPRGBanks / 2 ? nPRGBanks / 2 : 1;
+        const unsigned chrCount = nCHRBanks ? nCHRBanks : 1;
+        if (!is || prg > 3 || chr > 3 || prg >= prgCount || chr >= chrCount)
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        nPRGBankSelect = prg;
+        nCHRBankSelect = chr;
     }
 }

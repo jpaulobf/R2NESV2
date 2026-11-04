@@ -1,4 +1,5 @@
 #include "Core/Cartridge/Mappers/Mapper090.h"
+#include "Core/Memory/StateRead.h"
 
 namespace R2NES::Core
 {
@@ -122,15 +123,25 @@ namespace R2NES::Core
 
     void Mapper090::loadState(std::istream &is)
     {
-        is.read(reinterpret_cast<char *>(prgBanks), sizeof(prgBanks));
-        is.read(reinterpret_cast<char *>(chrLow), sizeof(chrLow));
-        is.read(reinterpret_cast<char *>(chrHigh), sizeof(chrHigh));
-        is.read(reinterpret_cast<char *>(chrBanks), sizeof(chrBanks));
-        is.read(reinterpret_cast<char *>(&multA), sizeof(multA));
-        is.read(reinterpret_cast<char *>(&multB), sizeof(multB));
-        is.read(reinterpret_cast<char *>(&irqEnabled), sizeof(irqEnabled));
-        is.read(reinterpret_cast<char *>(&irqCounter), sizeof(irqCounter));
-        is.read(reinterpret_cast<char *>(&irqLatch), sizeof(irqLatch));
-        is.read(reinterpret_cast<char *>(&mirrorControl), sizeof(mirrorControl));
+        Mapper090 next(*this);
+        is.read(reinterpret_cast<char *>(next.prgBanks), sizeof(prgBanks));
+        is.read(reinterpret_cast<char *>(next.chrLow), sizeof(chrLow));
+        is.read(reinterpret_cast<char *>(next.chrHigh), sizeof(chrHigh));
+        is.read(reinterpret_cast<char *>(next.chrBanks), sizeof(chrBanks));
+        is.read(reinterpret_cast<char *>(&next.multA), sizeof(multA));
+        is.read(reinterpret_cast<char *>(&next.multB), sizeof(multB));
+        readStateBool(is, next.irqEnabled);
+        is.read(reinterpret_cast<char *>(&next.irqCounter), sizeof(irqCounter));
+        is.read(reinterpret_cast<char *>(&next.irqLatch), sizeof(irqLatch));
+        is.read(reinterpret_cast<char *>(&next.mirrorControl), sizeof(mirrorControl));
+        bool valid = true;
+        for (unsigned i = 0; i < 8; ++i)
+            valid = valid && next.chrBanks[i] == ((uint16_t(next.chrHigh[i]) << 8) | next.chrLow[i]);
+        if (!is || !valid)
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        *this = next;
     }
 }

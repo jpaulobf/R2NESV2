@@ -52,7 +52,10 @@ namespace R2NES::Core
 
     void Mapper189::loadState(std::istream &is)
     {
-        Mapper004::loadState(is);
-        is.read(reinterpret_cast<char *>(&prgBank), sizeof(prgBank));
+        Mapper189 next(*this);
+        next.Mapper004::loadState(is);
+        is.read(reinterpret_cast<char *>(&next.prgBank), sizeof(prgBank));
+        if (!is || next.prgBank > 15) { is.setstate(std::ios::failbit); return; }
+        *this = next;
     }
 }
