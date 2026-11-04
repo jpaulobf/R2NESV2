@@ -19,6 +19,10 @@ R2NES V2 is a NES emulator written in C++17, using SDL3 and Dear ImGui. It runs 
 - CPU disassembler and viewers for RAM, VRAM, OAM, palettes, and pattern tables.
 - iNES/NES 2.0 and supported UNIF images, loaded directly or from ZIP archives. UNIF is detected by content, including images named `.nes`.
 
+ROM images are limited to 64 MiB and ZIP archives to 128 MiB. ZIP loading
+supports stored and DEFLATE entries, including data descriptors, and checks
+sizes and CRC. Encrypted, multi-disk and ZIP64 archives are not supported.
+
 Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 79, 90, 147, 150, 187, and 189**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
 
 Recent optimizations reduce rewind allocations and copies, repeated CPU instruction classification, and per-dot PPU bookkeeping. Rewind presentation also avoids duplicate rendering within a loop iteration. Regression checks cover instruction cycles, open-bus decay, snapshots, and mapper timing; performance gains depend on the game and settings.
@@ -86,6 +90,23 @@ cmake --build build-linux --parallel
 ```
 
 The executable and resources are placed in `bin/`. Keep the `resources/` directory beside the executable.
+
+### Core-only build
+
+To build the shared emulation core and its tests without SDL3, Dear ImGui, or
+the desktop application:
+
+```bash
+cmake -S . -B build-headless -DCMAKE_BUILD_TYPE=Release -DR2NES_BUILD_GUI=OFF
+cmake --build build-headless --parallel
+ctest --test-dir build-headless --output-on-failure
+```
+
+On Windows, add `-G "MinGW Makefiles"` if using MinGW. The core still uses
+zlib for ZIP support; CMake fetches it on the first configuration. Headless
+test executables are placed in `build-headless/bin/`. SDL audio, event and
+window integration tests are available only with `R2NES_BUILD_GUI=ON` (the
+default). The snapshot buffer and core tests run in both configurations.
 
 ### Tests
 
