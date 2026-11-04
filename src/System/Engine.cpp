@@ -452,9 +452,11 @@ namespace R2NES::Core
         std::string romPath = window->getSelectedPath();
         if (!romPath.empty())
         {
-            setFastForward(false);
-            stateManager->loadRom(romPath, *nes, *window);
-            resetPlaybackTiming(true);
+            if (stateManager->loadRom(romPath, *nes, *window))
+            {
+                setFastForward(false);
+                resetPlaybackTiming(true);
+            }
         }
 
         if (window->isResetRequested())
