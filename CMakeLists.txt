@@ -1,115 +1,73 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Força o uso do compilador real e desativa o launcher do ccache que está quebrando no Windows
-set(CMAKE_C_COMPILER gcc CACHE FILEPATH "" FORCE)
-set(CMAKE_CXX_COMPILER g++ CACHE FILEPATH "" FORCE)
+# Avoid broken ccache/response-file combinations in the existing MinGW setup.
 set(CMAKE_C_COMPILER_LAUNCHER "" CACHE STRING "" FORCE)
 set(CMAKE_CXX_COMPILER_LAUNCHER "" CACHE STRING "" FORCE)
-
-# Resolve problemas do ccache no Windows com caminhos longos e arquivos .rsp
-# Deve vir ANTES de project() para garantir que afete todas as dependências
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF CACHE BOOL "" FORCE)
 set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF CACHE BOOL "" FORCE)
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS OFF CACHE BOOL "" FORCE)
 set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS OFF CACHE BOOL "" FORCE)
 
-# Nome do projeto e versão
-project(R2NESV2 VERSION 1.0 LANGUAGES CXX)
-
-# Padrão do C++ (conforme seu c_cpp_properties.json)
+project(R2NESV2 VERSION 1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(R2NES_BUILD_GUI "Build the SDL3 / Dear ImGui application and GUI tests" ON)
 
-# Define o diretório de saída para a pasta /bin na raiz (como você pediu)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-
-# Procura automaticamente por todos os arquivos .cpp dentro de src e subpastas.
-# CONFIGURE_DEPENDS reconfigura o projeto quando novos arquivos são adicionados.
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+if(R2NES_BUILD_GUI)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+else()
+  # Keep headless builds from overwriting executables from the GUI build.
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
 
 include(FetchContent)
-
-# Versões estáveis fixadas para builds reproduzíveis.
-FetchContent_Declare(
-  SDL3
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG        release-3.4.18
-  GIT_SHALLOW    TRUE
-)
-
-FetchContent_Declare(
-  imgui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG        v1.93.0
-)
-
-FetchContent_Declare(
-  zlib
-  GIT_REPOSITORY https://github.com/madler/zlib.git
-  GIT_TAG        v1.3.1
-)
-
-# Configurações Globais para Dependências
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) # Força tudo como estático (.a)
-
-# Silencia os erros de tipos de ponteiro da libzip no MinGW/GCC 13
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-incompatible-pointer-types")
-
-# Mantém o executável independente de uma DLL SDL e habilita a API GPU.
-set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-set(SDL_STATIC ON CACHE BOOL "" FORCE)
-set(SDL_GPU ON CACHE BOOL "" FORCE)
-set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
-set(SDL_TESTS OFF CACHE BOOL "" FORCE)
-set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(SDL3)
-FetchContent_MakeAvailable(imgui)
-
-# Precisamos configurar a zlib primeiro
-# Desativamos exemplos da zlib para acelerar o build
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(zlib
+  GIT_REPOSITORY https://github.com/madler/zlib.git
+  GIT_TAG v1.3.1)
 FetchContent_MakeAvailable(zlib)
 
-# Backends nativos do ImGui para SDL3 e SDL_Renderer.
-set(IMGUI_SOURCES
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "src/Core/*.cpp")
+add_library(r2nes_core STATIC ${CORE_SOURCES})
+target_include_directories(r2nes_core PUBLIC src PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+target_link_libraries(r2nes_core PRIVATE zlibstatic)
+
+if(R2NES_BUILD_GUI)
+  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+  set(SDL_STATIC ON CACHE BOOL "" FORCE)
+  set(SDL_GPU ON CACHE BOOL "" FORCE)
+  set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+  set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+  set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(SDL3
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG release-3.4.18
+    GIT_SHALLOW TRUE)
+  FetchContent_Declare(imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.93.0)
+  FetchContent_MakeAvailable(SDL3 imgui)
+
+  set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
-)
-
-# Cria o executável
-set(PLATFORM_SOURCES)
-if(WIN32)
-  list(APPEND PLATFORM_SOURCES resources/resource.rc)
-endif()
-
-add_executable(R2NESV2 ${SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})
-
-# Inclui a pasta src para permitir #include "Core/Bus.h"
-# Usar target_include_directories é a prática recomendada em C++ moderno
-target_include_directories(R2NESV2 PRIVATE 
-    src 
-    ${imgui_SOURCE_DIR} 
-    ${imgui_SOURCE_DIR}/backends
-    ${zlib_SOURCE_DIR}
-    ${zlib_BINARY_DIR}
-)
-
-# SDL3 fornece o ponto de entrada por SDL_main.h, sem SDLmain separado.
-target_link_libraries(R2NESV2 PRIVATE 
-    SDL3::SDL3-static
-    zlibstatic
-)
-
-# Copia a pasta resources para o diretório de saída do executável após o build
-add_custom_command(TARGET R2NESV2 POST_BUILD
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp)
+  file(GLOB APP_SOURCES CONFIGURE_DEPENDS "src/System/*.cpp" "src/Util/*.cpp" "src/Window/*.cpp")
+  set(PLATFORM_SOURCES)
+  if(WIN32)
+    list(APPEND PLATFORM_SOURCES resources/resource.rc)
+  endif()
+  add_executable(R2NESV2 src/Emulator.cpp ${APP_SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})
+  target_include_directories(R2NESV2 PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+  target_link_libraries(R2NESV2 PRIVATE r2nes_core SDL3::SDL3-static)
+  add_custom_command(TARGET R2NESV2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/resources"
-    "$<TARGET_FILE_DIR:R2NESV2>/resources"
-)
+    "${CMAKE_SOURCE_DIR}/resources" "$<TARGET_FILE_DIR:R2NESV2>/resources")
+endif()
 
 include(CTest)
 if(BUILD_TESTING)
@@ -117,85 +75,57 @@ if(BUILD_TESTING)
   target_include_directories(snapshot-buffer-tests PRIVATE src)
   add_test(NAME snapshot-buffer COMMAND snapshot-buffer-tests)
 
-  add_executable(audio-manager-tests tests/AudioManagerTests.cpp src/System/AudioManager.cpp)
-  target_include_directories(audio-manager-tests PRIVATE src)
-  target_link_libraries(audio-manager-tests PRIVATE SDL3::SDL3-static)
-  add_test(NAME audio-manager COMMAND audio-manager-tests)
-  set_tests_properties(audio-manager PROPERTIES ENVIRONMENT "SDL_AUDIO_DRIVER=dummy" TIMEOUT 10)
+  if(R2NES_BUILD_GUI)
+    add_executable(audio-manager-tests tests/AudioManagerTests.cpp src/System/AudioManager.cpp)
+    target_include_directories(audio-manager-tests PRIVATE src)
+    target_link_libraries(audio-manager-tests PRIVATE SDL3::SDL3-static)
+    add_test(NAME audio-manager COMMAND audio-manager-tests)
+    set_tests_properties(audio-manager PROPERTIES ENVIRONMENT "SDL_AUDIO_DRIVER=dummy" TIMEOUT 10)
 
-  add_executable(event-wait-tests tests/EventWaitTests.cpp)
-  target_link_libraries(event-wait-tests PRIVATE SDL3::SDL3-static)
-  add_test(NAME event-wait COMMAND event-wait-tests)
+    add_executable(event-wait-tests tests/EventWaitTests.cpp)
+    target_link_libraries(event-wait-tests PRIVATE SDL3::SDL3-static)
+    add_test(NAME event-wait COMMAND event-wait-tests)
+    set_tests_properties(event-wait PROPERTIES TIMEOUT 10)
 
-  file(GLOB WINDOW_TEST_SOURCES CONFIGURE_DEPENDS "src/Window/*.cpp")
-  add_executable(sdl3-integration-tests tests/SDL3IntegrationTests.cpp
-    ${WINDOW_TEST_SOURCES} ${IMGUI_SOURCES}
-    src/System/AudioManager.cpp src/Util/ConfigManager.cpp)
-  target_include_directories(sdl3-integration-tests PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
-  target_link_libraries(sdl3-integration-tests PRIVATE SDL3::SDL3-static)
-  add_test(NAME sdl3-integration COMMAND sdl3-integration-tests)
-  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data")
-  set_tests_properties(sdl3-integration PROPERTIES
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data"
-    ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_AUDIO_DRIVER=dummy;SDL_RENDER_DRIVER=software"
-    TIMEOUT 30)
-  set_tests_properties(event-wait PROPERTIES TIMEOUT 10)
+    file(GLOB WINDOW_TEST_SOURCES CONFIGURE_DEPENDS "src/Window/*.cpp")
+    add_executable(sdl3-integration-tests tests/SDL3IntegrationTests.cpp
+      ${WINDOW_TEST_SOURCES} ${IMGUI_SOURCES} src/System/AudioManager.cpp src/System/GameStateManager.cpp src/Util/ConfigManager.cpp)
+    target_include_directories(sdl3-integration-tests PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+    target_link_libraries(sdl3-integration-tests PRIVATE r2nes_core SDL3::SDL3-static)
+    add_test(NAME sdl3-integration COMMAND sdl3-integration-tests)
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data")
+    set_tests_properties(sdl3-integration PROPERTIES
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data"
+      ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_AUDIO_DRIVER=dummy;SDL_RENDER_DRIVER=software"
+      TIMEOUT 30)
+  endif()
 
-  file(GLOB MAPPER_SOURCES CONFIGURE_DEPENDS "src/Core/Cartridge/Mappers/*.cpp")
-  add_executable(mapper002-tests tests/Mapper002Tests.cpp
-    src/Core/Cartridge/Cartridge.cpp src/Core/Cartridge/BatterySave.cpp src/Core/Memory/VRAM/VRAM.cpp ${MAPPER_SOURCES})
-  target_include_directories(mapper002-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper002-tests PRIVATE zlibstatic)
-  target_sources(mapper002-tests PRIVATE src/Core/Cartridge/UNIF.cpp)
-  add_test(NAME mapper002 COMMAND mapper002-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper002-test-roms")
-  file(GLOB_RECURSE CORE_TEST_SOURCES CONFIGURE_DEPENDS "src/Core/*.cpp")
-  add_executable(ppu-decay-tests tests/PPUDecayTests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(ppu-decay-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(ppu-decay-tests PRIVATE zlibstatic)
-  add_test(NAME ppu-decay COMMAND ppu-decay-tests)
+  function(add_core_test target source test_name)
+    add_executable(${target} ${source})
+    target_link_libraries(${target} PRIVATE r2nes_core)
+    add_test(NAME ${test_name} COMMAND ${target} ${ARGN})
+  endfunction()
 
-  add_executable(ppu-sprite-overflow-tests tests/PPUSpriteOverflowTests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(ppu-sprite-overflow-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(ppu-sprite-overflow-tests PRIVATE zlibstatic)
-  add_test(NAME ppu-sprite-overflow COMMAND ppu-sprite-overflow-tests)
-
-  add_executable(cpu-cycle-tests tests/CPUCycleTests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(cpu-cycle-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(cpu-cycle-tests PRIVATE zlibstatic)
-  add_test(NAME cpu-cycle COMMAND cpu-cycle-tests "${CMAKE_CURRENT_BINARY_DIR}/cpu-cycle-test-roms")
-
-  add_executable(cheat-tests tests/CheatTests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(cheat-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(cheat-tests PRIVATE zlibstatic)
-  add_test(NAME cheats COMMAND cheat-tests "${CMAKE_CURRENT_BINARY_DIR}/cheat-test-roms" "${CMAKE_CURRENT_SOURCE_DIR}/cheats/ED2465BE.cht")
-  add_executable(battery-tests tests/BatteryMapperTests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(battery-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(battery-tests PRIVATE zlibstatic)
-  add_test(NAME battery COMMAND battery-tests "${CMAKE_CURRENT_BINARY_DIR}/battery-test-roms")
-  add_executable(mapper005-tests tests/Mapper005Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper005-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper005-tests PRIVATE zlibstatic)
-  add_test(NAME mapper005 COMMAND mapper005-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper005-test-roms")
-  add_executable(mapper007-tests tests/Mapper007Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper007-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper007-tests PRIVATE zlibstatic)
-  add_test(NAME mapper007 COMMAND mapper007-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper007-test-roms")
-  add_executable(mapper009-tests tests/Mapper009Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper009-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper009-tests PRIVATE zlibstatic)
-  add_test(NAME mapper009 COMMAND mapper009-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper009-test-roms")
-  add_executable(mapper011-tests tests/Mapper011Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper011-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper011-tests PRIVATE zlibstatic)
-  add_test(NAME mapper011 COMMAND mapper011-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper011-test-roms")
-  add_executable(sachen-tests tests/SachenTests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(sachen-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(sachen-tests PRIVATE zlibstatic)
-  add_test(NAME sachen COMMAND sachen-tests "${CMAKE_CURRENT_BINARY_DIR}/sachen-test-roms")
-  add_executable(mapper004-tests tests/Mapper004Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper004-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper004-tests PRIVATE zlibstatic)
-  add_test(NAME mapper004 COMMAND mapper004-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper004-test-roms")
+  add_core_test(mapper002-tests tests/Mapper002Tests.cpp mapper002 "${CMAKE_CURRENT_BINARY_DIR}/mapper002-test-roms")
+  add_core_test(rom-file-tests tests/RomFileTests.cpp rom-file "${CMAKE_CURRENT_BINARY_DIR}/rom-file-test-data")
+  target_include_directories(rom-file-tests PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+  target_link_libraries(rom-file-tests PRIVATE zlibstatic)
+  add_core_test(apu-output-suppression-tests tests/APUOutputSuppressionTests.cpp apu-output-suppression)
+  add_core_test(state-security-tests tests/StateSecurityTests.cpp state-security "${CMAKE_CURRENT_BINARY_DIR}/state-security-test-data")
+  add_core_test(mapper-state-security-tests tests/MapperStateSecurityTests.cpp mapper-state-security "${CMAKE_CURRENT_BINARY_DIR}/mapper-state-security-test-data")
+  add_core_test(mapper071-tests tests/Mapper071Tests.cpp mapper071 "${CMAKE_CURRENT_BINARY_DIR}/mapper071-test-roms")
+  add_core_test(mapper189-tests tests/Mapper189Tests.cpp mapper189 "${CMAKE_CURRENT_BINARY_DIR}/mapper189-test-roms")
+  add_core_test(ppu-decay-tests tests/PPUDecayTests.cpp ppu-decay)
+  add_core_test(ppu-sprite-overflow-tests tests/PPUSpriteOverflowTests.cpp ppu-sprite-overflow)
+  add_core_test(cpu-cycle-tests tests/CPUCycleTests.cpp cpu-cycle "${CMAKE_CURRENT_BINARY_DIR}/cpu-cycle-test-roms")
+  add_core_test(cheat-tests tests/CheatTests.cpp cheats "${CMAKE_CURRENT_BINARY_DIR}/cheat-test-roms" "${CMAKE_CURRENT_SOURCE_DIR}/cheats/ED2465BE.cht")
+  add_core_test(battery-tests tests/BatteryMapperTests.cpp battery "${CMAKE_CURRENT_BINARY_DIR}/battery-test-roms")
+  add_core_test(mapper005-tests tests/Mapper005Tests.cpp mapper005 "${CMAKE_CURRENT_BINARY_DIR}/mapper005-test-roms")
+  add_core_test(mapper007-tests tests/Mapper007Tests.cpp mapper007 "${CMAKE_CURRENT_BINARY_DIR}/mapper007-test-roms")
+  add_core_test(mapper009-tests tests/Mapper009Tests.cpp mapper009 "${CMAKE_CURRENT_BINARY_DIR}/mapper009-test-roms")
+  add_core_test(mapper011-tests tests/Mapper011Tests.cpp mapper011 "${CMAKE_CURRENT_BINARY_DIR}/mapper011-test-roms")
+  add_core_test(sachen-tests tests/SachenTests.cpp sachen "${CMAKE_CURRENT_BINARY_DIR}/sachen-test-roms")
+  add_core_test(mapper004-tests tests/Mapper004Tests.cpp mapper004 "${CMAKE_CURRENT_BINARY_DIR}/mapper004-test-roms")
   foreach(MMC3_ROM IN ITEMS 1-clocking 2-details 3-A12_clocking 4-scanline_timing 5-MMC3 6-MMC3_alt 6-MMC6)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/nestest/blarg/${MMC3_ROM}.nes")
       add_test(NAME mapper004-rom-${MMC3_ROM} COMMAND mapper004-tests
@@ -203,12 +133,6 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/nestest/blarg/${MMC3_ROM}.nes")
     endif()
   endforeach()
-  add_executable(mapper003-tests tests/Mapper003Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper003-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper003-tests PRIVATE zlibstatic)
-  add_test(NAME mapper003 COMMAND mapper003-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper003-test-roms")
-  add_executable(mapper001-tests tests/Mapper001Tests.cpp ${CORE_TEST_SOURCES})
-  target_include_directories(mapper001-tests PRIVATE src ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-  target_link_libraries(mapper001-tests PRIVATE zlibstatic)
-  add_test(NAME mapper001 COMMAND mapper001-tests "${CMAKE_CURRENT_BINARY_DIR}/mapper001-test-roms")
+  add_core_test(mapper003-tests tests/Mapper003Tests.cpp mapper003 "${CMAKE_CURRENT_BINARY_DIR}/mapper003-test-roms")
+  add_core_test(mapper001-tests tests/Mapper001Tests.cpp mapper001 "${CMAKE_CURRENT_BINARY_DIR}/mapper001-test-roms")
 endif()
