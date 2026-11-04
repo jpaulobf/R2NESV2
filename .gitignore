@@ -10,6 +10,8 @@ target/*
 bin/*
 build/*
 build-linux/*
+build-headless/*
+build-linux-sanitize/*
 analysis_results.md
 cmake/*
 CMakeFiles/*
@@ -19,5 +21,5 @@ CMakeCache.txt
 out/*
 imgui.ini
 build-linux.sh
-tests/Mapper005Review.md
-tests/Mapper011Review.md
+tests/*.md
+build-linux-sanitize/*
