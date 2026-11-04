@@ -1,4 +1,5 @@
 #include "Core/CPU/CPU.h"
+#include "Core/Memory/StateRead.h"
 #include "Core/Bus/Bus.h"
 #include <iomanip>
 #include <sstream>
@@ -1031,13 +1032,17 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&baseAddress), sizeof(baseAddress));
         is.read(reinterpret_cast<char *>(&wrongPageAddress), sizeof(wrongPageAddress));
         is.read(reinterpret_cast<char *>(&branchTarget), sizeof(branchTarget));
-        is.read(reinterpret_cast<char *>(&pageCrossed), sizeof(pageCrossed));
-        is.read(reinterpret_cast<char *>(&fetchedCached), sizeof(fetchedCached));
-        is.read(reinterpret_cast<char *>(&branchTaken), sizeof(branchTaken));
+        readStateBool(is, pageCrossed);
+        readStateBool(is, fetchedCached);
+        readStateBool(is, branchTaken);
         is.read(reinterpret_cast<char *>(&interruptKind), sizeof(interruptKind));
-        is.read(reinterpret_cast<char *>(&interruptRequested), sizeof(interruptRequested));
-        is.read(reinterpret_cast<char *>(&pendingNmi), sizeof(pendingNmi));
-        is.read(reinterpret_cast<char *>(&jammed), sizeof(jammed));
+        readStateBool(is, interruptRequested);
+        readStateBool(is, pendingNmi);
+        readStateBool(is, jammed);
+        // One clock advances at most one of the CPU's eight instruction cycles;
+        // DMA stalls are owned by NES and are not stored in this counter.
+        if (is && (interruptKind > 3 || cycles > 8 || microCycle > 8))
+            is.setstate(std::ios::failbit);
     }
 
     // Busca o dado atual com base no modo de endereçamento calculado
