@@ -1,4 +1,5 @@
 #include "Core/PPU/PPU.h"
+#include "Core/Memory/StateRead.h"
 #include "Core/Bus/Bus.h"
 #include "Core/Cartridge/Cartridge.h"
 #include "Common/Common.h"
@@ -1532,7 +1533,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&scanline), sizeof(scanline));
         is.read(reinterpret_cast<char *>(&cycle), sizeof(cycle));
         is.read(reinterpret_cast<char *>(&frameCounter), sizeof(frameCounter));
-        is.read(reinterpret_cast<char *>(&nmi), sizeof(nmi));
+        readStateBool(is, nmi);
 
         // Load pipeline state
         is.read(reinterpret_cast<char *>(&bgNextTileId), sizeof(bgNextTileId));
@@ -1544,7 +1545,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&bgShifterAttrLow), sizeof(bgShifterAttrLow));
         is.read(reinterpret_cast<char *>(&bgShifterAttrHigh), sizeof(bgShifterAttrHigh));
 
-        is.read(reinterpret_cast<char *>(&sprite0HitPending), sizeof(sprite0HitPending));
+        readStateBool(is, sprite0HitPending);
         is.read(reinterpret_cast<char *>(&scanlineSpriteCount), sizeof(scanlineSpriteCount));
         is.read(reinterpret_cast<char *>(&nextScanlineSpriteCount), sizeof(nextScanlineSpriteCount));
         is.read(reinterpret_cast<char *>(&spriteEvaluationIndex), sizeof(spriteEvaluationIndex));
@@ -1553,7 +1554,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&spriteEvaluationBytesCopied), sizeof(spriteEvaluationBytesCopied));
         is.read(reinterpret_cast<char *>(&spriteEvaluationLatch), sizeof(spriteEvaluationLatch));
         is.read(reinterpret_cast<char *>(&secondaryOamAddress), sizeof(secondaryOamAddress));
-        is.read(reinterpret_cast<char *>(&spriteEvaluationComplete), sizeof(spriteEvaluationComplete));
+        readStateBool(is, spriteEvaluationComplete);
         is.read(reinterpret_cast<char *>(secondaryOam.data()), secondaryOam.size());
         is.read(reinterpret_cast<char *>(currentSprites.data()), sizeof(currentSprites));
         is.read(reinterpret_cast<char *>(nextSprites.data()), sizeof(nextSprites));
@@ -1561,10 +1562,17 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(paletteTable.data()), paletteTable.size());
         if (includesFrameBuffer)
             is.read(reinterpret_cast<char *>(frameBuffer.data()), frameBuffer.size() * sizeof(frameBuffer[0]));
-        is.read(reinterpret_cast<char *>(&tilesEnabled), sizeof(tilesEnabled));
-        is.read(reinterpret_cast<char *>(&spritesEnabled), sizeof(spritesEnabled));
+        readStateBool(is, tilesEnabled);
+        readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
-        if (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000)
+        if (is && ((pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
+                   scanline < -1 || scanline > 260 || cycle < 0 || cycle > 340 ||
+                   fineX > 7 || addressLatch > 1 ||
+                   scanlineSpriteCount < 0 || scanlineSpriteCount > 64 ||
+                   nextScanlineSpriteCount < 0 || nextScanlineSpriteCount > 64 ||
+                   spriteEvaluationIndex > 64 || spriteEvaluationStartIndex > 63 ||
+                   spriteEvaluationByteIndex > 3 || spriteEvaluationBytesCopied > 3 ||
+                   secondaryOamAddress > secondaryOam.size()))
             is.setstate(std::ios::failbit);
     }
 }
