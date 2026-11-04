@@ -1,5 +1,6 @@
 #include "Core/APU/APU.h"
 #include "Core/Bus/Bus.h"
+#include "Core/Memory/StateRead.h"
 
 #include <algorithm>
 #include <cmath>
@@ -40,6 +41,11 @@ namespace R2NES::Core
         void readValue(Stream &stream, Value &value)
         {
             stream.read(reinterpret_cast<char *>(&value), sizeof(value));
+        }
+
+        void readValue(std::istream &stream, bool &value)
+        {
+            readStateBool(stream, value);
         }
     }
 
@@ -983,6 +989,35 @@ namespace R2NES::Core
             read(filter.z1);
             read(filter.z2);
         }
+
+        const auto validEnvelope = [](const Envelope &envelope)
+        {
+            return envelope.volume <= 15 && envelope.decayCount <= 15 && envelope.dividerCount <= 15;
+        };
+        const auto validSweep = [](const Sweep &sweep)
+        {
+            return sweep.shift <= 7 && sweep.period <= 7 && sweep.timer <= 7;
+        };
+        bool finiteFilters = std::isfinite(hpf90.prevX) && std::isfinite(hpf90.prevY);
+        for (const auto &filter : antiAliasFilters)
+            finiteFilters = finiteFilters && std::isfinite(filter.z1) && std::isfinite(filter.z2);
+
+        // Validate counters and fields used by table lookups, shifts and filters.
+        if (is && (pulse1.dutyMode > 3 || pulse2.dutyMode > 3 ||
+                   pulse1.dutyValue > 7 || pulse2.dutyValue > 7 ||
+                   !validSweep(pulse1.sweep) || !validSweep(pulse2.sweep) ||
+                   !validEnvelope(pulse1.envelope) || !validEnvelope(pulse2.envelope) || !validEnvelope(noise.envelope) ||
+                   triangle.dutyValue > 31 || dmc.rateIndex > 15 || dmc.outputLevel > 127 ||
+                   triangle.linearCount > 127 || triangle.linearReload > 127 ||
+                   dmc.bitsRemaining > 8 || dmc.dmaStallCyclesRemaining > 4 ||
+                   (frameCounterMode != 4 && frameCounterMode != 5) ||
+                   (pendingFrameCounterMode != 4 && pendingFrameCounterMode != 5) ||
+                   frameClockCounter >= (frameCounterMode == 4 ? 29829u : 37281u) ||
+                   frameCounterWriteDelay > 5 || !std::isfinite(cycleCounter) || cycleCounter < 0.0 ||
+                   cycleCounter >= NtscCpuClockRate / 8000.0 ||
+                   sampleCount > static_cast<uint32_t>(std::ceil(NtscCpuClockRate / 8000.0)) ||
+                   !std::isfinite(sampleSum) || !finiteFilters))
+            is.setstate(std::ios::failbit);
 
         // O áudio já calculado pertence ao ponto temporal anterior ao load.
         audioBuffer = std::queue<float>();
