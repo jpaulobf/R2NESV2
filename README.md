@@ -12,7 +12,8 @@ R2NES V2 is a NES emulator written in C++17, using SDL3 and Dear ImGui. It runs 
 
 - CPU bus accesses distributed across instruction cycles, synchronized with the PPU.
 - Background and sprite rendering, scrolling, Sprite 0 Hit, and selectable palettes and scanlines.
-- Pulse, triangle, noise, and DMC audio, with individual channel controls.
+- Pulse, triangle, noise, and DMC audio, with individual channel controls, plus Sunsoft 5B expansion audio.
+- Selectable NTSC and PAL console timing under **Display → Console Region**; changing region resets the console.
 - Keyboard, up to two gamepads, turbo buttons, and mouse-controlled Zapper.
 - Three save-state slots, battery saves for supported boards, rewind with selectable precision, and fast forward.
 - Game Genie and RAM cheats, with master and individual entry controls.
@@ -23,7 +24,7 @@ ROM images are limited to 64 MiB and ZIP archives to 128 MiB. ZIP loading
 supports stored and DEFLATE entries, including data descriptors, and checks
 sizes and CRC. Encrypted, multi-disk and ZIP64 archives are not supported.
 
-Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 71, 79, 90, 147, 150, 187, and 189**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
+Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 66, 69, 71, 79, 90, 147, 150, 187, and 189**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
 
 Recent optimizations reduce rewind allocations and copies, repeated CPU instruction classification, and per-dot PPU bookkeeping. Rewind presentation also avoids duplicate rendering within a loop iteration. Regression checks cover instruction cycles, open-bus decay, snapshots, and mapper timing; performance gains depend on the game and settings.
 
@@ -48,13 +49,13 @@ Load a `.nes`, `.unf`, `.unif`, or `.zip` image from the **File** menu. Enable r
 
 Gamepads support directional and action buttons, Start/Back, and turbo controls. Choose the save-state slot under **File → Save State Slot**, and enable the Zapper under **Input**.
 
-Save states are stored in `savestates/`. Battery saves use `battery/<ROM CRC32>.sav`, relative to the working directory, and are written on ROM replacement, unload, or normal exit. Battery persistence covers mappers 1, 4, 5, and explicitly declared mapper 9 RAM extensions; standard Punch-Out!! has no battery. Read/write failures are shown in the interface.
+Save states are stored in `savestates/`. Battery saves use `battery/<ROM CRC32>.sav`, relative to the working directory, and are written on ROM replacement, unload, or normal exit. Battery persistence covers mappers 1, 4, 5, 69, and explicitly declared mapper 9 RAM extensions; standard Punch-Out!! has no battery. Read/write failures are shown in the interface.
 
 ## Compatibility
 
 R2NES is actively developed. Mapper support does not guarantee that every game using it works correctly. CPU/PPU/APU timing and board coverage remain incomplete, and a small number of ROM-specific workarounds are still present.
 
-- The current save-state format is `R2NK`; older snapshots are rejected. The recent performance optimizations preserve this format.
+- NTSC save states use `R2NL`, or `R2NM` for mapper 69 with expansion audio; PAL states use `R2NN`. States cannot be exchanged between regions. Older formats are rejected, except that mapper 69 accepts its legacy `R2NL` states in NTSC. Earlier emulator versions cannot read the new formats.
 - Unlimited Sprites changes hardware behavior. Disable it when checking normal sprite limits and compatibility.
 - Mapper 147 supports the 72-pin latch variant; the JV001 variant is not implemented. Mapper 150 supports the CPU D2 pad setting.
 - Video currently uses SDL3's `SDL_Renderer`. Custom GPU shaders remain future work.

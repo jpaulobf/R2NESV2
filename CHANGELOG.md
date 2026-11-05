@@ -2,7 +2,11 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## Não lançado
+## [1.2.5] - 2026-11-05
+
+- Adicionado suporte ao Mapper 69 (Sunsoft FME-7/5B), com bancos PRG e CHR, espelhamento selecionável, contador de IRQ, RAM com bateria e áudio de expansão. Testes automatizados cobrem bancos, espelhamento, IRQ, bateria, áudio e save states.
+- Adicionada a seleção de região NTSC/PAL em **Display → Console Region**, com temporização específica de CPU, PPU e áudio. A troca de região reinicia o console.
+- Save states NTSC usam `R2NL`, ou `R2NM` para Mapper 69 com áudio; estados PAL usam `R2NN`. Estados de regiões diferentes não são intercambiáveis e versões anteriores não leem os novos formatos. O Mapper 69 também aceita seu estado legado `R2NL` em NTSC.
 
 - CPU: a NMI pode assumir o vetor de uma sequência de BRK ou IRQ durante a janela anterior à seleção do vetor, preservando PC e bit B empilhados. Testes cobrem bordas por ciclo, latência de CLI/SEI/PLP/RTI e restauração durante a sequência. O save state passa a `R2NL`; formatos anteriores são rejeitados, e versões anteriores não leem `R2NL`. Os diagnósticos completos de sobreposição de NMI e polling de branch ainda falham.
 - Barramento: leituras dos controles preservam os três bits superiores de open bus; a leitura interna de `$4015` preserva o barramento externo e retorna o bit 5 aberto. Adicionados testes e executor headless com referência individual do AccuracyCoin.
