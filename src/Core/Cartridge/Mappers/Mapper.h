@@ -63,9 +63,13 @@ namespace R2NES::Core
         // Realiza o tick
         virtual void tick() {}
 
+        // Saída normalizada do áudio de expansão do cartucho.
+        virtual float expansionAudio() const { return 0.0f; }
+
         // Serialização para Save / Load states
         virtual void saveState(std::ostream &os) = 0;
         virtual void loadState(std::istream &is) = 0;
+        virtual void loadLegacyState(std::istream &is) { loadState(is); }
 
         // Somente memória não volátil, em ordem física; nunca registradores ou RAM de trabalho.
         virtual std::vector<uint8_t> getBatteryData() const;
