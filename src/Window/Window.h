@@ -66,6 +66,8 @@ namespace R2NES::Core
         using UseZapperCallback = std::function<void(bool)>;
         using TilesCallback = std::function<void(bool)>;
         using SpritesCallback = std::function<void(bool)>;
+        using RegionCallback = std::function<void(bool)>;
+        void setRegionCallback(RegionCallback cb) { regionCallback = cb; }
         using CPUOverclockCallback = std::function<void(bool)>;
         using CheatMenuCallback = std::function<CheatMenuState()>;
         using CheatsEnabledCallback = std::function<void(bool)>;
@@ -541,7 +543,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.2.0";
+        std::string title = "R2NESV2 - build 1.2.5";
         std::string romFile = "";
 
         bool bilinearFiltering = false;
@@ -573,6 +575,8 @@ namespace R2NES::Core
         UseZapperCallback useZapperCallback = nullptr;
         TilesCallback tilesCallback = nullptr;
         SpritesCallback spritesCallback = nullptr;
+        RegionCallback regionCallback = nullptr;
+        bool palRegion = false;
         CPUOverclockCallback cpuOverclockCallback = nullptr;
         CheatMenuCallback cheatMenuCallback = nullptr;
         CheatsEnabledCallback cheatsEnabledCallback = nullptr;

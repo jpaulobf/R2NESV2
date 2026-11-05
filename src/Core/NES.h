@@ -22,6 +22,10 @@ namespace R2NES::Core
         // Avança um passo do sistema. honorCPUOverclock=false mantém um clock
         // da CPU por passo, usado pelo depurador para parar em limites de instrução.
         void step(bool honorCPUOverclock = true);
+        void stepNTSC(bool honorCPUOverclock = true);
+        void stepPAL(bool honorCPUOverclock = true);
+        void setPAL(bool enabled);
+        bool isPAL() const { return pal; }
 
         // Carrega um cartucho a partir de arquivo ROM (path). Valida o cartucho
         // antes de conectá-lo ao barramento.
@@ -70,6 +74,8 @@ namespace R2NES::Core
 
     private:
         std::filesystem::path cheatDirectory = "cheats";
+        template <bool Pal>
+        void stepRegion(bool honorCPUOverclock);
         void serviceIRQ();
         bool startDmcDma();
 
@@ -83,7 +89,9 @@ namespace R2NES::Core
 
         // Estado interno
         bool cartridgeLoaded = false; // Indica se um cartucho está presente
-        bool cpuOverclock = false;    // Flag de overclock experimental da CPU
+        bool pal = false;
+        uint8_t palPhase = 0;
+        bool cpuOverclock = false; // Flag de overclock experimental da CPU
         std::filesystem::path batteryDirectory;
     };
 }

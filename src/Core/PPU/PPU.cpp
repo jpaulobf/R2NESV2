@@ -1375,7 +1375,7 @@ namespace R2NES::Core
         // Em quadros ímpares com rendering ativo, o hardware pula o dot 340
         // do pré-render: depois de processar o dot 339, vai direto ao próximo
         // quadro (scanline 0, dot 0).
-        if (scanline == -1 && cycle == 339 && renderingEnabled && (frameCounter % 2 != 0))
+        if (!pal && scanline == -1 && cycle == 339 && renderingEnabled && (frameCounter % 2 != 0))
         {
             cycle = 0;
             scanline = 0;
@@ -1388,7 +1388,7 @@ namespace R2NES::Core
             cycle = 0;
             scanline++;
 
-            if (scanline >= 261)
+            if (scanline >= (pal ? 311 : 261))
             {
                 scanline = -1;
                 zapperLightDetected = false;
@@ -1414,7 +1414,7 @@ namespace R2NES::Core
         ppuIoBusDecayCounters.fill(0);
         ppuIoBusDecayElapsed = 0;
         ppuIoBusDecayNext = 0;
-        resetRegisterWriteLockoutDots = PpuRegisterWriteLockoutDots;
+        resetRegisterWriteLockoutDots = pal ? 106022u : PpuRegisterWriteLockoutDots;
         vramAddr = 0;
         pendingMapperRead = 0xFFFF;
         tempAddr = 0;
@@ -1572,7 +1572,7 @@ namespace R2NES::Core
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
         if (is && ((pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
-                   scanline < -1 || scanline > 260 || cycle < 0 || cycle > 340 ||
+                   scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||
                    scanlineSpriteCount < 0 || scanlineSpriteCount > 64 ||
                    nextScanlineSpriteCount < 0 || nextScanlineSpriteCount > 64 ||

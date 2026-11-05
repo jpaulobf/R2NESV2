@@ -28,6 +28,7 @@ namespace R2NES::Core
         uint8_t ppuReadSprite(uint16_t addr) const;
         void ppuWrite(uint16_t addr, uint8_t data);
 
+        void setPAL(bool enabled) { pal = enabled; }
         void clock();
         void reset();
         void connectBus(Bus *bus);
@@ -66,6 +67,7 @@ namespace R2NES::Core
         const uint32_t *getFrameBuffer() const { return frameBuffer.data(); }
 
     private:
+        bool pal = false;
         Bus *bus = nullptr;
         VRAM vram; // Name Tables gerenciadas pela classe que você criou
 

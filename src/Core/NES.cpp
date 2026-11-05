@@ -60,6 +60,7 @@ namespace R2NES::Core
         bus.systemClockCounter = 0;
         bus.cpuCycleCounter = 0;
         bus.cpuDataBus = 0;
+        palPhase = 0;
         bus.dma_page = 0;
         bus.dma_addr = 0;
         bus.dma_data = 0;
@@ -77,7 +78,26 @@ namespace R2NES::Core
         std::cout << "NES: Reset sequence started (7 CPU cycles)." << std::endl;
     }
 
+    void NES::setPAL(bool enabled)
+    {
+        if (pal == enabled)
+            return;
+        pal = enabled;
+        ppu.setPAL(enabled);
+        apu.setPAL(enabled);
+        reset();
+    }
     void NES::step(bool honorCPUOverclock)
+    {
+        if (pal)
+            stepPAL(honorCPUOverclock);
+        else
+            stepNTSC(honorCPUOverclock);
+    }
+    void NES::stepNTSC(bool honorCPUOverclock) { stepRegion<false>(honorCPUOverclock); }
+    void NES::stepPAL(bool honorCPUOverclock) { stepRegion<true>(honorCPUOverclock); }
+    template <bool Pal>
+    void NES::stepRegion(bool honorCPUOverclock)
     {
         if (bus.cheats.hasActiveRamPatches())
             bus.cheats.applyRam(bus);
@@ -153,6 +173,14 @@ namespace R2NES::Core
         ppu.clock();
         ppu.clock();
         ppu.clock();
+        if constexpr (Pal)
+        {
+            if (++palPhase == 5)
+            {
+                palPhase = 0;
+                ppu.clock();
+            }
+        }
 
         // A borda de NMI é entregue à CPU; a CPU a aceita no próximo limite
         // de instrução e executa a entrada da interrupção nos ciclos reais.
@@ -224,7 +252,8 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E4C; // "R2NL": seleção tardia do vetor de BRK.
+        uint32_t magic = pal ? 0x52324E4E : bus.cart->getMapperId() == 69 ? 0x52324E4D
+                                                                          : 0x52324E4C; // "R2NL": seleção tardia do vetor de BRK.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -233,6 +262,9 @@ namespace R2NES::Core
         const uint16_t mapperId = bus.cart->getMapperId();
         os.put(mapperId & 255);
         os.put(mapperId >> 8);
+
+        if (pal)
+            os.put(palPhase);
 
         // Salva contador de clocks do sistema
         os.write(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
@@ -283,7 +315,7 @@ namespace R2NES::Core
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
             // Estados anteriores não identificam estas configurações de memória.
-            if (!input || magic != 0x52324E4C)
+            if (!input || (pal ? magic != 0x52324E4E : (magic != 0x52324E4C && !(magic == 0x52324E4D && bus.cart->getMapperId() == 69))))
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};
@@ -292,6 +324,13 @@ namespace R2NES::Core
             if (!input || std::string(hash, sizeof(hash)) != bus.cart->getRomHash() ||
                 (mapperLow | (mapperHigh << 8)) != bus.cart->getMapperId())
                 return false;
+            if (pal)
+            {
+                const int phase = input.get();
+                if (phase < 0 || phase >= 5)
+                    return false;
+                palPhase = static_cast<uint8_t>(phase);
+            }
             input.read(reinterpret_cast<char *>(&bus.systemClockCounter), sizeof(bus.systemClockCounter));
             input.read(reinterpret_cast<char *>(&bus.cpuCycleCounter), sizeof(bus.cpuCycleCounter));
             input.read(reinterpret_cast<char *>(&bus.cpuDataBus), sizeof(bus.cpuDataBus));
@@ -317,7 +356,10 @@ namespace R2NES::Core
             apu.loadState(input);
             if (!input)
                 return false;
-            bus.cart->getMapper()->loadState(input);
+            if (magic == 0x52324E4C && bus.cart->getMapperId() == 69)
+                bus.cart->getMapper()->loadLegacyState(input);
+            else
+                bus.cart->getMapper()->loadState(input);
             if (!input)
                 return false;
             bus.cart->loadState(input);

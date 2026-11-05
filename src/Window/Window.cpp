@@ -535,6 +535,22 @@ namespace R2NES::Core
 
             if (ImGui::BeginMenu("Display"))
             {
+                if (ImGui::BeginMenu("Console Region"))
+                {
+                    if (ImGui::MenuItem("NTSC", nullptr, !palRegion) && palRegion)
+                    {
+                        palRegion = false;
+                        if (regionCallback)
+                            regionCallback(false);
+                    }
+                    if (ImGui::MenuItem("PAL", nullptr, palRegion) && !palRegion)
+                    {
+                        palRegion = true;
+                        if (regionCallback)
+                            regionCallback(true);
+                    }
+                    ImGui::EndMenu();
+                }
                 if (ImGui::MenuItem("VSync", nullptr, vsyncEnabled))
                     setVSync(!vsyncEnabled);
                 ImGui::Separator();

@@ -164,6 +164,12 @@ namespace R2NES::Core
                                           clearRewindStates();
                                       } });
 
+        window->setRegionCallback([this](bool pal)
+                                  {
+                                      nes->setPAL(pal);
+                                      targetUPS = pal ? 50.00698 : 59.94;
+                                      clearRewindStates();
+                                      resetPlaybackTiming(); });
         window->setCPUOverclockCallback([this](bool enabled)
                                         { 
                                             this->cpuOverclockEnabled = enabled; 
@@ -324,7 +330,7 @@ namespace R2NES::Core
                             update();
                         } while (SDL_GetPerformanceCounter() - batchStart < batchBudget);
                     }
-                    else if (vsyncEnabled)
+                    else if (vsyncEnabled && !nes->isPAL())
                     {
                         update();
                     }
@@ -682,19 +688,20 @@ namespace R2NES::Core
     {
         inputManager->update(*nes, emulatedFrameCount);
         bool completedFrame = false;
+        const auto step = nes->isPAL() ? &Core::NES::stepPAL : &Core::NES::stepNTSC;
 
         if (stepByStep)
         {
             if (stepRequested)
             {
-                nes->step(false);
+                (nes.get()->*step)(false);
                 // Em modo step, o áudio geralmente é ignorado ou produz "clicks"
                 // O DMA de OAM suspende a CPU após STA $4014, mas faz parte
                 // do mesmo avanço observável. Não pare no PC seguinte enquanto
                 // a cópia ainda está ocupando o barramento.
                 while (!nes->getCpu().complete() || nes->getBus().dma_transfer)
                 {
-                    nes->step(false);
+                    (nes.get()->*step)(false);
                 }
                 stepRequested = false;
                 // Uma instrução só conta se realmente atravessou o fim do quadro.
@@ -708,7 +715,7 @@ namespace R2NES::Core
             // 1. Roda a CPU e a APU até o final do quadro de vídeo (Frame)
             while (!nes->isFrameComplete())
             {
-                nes->step();
+                (nes.get()->*step)(true);
                 // A cada step, a APU agora gera e guarda as amostras de áudio sozinha!
             }
             nes->clearFrameComplete();

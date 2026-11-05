@@ -1,5 +1,6 @@
 #include "Core/APU/APU.h"
 #include "Core/Bus/Bus.h"
+#include "Core/Cartridge/Cartridge.h"
 #include "Core/Memory/StateRead.h"
 
 #include <algorithm>
@@ -25,6 +26,8 @@ namespace R2NES::Core
             428, 380, 340, 320, 286, 254, 226, 214,
             190, 160, 142, 128, 106, 84, 72, 54};
 
+        constexpr uint16_t NoisePeriodsPal[] = {4, 8, 14, 30, 60, 88, 118, 148, 188, 236, 354, 472, 708, 944, 1890, 3778};
+        constexpr uint16_t DmcPeriodsPal[] = {398, 354, 316, 298, 276, 236, 210, 198, 176, 148, 132, 118, 98, 78, 66, 50};
         constexpr uint8_t DutySequences[4][8] = {
             {0, 1, 0, 0, 0, 0, 0, 0},
             {0, 1, 1, 0, 0, 0, 0, 0},
@@ -55,6 +58,12 @@ namespace R2NES::Core
         reset();
     }
 
+    void APU::setPAL(bool enabled)
+    {
+        pal = enabled;
+        setAudioSampleRate(audioSampleRate);
+    }
+
     void APU::reset()
     {
         // Preserva preferências da interface, conexão com o barramento e taxa
@@ -64,10 +73,10 @@ namespace R2NES::Core
         triangle = TriangleChannel{};
         noise = NoiseChannel{};
         dmc = DMCChannel{};
-        dmc.timer = DmcPeriodsNtsc[0] - 1;
-        dmc.timerReload = DmcPeriodsNtsc[0] - 1;
+        dmc.timer = (pal ? DmcPeriodsPal[0] : DmcPeriodsNtsc[0]) - 1;
+        dmc.timerReload = (pal ? DmcPeriodsPal[0] : DmcPeriodsNtsc[0]) - 1;
         noise.shiftRegister = 1;
-        noise.timerReload = (NoisePeriodsNtsc[0] / 2) - 1;
+        noise.timerReload = ((pal ? NoisePeriodsPal[0] : NoisePeriodsNtsc[0]) / 2) - 1;
 
         frameClockCounter = 0;
         frameCounterMode = 4;
@@ -167,7 +176,7 @@ namespace R2NES::Core
         case 0x400E:
         {
             noise.mode = (data & 0x80) != 0;
-            const uint16_t cpuPeriod = NoisePeriodsNtsc[data & 0x0F];
+            const uint16_t cpuPeriod = (pal ? NoisePeriodsPal[data & 0x0F] : NoisePeriodsNtsc[data & 0x0F]);
             noise.timerReload = static_cast<uint16_t>((cpuPeriod / 2) - 1);
             break;
         }
@@ -181,7 +190,7 @@ namespace R2NES::Core
             dmc.irqEnabled = (data & 0x80) != 0;
             dmc.loop = (data & 0x40) != 0;
             dmc.rateIndex = data & 0x0F;
-            dmc.timerReload = DmcPeriodsNtsc[dmc.rateIndex] - 1;
+            dmc.timerReload = (pal ? DmcPeriodsPal[dmc.rateIndex] : DmcPeriodsNtsc[dmc.rateIndex]) - 1;
             if (!dmc.irqEnabled)
                 dmc.irqFlag = false;
             break;
@@ -287,13 +296,13 @@ namespace R2NES::Core
 
         if (frameCounterMode == 4)
         {
-            if (frameClockCounter == 7457)
+            if (frameClockCounter == (pal ? 8313 : 7457))
                 quarterFrame = true;
-            else if (frameClockCounter == 14913)
+            else if (frameClockCounter == (pal ? 16627 : 14913))
                 quarterFrame = halfFrame = true;
-            else if (frameClockCounter == 22371)
+            else if (frameClockCounter == (pal ? 24939 : 22371))
                 quarterFrame = true;
-            else if (frameClockCounter == 29829)
+            else if (frameClockCounter == (pal ? 33253 : 29829))
             {
                 quarterFrame = halfFrame = true;
                 if (frameIrqEnabled)
@@ -303,13 +312,13 @@ namespace R2NES::Core
         }
         else
         {
-            if (frameClockCounter == 7457)
+            if (frameClockCounter == (pal ? 8313 : 7457))
                 quarterFrame = true;
-            else if (frameClockCounter == 14913)
+            else if (frameClockCounter == (pal ? 16627 : 14913))
                 quarterFrame = halfFrame = true;
-            else if (frameClockCounter == 22371)
+            else if (frameClockCounter == (pal ? 24939 : 22371))
                 quarterFrame = true;
-            else if (frameClockCounter == 37281)
+            else if (frameClockCounter == (pal ? 41565 : 37281))
             {
                 quarterFrame = halfFrame = true;
                 frameClockCounter = 0;
@@ -419,13 +428,13 @@ namespace R2NES::Core
             return;
 
         audioSampleRate = rate;
-        apuCyclesPerSample = NtscCpuClockRate / static_cast<double>(rate);
+        apuCyclesPerSample = cpuClockRate() / static_cast<double>(rate);
         hpf90.init(rate, 90.0f, true);
 
         const double antiAliasCutoff = std::min(14000.0, static_cast<double>(rate) * 0.45);
         constexpr double ButterworthQ[] = {0.517638090205, 0.707106781187, 1.93185165258};
         for (size_t i = 0; i < antiAliasFilters.size(); ++i)
-            antiAliasFilters[i].init(NtscCpuClockRate, antiAliasCutoff, ButterworthQ[i]);
+            antiAliasFilters[i].init(cpuClockRate(), antiAliasCutoff, ButterworthQ[i]);
 
         resetAudioPipeline();
     }
@@ -794,7 +803,11 @@ namespace R2NES::Core
         const float tndOut = tndDenominator > 0.0f
                                  ? 159.79f / (1.0f / tndDenominator + 100.0f)
                                  : 0.0f;
-        return pulseOut + tndOut;
+        // A sa�da do cartucho � somada antes dos filtros e do resampling.
+        const float expansion = bus && bus->cart && bus->cart->getMapper()
+                                    ? bus->cart->getMapper()->expansionAudio() * 0.30f
+                                    : 0.0f;
+        return pulseOut + tndOut + expansion;
     }
 
     void APU::saveState(std::ostream &os)
@@ -1012,10 +1025,10 @@ namespace R2NES::Core
                    dmc.bitsRemaining > 8 || dmc.dmaStallCyclesRemaining > 4 ||
                    (frameCounterMode != 4 && frameCounterMode != 5) ||
                    (pendingFrameCounterMode != 4 && pendingFrameCounterMode != 5) ||
-                   frameClockCounter >= (frameCounterMode == 4 ? 29829u : 37281u) ||
+                   frameClockCounter >= (frameCounterMode == 4 ? (pal ? 33253u : 29829u) : (pal ? 41565u : 37281u)) ||
                    frameCounterWriteDelay > 5 || !std::isfinite(cycleCounter) || cycleCounter < 0.0 ||
-                   cycleCounter >= NtscCpuClockRate / 8000.0 ||
-                   sampleCount > static_cast<uint32_t>(std::ceil(NtscCpuClockRate / 8000.0)) ||
+                   cycleCounter >= cpuClockRate() / 8000.0 ||
+                   sampleCount > static_cast<uint32_t>(std::ceil(cpuClockRate() / 8000.0)) ||
                    !std::isfinite(sampleSum) || !finiteFilters))
             is.setstate(std::ios::failbit);
 

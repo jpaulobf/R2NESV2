@@ -16,6 +16,7 @@ namespace R2NES::Core
         APU();
 
         // Avança o estado do APU em um ciclo da CPU.
+        void setPAL(bool enabled);
         void step();
         void reset();
         void connectBus(Bus *bus);
@@ -188,6 +189,8 @@ namespace R2NES::Core
             float process(float x);
         };
 
+        bool pal = false;
+        double cpuClockRate() const { return pal ? 1662607.0 : NtscCpuClockRate; }
         PulseChannel pulse1;
         PulseChannel pulse2;
         TriangleChannel triangle;
