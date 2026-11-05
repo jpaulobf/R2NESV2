@@ -224,7 +224,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = 0x52324E4B; // "R2NK": identidade do cartucho e transferência DMA completa.
+        uint32_t magic = 0x52324E4C; // "R2NL": seleção tardia do vetor de BRK.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -269,6 +269,11 @@ namespace R2NES::Core
         if (!bus.cart || !bus.cart->getMapper())
             return false;
 
+        // The serialized state deliberately excludes host queues and transient
+        // component fields. Keep them when a failed load is rolled back.
+        const bool previousIrqLine = cpu.isIrqLineAsserted();
+        auto previousPpu = std::make_unique<PPU>(ppu);
+        auto previousApu = std::make_unique<APU>(apu);
         // Um erro em qualquer componente restaura o snapshot anterior do console.
         std::stringstream previous;
         if (!saveState(previous))
@@ -278,7 +283,7 @@ namespace R2NES::Core
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
             // Estados anteriores não identificam estas configurações de memória.
-            if (!input || magic != 0x52324E4B)
+            if (!input || magic != 0x52324E4C)
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};
@@ -321,6 +326,9 @@ namespace R2NES::Core
         if (restore(is))
             return true;
         restore(previous);
+        cpu.setIrqLine(previousIrqLine);
+        ppu = std::move(*previousPpu);
+        apu = std::move(*previousApu);
         is.setstate(std::ios::failbit);
         return false;
     }

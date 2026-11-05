@@ -991,7 +991,11 @@ namespace R2NES::Core
                         const uint8_t spriteY = oamMemory[index * 4];
                         const int row = targetScanline - (static_cast<int>(spriteY) + 1);
 
-                        if (row >= 0 && row < spriteHeight)
+                        // A loaded state or changing Unlimited Sprites mid-line
+                        // can leave the count and evaluation index inconsistent.
+                        if (row >= 0 && row < spriteHeight &&
+                            nextScanlineSpriteCount >= 0 &&
+                            nextScanlineSpriteCount < static_cast<int>(nextSprites.size()))
                         {
                             SpriteFetchUnit &sprite = nextSprites[nextScanlineSpriteCount++];
                             // Unlimited Sprites amplia a renderização, mas o jogo
@@ -1099,7 +1103,8 @@ namespace R2NES::Core
 
                                 if (spriteEvaluationBytesCopied == 4)
                                 {
-                                    ++nextScanlineSpriteCount;
+                                    if (nextScanlineSpriteCount < static_cast<int>(nextSprites.size()))
+                                        ++nextScanlineSpriteCount;
                                     spriteEvaluationBytesCopied = 0;
                                     if (spriteEvaluationIndex >= 64)
                                         spriteEvaluationComplete = true;
@@ -1261,7 +1266,8 @@ namespace R2NES::Core
 
             if (spriteShouldRender)
             {
-                const int spriteCount = unlimitedSprites ? scanlineSpriteCount : std::min(scanlineSpriteCount, 8);
+                const int spriteCount = std::clamp(scanlineSpriteCount, 0,
+                                                   unlimitedSprites ? static_cast<int>(currentSprites.size()) : 8);
                 for (int j = 0; j < spriteCount; j++)
                 {
                     const SpriteFetchUnit &sprite = currentSprites[j];

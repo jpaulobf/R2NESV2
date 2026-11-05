@@ -113,7 +113,7 @@ namespace R2NES::Core
         bool dma_dummy = true;
 
     private:
-        uint8_t readCpuDevice(uint16_t addr, bool readOnly);
+        uint8_t readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead);
         // Estado interno da Pistola Zapper (gatilho)
         bool zapperTrigger = false;
     };

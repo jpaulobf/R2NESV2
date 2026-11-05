@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include <filesystem>
@@ -1246,21 +1247,28 @@ namespace R2NES::Core
         static float lastFps = -1.0f;
         static bool lastPausedState = false;
         static bool lastOverclockState = false;
+        static bool lastCartLoaded = false;
+        static std::string lastRomFile;
 
-        if (fps != lastFps || paused != lastPausedState || cpuOverclockEnabled != lastOverclockState)
+        if (fps != lastFps || paused != lastPausedState || cpuOverclockEnabled != lastOverclockState ||
+            cartLoaded != lastCartLoaded || romFile != lastRomFile)
         {
             char titleBuffer[512];
-            std::string displayTitle = title + (paused ? " | PAUSED" : "");
-            displayTitle = title + (cartLoaded ? " | " + romFile : "");
+            std::snprintf(titleBuffer, sizeof(titleBuffer), "%s | FPS: %.2f", title.c_str(),
+                          paused ? 0.0f : fps);
+            std::string displayTitle = titleBuffer;
+            if (cartLoaded)
+                displayTitle += " | " + romFile;
             if (cpuOverclockEnabled)
             {
                 displayTitle += " | CPU OVERCLOCK ENABLED! GAMES CAN CRASH!";
             }
-            snprintf(titleBuffer, sizeof(titleBuffer), displayTitle.c_str(), paused ? 0.0f : fps);
-            SDL_SetWindowTitle(window, titleBuffer);
+            SDL_SetWindowTitle(window, displayTitle.c_str());
             lastFps = fps;
             lastPausedState = paused;
             lastOverclockState = cpuOverclockEnabled;
+            lastCartLoaded = cartLoaded;
+            lastRomFile = romFile;
         }
 
         const uint32_t *finalPixels = pixels;

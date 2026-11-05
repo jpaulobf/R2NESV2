@@ -89,18 +89,21 @@ namespace R2NES::Core
 
     uint8_t Bus::cpuRead(uint16_t addr, bool readOnly)
     {
-        const uint8_t original = readCpuDevice(addr, readOnly);
+        bool internalApuRead = false;
+        const uint8_t original = readCpuDevice(addr, readOnly, internalApuRead);
         const uint8_t value = cheats.filterRead(addr, original);
         if (!readOnly)
         {
-            cpuDataBus = value;
+            // $4015 é interno à CPU: a leitura não conduz o barramento externo.
+            if (!internalApuRead)
+                cpuDataBus = value;
             if (cart)
                 cart->cpuReadOccurred(addr, original);
         }
         return value;
     }
 
-    uint8_t Bus::readCpuDevice(uint16_t addr, bool readOnly)
+    uint8_t Bus::readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead)
     {
         uint8_t data = cpuDataBus;
         // Leitura delegada ao cartucho primeiro (mappers podem prover ROM/RAM mapeada)
@@ -122,27 +125,28 @@ namespace R2NES::Core
         // Registrador de status do APU / canais
         else if (addr == 0x4015)
         {
-            return apu ? apu->cpuRead(addr, readOnly) : 0x00;
+            internalApuRead = true;
+            return static_cast<uint8_t>((apu ? apu->cpuRead(addr, readOnly) : 0x00) | (cpuDataBus & 0x20));
         }
         // Leitura dos controles / porta 1
         else if (addr == 0x4016)
         {
-            if (!joysticks)
-                return 0x00;
-            return readOnly ? joysticks->controller1.peekNextBit()
-                            : joysticks->controller1.readNextBit();
+            const uint8_t bit = joysticks ? (readOnly ? joysticks->controller1.peekNextBit()
+                                                      : joysticks->controller1.readNextBit())
+                                          : 0;
+            return static_cast<uint8_t>((cpuDataBus & 0xE0) | bit);
         }
         // Porta 2: gamepad ou Zapper
         else if (addr == 0x4017)
         {
-            uint8_t out = 0x00;
+            uint8_t out = cpuDataBus & 0xE0;
 
             if (joysticks)
             {
                 if (joysticks->port2Device == IO::DeviceType::Gamepad)
                 {
-                    out = readOnly ? joysticks->controller2.peekNextBit()
-                                   : joysticks->controller2.readNextBit();
+                    out |= readOnly ? joysticks->controller2.peekNextBit()
+                                    : joysticks->controller2.readNextBit();
                 }
                 else if (joysticks->port2Device == IO::DeviceType::Zapper)
                 {

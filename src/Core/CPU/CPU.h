@@ -56,6 +56,7 @@ namespace R2NES::Core
         // IRQ: interrupção mascarável (verifica flag I)
         void irq(); // Interrupt Request
         void setIrqLine(bool active) { irqLine = active; }
+        bool isIrqLineAsserted() const { return irqLine; }
         // NMI: interrupção não mascarável (sempre aceita)
         void nmi(); // Non-Maskable Interrupt
 
@@ -85,7 +86,13 @@ namespace R2NES::Core
         // Estrutura para representar uma instrução do 6502
         struct INSTRUCTION
         {
-            enum class Kind : uint8_t { Read, Store, Rmw, Branch };
+            enum class Kind : uint8_t
+            {
+                Read,
+                Store,
+                Rmw,
+                Branch
+            };
 
             std::string name;
             uint8_t (CPU::*operate)(void) = nullptr;  // Função da Operação

@@ -441,11 +441,14 @@ namespace R2NES::Core
         // durante VBlank) só será aceita após a próxima instrução.
         // Branches também fazem polling antes do fetch do deslocamento;
         // sem cruzar página, o ciclo extra do branch não faz outro polling.
+        // BRK escolhe o vetor no ciclo 5 e não faz o polling normal de fim
+        // de instrução; uma NMI posterior deve aguardar o primeiro handler.
+        const bool softwareInterrupt = lookup[opcode].operate == &CPU::BRK;
         const bool branch = isBranchInstruction();
         const bool nmiPoll = branch
                                  ? (microCycle == 1 || (pageCrossed && cycles == 1))
                                  : cycles == 1;
-        if (nmiPoll && pendingNmi)
+        if (!softwareInterrupt && nmiPoll && pendingNmi)
             interruptRequested = true;
 
         // O nível IRQ é amostrado no penúltimo ciclo da instrução, antes
@@ -454,7 +457,7 @@ namespace R2NES::Core
         const bool irqPoll = branch
                                  ? (microCycle == 1 || (pageCrossed && cycles == 1))
                                  : cycles == 2;
-        if (irqPoll && irqLine && GetFlag(I) == 0)
+        if (!softwareInterrupt && irqPoll && irqLine && GetFlag(I) == 0)
             // O pedido fica latched: desativar a fonte depois do polling
             // não cancela a entrada de IRQ no próximo limite de instrução.
             interruptRequested = true;
@@ -530,6 +533,13 @@ namespace R2NES::Core
                 push(static_cast<uint8_t>(pc));
             else if (c == 5)
             {
+                // A NMI pode assumir uma IRQ até a seleção do vetor, sem
+                // alterar o PC ou o bit B já determinados pela sequência.
+                if (interruptKind == 1 && pendingNmi)
+                {
+                    interruptKind = 2;
+                    pendingNmi = false;
+                }
                 uint8_t stackedStatus = static_cast<uint8_t>((status & ~B) | U);
                 push(stackedStatus);
                 SetFlag(I, true);
@@ -612,13 +622,18 @@ namespace R2NES::Core
                 push(static_cast<uint8_t>(pc));
             else if (c == 5)
             {
+                // operandHigh já faz parte do save state e guarda a escolha
+                // do vetor entre os dois ciclos de leitura do BRK.
+                operandHigh = pendingNmi ? 1 : 0;
+                if (pendingNmi)
+                    pendingNmi = false;
                 push(status | B | U);
                 SetFlag(I, true);
             }
             else if (c == 6)
-                operandLow = bus->cpuRead(0xFFFE);
+                operandLow = bus->cpuRead(operandHigh ? 0xFFFA : 0xFFFE);
             else if (c == 7)
-                pc = (static_cast<uint16_t>(bus->cpuRead(0xFFFF)) << 8) | operandLow;
+                pc = (static_cast<uint16_t>(bus->cpuRead(operandHigh ? 0xFFFB : 0xFFFF)) << 8) | operandLow;
             return;
         }
 
@@ -1041,7 +1056,8 @@ namespace R2NES::Core
         readStateBool(is, jammed);
         // One clock advances at most one of the CPU's eight instruction cycles;
         // DMA stalls are owned by NES and are not stored in this counter.
-        if (is && (interruptKind > 3 || cycles > 8 || microCycle > 8))
+        if (is && (interruptKind > 3 || cycles > 8 || microCycle > 8 ||
+                   (opcode == 0 && interruptKind == 0 && microCycle >= 5 && cycles != 0 && operandHigh > 1)))
             is.setstate(std::ios::failbit);
     }
 
@@ -1926,8 +1942,8 @@ namespace R2NES::Core
         fetch();
         // A = M AND S
         a = fetched & stkp;
-        // S = M AND S
-        stkp = a; // Stack Pointer recebe o mesmo valor que A
+        // LAS copia o resultado para A, X e o ponteiro de pilha.
+        x = stkp = a;
         updateNZFlags(a);
 
         return 1;
