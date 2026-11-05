@@ -73,18 +73,26 @@ static void testAudio()
 static void testInvalidRomPreservesSession(Window &window)
 {
     std::vector<uint8_t> rom(16 + 16384, 0);
-    rom[0] = 'N'; rom[1] = 'E'; rom[2] = 'S'; rom[3] = 0x1a; rom[4] = 1;
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1a;
+    rom[4] = 1;
     std::ofstream file("session.nes", std::ios::binary);
-    file.write(reinterpret_cast<const char *>(rom.data()), rom.size()); file.close();
-    NES nes(""); nes.setCheatDirectory("no-cheats");
+    file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
+    file.close();
+    NES nes("");
+    nes.setCheatDirectory("no-cheats");
     R2NES::System::GameStateManager manager;
     check(manager.loadRom("session.nes", nes, window), "Valid ROM rejected");
     const auto cart = nes.getBus().cart;
-    std::ostringstream before; check(nes.saveState(before), "Could not save initial state");
+    std::ostringstream before;
+    check(nes.saveState(before), "Could not save initial state");
     check(!manager.loadRom("missing.zip", nes, window), "Invalid ROM accepted");
     std::ostringstream after;
     check(nes.isCartridgeLoaded() && nes.getBus().cart == cart && nes.saveState(after) &&
-          before.str() == after.str(), "Invalid ROM changed active session");
+              before.str() == after.str(),
+          "Invalid ROM changed active session");
 }
 
 static void testGamepads(Window &window)
@@ -242,7 +250,16 @@ int main()
             window.windowResize(2);
             std::array<uint32_t, 256 * 240> pixels{};
             pixels.fill(0xFF336699);
+            SDL_Window *mainWindow = findWindow("SDL3 integration");
+            window.setCartLoaded(true);
+            window.setRomFile("game-%08x-%n.nes");
             window.render(pixels.data(), 60.0f);
+            check(std::strstr(SDL_GetWindowTitle(mainWindow), "game-%08x-%n.nes") != nullptr,
+                  "ROM name was interpreted as a format string");
+            window.setRomFile("second-%s.nes");
+            window.render(pixels.data(), 60.0f);
+            check(std::strstr(SDL_GetWindowTitle(mainWindow), "second-%s.nes") != nullptr,
+                  "Window title did not update after ROM change");
             SDL_Event close{};
             close.type = SDL_EVENT_QUIT;
             check(SDL_PushEvent(&close), "Could not push quit");

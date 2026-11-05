@@ -22,7 +22,7 @@ This is a point-in-time result, not a claim that other diagnostics passed.
 
 | Area | Automated coverage | Important limits |
 | --- | --- | --- |
-| CPU | Cycle-by-cycle regression over 256 opcodes and selected interrupt and state-restore scenarios | The digest is based on the emulator's previous behavior, not an independent hardware oracle. |
+| CPU | Cycle-by-cycle regression over 256 opcodes, targeted LAS checks and selected interrupt and state-restore scenarios | The digest is based on the emulator's previous behavior, not an independent hardware oracle; it was updated after LAS and interrupt changes. |
 | PPU | Open-bus decay and sprite overflow regressions; mapper tests exercise selected rendering interactions | These do not cover all timing, rendering, or the diagonal sprite-overflow bug. |
 | APU | Output suppression, DMC requests and stalls, IRQs, and state preservation under suppression | Comparison against normal output checks regression, not complete audio or timing accuracy. |
 | Cartridges | Synthetic mapper, UNIF, battery, cheat and state tests; optional MMC3 diagnostic ROMs | Coverage varies by board and variant; a passing mapper test does not establish full game compatibility. |
@@ -31,6 +31,34 @@ This is a point-in-time result, not a claim that other diagnostics passed.
 Historical CPU/APU diagnostic failures are recorded in the mapper 4 section
 below; they are not registered in the default suite and have not been rechecked
 by simply running CTest. See the individual sections for precise scenarios.
+
+## AccuracyCoin baseline
+
+`accuracycoin-runner` is an optional headless diagnostic, not part of CTest.
+It requires the 147-test ROM with SHA-256
+`9332c3735dd7dea2f4711e670d6478d8b0085edeacdd4f9f300fb04a8bbe3f88`
+and checks its full-file CRC32 and size before running. It simulates Start
+at a fixed time, runs 150 million CPU steps, verifies the ROM's final counts,
+and prints every test and its result against `accuracycoin-baseline.tsv`.
+The baseline is 93 passes before the bus changes; a failed AccuracyCoin test
+does not make the runner fail, but a previously passing test becoming a failure
+does. Exit code 2 means an invalid input or incomplete run. Save output to a
+file to compare individual codes, which can change even if PASS/FAIL does not.
+
+```sh
+cmake --build build-headless --target accuracycoin-runner
+build-headless/bin/accuracycoin-runner roms/AccuracyCoin.nes tests/accuracycoin-baseline.tsv
+```
+
+`cpu-bus` exercises controller open-bus bits, the $4015 status read, peeks,
+Zapper input and an indexed CPU dummy read. The DMC DMA interaction with the
+CPU's internal data bus still needs a separate cycle-accurate implementation.
+
+`cpu-interrupt` tests NMI edges during BRK and IRQ, stacked PC/B, late NMI,
+CPU restore during the sequence, rejection of an old `R2NK` state, and IRQ
+latency for CLI, SEI, PLP and RTI. It does not validate CPU/PPU subcycle
+alignment or DMC arbitration. The current `R2NL` states are not readable by
+older builds; this build rejects `R2NK` and earlier states.
 
 ## ROM and ZIP input validation
 
@@ -46,6 +74,19 @@ proof of safety against every malformed input.
 `state-security` checks selected invalid CPU, PPU and APU save-state fields and
 console rollback. For sanitizer commands, current results and remaining audit
 items, see [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
+
+`state-rollback-timing` captures an MMC3 console during a CPU instruction,
+both phases of OAM DMA, a DMC DMA stall and visible rendering. It injects
+truncations and invalid CPU, DMA, PPU, APU and mapper fields, then compares
+rollback and subsequent execution with a control. It also checks pending audio,
+frame completion, the CPU IRQ line and the transferred OAM bytes. These are
+selected scenarios, not exhaustive coverage of DMA arbitration or all states.
+
+`hostile-state` applies a deterministic set of 1,200 mutations to CPU, PPU,
+APU and MMC3 state fields, runs accepted inputs with rendering and unlimited
+sprites enabled and checks rollback of rejected inputs. It is a bounded smoke
+test, not coverage-guided fuzzing. See [SECURITY_AUDIT.md](../SECURITY_AUDIT.md)
+for findings and remaining scope.
 
 `mapper-state-security` checks invalid and truncated states for mappers 23,
 40, 66, 71, 90, 187 and 189. It verifies mapper rollback, reachable mapper 23
