@@ -11,6 +11,7 @@ bin/*
 build/*
 build-linux/*
 build-headless/*
+build-gui-review/*
 build-linux-sanitize/*
 analysis_results.md
 cmake/*
