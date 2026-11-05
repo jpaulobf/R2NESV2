@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## Não lançado
+
+- CPU: a NMI pode assumir o vetor de uma sequência de BRK ou IRQ durante a janela anterior à seleção do vetor, preservando PC e bit B empilhados. Testes cobrem bordas por ciclo, latência de CLI/SEI/PLP/RTI e restauração durante a sequência. O save state passa a `R2NL`; formatos anteriores são rejeitados, e versões anteriores não leem `R2NL`. Os diagnósticos completos de sobreposição de NMI e polling de branch ainda falham.
+- Barramento: leituras dos controles preservam os três bits superiores de open bus; a leitura interna de `$4015` preserva o barramento externo e retorna o bit 5 aberto. Adicionados testes e executor headless com referência individual do AccuracyCoin.
+- CPU: corrigido o opcode não oficial LAS ($BB), que também deve carregar X com o resultado; adicionados testes de registradores, flags e cruzamento de página.
+- Corrigida a interpretação do nome da ROM como string de formatação no título da janela. A avaliação de sprites também verifica a capacidade dos arrays diante de save states inconsistentes; adicionados testes de regressão e mutações de estados.
+- Corrigida a perda de áudio pendente ao rejeitar um save state inválido; o rollback também preserva o estado temporário da PPU e a linha de IRQ da CPU. Testes exercitam instrução intermediária, DMA de OAM, espera de DMC e renderização com estados adulterados.
+
 ## [1.1.1] - 2026-10-20
 
 - Corrigido o carregamento do dump legado de BB Car (CRC32 PRG+CHR `7F9C1DEC`): o mapper 7 do cabeçalho representa NROM com CHR-ROM e espelhamento fixo de uma tela. A identificação exata preserva a rejeição de CHR-ROM no AxROM normal. Validado boot, vídeo e save/load em `.nes` e no ZIP original; gameplay manual pendente.
