@@ -33,6 +33,65 @@ As três verificações de interrupção continuam falhando: Interrupt Flag
 Latency (A), NMI Overlap BRK (2) e NMI Overlap IRQ (1). A correção passou em
 testes sintéticos de ciclos, mas não resolve o timing completo da suíte.
 
+Em 2026-11-06, após ajustar a contagem da escrita em `$4017` e o ciclo zero
+do sequenciador da APU, a execução headless passou para **96/147**. Length
+Counter e Length Table passaram; não houve regressões PASS/FAIL frente aos
+94/147 anteriores. Frame Counter 4-step e Frame Counter IRQ ainda falham,
+portanto o resultado não estabelece precisão completa do frame counter.
+O resultado detalhado está em `build-headless/accuracycoin/reset-experiment.txt`.
+A suíte CTest headless também passou: 34/34 testes.
+
+Na correção seguinte, a saída de strobe passou a ser amostrada na fase do
+relógio do sistema, e **Controller Strobing passou**. A ROM completou com
+**97/147**, sem regressões PASS/FAIL frente aos 96/147 anteriores; Controller
+Clocking continua PASS. O resultado está em
+`build-headless/accuracycoin/after-controller.txt`. CTest headless: 34/34.
+
+### Próxima investigação: DMA do DMC
+
+Antes das alterações desta rodada, o código lia a amostra imediatamente e só
+depois contabilizava os ciclos de espera; também deixava a DMA de OAM
+prosseguir sem arbitragem com o DMC. A ROM acusa `DMA + Open Bus` código 2: o primeiro teste
+passa, mas o seguinte não observa o valor da leitura DMC no barramento no
+momento esperado. `DMC Playback Rate` código 1 e `DMA Landing on Write`
+código 2 dependem de `DMA + Open Bus`; passar no pré-requisito não garante que
+as verificações seguintes passarão.
+
+Uma implementação precisa distinguir os ciclos de tentativa de parada,
+dummy, alinhamento e leitura, adiar a parada durante escritas da CPU e
+arbitrar com OAM DMA. As leituras repetidas podem ter efeitos colaterais;
+estados intermediários precisam sobreviver a save/load. Recomenda-se começar
+com testes sintéticos desses ciclos e do barramento, antes de tratar conflitos
+com registradores e cancelamentos. O timing de VBlank/NMI continua sendo um
+grupo independente para uma rodada posterior.
+
+Primeira etapa implementada: a CPU identifica seu próximo ciclo de escrita e
+o DMC aguarda até um ciclo de leitura antes de iniciar a transferência. Uma
+verificação sintética cobre uma requisição antes das duas escritas de `INC`;
+outra compara a classificação com o acesso real em cenários dos 256 opcodes.
+Após essa mudança, a ROM continua em **97/147**, sem regressões PASS/FAIL;
+`DMA + Open Bus` permaneceu no código 2. Nessa primeira etapa, a leitura DMC
+ainda ocorria antes dos ciclos de espera, sem arbitragem DMC/OAM.
+O resultado está em `build-headless/accuracycoin/dmc-write-halt.txt`.
+
+Na etapa seguinte, o caminho NTSC passou a distinguir parada, ciclo dummy,
+alinhamento e leitura, e a leitura DMC tem prioridade sobre a leitura de OAM.
+Um teste sintético cobre a sobreposição e a restauração durante a DMA. A ROM
+continua em **97/147**, sem regressões PASS/FAIL; `DMA + Open Bus` (2) e
+`DMC DMA + OAM DMA` (1) ainda falham. O agendamento dos pedidos e os conflitos
+com registradores, entre outros detalhes, ainda exigem investigação. O caminho
+PAL conserva a aproximação anterior. CTest headless: 34/34; resultado completo
+em `build-headless/accuracycoin/dmc-phased.txt`.
+
+### VBlank
+
+Uma leitura de `$2002` imediatamente antes da borda de VBlank agora suprime
+o levantamento da flag e a NMI daquela borda, sem impedir a conclusão do quadro.
+Em 2026-11-06, `VBlank beginning` passou e a ROM terminou em **98/147**, sem
+regressões PASS/FAIL frente aos 97/147 anteriores. Os testes de timing e
+supressão de NMI ainda falham. O resultado completo está em
+`build-headless/accuracycoin/after-vblank.txt`; CTest headless: 34/34.
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
