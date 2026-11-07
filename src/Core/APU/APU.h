@@ -50,6 +50,7 @@ namespace R2NES::Core
         void setTriangleEnabled(bool enabled) { userTriangleEnabled = enabled; }
         void setNoiseEnabled(bool enabled) { userNoiseEnabled = enabled; }
         void setDMCEnabled(bool enabled) { userDMCEnabled = enabled; }
+        void setUserVolume(size_t index, int percent);
 
         void saveState(std::ostream &os);
         void loadState(std::istream &is);
@@ -216,6 +217,7 @@ namespace R2NES::Core
         uint8_t frameCounterWriteDelay = 0;
         uint8_t pendingFrameCounterMode = 4;
 
+        std::array<float, 6> userVolumes{{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}};
         bool soundEnabled = true;
         bool audioOutputSuppressed = false; // Estado do host; não faz parte do savestate.
         bool userPulse1Enabled = true;

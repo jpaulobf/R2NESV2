@@ -243,10 +243,9 @@ namespace R2NES::Core
             if (!frameIrqEnabled)
                 frameIrqFlag = false;
 
-            // O reset do sequenciador ocorre depois de 3 ou 4 ciclos da CPU,
-            // conforme a fase par/ímpar em que a escrita aconteceu. O step()
-            // deste mesmo ciclo também consome um dos ciclos de atraso.
-            frameCounterWriteDelay = static_cast<uint8_t>((apuCyclePhase ? 3 : 4) + 1);
+            // Inclui o step() do ciclo de escrita na contagem de 3 ou 4
+            // ciclos, conforme a fase. A CPU escreve antes do step da APU.
+            frameCounterWriteDelay = static_cast<uint8_t>(apuCyclePhase ? 3 : 4);
             frameCounterWritePending = true;
             break;
         }
@@ -282,17 +281,23 @@ namespace R2NES::Core
 
     void APU::step()
     {
+        bool frameCounterReset = false;
         if (frameCounterWritePending)
         {
             if (frameCounterWriteDelay > 0)
                 --frameCounterWriteDelay;
             if (frameCounterWriteDelay == 0)
+            {
                 applyFrameCounterWrite();
+                frameCounterReset = true;
+            }
         }
 
         bool quarterFrame = false;
         bool halfFrame = false;
-        ++frameClockCounter;
+        // O ciclo que aplica o reset é o ciclo zero da nova sequência.
+        if (!frameCounterReset)
+            ++frameClockCounter;
 
         if (frameCounterMode == 4)
         {
@@ -342,7 +347,10 @@ namespace R2NES::Core
 
         triangle.clock();
         dmc.clock();
-        requestDmcDma();
+        // Recargas param a CPU em uma fase put. O contador já aponta
+        // para o próximo ciclo de sistema quando a APU é avançada.
+        if (pal || !bus || (bus->systemClockCounter & 1))
+            requestDmcDma();
 
         // Os canais, o sequenciador e o DMC continuam acima. Fast-forward
         // dispensa mistura, filtros, resampling e armazenamento de amostras.
@@ -379,7 +387,7 @@ namespace R2NES::Core
             const float filtered = hpf90.process(averageMix) * 1.2f;
             if (audioBuffer.size() >= maxBufferedSamples())
                 audioBuffer.pop();
-            audioBuffer.push(filtered);
+            audioBuffer.push(filtered * userVolumes[0]);
         }
     }
 
@@ -397,6 +405,12 @@ namespace R2NES::Core
     void APU::clearPendingSamples()
     {
         audioBuffer = std::queue<float>();
+    }
+
+    void APU::setUserVolume(size_t index, int percent)
+    {
+        if (index < userVolumes.size())
+            userVolumes[index] = std::clamp(percent, 0, 100) / 100.0f;
     }
 
     void APU::enableSound()
@@ -788,11 +802,11 @@ namespace R2NES::Core
 
     float APU::getRawMix()
     {
-        const float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample(true)) : 0.0f;
-        const float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample(false)) : 0.0f;
-        const float tri = userTriangleEnabled ? static_cast<float>(triangle.sample()) : 0.0f;
-        const float n = userNoiseEnabled ? static_cast<float>(noise.sample()) : 0.0f;
-        const float d = userDMCEnabled ? static_cast<float>(dmc.sample()) : 0.0f;
+        const float p1 = userPulse1Enabled ? static_cast<float>(pulse1.sample(true)) * userVolumes[1] : 0.0f;
+        const float p2 = userPulse2Enabled ? static_cast<float>(pulse2.sample(false)) * userVolumes[2] : 0.0f;
+        const float tri = userTriangleEnabled ? static_cast<float>(triangle.sample()) * userVolumes[3] : 0.0f;
+        const float n = userNoiseEnabled ? static_cast<float>(noise.sample()) * userVolumes[4] : 0.0f;
+        const float d = userDMCEnabled ? static_cast<float>(dmc.sample()) * userVolumes[5] : 0.0f;
 
         const float pulseSum = p1 + p2;
         const float pulseOut = pulseSum > 0.0f
