@@ -34,15 +34,18 @@ oficial da Nintendo ou Ricoh.
   APU, PPU e mappers; não basta alterar isoladamente a CPU.
 - A seleção tardia do vetor foi implementada, mas o timing completo das
   interrupções ainda difere do hardware: AccuracyCoin continua falhando em
-  NMI Overlap BRK (2), NMI Overlap IRQ (1) e Interrupt Flag Latency (A).
+  NMI Overlap BRK (2) e NMI Overlap IRQ (1). Interrupt Flag Latency passou
+  após a correção da fase de recarga DMC em 2026-11-06; o resultado anterior
+  era código A.
   Os diagnósticos Blargg `2-nmi_and_brk`, `3-nmi_and_irq` e
   `5-branch_delays_irq` também falharam nesta rodada; `1-cli_latency` passou.
   As causas exatas e o papel da sincronização PPU/DMC ainda precisam ser
   isolados. O polling de branches anterior foi preservado.
-- `NES::step()` informa explicitamente que a arbitragem entre DMA de OAM e
-  DMC não é modelada ciclo a ciclo. Isso pode afetar timing e interações de
-  DMA; não implica por si só que o áudio ou sprites falhem em todos os jogos.
-- O teste Internal Data Bus falha no pré-requisito que envolve DMC DMA. A
+- A arbitragem NTSC entre DMC e OAM agora distingue parada, dummy, alinhamento
+  e leitura, com prioridade do get DMC. DMC DMA + OAM DMA passou em 2026-11-06.
+  O atraso da transferência inicial, cancelamentos e conflitos ainda estão
+  incompletos; o caminho PAL conserva a aproximação anterior.
+- O teste Internal Data Bus agora falha no código 2, após avançar no pré-requisito DMC. A
   distinção entre barramentos interno e externo durante DMA ainda não está
   modelada completamente; o bit 5 de `$4015` usa o latch externo existente.
 - Os diagnósticos históricos `4-jitter` e `6-irq_flag_timing` falharam em

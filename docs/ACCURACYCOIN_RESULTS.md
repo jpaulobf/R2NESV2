@@ -92,6 +92,47 @@ regressões PASS/FAIL frente aos 97/147 anteriores. Os testes de timing e
 supressão de NMI ainda falham. O resultado completo está em
 `build-headless/accuracycoin/after-vblank.txt`; CTest headless: 34/34.
 
+### Escritas não oficiais
+
+SHA, SHS/TAS, SHY e SHX agora usam o byte alto do endereço base mais um
+para calcular o valor escrito. Quando o índice cruza uma página, o valor
+também substitui o byte alto do endereço de escrita, seguindo o comportamento
+da revisão inicial descrita pela própria ROM. Testes sintéticos cobrem as
+cinco variantes com e sem cruzamento de página.
+
+O AccuracyCoin permanece em **98/147**, sem regressões PASS/FAIL. Os cinco
+testes avançaram do código 1 para o código 7, nas verificações envolvendo
+DMA, que continuam pendentes. Resultado em
+`build-headless/accuracycoin/after-unstable-stores.txt`; CTest: 35/35.
+
+### Fase de recarga do DMC e parada da DMA de OAM
+
+Em 2026-11-06, a execução passou de **98 para 109/147**, sem regressões
+PASS/FAIL frente aos 98 anteriores. As recargas do DMC agora solicitam a
+parada na fase put do relógio NTSC; antes podiam começar em get e consumir
+três ciclos em vez dos quatro esperados. Isso também impedia a rotina de
+sincronização da ROM de observar a leitura DMC no barramento. O caminho PAL
+de recarga mantém a aproximação anterior.
+
+A DMA de OAM também aguarda as escritas pendentes da CPU antes de parar.
+Assim, uma instrução RMW em `$4014` completa as duas escritas e a segunda
+seleciona a página transferida. Essa correção é aplicada em NTSC e PAL.
+
+Os onze novos PASS são Interrupt flag latency, DMA + Open Bus, DMA + $2007
+Read, DMA + $2007 Write, DMA + $4015 Read, DMA + $4016 Read (código informativo
+2), DMC DMA + OAM DMA, Instruction Timing, Implied Dummy Reads, DMC Playback
+Rate e INC $4014. O log completo está em
+`build-headless/accuracycoin/dmc-reload-put.txt`. O campo `improved 16` desse
+log compara com a referência original de 93/147.
+
+Os testes sintéticos cobrem a cadência de recarga nas 16 taxas NTSC e nas
+duas fases iniciais, os quatro ciclos de parada durante uma recarga, a
+retomada da CPU e as duas escritas de INC $4014 em NTSC/PAL. A suíte de
+save/load continua cobrindo restauração durante DMA e sobreposição DMC/OAM.
+CTest headless: **35/35**. O atraso inicial após `$4015`, cancelamentos, conflitos de barramento e os
+detalhes PAL ainda exigem trabalho; os PASS não estabelecem precisão completa.
+Referência de fases e parada: [NESdev DMA](https://www.nesdev.org/wiki/DMA).
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
