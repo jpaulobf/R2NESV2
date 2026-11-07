@@ -997,6 +997,33 @@ namespace R2NES::Core
         return cycles == 0;
     }
 
+    bool CPU::nextCycleIsWrite() const
+    {
+        if (cycles == 0 || jammed)
+            return false;
+        const uint8_t next = microCycle + 1;
+        if (interruptKind != 0)
+            return interruptKind != 3 && next >= 3 && next <= 5;
+        const auto op = lookup[opcode].operate;
+        if (op == &CPU::BRK)
+            return next >= 3 && next <= 5;
+        if (op == &CPU::JSR)
+            return next == 4 || next == 5;
+        if (op == &CPU::PHA || op == &CPU::PHP)
+            return next == 3;
+        if (isRmwInstruction() && lookup[opcode].addrmode != &CPU::IMP)
+            return cycles <= 2;
+        return isStoreInstruction() && cycles == 1;
+    }
+
+    uint16_t CPU::nextReadAddress() const
+    {
+        CPU copy = *this;
+        bus->beginCpuProbe();
+        copy.clock();
+        return bus->endCpuProbe();
+    }
+
     void CPU::saveState(std::ostream &os)
     {
         os.write(reinterpret_cast<const char *>(&a), sizeof(a));
@@ -1907,24 +1934,24 @@ namespace R2NES::Core
     uint8_t CPU::SHA()
     {
         // Armazena A & X & (High Byte do endereço + 1)
-        uint8_t val = a & x & (uint8_t)((addr_abs >> 8) + 1);
-        bus->cpuWrite(addr_abs, val);
+        uint8_t val = a & x & static_cast<uint8_t>((baseAddress >> 8) + 1);
+        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
         return 0;
     }
 
     uint8_t CPU::SHY()
     {
         // Armazena Y & (High Byte do endereço + 1)
-        uint8_t val = y & (uint8_t)((addr_abs >> 8) + 1);
-        bus->cpuWrite(addr_abs, val);
+        uint8_t val = y & static_cast<uint8_t>((baseAddress >> 8) + 1);
+        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
         return 0;
     }
 
     uint8_t CPU::SHX()
     {
         // Armazena X & (High Byte do endereço + 1)
-        uint8_t val = x & (uint8_t)((addr_abs >> 8) + 1);
-        bus->cpuWrite(addr_abs, val);
+        uint8_t val = x & static_cast<uint8_t>((baseAddress >> 8) + 1);
+        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
         return 0;
     }
 
@@ -1932,8 +1959,8 @@ namespace R2NES::Core
     {
         // S = A & X, depois armazena S & (High Byte do endereço + 1)
         stkp = a & x;
-        uint8_t val = stkp & (uint8_t)((addr_abs >> 8) + 1);
-        bus->cpuWrite(addr_abs, val);
+        uint8_t val = stkp & static_cast<uint8_t>((baseAddress >> 8) + 1);
+        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
         return 0;
     }
 

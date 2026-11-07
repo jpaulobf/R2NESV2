@@ -43,6 +43,9 @@ namespace R2NES::Core
         // Retorna verdadeiro se a CPU não tem ciclos pendentes
         // (ou seja, se a instrução atual já foi completada).
         bool complete() const;
+        // RDY não suspende a CPU durante ciclos de escrita.
+        bool nextCycleIsWrite() const;
+        uint16_t nextReadAddress() const;
 
         // Serialização para Save / Load states
         void saveState(std::ostream &os);
