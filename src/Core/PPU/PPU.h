@@ -99,6 +99,7 @@ namespace R2NES::Core
         uint8_t oamAddr = 0x00;
         uint8_t oamDataBusLatch = 0xFF;
         uint8_t ppuStatus = 0x00;
+        bool suppressVblank = false;
         uint8_t addressLatch = 0x00;
         uint8_t dataBuffer = 0x00;
         // Fetches são resolvidos pelo pipeline no dot ímpar; /RD ocorre no seguinte.

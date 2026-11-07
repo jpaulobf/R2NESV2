@@ -202,6 +202,8 @@ namespace R2NES::Core
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
             if (!readOnly)
             {
+                if (scanline == 241 && cycle == 1)
+                    suppressVblank = true;
                 // PPUSTATUS dirige os bits 7-5; os bits baixos mantêm o valor
                 // que já estava no barramento interno da PPU.
                 drivePpuIoBus(data, 0xE0);
@@ -854,11 +856,13 @@ namespace R2NES::Core
         // precisam ocorrer no mesmo ponto do ciclo da PPU.
         if (scanline == 241 && cycle == 1)
         {
-            ppuStatus |= 0x80;
+            if (!suppressVblank)
+                ppuStatus |= 0x80;
             frameComplete = true;
 
-            if (ppuCtrl & 0x80)
+            if (!suppressVblank && (ppuCtrl & 0x80))
                 nmi = true;
+            suppressVblank = false;
         }
 
         // Reset de flags de status deve ocorrer independente de renderingEnabled
@@ -1407,6 +1411,7 @@ namespace R2NES::Core
         renderMaskDelay.fill(0x00);
         effectiveRenderMask = 0x00;
         ppuStatus = 0x00; // O ideal é resetar para algum estado, mas bit 7 costuma manter
+        suppressVblank = false;
         oamAddr = 0x00;
         oamDataBusLatch = 0xFF;
         addressLatch = 0;
@@ -1464,7 +1469,10 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&ppuMask), sizeof(ppuMask));
         os.write(reinterpret_cast<const char *>(renderMaskDelay.data()), renderMaskDelay.size());
         os.write(reinterpret_cast<const char *>(&effectiveRenderMask), sizeof(effectiveRenderMask));
-        os.write(reinterpret_cast<const char *>(&ppuStatus), sizeof(ppuStatus));
+        // Os cinco bits baixos de PPUSTATUS não são flags. Reserva o bit 0
+        // serializado para a supressão pendente, sem alterar o layout do PPU.
+        const uint8_t savedStatus = static_cast<uint8_t>((ppuStatus & 0xE0) | (suppressVblank ? 1 : 0));
+        os.write(reinterpret_cast<const char *>(&savedStatus), sizeof(savedStatus));
         os.write(reinterpret_cast<const char *>(&oamAddr), sizeof(oamAddr));
         os.write(reinterpret_cast<const char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
         os.write(reinterpret_cast<const char *>(&addressLatch), sizeof(addressLatch));
@@ -1523,6 +1531,9 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(renderMaskDelay.data()), renderMaskDelay.size());
         is.read(reinterpret_cast<char *>(&effectiveRenderMask), sizeof(effectiveRenderMask));
         is.read(reinterpret_cast<char *>(&ppuStatus), sizeof(ppuStatus));
+        const uint8_t savedStatusLow = ppuStatus & 0x1F;
+        suppressVblank = (savedStatusLow & 1) != 0;
+        ppuStatus &= 0xE0;
         is.read(reinterpret_cast<char *>(&oamAddr), sizeof(oamAddr));
         is.read(reinterpret_cast<char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
         is.read(reinterpret_cast<char *>(&addressLatch), sizeof(addressLatch));
@@ -1571,7 +1582,8 @@ namespace R2NES::Core
         readStateBool(is, tilesEnabled);
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
-        if (is && ((pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
+        if (is && ((savedStatusLow & 0x1E) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
+                   (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||
                    scanlineSpriteCount < 0 || scanlineSpriteCount > 64 ||
