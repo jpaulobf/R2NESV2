@@ -58,6 +58,17 @@ namespace R2NES::Core
         // Leitura pela CPU via barramento. `readOnly` é usado
         // quando a operação não deve causar efeitos colaterais.
         uint8_t cpuRead(uint16_t addr, bool readOnly = false);
+        void beginCpuProbe()
+        {
+            probingCpuAccess = true;
+            probedCpuWrite = false;
+        }
+        uint16_t endCpuProbe()
+        {
+            probingCpuAccess = false;
+            return probedCpuAddress;
+        }
+        bool wasProbedCpuWrite() const { return probedCpuWrite; }
 
         // Leitura/escrita pela PPU (área de VRAM/cartucho).
         // Retornam true se o cartucho tratou a operação.
@@ -79,6 +90,10 @@ namespace R2NES::Core
 
         // Conecta os dispositivos de entrada (joysticks / zapper).
         void connectJoysticks(IO::Joysticks *joysticks);
+        void clockControllerStrobe();
+        void resetControllerStrobe();
+        bool getControllerStrobeOutput() const { return controllerStrobeOutput; }
+        void setControllerStrobeOutput(bool value) { controllerStrobeOutput = value; }
 
         // Conecta a PPU ao barramento (usada para leituras/escritas CPU->PPU).
         void connectPPU(PPU *pPpu);
@@ -113,6 +128,10 @@ namespace R2NES::Core
         bool dma_dummy = true;
 
     private:
+        bool probingCpuAccess = false;
+        bool probedCpuWrite = false;
+        uint16_t probedCpuAddress = 0;
+        bool controllerStrobeOutput = false;
         uint8_t readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead);
         // Estado interno da Pistola Zapper (gatilho)
         bool zapperTrigger = false;

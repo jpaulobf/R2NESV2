@@ -40,10 +40,30 @@ namespace R2NES::Core
         this->joysticks = joysticks;
     }
 
+    void Bus::clockControllerStrobe()
+    {
+        if (joysticks)
+        {
+            joysticks->controller1.writeStrobe(controllerStrobeOutput);
+            joysticks->controller2.writeStrobe(controllerStrobeOutput);
+        }
+    }
+
+    void Bus::resetControllerStrobe()
+    {
+        controllerStrobeOutput = false;
+        clockControllerStrobe();
+    }
+
     void Bus::setZapperTrigger(bool pulled) { this->zapperTrigger = pulled; }
 
     void Bus::cpuWrite(uint16_t addr, uint8_t data)
     {
+        if (probingCpuAccess)
+        {
+            probedCpuWrite = true;
+            return;
+        }
         cpuDataBus = data;
         // Escrita via CPU: primeiro delega ao cartucho (mappers podem interceptar).
         if (cart && cart->cpuWrite(addr, data, systemClockCounter, cpuCycleCounter))
@@ -79,16 +99,17 @@ namespace R2NES::Core
         // Strobe dos controles (0x4016): re-sincroniza os shift-registers dos gamepads
         else if (addr == 0x4016)
         {
-            if (joysticks)
-            {
-                joysticks->controller1.writeStrobe(data);
-                joysticks->controller2.writeStrobe(data);
-            }
+            controllerStrobeOutput = (data & 1) != 0;
         }
     }
 
     uint8_t Bus::cpuRead(uint16_t addr, bool readOnly)
     {
+        if (probingCpuAccess)
+        {
+            probedCpuAddress = addr;
+            return 0;
+        }
         bool internalApuRead = false;
         const uint8_t original = readCpuDevice(addr, readOnly, internalApuRead);
         const uint8_t value = cheats.filterRead(addr, original);
