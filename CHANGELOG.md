@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## Em desenvolvimento
+
+- DMA: recargas do DMC NTSC agora iniciam na fase put; a DMA de OAM aguarda as duas escritas de instruções RMW em `$4014`. AccuracyCoin passou de 98 para 109/147, sem regressões PASS/FAIL. Adicionados testes de fase, cadência, parada e retomada da CPU. O atraso inicial do DMC, cancelamentos e conflitos de barramento continuam pendentes.
+
 ## [1.2.5] - 2026-11-05
 
 - Adicionado suporte ao Mapper 69 (Sunsoft FME-7/5B), com bancos PRG e CHR, espelhamento selecionável, contador de IRQ, RAM com bateria e áudio de expansão. Testes automatizados cobrem bancos, espelhamento, IRQ, bateria, áudio e save states.
