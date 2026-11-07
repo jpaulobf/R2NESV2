@@ -85,10 +85,49 @@ struct Fixture
     }
 };
 
+static void testVblankSuppression()
+{
+    using R2NES::Core::PPU;
+    PPU ppu;
+    // Segundo quadro, scanline 241, dot 1 (próximo dot a executar).
+    const int target = 341 * (262 + 242) + 1;
+    for (int dot = 0; dot < target - 1; ++dot)
+        ppu.clock();
+    ppu.cpuRead(0x2002);
+    ppu.cpuWrite(0x2000, 0x80);
+    ppu.clock();
+    ppu.clearFrameComplete();
+    ppu.nmi = false;
+    std::ostringstream base;
+    ppu.saveState(base);
+
+    // A inspeção do debugger não altera a borda.
+    check((ppu.cpuRead(0x2002, true) & 0x80) == 0, "Unexpected VBlank before edge");
+    ppu.clock();
+    check((ppu.cpuRead(0x2002, true) & 0x80) != 0 && ppu.nmi, "Peek suppressed VBlank or NMI");
+
+    std::istringstream restore(base.str());
+    ppu.loadState(restore);
+    check(bool(restore), "VBlank checkpoint restore failed");
+    check((ppu.cpuRead(0x2002) & 0x80) == 0, "Pre-edge read returned VBlank");
+    std::ostringstream pending;
+    ppu.saveState(pending);
+    ppu.clock();
+    check((ppu.cpuRead(0x2002, true) & 0x80) == 0 && !ppu.nmi && ppu.isFrameComplete(),
+          "Pre-edge read failed to suppress VBlank/NMI");
+    std::istringstream restorePending(pending.str());
+    ppu.loadState(restorePending);
+    check(bool(restorePending), "Pending VBlank suppression restore failed");
+    ppu.clock();
+    check((ppu.cpuRead(0x2002, true) & 0x80) == 0 && !ppu.nmi,
+          "Pending VBlank suppression lost across snapshot");
+}
+
 int main()
 {
     try
     {
+        testVblankSuppression();
         Fixture f;
         f.write(0x2002, 0xFF);
         f.clock(12345);

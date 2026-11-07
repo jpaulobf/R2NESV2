@@ -53,6 +53,24 @@ build-headless/bin/accuracycoin-runner roms/AccuracyCoin.nes tests/accuracycoin-
 `cpu-bus` exercises controller open-bus bits, the $4015 status read, peeks,
 Zapper input and an indexed CPU dummy read. The DMC DMA interaction with the
 CPU's internal data bus still needs a separate cycle-accurate implementation.
+It also checks that a pending DMC transfer waits for both writes of an INC,
+that OAM DMA waits for the second write of INC $4014 in NTSC/PAL, and that
+NTSC DMC reload requests use the put phase at all 16 rates and both initial
+clock phases. A reload on CPU reads must halt for four cycles and then resume.
+`cpu-cycle` checks CPU read/write cycle prediction across all 256 opcodes in
+the existing scenarios, including interrupt polling and mid-instruction loads.
+It also checks sampled and unsampled controller strobes on both ports; the
+AccuracyCoin ROM exercises real CPU read-modify-write strobes in both phases.
+Console states now use `R2NS` (NTSC) or `R2NT` (PAL), preserving the strobe
+output and both controller shift latches while leaving live button input with
+the host. Supported previous states still load but do not contain these latch
+values; older builds cannot read the new formats. `state-rollback-timing`
+checks restoration of a pending strobe and controller shift position, and
+restoration during a DMC/OAM DMA overlap. DMC DMA timing and register conflicts
+remain incomplete; PAL retains the previous DMA approximation.
+`ppu-decay` also covers a PPUSTATUS read immediately before VBlank, including
+debugger peeks and restoring the pending suppression from a PPU snapshot.
+This does not cover all NMI timing cases.
 
 `cpu-interrupt` tests NMI edges during BRK and IRQ, stacked PC/B, late NMI,
 CPU restore during the sequence, rejection of an old `R2NK` state, and IRQ

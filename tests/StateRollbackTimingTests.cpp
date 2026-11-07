@@ -55,7 +55,7 @@ static Layout layout(NES &nes, const std::string &snapshot)
     const auto ppuBytes = component(nes.getPpu());
     const size_t apu = ppu + ppuBytes.size();
     const auto apuBytes = component(nes.getApu());
-    const size_t mapper = apu + apuBytes.size();
+    const size_t mapper = apu + apuBytes.size() + 9;
     const auto mapperBytes = component(*nes.getBus().cart->getMapper());
     check(snapshot.compare(cpu, cpuBytes.size(), cpuBytes) == 0 &&
               snapshot.compare(ppu, ppuBytes.size(), ppuBytes) == 0 &&
@@ -100,6 +100,8 @@ static void verifyScenario(NES &live, const std::filesystem::path &rom, const st
     mutate("CPU flag", offsets.cpu + 25, 2);
     mutate("PPU fine X", offsets.ppu + 2063, 255);
     mutate("APU duty", offsets.apu + 32, 255);
+    mutate("DMC phase", offsets.mapper - 4, 3);
+    mutate("OAM read flag", offsets.mapper - 1, 2);
     mutate("MMC3 register", offsets.mapper, 255);
 
     const auto audioBefore = pendingAudio(live);
@@ -185,6 +187,28 @@ int main(int argc, char **argv)
         nes.setCheatDirectory(dir / "no-cheats");
         check(nes.insertCartridge(path.string()), "fixture ROM rejected");
         nes.reset();
+        {
+            auto &bus = nes.getBus();
+            auto &pad = nes.getJoysticks().controller1;
+            pad.setButton(IO::BUTTON_A, true);
+            bus.cpuWrite(0x4016, 1);
+            bus.clockControllerStrobe();
+            bus.cpuWrite(0x4016, 0);
+            bus.clockControllerStrobe();
+            check((bus.cpuRead(0x4016) & 1) == 1, "initial controller bit incorrect");
+            bus.cpuWrite(0x4016, 1); // Pendente até a próxima amostragem.
+            const auto saved = save(nes);
+            bus.clockControllerStrobe();
+            bus.cpuWrite(0x4016, 0);
+            bus.clockControllerStrobe();
+            load(nes, saved);
+            check(bus.getControllerStrobeOutput() && (bus.cpuRead(0x4016, true) & 1) == 0,
+                  "controller latch or pending output not restored");
+            bus.clockControllerStrobe();
+            check((bus.cpuRead(0x4016, true) & 1) == 1, "pending controller strobe lost");
+            pad.setButton(IO::BUTTON_A, false);
+            bus.resetControllerStrobe();
+        }
         for (int i = 0; i < 256; ++i)
             nes.getBus().cpuWrite(0x0200 + i, uint8_t(i ^ 0x5a));
         for (int limit = 0; limit < 100 && !(nes.getCpu().pc == 0x8005 && !nes.getCpu().complete()); ++limit)
@@ -202,6 +226,17 @@ int main(int argc, char **argv)
         for (int i = 0; i < 256; ++i)
             check(nes.getPpu().getOamMemory()[i] == uint8_t(i ^ 0x5a), "OAM DMA produced incorrect bytes");
         load(nes, dmaCheckpoint);
+        nes.getApu().cpuWrite(0x4012, 0);
+        nes.getApu().cpuWrite(0x4013, 0);
+        nes.getApu().cpuWrite(0x4015, 0x10);
+        nes.step();
+        const auto overlap = save(nes);
+        const auto overlapLayout = layout(nes, overlap);
+        check(uint8_t(overlap[overlapLayout.mapper - 4]) == 1, "DMC/OAM overlap not reached");
+        verifyScenario(nes, path, "DMC during OAM DMA");
+        for (int i = 0; i < 256; ++i)
+            check(nes.getPpu().getOamMemory()[i] == uint8_t(i ^ 0x5a), "DMC collision corrupted OAM DMA");
+        load(nes, dmaCheckpoint);
         nes.step();
         check(nes.getBus().dma_transfer && ((nes.getSystemClockCounter() ^ dmaClock) & 1),
               "DMA second phase not reached");
@@ -215,8 +250,9 @@ int main(int argc, char **argv)
         nes.getBus().cpuWrite(0x4015, 0x10);
         check(nes.getApu().hasDmcDmaRequest(), "DMC request not raised");
         nes.step();
-        auto probe = nes.getApu();
-        check(probe.consumeDmcDmaStallCycle(), "DMC stall checkpoint not reached");
+        const auto dmcCheckpoint = save(nes);
+        const auto dmcLayout = layout(nes, dmcCheckpoint);
+        check(uint8_t(dmcCheckpoint[dmcLayout.mapper - 4]) == 1, "DMC halt checkpoint not reached");
         verifyScenario(nes, path, "DMC DMA stall");
         while (nes.getSystemClockCounter() < 35000)
             nes.step();
