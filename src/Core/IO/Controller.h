@@ -46,6 +46,14 @@ namespace R2NES::Core::IO
             return (source & 0x80) > 0;
         }
 
+        uint8_t getShiftState() const { return shift; }
+        bool getStrobeState() const { return strobe; }
+        void restoreLatch(uint8_t savedShift, bool savedStrobe)
+        {
+            shift = savedShift;
+            strobe = savedStrobe;
+        }
+
         void setButton(NESButtons button, bool pressed)
         {
             if (pressed)
