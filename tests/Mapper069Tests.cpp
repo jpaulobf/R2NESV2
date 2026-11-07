@@ -176,6 +176,11 @@ int main(int argc, char **argv)
             check(nes.saveState(state), "console save failed");
             std::string legacy = state.str();
             check(legacy.size() > 40, "console state too short");
+            std::ostringstream mapperState, cartState;
+            bus.cart->getMapper()->saveState(mapperState);
+            bus.cart->saveState(cartState);
+            const size_t controllerOffset = legacy.size() - mapperState.str().size() - cartState.str().size() - 9;
+            legacy.erase(controllerOffset, 9);
             legacy.resize(legacy.size() - 40);
             legacy[0] = 'L';
             std::istringstream oldState(legacy);

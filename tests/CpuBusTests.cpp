@@ -1,5 +1,6 @@
 #include "Core/NES.h"
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 using namespace R2NES::Core;
@@ -20,12 +21,36 @@ int main()
         pad.setButton(IO::BUTTON_A, true);
         pad.setButton(IO::BUTTON_B, false);
         bus.cpuWrite(0x4016, 1);
+        bus.clockControllerStrobe();
         bus.cpuWrite(0x4016, 0);
+        bus.clockControllerStrobe();
         bus.cpuWrite(0x0002, 0xE0);
         check(bus.cpuRead(0x4016, true) == 0xE1, "controller peek must preserve upper bus bits");
         check(bus.cpuDataBus == 0xE0, "peek changed bus");
         check(bus.cpuRead(0x4016) == 0xE1, "controller bit and open bus");
         check(bus.cpuRead(0x4016) == 0xE0, "controller peek advanced shift register");
+
+        auto &pad2 = nes.getJoysticks().controller2;
+        pad2.setButton(IO::BUTTON_A, true);
+        // Um pulso inteiro entre amostragens não deve carregar nenhum controle.
+        for (int i = 0; i < 8; ++i)
+        {
+            bus.cpuRead(0x4016);
+            bus.cpuRead(0x4017);
+        }
+        bus.cpuWrite(0x4016, 1);
+        bus.cpuWrite(0x4016, 0);
+        bus.clockControllerStrobe();
+        check((bus.cpuRead(0x4016) & 1) == 1 && (bus.cpuRead(0x4017) & 1) == 1,
+              "Unsampled strobe reloaded controller");
+        bus.cpuWrite(0x4016, 1);
+        bus.clockControllerStrobe();
+        bus.cpuWrite(0x4016, 0);
+        bus.clockControllerStrobe();
+        check((bus.cpuRead(0x4016) & 1) == 1 && (bus.cpuRead(0x4017) & 1) == 1,
+              "Sampled strobe did not reload both controllers");
+        check((bus.cpuRead(0x4016) & 1) == 0 && (bus.cpuRead(0x4017) & 1) == 0,
+              "Controller sequence did not advance");
 
         bus.cpuWrite(0x0002, 0xA0);
         check(bus.cpuRead(0x4017) == 0xA0, "port 2 upper bits must remain open");
@@ -60,6 +85,166 @@ int main()
             cpu.clock();
         } while (!cpu.complete());
         check((cpu.a & 0xE0) == 0xE0, "indexed dummy read did not reach controller open bus");
+
+        // Escritas não oficiais usam a página original + 1; ao cruzar a
+        // página, o valor escrito também substitui o byte alto do endereço.
+        for (const uint8_t opcode : {uint8_t{0x93}, uint8_t{0x9F}, uint8_t{0x9B}, uint8_t{0x9C}, uint8_t{0x9E}})
+        {
+            for (const bool cross : {false, true})
+            {
+                bus.ram->write(0x300, opcode);
+                bus.ram->write(0x301, opcode == 0x93 ? 0x20 : (cross ? 0xF0 : 0x10));
+                bus.ram->write(0x302, 0x1E);
+                bus.ram->write(0x20, cross ? 0xF0 : 0x10);
+                bus.ram->write(0x21, 0x1E);
+                bus.ram->write(0x600, 0xCC);
+                bus.ram->write(0x700, 0xCC);
+                bus.ram->write(0x610, 0xCC);
+                cpu.pc = 0x300;
+                cpu.a = 0xFF;
+                cpu.x = opcode == 0x9C ? (cross ? 0x10 : 0) : 0x06;
+                cpu.y = opcode == 0x9C ? 0x06 : (cross ? 0x10 : 0);
+                do
+                {
+                    cpu.clock();
+                } while (!cpu.complete());
+                check(bus.ram->read(cross ? 0x600 : 0x610) == 0x06,
+                      "unstable store value or address incorrect");
+                if (cross)
+                    check(bus.ram->read(0x700) == 0xCC, "unstable store used indexed address");
+                if (opcode == 0x9B)
+                    check(cpu.stkp == 0x06, "TAS did not update stack pointer");
+            }
+        }
+
+        // INC $4014 deve concluir ambas as escritas antes da parada de OAM.
+        for (const bool pal : {false, true})
+        {
+            NES oamNes("");
+            oamNes.setPAL(pal);
+            auto &oamCpu = oamNes.getCpu();
+            auto &oamBus = oamNes.getBus();
+            while (!oamCpu.complete())
+                oamNes.step(false);
+            oamBus.ram->write(0, 0xEE);
+            oamBus.ram->write(1, 0x14);
+            oamBus.ram->write(2, 0x40);
+            oamCpu.pc = 0;
+            for (int i = 0; i < 5; ++i)
+                oamNes.step(false);
+            check(oamBus.dma_transfer && oamCpu.nextCycleIsWrite(), "INC $4014 first write missing");
+            const uint8_t firstPage = oamBus.dma_page;
+            oamNes.step(false);
+            check(oamCpu.complete() && oamBus.dma_page == uint8_t(firstPage + 1),
+                  "OAM DMA interrupted second INC $4014 write");
+            for (int i = 0; i < 520 && oamBus.dma_transfer; ++i)
+                oamNes.step(false);
+            check(!oamBus.dma_transfer, "OAM DMA did not complete");
+            for (int i = 0; i < 256; ++i)
+                check(oamNes.getPpu().getOamMemory()[i] == uint8_t(firstPage + 1),
+                      "OAM DMA copied the first RMW page");
+        }
+
+        // O DMC deve aguardar as duas escritas consecutivas de INC $0010.
+        NES dmaNes("");
+        auto &dmaCpu = dmaNes.getCpu();
+        auto &dmaBus = dmaNes.getBus();
+        while (!dmaCpu.complete())
+            dmaNes.step();
+        dmaBus.ram->write(0, 0xEE);
+        dmaBus.ram->write(1, 0x10);
+        dmaBus.ram->write(2, 0x00);
+        dmaBus.ram->write(0x10, 0x34);
+        dmaCpu.pc = 0;
+        for (int i = 0; i < 4; ++i)
+            dmaNes.step();
+        check(dmaCpu.nextCycleIsWrite(), "INC did not reach first write");
+        dmaNes.getApu().cpuWrite(0x4015, 0x10);
+        check(dmaNes.getApu().hasDmcDmaRequest(), "DMC request missing");
+        dmaNes.step();
+        check(dmaNes.getApu().hasDmcDmaRequest() && dmaCpu.nextCycleIsWrite(),
+              "DMC interrupted first INC write");
+        dmaNes.step();
+        check(dmaNes.getApu().hasDmcDmaRequest() && dmaBus.ram->read(0x10) == 0x35,
+              "DMC interrupted second INC write");
+        dmaNes.step();
+        check(dmaNes.getApu().hasDmcDmaRequest(), "DMC fetched before dummy cycle");
+        for (int i = 0; i < 4 && dmaNes.getApu().hasDmcDmaRequest(); ++i)
+            dmaNes.step();
+        check(!dmaNes.getApu().hasDmcDmaRequest(), "DMC fetch did not complete");
+
+        // O timer inicia em 427 e o buffer é consumido no oitavo bit.
+        // Recargas seguintes repetem a cada oito períodos,
+        // sempre solicitando a parada em put, nas duas fases de inicialização.
+        constexpr unsigned periods[] = {428, 380, 340, 320, 286, 254, 226, 214,
+                                        190, 160, 142, 128, 106, 84, 72, 54};
+        for (unsigned seed = 0; seed < 2; ++seed)
+        {
+            for (unsigned rate = 0; rate < 16; ++rate)
+            {
+                NES reloadNes("");
+                auto &reloadBus = reloadNes.getBus();
+                auto &reloadApu = reloadNes.getApu();
+                reloadApu.setAudioOutputSuppressed(true);
+                reloadApu.cpuWrite(0x4010, 0x40 | rate);
+                reloadApu.cpuWrite(0x4015, 0x10);
+                reloadApu.completeDmcDma(0, 0);
+                unsigned expected = 427 + 7 * periods[rate];
+                if (((seed + expected + 1) & 1) == 0)
+                    ++expected;
+                unsigned requests = 0;
+                for (unsigned tick = 0; tick <= expected + 16 * periods[rate]; ++tick)
+                {
+                    reloadBus.systemClockCounter = seed + tick + 1;
+                    reloadApu.step();
+                    if (reloadApu.hasDmcDmaRequest())
+                    {
+                        check(tick == expected + requests * 8 * periods[rate],
+                              "DMC reload cadence or halt phase incorrect");
+                        check((reloadBus.systemClockCounter & 1) != 0, "DMC reload requested on get");
+                        ++requests;
+                        reloadApu.completeDmcDma(0, 0);
+                    }
+                }
+                check(requests == 3, "DMC reload request missing");
+            }
+        }
+
+        for (unsigned seed = 0; seed < 2; ++seed)
+        {
+            NES reloadNes("");
+            auto &reloadCpu = reloadNes.getCpu();
+            auto &reloadBus = reloadNes.getBus();
+            auto &reloadApu = reloadNes.getApu();
+            while (!reloadCpu.complete())
+                reloadNes.step(false);
+            reloadBus.ram->write(0, 0x4C); // JMP $0000: somente leituras.
+            reloadBus.ram->write(1, 0);
+            reloadBus.ram->write(2, 0);
+            reloadCpu.pc = 0;
+            if (seed)
+                reloadNes.step(false);
+            reloadApu.cpuWrite(0x4010, 0x4F);
+            reloadApu.cpuWrite(0x4015, 0x10);
+            reloadApu.completeDmcDma(0, 0);
+            for (int i = 0; i < 4000 && !reloadApu.hasDmcDmaRequest(); ++i)
+                reloadNes.step(false);
+            check(reloadApu.hasDmcDmaRequest(), "DMC reload did not start");
+            std::ostringstream before;
+            reloadCpu.saveState(before);
+            for (int i = 0; i < 4; ++i)
+            {
+                reloadNes.step(false);
+                std::ostringstream during;
+                reloadCpu.saveState(during);
+                check(during.str() == before.str(), "DMC reload did not halt CPU for four cycles");
+            }
+            check(!reloadApu.hasDmcDmaRequest(), "DMC reload get missing");
+            reloadNes.step(false);
+            std::ostringstream after;
+            reloadCpu.saveState(after);
+            check(after.str() != before.str(), "CPU did not resume after DMC reload");
+        }
         std::cout << "CPU bus tests passed\n";
     }
     catch (const std::exception &e)

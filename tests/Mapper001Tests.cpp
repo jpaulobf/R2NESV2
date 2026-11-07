@@ -479,6 +479,43 @@ static std::string consoleState(NES &nes)
 }
 static void consoleTests(const std::filesystem::path &dir)
 {
+    // A CPU recebe o fator escolhido; PPU/APU e DMA mantêm o clock do sistema.
+    for (bool pal : {false, true})
+        for (unsigned percent : {100u, 125u, 150u, 175u, 200u})
+        {
+            auto bytes = rom(16, 0);
+            const size_t base = 16 + 15 * 0x4000;
+            bytes[base] = 0x4c; // JMP $C000
+            bytes[base + 1] = 0x00;
+            bytes[base + 2] = 0xc0;
+            bytes[base + 0x3ffc] = 0x00;
+            bytes[base + 0x3ffd] = 0xc0;
+            NES nes;
+            check(nes.insertCartridge(saveRom(dir, bytes).string()), "Overclock ROM failed");
+            nes.setPAL(pal);
+            nes.setCPUOverclock(true, percent / 100.0f);
+            for (int i = 0; i < 100; ++i)
+                nes.step();
+            check(nes.getBus().cpuCycleCounter == percent, "Fractional CPU clock incorrect");
+            check(nes.getSystemClockCounter() == 100, "System clock changed by overclock");
+            for (int i = 0; i < 11; ++i)
+                nes.step(false);
+            check(nes.getBus().cpuCycleCounter == percent + 11, "Debugger step overclocked");
+            const auto saved = consoleState(nes);
+            for (int i = 0; i < 37; ++i)
+                nes.step();
+            const auto expected = consoleState(nes);
+            std::stringstream input(saved);
+            check(nes.loadState(input), "Overclock state load failed");
+            for (int i = 0; i < 37; ++i)
+                nes.step();
+            check(consoleState(nes) == expected, "Overclock phase changed after state load");
+            const auto before = nes.getBus().cpuCycleCounter;
+            nes.setCPUOverclock(false, 2.0f);
+            for (int i = 0; i < 20; ++i)
+                nes.step();
+            check(nes.getBus().cpuCycleCounter == before + 20, "Disabled overclock affected CPU");
+        }
     for (bool overclock : {false, true})
         for (unsigned original : {1, 0x7F, 0xFF})
         {

@@ -13,7 +13,7 @@ static void check(bool condition, const char *message)
 
 static void configure(APU &apu)
 {
-    apu.cpuWrite(0x4017, 0); // Frame IRQ habilitada.
+    apu.cpuWrite(0x4017, 0);    // Frame IRQ habilitada.
     apu.cpuWrite(0x4010, 0x8F); // DMC IRQ habilitada, taxa mais rápida.
     apu.cpuWrite(0x4012, 0x20);
     apu.cpuWrite(0x4013, 1); // 17 bytes de DMC.
@@ -32,10 +32,39 @@ static void configure(APU &apu)
     apu.cpuWrite(0x400F, 8);
 }
 
+static void checkConsecutiveFrameWrites()
+{
+    for (int phase = 0; phase != 2; ++phase)
+    {
+        APU apu;
+        if (phase)
+            apu.step();
+        apu.cpuWrite(0x4015, 1);
+        apu.cpuWrite(0x4003, 0x18); // Comprimento 2.
+        apu.cpuWrite(0x4000, 0x30); // Congela o contador.
+        for (int write = 0; write != 2; ++write)
+        {
+            apu.cpuWrite(0x4017, 0xC0);
+            for (int cycle = 0; cycle != 4; ++cycle)
+                apu.step();
+        }
+        apu.cpuWrite(0x4000, 0x10);
+        check((apu.cpuRead(0x4015, true) & 1) != 0, "Halted length counter changed");
+        for (int write = 0; write != 2; ++write)
+        {
+            apu.cpuWrite(0x4017, 0xC0);
+            for (int cycle = 0; cycle != 4; ++cycle)
+                apu.step();
+        }
+        check((apu.cpuRead(0x4015, true) & 1) == 0, "Consecutive frame writes lost a length clock");
+    }
+}
+
 int main()
 {
     try
     {
+        checkConsecutiveFrameWrites();
         APU reference, suppressed;
         configure(reference);
         configure(suppressed);

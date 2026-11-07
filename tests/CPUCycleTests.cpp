@@ -93,6 +93,15 @@ int main(int argc, char **argv)
                 cpu.setIrqLine(scenario >= 4 && cycle >= 2 && cycle <= 5);
                 if (scenario >= 6 && cycle == 3)
                     cpu.nmi();
+                CPU probe = cpu;
+                bus.beginCpuProbe();
+                probe.clock();
+                bus.endCpuProbe();
+                if (cpu.nextCycleIsWrite() != bus.wasProbedCpuWrite())
+                {
+                    std::cerr << "Incorrect DMA write-cycle prediction for opcode " << op << " cycle " << cycle << '\n';
+                    return 9;
+                }
                 ++bus.cpuCycleCounter;
                 cpu.clock();
                 ++bus.systemClockCounter;
@@ -121,10 +130,11 @@ int main(int argc, char **argv)
         }
     }
     // Referência originalmente registrada antes da otimização e atualizada após
-    // as correções intencionais de LAS e interrupções; não é uma referência de hardware.
+    // as correções intencionais de LAS, interrupções e escritas não oficiais;
+    // não é uma referência de hardware.
     // Compara estado da CPU, RAM e open bus após cada ciclo dos 256 opcodes,
     // variando flags/índices, IRQ/NMI e restauração no meio da instrução.
-    constexpr uint64_t referenceDigest = 1728906494003203848ULL;
+    constexpr uint64_t referenceDigest = 10568062424312955424ULL;
     if (hash != referenceDigest)
     {
         std::cerr << "CPU cycle regression: expected " << referenceDigest << ", got " << hash << '\n';
