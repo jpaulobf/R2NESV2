@@ -813,7 +813,7 @@ namespace R2NES::Core
         if (pMapper &&
             (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
              mapperID == 11 || mapperID == 19 || mapperID == 21 || mapperID == 22 ||
-             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 69 || mapperID == 71 || mapperID == 85 || mapperID == 150 || mapperID == 187 || mapperID == 189))
+             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 69 || mapperID == 71 || mapperID == 85 || mapperID == 90 || mapperID == 150 || mapperID == 187 || mapperID == 189))
         {
             return pMapper->getMirrorMode();
         }

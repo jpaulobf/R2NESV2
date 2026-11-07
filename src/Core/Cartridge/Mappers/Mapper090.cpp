@@ -1,147 +1,318 @@
 #include "Core/Cartridge/Mappers/Mapper090.h"
 #include "Core/Memory/StateRead.h"
+#include <algorithm>
+#include <cstring>
 
 namespace R2NES::Core
 {
-    Mapper090::Mapper090(uint8_t prgBanks, uint8_t chrBanks) : Mapper(prgBanks, chrBanks) {}
-
-    Mapper090::~Mapper090() {}
-
-    bool Mapper090::cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data)
+    Mapper090::Mapper090(uint16_t p, uint16_t c) : Mapper(p, c) { reset(); }
+    void Mapper090::reset()
     {
-        // Multiplicador de Hardware (Registradores $D000-$D003)
-        // Esses enderecos compartilham a janela $8000-$FFFF com a PRG-ROM.
-        // Portanto, precisam ser tratados antes do mapeamento generico de PRG.
-        if (addr >= 0xD000 && addr <= 0xD003)
+        std::fill(std::begin(prg), std::end(prg), 0);
+        std::fill(std::begin(chrLow), std::end(chrLow), 0);
+        std::fill(std::begin(chrHigh), std::end(chrHigh), 0);
+        mode = mirror = multA = multB = scratch = irqMode = irqPrescaler = irqCounter = irqXor = irqExtra = 0;
+        block = 0x20;
+        irqEnabled = irqPending = false;
+        lastPpuAddress = 0;
+    }
+    bool Mapper090::cpuMapRead(uint16_t addr, uint32_t &mapped, uint8_t &data)
+    {
+        if (addr >= 0x5000 && addr < 0x6000)
         {
-            uint32_t result = (uint32_t)multA * (uint32_t)multB;
-            switch (addr)
+            switch (addr & 0xF803)
             {
+            case 0x5000:
+                data = 0;
+                break;
+            case 0x5800:
+                data = uint8_t(unsigned(multA) * multB);
+                break;
+            case 0x5801:
+                data = uint8_t((unsigned(multA) * multB) >> 8);
+                break;
+            case 0x5803:
+                data = scratch;
+                break;
+            default:
+                return false;
+            }
+            mapped = 0xFFFFFFFF;
+            return true;
+        }
+        if (addr < 0x6000 || (addr < 0x8000 && !(mode & 0x80)))
+            return false;
+        unsigned regs[4];
+        for (unsigned i = 0; i < 4; ++i)
+        {
+            unsigned v = prg[i];
+            if ((mode & 3) == 3)
+                v = ((v & 1) << 6) | ((v & 2) << 4) | ((v & 4) << 2) | (v & 8) | ((v & 16) >> 2) | ((v & 32) >> 4) | ((v & 64) >> 6);
+            regs[i] = v;
+        }
+        unsigned bank, slot = (addr - 0x8000u) / 0x2000u;
+        switch (mode & 3)
+        {
+        case 0:
+            bank = addr < 0x8000 ? regs[3] * 4 + 3 : ((mode & 4) ? (regs[3] & ~3u) : 0x3c) + slot;
+            break;
+        case 1:
+            bank = addr < 0x8000 ? regs[3] * 2 + 1 : slot < 2 ? regs[1] * 2 + slot
+                                                              : ((mode & 4) ? (regs[3] & ~1u) : 0x3e) + slot - 2;
+            break;
+        default:
+            bank = addr < 0x8000 ? regs[3] : slot == 3 && !(mode & 4) ? 0x3f
+                                                                      : regs[slot];
+            break;
+        }
+        unsigned count = std::max(1u, unsigned(nPRGBanks) * 2);
+        mapped = (bank % count) * 0x2000 + (addr & 0x1fff);
+        return true;
+    }
+    bool Mapper090::cpuMapWrite(uint16_t addr, uint32_t &mapped, uint8_t data, uint32_t)
+    {
+        if ((irqMode & 3) == 3)
+            clockIrq();
+        if (addr >= 0x5000 && addr < 0x6000)
+        {
+            switch (addr & 0xF803)
+            {
+            case 0x5800:
+                multA = data;
+                break;
+            case 0x5801:
+                multB = data;
+                break;
+            case 0x5803:
+                scratch = data;
+                break;
+            default:
+                return false;
+            }
+        }
+        else if (addr >= 0x8000)
+        {
+            switch (addr & 0xF000)
+            {
+            case 0x8000:
+                prg[addr & 3] = data & 0x7f;
+                break;
+            case 0x9000:
+                chrLow[addr & 7] = data;
+                break;
+            case 0xA000:
+                chrHigh[addr & 7] = data;
+                break;
+            case 0xC000:
+                switch (addr & 7)
+                {
+                case 0:
+                    irqEnabled = data & 1;
+                    if (!irqEnabled)
+                        irqPending = false;
+                    break;
+                case 1:
+                    irqMode = data;
+                    break;
+                case 2:
+                    irqEnabled = irqPending = false;
+                    break;
+                case 3:
+                    irqEnabled = true;
+                    break;
+                case 4:
+                    irqPrescaler = data ^ irqXor;
+                    break;
+                case 5:
+                    irqCounter = data ^ irqXor;
+                    break;
+                case 6:
+                    irqXor = data;
+                    break;
+                case 7:
+                    irqExtra = data;
+                    break;
+                }
+                break;
             case 0xD000:
-                data = (uint8_t)(result & 0xFF);
+                switch (addr & 7)
+                {
+                case 0:
+                    mode = data;
+                    break;
+                case 1:
+                    mirror = data & 3;
+                    break;
+                case 3:
+                    block = data;
+                    break;
+                }
                 break;
-            case 0xD001:
-                data = (uint8_t)((result >> 8) & 0xFF);
-                break;
-            case 0xD002:
-                data = (uint8_t)((result >> 16) & 0xFF);
-                break;
-            case 0xD003:
-                data = (uint8_t)((result >> 24) & 0xFF);
+            default:
                 break;
             }
-            mapped_addr = 0xFFFFFFFF;
-            return true;
         }
-
-        if (addr >= 0x8000 && addr <= 0xFFFF)
-        {
-            // Mapeamento fixo em 8KB por banco
-            int bankIndex = (addr - 0x8000) / 0x2000;
-            mapped_addr = prgBanks[bankIndex] * 0x2000 + (addr % 0x2000);
-            return true;
-        }
-
-        return false;
+        else
+            return false;
+        mapped = 0xFFFFFFFF;
+        return true;
     }
-
-    bool Mapper090::cpuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
+    uint32_t Mapper090::chrAddress(uint16_t addr) const
     {
-        // Bancos PRG ($8000-$8003)
-        if (addr >= 0x8000 && addr <= 0x8003)
+        unsigned cm = (mode >> 3) & 3, slot = addr >> 10, index = 0, offset = 0;
+        switch (cm)
         {
-            prgBanks[addr & 0x03] = data;
+        case 0:
+            index = 0;
+            offset = slot;
+            break;
+        case 1:
+            index = slot & 4;
+            offset = slot & 3;
+            break;
+        case 2:
+            index = slot & 6;
+            offset = slot & 1;
+            break;
+        default:
+            index = slot;
         }
-        // Bancos CHR Low ($9000-$9007)
-        else if (addr >= 0x9000 && addr <= 0x9007)
+        if (cm >= 2 && (block & 0x80) && (index == 2 || index == 3))
+            index -= 2;
+        unsigned reg = chrLow[index] | (unsigned(chrHigh[index]) << 8);
+        if (!(block & 0x20))
         {
-            chrLow[addr & 0x07] = data;
-            chrBanks[addr & 0x07] = (chrHigh[addr & 0x07] << 8) | chrLow[addr & 0x07];
+            unsigned shift = 5 + cm;
+            unsigned b = ((block & 0x18) >> 2) | (block & 1);
+            reg = (chrLow[index] & ((1u << shift) - 1)) | (b << shift);
         }
-        // Bancos CHR High ($A000-$A007)
-        else if (addr >= 0xA000 && addr <= 0xA007)
-        {
-            chrHigh[addr & 0x07] = data;
-            chrBanks[addr & 0x07] = (chrHigh[addr & 0x07] << 8) | chrLow[addr & 0x07];
-        }
-        // Controle de Espelhamento e VRAM ($B000)
-        else if (addr == 0xB000)
-        {
-            mirrorControl = data;
-        }
-        // IRQ Control ($C002-$C005)
-        else if (addr == 0xC002)
-            irqEnabled = false;
-        else if (addr == 0xC003)
-            irqEnabled = true;
-        else if (addr == 0xC004)
-            irqCounter = data; // Em algumas versões é o Latch
-
-        // Multiplicador ($D000, $D001)
-        else if (addr == 0xD000)
-            multA = data;
-        else if (addr == 0xD001)
-            multB = data;
-
-        return false;
+        unsigned bank = (reg << (3 - cm)) + offset;
+        unsigned count = nCHRBanks ? unsigned(nCHRBanks) * 8 : 8;
+        return (bank % count) * 0x400 + (addr & 0x3ff);
     }
-
-    bool Mapper090::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter)
+    bool Mapper090::ppuMapRead(uint16_t addr, uint32_t &mapped, uint8_t &, uint32_t)
     {
-        if (addr >= 0x0000 && addr <= 0x1FFF)
-        {
-            int bankIndex = addr / 0x0400; // 8 bancos de 1KB
-            mapped_addr = chrBanks[bankIndex] * 0x0400 + (addr % 0x0400);
-            return true;
-        }
-        return false;
+        if (addr >= 0x2000)
+            return false;
+        mapped = chrAddress(addr);
+        return true;
     }
-
-    bool Mapper090::ppuMapWrite(uint16_t addr, uint32_t &mapped_addr, uint8_t data, uint32_t systemClockCounter)
+    bool Mapper090::ppuMapWrite(uint16_t addr, uint32_t &mapped, uint8_t, uint32_t)
     {
-        if (addr >= 0x0000 && addr <= 0x1FFF && nCHRBanks == 0) // CHR-RAM
-        {
-            mapped_addr = addr;
-            return true;
-        }
-        return false;
+        if (addr >= 0x2000 || nCHRBanks)
+            return false;
+        mapped = chrAddress(addr);
+        return true;
     }
-
+    MirrorMode Mapper090::getMirrorMode()
+    {
+        switch (mirror)
+        {
+        case 0:
+            return MirrorMode::VERTICAL;
+        case 1:
+            return MirrorMode::HORIZONTAL;
+        case 2:
+            return MirrorMode::ONESCREEN_LO;
+        default:
+            return MirrorMode::ONESCREEN_HI;
+        }
+    }
+    void Mapper090::clockIrq()
+    {
+        uint8_t mask = (irqMode & 4) ? 7 : 255, p = irqPrescaler & mask;
+        unsigned dir = irqMode >> 6;
+        bool clock = false;
+        if (dir == 1)
+        {
+            ++p;
+            clock = (p & mask) == 0;
+        }
+        else if (dir == 2)
+        {
+            --p;
+            clock = p == 0;
+        }
+        irqPrescaler = (irqPrescaler & ~mask) | (p & mask);
+        if (clock)
+        {
+            if (dir == 1)
+            {
+                ++irqCounter;
+                if (!irqCounter && irqEnabled)
+                    irqPending = true;
+            }
+            else
+            {
+                --irqCounter;
+                if (irqCounter == 255 && irqEnabled)
+                    irqPending = true;
+            }
+        }
+    }
+    void Mapper090::tick()
+    {
+        if ((irqMode & 3) == 0)
+            clockIrq();
+    }
+    void Mapper090::onPpuAddress(uint16_t addr, uint32_t)
+    {
+        if ((irqMode & 3) == 1 && (addr & 0x1000) && !(lastPpuAddress & 0x1000))
+            clockIrq();
+        lastPpuAddress = addr;
+    }
+    void Mapper090::onPpuRead(uint16_t)
+    {
+        if ((irqMode & 3) == 2)
+            clockIrq();
+    }
     void Mapper090::saveState(std::ostream &os)
     {
-        os.write(reinterpret_cast<const char *>(prgBanks), sizeof(prgBanks));
+        os.write("JY90", 4);
+        os.write(reinterpret_cast<const char *>(prg), sizeof(prg));
         os.write(reinterpret_cast<const char *>(chrLow), sizeof(chrLow));
         os.write(reinterpret_cast<const char *>(chrHigh), sizeof(chrHigh));
-        os.write(reinterpret_cast<const char *>(chrBanks), sizeof(chrBanks));
-        os.write(reinterpret_cast<const char *>(&multA), sizeof(multA));
-        os.write(reinterpret_cast<const char *>(&multB), sizeof(multB));
+        const uint8_t values[] = {mode, mirror, block, multA, multB, scratch, irqMode, irqPrescaler, irqCounter, irqXor, irqExtra};
+        os.write(reinterpret_cast<const char *>(values), sizeof(values));
         os.write(reinterpret_cast<const char *>(&irqEnabled), sizeof(irqEnabled));
-        os.write(reinterpret_cast<const char *>(&irqCounter), sizeof(irqCounter));
-        os.write(reinterpret_cast<const char *>(&irqLatch), sizeof(irqLatch));
-        os.write(reinterpret_cast<const char *>(&mirrorControl), sizeof(mirrorControl));
+        os.write(reinterpret_cast<const char *>(&irqPending), sizeof(irqPending));
+        os.write(reinterpret_cast<const char *>(&lastPpuAddress), sizeof(lastPpuAddress));
     }
-
     void Mapper090::loadState(std::istream &is)
     {
         Mapper090 next(*this);
-        is.read(reinterpret_cast<char *>(next.prgBanks), sizeof(prgBanks));
-        is.read(reinterpret_cast<char *>(next.chrLow), sizeof(chrLow));
-        is.read(reinterpret_cast<char *>(next.chrHigh), sizeof(chrHigh));
-        is.read(reinterpret_cast<char *>(next.chrBanks), sizeof(chrBanks));
-        is.read(reinterpret_cast<char *>(&next.multA), sizeof(multA));
-        is.read(reinterpret_cast<char *>(&next.multB), sizeof(multB));
-        readStateBool(is, next.irqEnabled);
-        is.read(reinterpret_cast<char *>(&next.irqCounter), sizeof(irqCounter));
-        is.read(reinterpret_cast<char *>(&next.irqLatch), sizeof(irqLatch));
-        is.read(reinterpret_cast<char *>(&next.mirrorControl), sizeof(mirrorControl));
-        bool valid = true;
-        for (unsigned i = 0; i < 8; ++i)
-            valid = valid && next.chrBanks[i] == ((uint16_t(next.chrHigh[i]) << 8) | next.chrLow[i]);
-        if (!is || !valid)
+        uint8_t v[11]{};
+        char signature[4]{};
+        is.read(signature, sizeof(signature));
+        if (!is || std::memcmp(signature, "JY90", 4) != 0)
         {
             is.setstate(std::ios::failbit);
             return;
         }
+        is.read(reinterpret_cast<char *>(next.prg), sizeof(prg));
+        is.read(reinterpret_cast<char *>(next.chrLow), sizeof(chrLow));
+        is.read(reinterpret_cast<char *>(next.chrHigh), sizeof(chrHigh));
+        is.read(reinterpret_cast<char *>(v), sizeof(v));
+        readStateBool(is, next.irqEnabled);
+        readStateBool(is, next.irqPending);
+        is.read(reinterpret_cast<char *>(&next.lastPpuAddress), sizeof(next.lastPpuAddress));
+        if (!is || v[1] > 3 || next.lastPpuAddress > 0x3fff || std::any_of(std::begin(next.prg), std::end(next.prg), [](uint8_t b)
+                                                                           { return b > 0x7f; }))
+        {
+            is.setstate(std::ios::failbit);
+            return;
+        }
+        next.mode = v[0];
+        next.mirror = v[1];
+        next.block = v[2];
+        next.multA = v[3];
+        next.multB = v[4];
+        next.scratch = v[5];
+        next.irqMode = v[6];
+        next.irqPrescaler = v[7];
+        next.irqCounter = v[8];
+        next.irqXor = v[9];
+        next.irqExtra = v[10];
         *this = next;
     }
 }
