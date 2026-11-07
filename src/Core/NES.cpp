@@ -1,4 +1,6 @@
 #include "Core/NES.h"
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -60,6 +62,10 @@ namespace R2NES::Core
         bus.systemClockCounter = 0;
         bus.cpuCycleCounter = 0;
         bus.cpuDataBus = 0;
+        dmcDmaPhase = 0;
+        dmcHaltAddress = 0;
+        oamReadAvailable = false;
+        bus.resetControllerStrobe();
         palPhase = 0;
         bus.dma_page = 0;
         bus.dma_addr = 0;
@@ -87,6 +93,13 @@ namespace R2NES::Core
         apu.setPAL(enabled);
         reset();
     }
+    void NES::setCPUOverclock(bool enabled, float multiplier)
+    {
+        if (!std::isfinite(multiplier))
+            multiplier = 1.0f;
+        cpuMultiplierPercent = enabled ? static_cast<unsigned>(std::lround(std::clamp(multiplier, 1.0f, 2.0f) * 100.0f)) : 100;
+    }
+
     void NES::step(bool honorCPUOverclock)
     {
         if (pal)
@@ -101,14 +114,12 @@ namespace R2NES::Core
     {
         if (bus.cheats.hasActiveRamPatches())
             bus.cheats.applyRam(bus);
-        // 1) DMA OAM tem prioridade: enquanto um DMA estiver ativo, a CPU fica "suspensa"
-        //    e o DMA consome ciclos de sistema para transferir 256 bytes para o PPU.
-        if (bus.dma_transfer)
+        // RDY só para a CPU em leituras. Uma escrita RMW em $4014 ainda
+        // deve completar a segunda escrita, que seleciona a página da DMA.
+        if (bus.dma_transfer && !(bus.dma_dummy && cpu.nextCycleIsWrite()))
         {
             ++bus.cpuCycleCounter;
-            // Mantém o OAM DMA contínuo. A arbitragem DMC/OAM ainda não é
-            // modelada ciclo a ciclo; iniciar um DMC DMA aqui pode deslocar
-            // os slots de leitura/escrita e corromper os sprites copiados.
+            const bool dmcGet = clockDmcDma(true);
             if (bus.dma_dummy)
             {
                 // Ciclo dummy inicial para alinhar o DMA a um ciclo par.
@@ -118,14 +129,16 @@ namespace R2NES::Core
             else
             {
                 // Em ciclos pares lê da memória do CPU
-                if (bus.systemClockCounter % 2 == 0)
+                if (bus.systemClockCounter % 2 == 0 && !dmcGet)
                 {
                     bus.dma_data = bus.cpuRead((bus.dma_page << 8) | bus.dma_addr);
+                    oamReadAvailable = true;
                 }
                 // Em ciclos ímpares escreve no registrador $2004 do PPU
-                else
+                else if ((bus.systemClockCounter & 1) && oamReadAvailable)
                 {
                     ppu.cpuWrite(0x2004, bus.dma_data);
+                    oamReadAvailable = false;
                     bus.dma_addr++;
 
                     // Após copiar 256 bytes, encerra a transferência
@@ -141,17 +154,16 @@ namespace R2NES::Core
         {
             // O overclock acelera apenas a CPU; PPU/APU e o relógio do sistema
             // continuam avançando na cadência normal.
-            const uint8_t cpuClocksThisStep = (cpuOverclock && honorCPUOverclock) ? 2 : 1;
+            // A fase deriva do clock salvo, mantendo rewind e savestates determinísticos.
+            const unsigned extra = honorCPUOverclock ? cpuMultiplierPercent - 100 : 0;
+            const unsigned phase = (bus.systemClockCounter % 100) * extra % 100;
+            const uint8_t cpuClocksThisStep = 1 + (phase + extra >= 100 ? 1 : 0);
             for (uint8_t i = 0; i < cpuClocksThisStep; i++)
             {
                 ++bus.cpuCycleCounter;
-                if (apu.consumeDmcDmaStallCycle())
-                    continue;
-
-                // A leitura do DMC ocupa este ciclo da CPU e agenda os ciclos
-                // de parada restantes dentro do próprio APU.
-                if (startDmcDma())
-                    continue;
+                // O DMA de DMC usa o clock do sistema, não os ciclos extras da CPU.
+                if (apu.consumeDmcDmaStallCycle() || clockDmcDma(false))
+                    break;
 
                 serviceIRQ();
                 cpu.clock();
@@ -162,6 +174,10 @@ namespace R2NES::Core
                     break;
             }
         }
+
+        // Amostra a saída de $4016 uma vez a cada dois ciclos do sistema.
+        if ((bus.systemClockCounter & 1) == 0)
+            bus.clockControllerStrobe();
 
         // 2) Avança o relógio do sistema e demais dispositivos
         bus.systemClockCounter++;
@@ -196,15 +212,46 @@ namespace R2NES::Core
         serviceIRQ();
     }
 
-    bool NES::startDmcDma()
+    bool NES::clockDmcDma(bool oamActive)
     {
-        if (!apu.hasDmcDmaRequest())
-            return false;
-
-        const uint16_t address = apu.getDmcDmaAddress();
-        const uint8_t value = bus.cpuRead(address);
-        const uint8_t totalStallCycles = (bus.systemClockCounter & 1) ? 4 : 3;
-        apu.completeDmcDma(value, totalStallCycles);
+        // A 2A07 tem regras diferentes de parada; mantém o comportamento
+        // anterior até existir uma implementação e testes específicos PAL.
+        if (pal)
+        {
+            if (oamActive || !apu.hasDmcDmaRequest() || cpu.nextCycleIsWrite())
+                return false;
+            const uint8_t value = bus.cpuRead(apu.getDmcDmaAddress());
+            apu.completeDmcDma(value, (bus.systemClockCounter & 1) ? 4 : 3);
+            return true;
+        }
+        if (dmcDmaPhase == 0)
+        {
+            if (!apu.hasDmcDmaRequest() || (!oamActive && cpu.nextCycleIsWrite()))
+                return false;
+            if (!oamActive)
+            {
+                dmcHaltAddress = cpu.nextReadAddress();
+                bus.cpuRead(dmcHaltAddress);
+            }
+            dmcDmaPhase = 1;
+            return !oamActive;
+        }
+        if (dmcDmaPhase == 1)
+        {
+            if (!oamActive)
+                bus.cpuRead(dmcHaltAddress);
+            dmcDmaPhase = 2;
+            return !oamActive;
+        }
+        if (bus.systemClockCounter & 1)
+        {
+            if (!oamActive)
+                bus.cpuRead(dmcHaltAddress);
+            return !oamActive;
+        }
+        if (apu.hasDmcDmaRequest())
+            apu.completeDmcDma(bus.cpuRead(apu.getDmcDmaAddress()), 0);
+        dmcDmaPhase = 0;
         return true;
     }
 
@@ -252,8 +299,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = pal ? 0x52324E4E : bus.cart->getMapperId() == 69 ? 0x52324E4D
-                                                                          : 0x52324E4C; // "R2NL": seleção tardia do vetor de BRK.
+        uint32_t magic = pal ? 0x52324E54 : 0x52324E53; // R2NT/R2NS: supressão de VBlank.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -281,6 +327,15 @@ namespace R2NES::Core
         ram.saveState(os);
         ppu.saveState(os);
         apu.saveState(os);
+        os.put(bus.getControllerStrobeOutput());
+        os.put(joysticks.controller1.getShiftState());
+        os.put(joysticks.controller1.getStrobeState());
+        os.put(joysticks.controller2.getShiftState());
+        os.put(joysticks.controller2.getStrobeState());
+        os.put(dmcDmaPhase);
+        os.put(dmcHaltAddress & 0xff);
+        os.put(dmcHaltAddress >> 8);
+        os.put(oamReadAvailable);
         bus.cart->getMapper()->saveState(os);
         bus.cart->saveState(os);
 
@@ -315,7 +370,10 @@ namespace R2NES::Core
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
             // Estados anteriores não identificam estas configurações de memória.
-            if (!input || (pal ? magic != 0x52324E4E : (magic != 0x52324E4C && !(magic == 0x52324E4D && bus.cart->getMapperId() == 69))))
+            const bool dmaState = magic == (pal ? 0x52324E54 : 0x52324E53) ||
+                                  magic == (pal ? 0x52324E52 : 0x52324E51);
+            const bool controllerState = dmaState || magic == (pal ? 0x52324E50 : 0x52324E4F);
+            if (!input || (!controllerState && (pal ? magic != 0x52324E4E : (magic != 0x52324E4C && !(magic == 0x52324E4D && bus.cart->getMapperId() == 69)))))
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};
@@ -356,6 +414,31 @@ namespace R2NES::Core
             apu.loadState(input);
             if (!input)
                 return false;
+            if (controllerState)
+            {
+                const int output = input.get(), shift1 = input.get(), strobe1 = input.get();
+                const int shift2 = input.get(), strobe2 = input.get();
+                if (!input || output > 1 || strobe1 > 1 || strobe2 > 1)
+                    return false;
+                bus.setControllerStrobeOutput(output != 0);
+                joysticks.controller1.restoreLatch(static_cast<uint8_t>(shift1), strobe1 != 0);
+                joysticks.controller2.restoreLatch(static_cast<uint8_t>(shift2), strobe2 != 0);
+            }
+            if (dmaState)
+            {
+                const int phase = input.get(), low = input.get(), high = input.get(), oamReady = input.get();
+                if (!input || phase > 2 || oamReady > 1)
+                    return false;
+                dmcDmaPhase = static_cast<uint8_t>(phase);
+                dmcHaltAddress = static_cast<uint16_t>(low | (high << 8));
+                oamReadAvailable = oamReady != 0;
+            }
+            else
+            {
+                dmcDmaPhase = 0;
+                dmcHaltAddress = 0;
+                oamReadAvailable = bus.dma_transfer && !bus.dma_dummy && (bus.systemClockCounter & 1);
+            }
             if (magic == 0x52324E4C && bus.cart->getMapperId() == 69)
                 bus.cart->getMapper()->loadLegacyState(input);
             else

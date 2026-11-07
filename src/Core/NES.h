@@ -69,15 +69,15 @@ namespace R2NES::Core
         void setTilesEnabled(bool enabled);
         void setSpritesEnabled(bool enabled);
 
-        // Permite ativar um modo experimental de overclock da CPU (para testes)
-        void setCPUOverclock(bool enabled) { cpuOverclock = enabled; }
+        // Preferência do host: fator limitado a 1,00–2,00, em passos de 1%.
+        void setCPUOverclock(bool enabled, float multiplier = 2.0f);
 
     private:
         std::filesystem::path cheatDirectory = "cheats";
         template <bool Pal>
         void stepRegion(bool honorCPUOverclock);
         void serviceIRQ();
-        bool startDmcDma();
+        bool clockDmcDma(bool oamActive);
 
         // Subsistemas do console
         Bus bus;                 // Barramento do sistema, conecta todos os dispositivos
@@ -91,7 +91,10 @@ namespace R2NES::Core
         bool cartridgeLoaded = false; // Indica se um cartucho está presente
         bool pal = false;
         uint8_t palPhase = 0;
-        bool cpuOverclock = false; // Flag de overclock experimental da CPU
+        unsigned cpuMultiplierPercent = 100;
+        uint8_t dmcDmaPhase = 0; // 0=idle, 1=dummy, 2=alignment/get
+        uint16_t dmcHaltAddress = 0;
+        bool oamReadAvailable = false;
         std::filesystem::path batteryDirectory;
     };
 }
