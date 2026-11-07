@@ -93,6 +93,9 @@ namespace R2NES::Core
         window->setPaletteCallback([this](PaletteType preset)
                                    { this->nes->getPpu().setSystemPalette(preset); });
 
+        window->setVolumeCallback([this](size_t index, int percent)
+                                  { if (nes) nes->getApu().setUserVolume(index, percent); });
+
         // Conecta o callback de Sound para sincronizar o estado do som
         window->setSoundCallback([this](bool enabled)
                                  { 
@@ -170,10 +173,11 @@ namespace R2NES::Core
                                       targetUPS = pal ? 50.00698 : 59.94;
                                       clearRewindStates();
                                       resetPlaybackTiming(); });
-        window->setCPUOverclockCallback([this](bool enabled)
+        window->setCPUOverclockCallback([this](bool enabled, float multiplier)
                                         { 
                                             this->cpuOverclockEnabled = enabled; 
-                                            if (nes) nes->setCPUOverclock(enabled); });
+                                            if (nes) nes->setCPUOverclock(enabled, multiplier);
+                                            clearRewindStates(); });
 
         // Conecta o callback de Pause
         window->setPauseCallback([this](bool p)
@@ -193,7 +197,7 @@ namespace R2NES::Core
         this->cpuOverclockEnabled = window->isCPUOverclockEnabled();
 
         // Sincroniza o estado inicial do Overclock
-        nes->setCPUOverclock(this->cpuOverclockEnabled);
+        nes->setCPUOverclock(this->cpuOverclockEnabled, 1.0f);
 
         // Sincroniza o estado inicial da APU
         if (this->soundEnabled)

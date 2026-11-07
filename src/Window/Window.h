@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <array>
 #include <string>
 #include <cstdint>
 #include <filesystem>
@@ -46,6 +47,7 @@ namespace R2NES::Core
         // callbacks
         using KeyCallback = std::function<void(SDL_Keycode, bool)>;
         using VSyncCallback = std::function<void(bool)>;
+        using VolumeCallback = std::function<void(size_t, int)>;
         using SoundCallback = std::function<void(bool)>;
         using Pulse1Callback = std::function<void(bool)>;
         using Pulse2Callback = std::function<void(bool)>;
@@ -68,7 +70,7 @@ namespace R2NES::Core
         using SpritesCallback = std::function<void(bool)>;
         using RegionCallback = std::function<void(bool)>;
         void setRegionCallback(RegionCallback cb) { regionCallback = cb; }
-        using CPUOverclockCallback = std::function<void(bool)>;
+        using CPUOverclockCallback = std::function<void(bool, float)>;
         using CheatMenuCallback = std::function<CheatMenuState()>;
         using CheatsEnabledCallback = std::function<void(bool)>;
         using CheatEntryEnabledCallback = std::function<void(std::size_t, bool)>;
@@ -90,6 +92,7 @@ namespace R2NES::Core
         void setVSyncCallback(VSyncCallback cb) { vsyncCallback = cb; }
 
         /* Define a função de callback para habilitar ou desabilitar o som */
+        void setVolumeCallback(VolumeCallback cb) { volumeCallback = cb; }
         void setSoundCallback(SoundCallback cb) { soundCallback = cb; }
 
         /* Define a função de callback para habilitar ou desabilitar o canal pulse1 */
@@ -511,7 +514,7 @@ namespace R2NES::Core
         {
             cpuOverclockEnabled = !cpuOverclockEnabled;
             if (cpuOverclockCallback)
-                cpuOverclockCallback(cpuOverclockEnabled);
+                cpuOverclockCallback(cpuOverclockEnabled, cpuMultiplier);
         }
 
     private:
@@ -543,7 +546,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.2.5";
+        std::string title = "R2NESV2 - build 1.2.6";
         std::string romFile = "";
 
         bool bilinearFiltering = false;
@@ -561,6 +564,7 @@ namespace R2NES::Core
         PauseCallback pauseCallback = nullptr;
         FFCallback ffCallback = nullptr;
         RewindCallback rewindCallback = nullptr;
+        VolumeCallback volumeCallback = nullptr;
         SoundCallback soundCallback = nullptr;
         Pulse1Callback pulse1Callback = nullptr;
         Pulse2Callback pulse2Callback = nullptr;
@@ -598,6 +602,7 @@ namespace R2NES::Core
         bool vsyncEnabled = true;
         bool vsyncSuppressed = false;
         bool rendererVsyncEnabled = false;
+        std::array<int, 6> audioVolumes{{100, 100, 100, 100, 100, 100}};
         bool soundEnabled = true;
         bool uncappedSpeed = false;
         bool fastForwardEnabled = true;
@@ -637,5 +642,6 @@ namespace R2NES::Core
 
         // Flag para habilitar ou desabilitar o hack de CPU Overclock
         bool cpuOverclockEnabled = false;
+        float cpuMultiplier = 1.0f;
     };
 }

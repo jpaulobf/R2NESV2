@@ -624,19 +624,26 @@ namespace R2NES::Core
 
             if (ImGui::BeginMenu("Sound"))
             {
-                if (ImGui::MenuItem("Master Sound", nullptr, soundEnabled))
-                    setSound(!soundEnabled);
-                ImGui::Separator();
-                if (ImGui::MenuItem("Pulse 1", nullptr, pulse1Enabled))
-                    setPulse1(!pulse1Enabled);
-                if (ImGui::MenuItem("Pulse 2", nullptr, pulse2Enabled))
-                    setPulse2(!pulse2Enabled);
-                if (ImGui::MenuItem("Triangle", nullptr, triangleEnabled))
-                    setTriangle(!triangleEnabled);
-                if (ImGui::MenuItem("Noise", nullptr, noiseEnabled))
-                    setNoise(!noiseEnabled);
-                if (ImGui::MenuItem("DMC", nullptr, dmcEnabled))
-                    setDMC(!dmcEnabled);
+                const char *labels[] = {"Master Sound", "Pulse 1", "Pulse 2", "Triangle", "Noise", "DMC"};
+                const bool enabled[] = {soundEnabled, pulse1Enabled, pulse2Enabled, triangleEnabled, noiseEnabled, dmcEnabled};
+                const auto setters = {&Window::setSound, &Window::setPulse1, &Window::setPulse2,
+                                      &Window::setTriangle, &Window::setNoise, &Window::setDMC};
+                ImGui::PushItemFlag(ImGuiItemFlags_AutoClosePopups, false);
+                size_t index = 0;
+                for (auto setter : setters)
+                {
+                    if (index)
+                        ImGui::Separator();
+                    ImGui::PushID(static_cast<int>(index));
+                    if (ImGui::MenuItem(labels[index], nullptr, enabled[index]))
+                        (this->*setter)(!enabled[index]);
+                    ImGui::SetNextItemWidth(160.0f);
+                    if (ImGui::SliderInt("Volume", &audioVolumes[index], 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp) && volumeCallback)
+                        volumeCallback(index, audioVolumes[index]);
+                    ImGui::PopID();
+                    ++index;
+                }
+                ImGui::PopItemFlag();
                 ImGui::EndMenu();
             }
 
@@ -728,13 +735,9 @@ namespace R2NES::Core
 
             if (ImGui::BeginMenu("Hacks"))
             {
-                if (ImGui::MenuItem("Enable Unlimited Sprites", nullptr, unlimitedSprites))
-                    setUnlimitedSprites(!unlimitedSprites);
-                if (ImGui::MenuItem("Enable Fast Forward", nullptr, fastForwardEnabled))
+                if (ImGui::MenuItem("Enable Fast-Forward", "Tab / R2 (hold)", fastForwardEnabled))
                     setFastForward(!fastForwardEnabled);
-                if (ImGui::MenuItem("Enable CPU Overclock", nullptr, cpuOverclockEnabled))
-                    setCPUOverclock(!cpuOverclockEnabled);
-                if (ImGui::MenuItem("Enable Rewind", nullptr, rewindEnabled))
+                if (ImGui::MenuItem("Enable Rewind", "Caps Lock / L2 (hold)", rewindEnabled))
                     setRewind(!rewindEnabled);
                 if (ImGui::BeginMenu("Rewind Level", rewindEnabled))
                 {
@@ -744,6 +747,17 @@ namespace R2NES::Core
                             setRewindPrecision(level);
                     ImGui::EndMenu();
                 }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Enable Unlimited Sprites", nullptr, unlimitedSprites))
+                    setUnlimitedSprites(!unlimitedSprites);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Enable CPU Overclock", nullptr, cpuOverclockEnabled))
+                    setCPUOverclock(!cpuOverclockEnabled);
+                ImGui::BeginDisabled(!cpuOverclockEnabled);
+                ImGui::SetNextItemWidth(150.0f);
+                if (ImGui::SliderFloat("CPU Multiplier", &cpuMultiplier, 1.0f, 2.0f, "%.2fx") && cpuOverclockCallback)
+                    cpuOverclockCallback(cpuOverclockEnabled, cpuMultiplier);
+                ImGui::EndDisabled();
                 ImGui::EndMenu();
             }
 
@@ -1248,7 +1262,7 @@ namespace R2NES::Core
 
         // Notificar a Engine sobre a mudança
         if (cpuOverclockCallback)
-            cpuOverclockCallback(cpuOverclockEnabled);
+            cpuOverclockCallback(cpuOverclockEnabled, cpuMultiplier);
 
         std::cout << "Hacks: CPU Overclock " << (cpuOverclockEnabled ? "Enabled" : "Disabled") << std::endl;
     }
