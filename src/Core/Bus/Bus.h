@@ -58,6 +58,8 @@ namespace R2NES::Core
         // Leitura pela CPU via barramento. `readOnly` é usado
         // quando a operação não deve causar efeitos colaterais.
         uint8_t cpuRead(uint16_t addr, bool readOnly = false);
+        // Aciona somente o decodificador interno durante um get DMC.
+        void clockDmcRegisterConflict(uint16_t addr);
         void beginCpuProbe()
         {
             probingCpuAccess = true;
@@ -132,7 +134,7 @@ namespace R2NES::Core
         bool probedCpuWrite = false;
         uint16_t probedCpuAddress = 0;
         bool controllerStrobeOutput = false;
-        uint8_t readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead);
+        uint8_t readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead, bool skipCartridge = false);
         // Estado interno da Pistola Zapper (gatilho)
         bool zapperTrigger = false;
     };

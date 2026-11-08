@@ -124,11 +124,19 @@ namespace R2NES::Core
         return value;
     }
 
-    uint8_t Bus::readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead)
+    void Bus::clockDmcRegisterConflict(uint16_t addr)
+    {
+        bool internalApuRead = false;
+        const uint8_t value = readCpuDevice(addr, false, internalApuRead, true);
+        if (!internalApuRead)
+            cpuDataBus = value;
+    }
+
+    uint8_t Bus::readCpuDevice(uint16_t addr, bool readOnly, bool &internalApuRead, bool skipCartridge)
     {
         uint8_t data = cpuDataBus;
         // Leitura delegada ao cartucho primeiro (mappers podem prover ROM/RAM mapeada)
-        if (cart && cart->cpuRead(addr, data, readOnly))
+        if (!skipCartridge && cart && cart->cpuRead(addr, data, readOnly))
         {
             // Cartucho supriu o dado
             return data;
