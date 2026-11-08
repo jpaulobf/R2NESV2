@@ -133,6 +133,32 @@ CTest headless: **35/35**. O atraso inicial após `$4015`, cancelamentos, confli
 detalhes PAL ainda exigem trabalho; os PASS não estabelecem precisão completa.
 Referência de fases e parada: [NESdev DMA](https://www.nesdev.org/wiki/DMA).
 
+### Carga inicial e conflitos de barramento do DMC
+
+Em 2026-11-07, a primeira transferência DMC NTSC passou a aguardar três ou
+quatro ciclos após a escrita em `$4015`, conforme a fase, antes de tentar
+parar a CPU. No get DMC com a CPU parada em `$4000-$401F`, os registradores
+internos `$4015-$4017` também respondem quando selecionados pelos cinco bits
+baixos do endereço da amostra. A leitura da amostra continua chegando ao DMC;
+os efeitos dos registradores e o valor observado no barramento externo são
+tratados no mesmo ciclo.
+
+O AccuracyCoin terminou em **111/147**, sem regressões PASS/FAIL frente aos
+109/147: passaram `DMA Landing on Write` (código informativo 1) e `DMC DMA
+Bus Conflicts`. O resultado está em `build-headless/accuracycoin/dmc-conflicts.txt`.
+O teste sintético cobre a carga inicial nas duas fases, parada e retomada da
+CPU, e conflito com `$4016`, incluindo um caso sem conflito. A restauração
+durante a espera inicial e a rejeição dos formatos anteriores também são
+testadas. A suíte CTest headless passou 35/35.
+
+Os save states são `R2NU` (NTSC) e `R2NV` (PAL). Apenas esses formatos são
+aceitos; versões anteriores não leem os novos estados.
+
+Os cancelamentos de DMA, conflitos durante OAM, detalhes de áudio durante
+conflitos e o comportamento PAL do DMC ainda exigem investigação. `DMA +
+$2002 Read` continua falhando. Referências: [NESdev: DMA](https://www.nesdev.org/wiki/DMA)
+e [pesquisa sobre os registradores internos durante DMA](https://forums.nesdev.org/viewtopic.php?t=23543).
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
