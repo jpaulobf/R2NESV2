@@ -69,8 +69,8 @@ int main(int argc, char **argv)
         auto bad = state;
         bad[mirrors + 2] = 2;
         reject(m23, bad);
-        for (size_t offset : {mirrors + 3, state.size() - 6, state.size() - 5,
-                              state.size() - 4, state.size() - 3})
+        for (size_t offset : {mirrors + 3, state.size() - 7, state.size() - 6,
+                              state.size() - 5, state.size() - 4})
         {
             bad = state;
             bad[offset] = 2;
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
         std::memset(&bad[0], 0xff, sizeof(std::underlying_type_t<MirrorMode>));
         reject(m23, bad);
         bad = state;
-        std::memset(&bad[bad.size() - sizeof(int16_t)], 0, sizeof(int16_t));
+        std::memset(&bad[bad.size() - 1 - sizeof(int16_t)], 0, sizeof(int16_t));
         reject(m23, bad);
         bad = state;
         bad[mirrors + 4 + 8192 + 16] = 16;
