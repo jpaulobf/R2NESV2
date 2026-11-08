@@ -341,7 +341,7 @@ static void serialAndStates()
     legacy.back() &= ~0x40;
     std::stringstream old(legacy);
     m.loadState(old);
-    check(old.good() && state(m) == unchanged, "Legacy mapper layout rejected");
+    check(old.fail() && state(m) == unchanged, "Legacy mapper state accepted or changed mapper");
     auto derived = unchanged;
     derived.back() ^= 1;
     std::stringstream stale(derived);

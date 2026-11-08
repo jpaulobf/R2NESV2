@@ -1718,7 +1718,7 @@ static void console(const std::filesystem::path &dir)
         else
             check(cart.ppuWrite(0, 0xA5, 0), "CHR RAM write rejected");
         const auto saved = consoleState(nes);
-        check(uint8_t(saved[0]) == 0x53, "Missing R2NS state version");
+        check(uint8_t(saved[0]) == 0x55, "Missing R2NU state version");
         std::stringstream cartState;
         cart.saveState(cartState);
         const size_t start = saved.size() - state(mapper).size() - cartState.str().size();

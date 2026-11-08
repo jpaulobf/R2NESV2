@@ -180,11 +180,17 @@ int main(int argc, char **argv)
             bus.cart->getMapper()->saveState(mapperState);
             bus.cart->saveState(cartState);
             const size_t controllerOffset = legacy.size() - mapperState.str().size() - cartState.str().size() - 9;
-            legacy.erase(controllerOffset, 9);
+            legacy.erase(controllerOffset - 1, 1); // R2NL não tem atraso de carga DMC.
+            legacy[0] = 'S';
+            std::istringstream previousState(legacy);
+            check(!nes.loadState(previousState), "R2NS state accepted");
+            legacy.erase(controllerOffset - 1, 9);
             legacy.resize(legacy.size() - 40);
             legacy[0] = 'L';
             std::istringstream oldState(legacy);
-            check(nes.loadState(oldState), "legacy mapper state rejected");
+            check(!nes.loadState(oldState), "legacy mapper state accepted");
+            std::ostringstream afterRejected;
+            check(nes.saveState(afterRejected) && afterRejected.str() == state.str(), "legacy load changed mapper state");
             std::istringstream restored(state.str());
             check(nes.loadState(restored), "new mapper state rejected");
         }
