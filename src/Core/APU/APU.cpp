@@ -223,17 +223,23 @@ namespace R2NES::Core
             dmc.enabled = (data & 0x10) != 0;
             if (dmc.enabled)
             {
+                const bool startingLoad = dmc.bytesRemaining == 0 && dmc.sampleBufferEmpty && !dmc.dmaPending;
                 if (dmc.bytesRemaining == 0)
                 {
                     dmc.currentAddress = dmc.sampleAddress;
                     dmc.bytesRemaining = dmc.sampleLength;
                 }
                 requestDmcDma();
+                // A primeira tentativa ocorre na segunda fase get da APU
+                // após a escrita, três ou quatro ciclos de CPU depois dela.
+                if (startingLoad && dmc.dmaPending && !pal && bus)
+                    dmc.loadDelay = (bus->systemClockCounter & 1) ? 3 : 4;
             }
             else
             {
                 dmc.bytesRemaining = 0;
                 dmc.dmaPending = false;
+                dmc.loadDelay = 0;
             }
             break;
 
@@ -347,6 +353,8 @@ namespace R2NES::Core
 
         triangle.clock();
         dmc.clock();
+        if (dmc.loadDelay > 0)
+            --dmc.loadDelay;
         // Recargas param a CPU em uma fase put. O contador já aponta
         // para o próximo ciclo de sistema quando a APU é avançada.
         if (pal || !bus || (bus->systemClockCounter & 1))
@@ -461,6 +469,7 @@ namespace R2NES::Core
         dmc.sampleBuffer = value;
         dmc.sampleBufferEmpty = false;
         dmc.dmaPending = false;
+        dmc.loadDelay = 0;
 
         dmc.currentAddress = (dmc.currentAddress == 0xFFFF)
                                  ? 0x8000
@@ -919,6 +928,7 @@ namespace R2NES::Core
             write(filter.z1);
             write(filter.z2);
         }
+        write(dmc.loadDelay);
     }
 
     void APU::loadState(std::istream &is)
@@ -1016,6 +1026,7 @@ namespace R2NES::Core
             read(filter.z1);
             read(filter.z2);
         }
+        read(dmc.loadDelay);
 
         const auto validEnvelope = [](const Envelope &envelope)
         {
@@ -1036,7 +1047,8 @@ namespace R2NES::Core
                    !validEnvelope(pulse1.envelope) || !validEnvelope(pulse2.envelope) || !validEnvelope(noise.envelope) ||
                    triangle.dutyValue > 31 || dmc.rateIndex > 15 || dmc.outputLevel > 127 ||
                    triangle.linearCount > 127 || triangle.linearReload > 127 ||
-                   dmc.bitsRemaining > 8 || dmc.dmaStallCyclesRemaining > 4 ||
+                   dmc.bitsRemaining > 8 || dmc.dmaStallCyclesRemaining > 4 || dmc.loadDelay > 4 ||
+                   (dmc.loadDelay != 0 && (!dmc.dmaPending || pal)) ||
                    (frameCounterMode != 4 && frameCounterMode != 5) ||
                    (pendingFrameCounterMode != 4 && pendingFrameCounterMode != 5) ||
                    frameClockCounter >= (frameCounterMode == 4 ? (pal ? 33253u : 29829u) : (pal ? 41565u : 37281u)) ||

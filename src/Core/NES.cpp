@@ -226,7 +226,7 @@ namespace R2NES::Core
         }
         if (dmcDmaPhase == 0)
         {
-            if (!apu.hasDmcDmaRequest() || (!oamActive && cpu.nextCycleIsWrite()))
+            if (!apu.isDmcDmaReady() || (!oamActive && cpu.nextCycleIsWrite()))
                 return false;
             if (!oamActive)
             {
@@ -250,7 +250,20 @@ namespace R2NES::Core
             return !oamActive;
         }
         if (apu.hasDmcDmaRequest())
-            apu.completeDmcDma(bus.cpuRead(apu.getDmcDmaAddress()), 0);
+        {
+            const uint16_t sampleAddress = apu.getDmcDmaAddress();
+            const uint8_t sample = bus.cpuRead(sampleAddress);
+            // Com a CPU parada em $4000-$401F, o decodificador interno
+            // permanece ativo durante o get DMC; os cinco bits baixos do
+            // endereço da amostra selecionam o registrador que responde.
+            if (!oamActive && (dmcHaltAddress & 0xFFE0) == 0x4000)
+            {
+                const uint16_t reg = 0x4000 | (sampleAddress & 0x1F);
+                if (reg >= 0x4015 && reg <= 0x4017)
+                    bus.clockDmcRegisterConflict(reg);
+            }
+            apu.completeDmcDma(sample, 0);
+        }
         dmcDmaPhase = 0;
         return true;
     }
@@ -299,7 +312,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = pal ? 0x52324E54 : 0x52324E53; // R2NT/R2NS: supressão de VBlank.
+        uint32_t magic = pal ? 0x52324E56 : 0x52324E55; // R2NV/R2NU: agendamento da carga DMC.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -369,11 +382,7 @@ namespace R2NES::Core
         {
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-            // Estados anteriores não identificam estas configurações de memória.
-            const bool dmaState = magic == (pal ? 0x52324E54 : 0x52324E53) ||
-                                  magic == (pal ? 0x52324E52 : 0x52324E51);
-            const bool controllerState = dmaState || magic == (pal ? 0x52324E50 : 0x52324E4F);
-            if (!input || (!controllerState && (pal ? magic != 0x52324E4E : (magic != 0x52324E4C && !(magic == 0x52324E4D && bus.cart->getMapperId() == 69)))))
+            if (!input || magic != (pal ? 0x52324E56 : 0x52324E55))
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};
@@ -408,13 +417,12 @@ namespace R2NES::Core
             ram.loadState(input);
             if (!input)
                 return false;
-            ppu.loadState(input, true);
+            ppu.loadState(input);
             if (!input)
                 return false;
             apu.loadState(input);
             if (!input)
                 return false;
-            if (controllerState)
             {
                 const int output = input.get(), shift1 = input.get(), strobe1 = input.get();
                 const int shift2 = input.get(), strobe2 = input.get();
@@ -424,7 +432,6 @@ namespace R2NES::Core
                 joysticks.controller1.restoreLatch(static_cast<uint8_t>(shift1), strobe1 != 0);
                 joysticks.controller2.restoreLatch(static_cast<uint8_t>(shift2), strobe2 != 0);
             }
-            if (dmaState)
             {
                 const int phase = input.get(), low = input.get(), high = input.get(), oamReady = input.get();
                 if (!input || phase > 2 || oamReady > 1)
@@ -433,16 +440,7 @@ namespace R2NES::Core
                 dmcHaltAddress = static_cast<uint16_t>(low | (high << 8));
                 oamReadAvailable = oamReady != 0;
             }
-            else
-            {
-                dmcDmaPhase = 0;
-                dmcHaltAddress = 0;
-                oamReadAvailable = bus.dma_transfer && !bus.dma_dummy && (bus.systemClockCounter & 1);
-            }
-            if (magic == 0x52324E4C && bus.cart->getMapperId() == 69)
-                bus.cart->getMapper()->loadLegacyState(input);
-            else
-                bus.cart->getMapper()->loadState(input);
+            bus.cart->getMapper()->loadState(input);
             if (!input)
                 return false;
             bus.cart->loadState(input);

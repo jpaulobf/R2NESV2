@@ -35,6 +35,7 @@ namespace R2NES::Core
         // Interface usada pelo NES para transferir bytes do canal DMC e roubar
         // ciclos da CPU sem acoplar o APU ao escalonador principal.
         bool hasDmcDmaRequest() const { return dmc.dmaPending; }
+        bool isDmcDmaReady() const { return dmc.dmaPending && dmc.loadDelay == 0; }
         uint16_t getDmcDmaAddress() const { return dmc.currentAddress; }
         void completeDmcDma(uint8_t value, uint8_t totalStallCycles);
         bool consumeDmcDmaStallCycle();
@@ -155,6 +156,8 @@ namespace R2NES::Core
             uint16_t currentAddress = 0xC000;
             uint16_t bytesRemaining = 0;
             uint8_t dmaStallCyclesRemaining = 0;
+            // Tempo até a primeira tentativa de parada após habilitar o DMC.
+            uint8_t loadDelay = 0;
 
             uint8_t sample() const { return outputLevel; }
             void clock();
