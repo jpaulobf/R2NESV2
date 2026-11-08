@@ -32,6 +32,27 @@ Historical CPU/APU diagnostic failures are recorded in the mapper 4 section
 below; they are not registered in the default suite and have not been rechecked
 by simply running CTest. See the individual sections for precise scenarios.
 
+## Mapper 23 (VRC2b/VRC4)
+
+`mapper023-tests` exercises the VRC2b latch and open bus, VRC4 banks,
+mirroring, IRQ cycle/scanline modes, acknowledgment, RAM and battery state,
+including save/load and both register wirings through real cartridge headers.
+The iNES/submapper 0 fallback is a VRC4-compatible superset with combined
+VRC2b/VRC4f and VRC4e decoding and 8 KiB RAM for legacy iNES images. NES 2.0
+submapper 1 selects VRC4f, 2 VRC4e, and 3 VRC2b with the 350926-style 1-bit
+latch. NES 2.0 declares zero, 2 KiB or 8 KiB PRG RAM/NVRAM for VRC4; mixed RAM
+and NVRAM and PRG RAM on VRC2b are rejected. ROM sizes must be powers of two,
+up to 256 KiB PRG and 512 KiB CHR (256 KiB CHR for VRC2b). Trainers and
+unsupported RAM/submapper configurations are rejected. The VRC4-compatible
+superset cannot reproduce every VRC2-only behavior without submapper metadata.
+Existing mapper 23 save states use an older payload and are incompatible.
+Physical-cart validation and gameplay testing with Contra/Gryzor remain pending.
+
+```powershell
+cmake --build build-headless --target mapper023-tests
+ctest --test-dir build-headless -R '^mapper023$' --output-on-failure
+```
+
 ## AccuracyCoin baseline
 
 `accuracycoin-runner` is an optional headless diagnostic, not part of CTest.
@@ -57,16 +78,18 @@ It also checks that a pending DMC transfer waits for both writes of an INC,
 that OAM DMA waits for the second write of INC $4014 in NTSC/PAL, and that
 NTSC DMC reload requests use the put phase at all 16 rates and both initial
 clock phases. A reload on CPU reads must halt for four cycles and then resume.
+The initial load is checked at both clock phases, along with a DMC/controller
+bus conflict and a control case without conflict.
 `cpu-cycle` checks CPU read/write cycle prediction across all 256 opcodes in
 the existing scenarios, including interrupt polling and mid-instruction loads.
 It also checks sampled and unsampled controller strobes on both ports; the
 AccuracyCoin ROM exercises real CPU read-modify-write strobes in both phases.
-Console states now use `R2NS` (NTSC) or `R2NT` (PAL), preserving the strobe
+Console states now use `R2NU` (NTSC) or `R2NV` (PAL), preserving the strobe
 output and both controller shift latches while leaving live button input with
-the host. Supported previous states still load but do not contain these latch
-values; older builds cannot read the new formats. `state-rollback-timing`
+the host. Previous formats are rejected; older builds cannot read the current
+formats. `state-rollback-timing`
 checks restoration of a pending strobe and controller shift position, and
-restoration during a DMC/OAM DMA overlap. DMC DMA timing and register conflicts
+restoration during the initial DMC load delay and a DMC/OAM DMA overlap. DMC DMA timing and register conflicts
 remain incomplete; PAL retains the previous DMA approximation.
 `ppu-decay` also covers a PPUSTATUS read immediately before VBlank, including
 debugger peeks and restoring the pending suppression from a PPU snapshot.
@@ -75,8 +98,8 @@ This does not cover all NMI timing cases.
 `cpu-interrupt` tests NMI edges during BRK and IRQ, stacked PC/B, late NMI,
 CPU restore during the sequence, rejection of an old `R2NK` state, and IRQ
 latency for CLI, SEI, PLP and RTI. It does not validate CPU/PPU subcycle
-alignment or DMC arbitration. The current `R2NL` states are not readable by
-older builds; this build rejects `R2NK` and earlier states.
+alignment or DMC arbitration. The current `R2NU`/`R2NV` states are not readable by
+older builds; this build rejects all earlier console state formats.
 
 ## ROM and ZIP input validation
 
@@ -195,18 +218,11 @@ Deprecated submappers 1/2/4 require matching memory sizes. Unsupported EEPROM
 submapper 6, MMC1A submapper 3 (mapper 155), unknown variants and incompatible
 memory capacities are rejected instead of approximated.
 
-The mapper payload keeps its previous length; a reserved bit records whether
-there has been a CPU write, including cycle zero. Old payloads remain readable.
-Derived PRG banking is recomputed on load. The console now writes format `R2NK`,
-which preserves CPU clock/data-bus state and the MMC5's ten-bit CHR registers
-and CHR/IRQ/split controls, MMC5A revision/GPIO/timer and the PPU's pending rendering read.
-Its 28-byte header includes the ROM's eight ASCII CRC32 characters, mapper ID,
-clock counters, CPU data bus and all five OAM DMA fields. ROM identity is checked
-before changing components, and DMA boolean bytes must be 0 or 1.
-Previous `R2NB`/`R2NC`/`R2ND`/`R2NE`/`R2NF`/`R2NG`/`R2NH`/`R2NI`/`R2NJ` states are intentionally
-rejected, for every mapper; older builds cannot read `R2NK`.
-Old NES 2.0 states created with an incorrectly
-sized RAM payload are also unsupported.
+The mapper payload includes a bit recording whether there has been a CPU write,
+including cycle zero. Derived PRG banking is recomputed on load. The console
+accepts only `R2NU` (NTSC) and `R2NV` (PAL). ROM identity is checked before
+changing components, and DMA boolean bytes must be 0 or 1. Earlier states are
+rejected for every mapper; older builds cannot read the current formats.
 Any failed console load restores its previous serialized state.
 
 `reset()` is the emulator's deterministic complete initialization. Its MMC1

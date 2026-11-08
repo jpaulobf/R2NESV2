@@ -229,6 +229,12 @@ int main(int argc, char **argv)
         nes.getApu().cpuWrite(0x4012, 0);
         nes.getApu().cpuWrite(0x4013, 0);
         nes.getApu().cpuWrite(0x4015, 0x10);
+        const auto loadPending = save(nes);
+        verifyScenario(nes, path, "DMC initial load delay");
+        load(nes, loadPending);
+        for (int i = 0; i < 5 && !nes.getApu().isDmcDmaReady(); ++i)
+            nes.step();
+        check(nes.getApu().isDmcDmaReady(), "DMC initial load did not become ready");
         nes.step();
         const auto overlap = save(nes);
         const auto overlapLayout = layout(nes, overlap);
@@ -249,6 +255,9 @@ int main(int argc, char **argv)
         nes.getBus().cpuWrite(0x4013, 0);
         nes.getBus().cpuWrite(0x4015, 0x10);
         check(nes.getApu().hasDmcDmaRequest(), "DMC request not raised");
+        for (int i = 0; i < 5 && !nes.getApu().isDmcDmaReady(); ++i)
+            nes.step();
+        check(nes.getApu().isDmcDmaReady(), "DMC initial load did not become ready");
         nes.step();
         const auto dmcCheckpoint = save(nes);
         const auto dmcLayout = layout(nes, dmcCheckpoint);

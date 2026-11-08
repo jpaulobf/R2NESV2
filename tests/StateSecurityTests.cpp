@@ -91,12 +91,13 @@ int main(int argc, char **argv)
         check(sampleInput.fail(), "APU accepted excessive sample count");
         auto invalidFilter = apuBaseline;
         const float nan = std::numeric_limits<float>::quiet_NaN();
-        const size_t filterOffset = invalidFilter.size() - 2 * sizeof(float) - 6 * sizeof(double);
+        const size_t filterOffset = invalidFilter.size() - 1 - 2 * sizeof(float) - 6 * sizeof(double);
         std::memcpy(&invalidFilter[filterOffset], &nan, sizeof(nan));
         APU filterTarget;
         std::istringstream filterInput(invalidFilter);
         filterTarget.loadState(filterInput);
         check(filterInput.fail(), "APU accepted non-finite filter state");
+        rejectApuByte(apuBaseline.size() - 1, 5, "APU accepted invalid DMC load delay");
 
         // Legitimate intermediate states must remain loadable even when the
         // host chooses a different audio rate after the snapshot was made.

@@ -173,6 +173,104 @@ int main()
             dmaNes.step();
         check(!dmaNes.getApu().hasDmcDmaRequest(), "DMC fetch did not complete");
 
+        // A carga inicial tenta parar a CPU no get três ou quatro ciclos
+        // depois da escrita em $4015, conforme a fase dessa escrita.
+        for (unsigned phase = 0; phase < 2; ++phase)
+        {
+            NES loadNes("");
+            auto &loadCpu = loadNes.getCpu();
+            auto &loadBus = loadNes.getBus();
+            auto &loadApu = loadNes.getApu();
+            while (!loadCpu.complete())
+                loadNes.step(false);
+            loadBus.ram->write(0, 0xA9); // LDA #$10
+            loadBus.ram->write(1, 0x10);
+            loadBus.ram->write(2, 0x8D); // STA $4015
+            loadBus.ram->write(3, 0x15);
+            loadBus.ram->write(4, 0x40);
+            loadBus.ram->write(5, 0xEA);
+            loadBus.ram->write(6, 0xEA);
+            loadCpu.pc = 0;
+            loadBus.systemClockCounter = (loadBus.systemClockCounter & ~1u) | phase;
+            for (int i = 0; i < 10 && !loadApu.hasDmcDmaRequest(); ++i)
+                loadNes.step(false);
+            check(loadApu.hasDmcDmaRequest(), "initial DMC request missing");
+            const uint32_t writeCycle = loadBus.systemClockCounter - 1;
+            const uint32_t haltCycle = writeCycle + ((writeCycle & 1) ? 3 : 4);
+            check(!loadApu.isDmcDmaReady(), "initial DMC request started immediately");
+            while (loadBus.systemClockCounter < haltCycle)
+            {
+                check(!loadApu.isDmcDmaReady(), "initial DMC halt too early");
+                loadNes.step(false);
+            }
+            check(loadApu.isDmcDmaReady(), "initial DMC halt too late");
+            std::ostringstream beforeLoad;
+            loadCpu.saveState(beforeLoad);
+            for (int i = 0; i < 3; ++i)
+            {
+                loadNes.step(false);
+                std::ostringstream duringLoad;
+                loadCpu.saveState(duringLoad);
+                check(duringLoad.str() == beforeLoad.str(), "initial DMC load did not halt for three cycles");
+            }
+            check(!loadApu.hasDmcDmaRequest(), "initial DMC get missing");
+            loadNes.step(false);
+            std::ostringstream afterLoad;
+            loadCpu.saveState(afterLoad);
+            check(afterLoad.str() != beforeLoad.str(), "CPU did not resume after initial DMC load");
+        }
+
+        // Quando a CPU está parada em $4000-$401F, o get DMC com endereço
+        // terminado em $16 também aciona a porta 1 e deixa seu bit no bus.
+        for (const bool conflict : {false, true})
+        {
+            NES conflictNes("");
+            auto &conflictCpu = conflictNes.getCpu();
+            auto &conflictBus = conflictNes.getBus();
+            auto &conflictApu = conflictNes.getApu();
+            while (!conflictCpu.complete())
+                conflictNes.step(false);
+            conflictApu.setAudioOutputSuppressed(true);
+            conflictApu.cpuWrite(0x4010, 0x0F);
+            conflictApu.cpuWrite(0x4012, 0);
+            conflictApu.cpuWrite(0x4013, 3);
+            conflictApu.cpuWrite(0x4015, 0x10);
+            for (int byte = 0; byte < 22; ++byte)
+            {
+                check(conflictApu.hasDmcDmaRequest(), "DMC sample request missing");
+                conflictApu.completeDmcDma(0, 0);
+                for (int tick = 0; tick < 5000 && !conflictApu.hasDmcDmaRequest(); ++tick)
+                {
+                    ++conflictBus.systemClockCounter;
+                    conflictApu.step();
+                }
+            }
+            check(conflictApu.isDmcDmaReady() && conflictApu.getDmcDmaAddress() == 0xC016,
+                  "DMC conflict sample not reached");
+            conflictNes.getJoysticks().controller1.setButton(IO::BUTTON_A, true);
+            conflictNes.getJoysticks().controller1.setButton(IO::BUTTON_B, false);
+            conflictBus.cpuWrite(0x4016, 1);
+            conflictBus.clockControllerStrobe();
+            conflictBus.cpuWrite(0x4016, 0);
+            conflictBus.clockControllerStrobe();
+            conflictBus.ram->write(0x300, 0xAD); // LDA $4000 ou LDA $0010
+            conflictBus.ram->write(0x301, conflict ? 0x00 : 0x10);
+            conflictBus.ram->write(0x302, conflict ? 0x40 : 0x00);
+            conflictBus.ram->write(0x10, 0x40);
+            conflictCpu.pc = 0x300;
+            for (int i = 0; i < 3; ++i)
+                conflictCpu.clock();
+            check(conflictCpu.nextReadAddress() == (conflict ? 0x4000 : 0x0010),
+                  "CPU did not reach DMC conflict read");
+            for (int i = 0; i < 5 && conflictApu.hasDmcDmaRequest(); ++i)
+                conflictNes.step(false);
+            check(!conflictApu.hasDmcDmaRequest(), "DMC conflict fetch did not finish");
+            conflictNes.step(false);
+            check(conflictCpu.a == (conflict ? 0x41 : 0x40), "DMC/controller bus conflict value incorrect");
+            check((conflictBus.cpuRead(0x4016) & 1) == (conflict ? 0 : 1),
+                  "DMC/controller bus conflict shifted at the wrong time");
+        }
+
         // O timer inicia em 427 e o buffer é consumido no oitavo bit.
         // Recargas seguintes repetem a cada oito períodos,
         // sempre solicitando a parada em put, nas duas fases de inicialização.

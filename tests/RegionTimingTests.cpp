@@ -68,11 +68,40 @@ int main(int argc, char **argv)
             nes.step();
         std::ostringstream actual;
         check(nes.saveState(actual) && actual.str() == expected.str(), "PAL phase restore");
+        std::ostringstream mapperState, cartState;
+        nes.getBus().cart->getMapper()->saveState(mapperState);
+        nes.getBus().cart->saveState(cartState);
+        auto legacyPal = saved.str();
+        const size_t delayOffset = legacyPal.size() - mapperState.str().size() - cartState.str().size() - 10;
+        legacyPal.erase(delayOffset, 1);
+        legacyPal[0] = 'T'; // R2NT, antes de serializar o atraso inicial do DMC.
+        std::istringstream previousPal(legacyPal);
+        check(!nes.loadState(previousPal), "legacy PAL state accepted");
+        std::ostringstream afterLegacyPal;
+        check(nes.saveState(afterLegacyPal) && afterLegacyPal.str() == expected.str(), "legacy PAL state changed console");
+        for (char version : {'N', 'P', 'R', 'T'})
+        {
+            auto legacy = saved.str();
+            legacy[0] = version;
+            std::istringstream input(legacy);
+            check(!nes.loadState(input), "legacy PAL version accepted");
+            std::ostringstream afterLegacy;
+            check(nes.saveState(afterLegacy) && afterLegacy.str() == expected.str(), "legacy PAL version changed console");
+        }
         std::istringstream wrong(old.str());
         check(!nes.loadState(wrong), "cross region state accepted");
         nes.setPAL(false);
         std::istringstream old2(old.str());
-        check(nes.loadState(old2), "legacy NTSC state rejected");
+        check(nes.loadState(old2), "current NTSC state rejected");
+        for (char version : {'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'})
+        {
+            auto legacy = old.str();
+            legacy[0] = version;
+            std::istringstream input(legacy);
+            check(!nes.loadState(input), "legacy NTSC version accepted");
+            std::ostringstream afterLegacy;
+            check(nes.saveState(afterLegacy) && afterLegacy.str() == old.str(), "legacy NTSC state changed console");
+        }
         std::cout << "Region timing tests passed\n";
         return 0;
     }
