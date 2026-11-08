@@ -3,6 +3,72 @@
 #include "Window/Window.h"
 #include <filesystem>
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <zlib.h>
+
+namespace
+{
+    void append32(std::vector<unsigned char> &bytes, uint32_t value)
+    {
+        for (int shift = 24; shift >= 0; shift -= 8)
+            bytes.push_back(static_cast<unsigned char>(value >> shift));
+    }
+
+    void appendChunk(std::vector<unsigned char> &png, const char *type,
+                     const std::vector<unsigned char> &data)
+    {
+        append32(png, static_cast<uint32_t>(data.size()));
+        const auto start = png.size();
+        png.insert(png.end(), type, type + 4);
+        png.insert(png.end(), data.begin(), data.end());
+        append32(png, static_cast<uint32_t>(crc32(0, png.data() + start,
+                                                  static_cast<uInt>(png.size() - start))));
+    }
+
+    bool saveThumbnail(const std::filesystem::path &path, const uint32_t *frame)
+    {
+        constexpr int border = 8;
+        constexpr int frameWidth = 256, frameHeight = 240;
+        constexpr int width = 128, height = 120;
+        constexpr int croppedWidth = frameWidth - 2 * border;
+        constexpr int croppedHeight = frameHeight - 2 * border;
+        std::vector<unsigned char> raw;
+        raw.reserve(height * (1 + width * 3));
+        for (int y = 0; y < height; ++y)
+        {
+            raw.push_back(0); // PNG filter: none
+            for (int x = 0; x < width; ++x)
+            {
+                const int sourceX = border + x * croppedWidth / width;
+                const int sourceY = border + y * croppedHeight / height;
+                const uint32_t pixel = frame[sourceY * frameWidth + sourceX];
+                raw.push_back(static_cast<unsigned char>(pixel >> 16));
+                raw.push_back(static_cast<unsigned char>(pixel >> 8));
+                raw.push_back(static_cast<unsigned char>(pixel));
+            }
+        }
+        uLongf compressedSize = compressBound(static_cast<uLong>(raw.size()));
+        std::vector<unsigned char> compressed(compressedSize);
+        if (compress2(compressed.data(), &compressedSize, raw.data(),
+                      static_cast<uLong>(raw.size()), Z_DEFAULT_COMPRESSION) != Z_OK)
+            return false;
+        compressed.resize(compressedSize);
+
+        std::vector<unsigned char> png{137, 80, 78, 71, 13, 10, 26, 10};
+        std::vector<unsigned char> header;
+        append32(header, width);
+        append32(header, height);
+        header.insert(header.end(), {8, 2, 0, 0, 0});
+        appendChunk(png, "IHDR", header);
+        appendChunk(png, "IDAT", compressed);
+        appendChunk(png, "IEND", {});
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        output.write(reinterpret_cast<const char *>(png.data()), static_cast<std::streamsize>(png.size()));
+        output.close();
+        return static_cast<bool>(output);
+    }
+}
 
 namespace R2NES::System
 {
@@ -101,7 +167,20 @@ namespace R2NES::System
             if (window.getIsToSave())
             {
                 if (nes.saveState(filename))
+                {
                     std::cout << "GameStateManager: State saved to " << filename << std::endl;
+                    const char *basePath = SDL_GetBasePath();
+                    const fs::path directory = (basePath ? fs::path(basePath) : fs::current_path()) / "savestate-thumbs";
+                    const fs::path thumbnail = directory / (romName + "." + slot + ".png");
+                    std::error_code error;
+                    fs::create_directories(directory, error);
+                    if (error || !saveThumbnail(thumbnail, nes.getPpu().getFrameBuffer()))
+                    {
+                        // Não deixar uma imagem antiga associada ao novo estado.
+                        fs::remove(thumbnail, error);
+                        std::cerr << "GameStateManager: Could not save thumbnail " << thumbnail << std::endl;
+                    }
+                }
             }
             else if (window.getIsToLoad())
             {
