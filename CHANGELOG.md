@@ -4,7 +4,10 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## Em desenvolvimento
 
-- DMA: recargas do DMC NTSC agora iniciam na fase put; a DMA de OAM aguarda as duas escritas de instruções RMW em `$4014`. AccuracyCoin passou de 98 para 109/147, sem regressões PASS/FAIL. Adicionados testes de fase, cadência, parada e retomada da CPU. O atraso inicial do DMC, cancelamentos e conflitos de barramento continuam pendentes.
+- Mapper 23: corrigida a decodificação VRC4e e separadas as variantes NES 2.0 VRC4f/VRC4e/VRC2b. O VRC2b implementa o latch de um bit e não habilita os recursos exclusivos do VRC4. Testes cobrem bancos, IRQ, RAM, bateria, cabeçalhos e save states. Save states antigos do mapper 23 são incompatíveis com o novo payload.
+- Save states: apenas os formatos atuais `R2NU` (NTSC) e `R2NV` (PAL) são aceitos. Estados anteriores são rejeitados sem alterar o console.
+- DMA: a carga inicial do DMC NTSC respeita o atraso após `$4015`, e leituras DMC podem ativar registradores internos quando a CPU está parada em `$4000-$401F`. AccuracyCoin passou de 109 para 111/147, sem regressões PASS/FAIL. Os save states `R2NU`/`R2NV` preservam a espera. Cancelamentos, conflitos durante OAM e detalhes PAL continuam pendentes.
+- DMA: recargas do DMC NTSC agora iniciam na fase put; a DMA de OAM aguarda as duas escritas de instruções RMW em `$4014`. AccuracyCoin passou de 98 para 109/147, sem regressões PASS/FAIL. Adicionados testes de fase, cadência, parada e retomada da CPU.
 
 ## [1.2.5] - 2026-11-05
 

@@ -55,9 +55,9 @@ Save states are stored in `savestates/`. Battery saves use `battery/<ROM CRC32>.
 
 R2NES is actively developed. Mapper support does not guarantee that every game using it works correctly. CPU/PPU/APU timing and board coverage remain incomplete, and a small number of ROM-specific workarounds are still present.
 
-- NTSC save states use `R2NL`, or `R2NM` for mapper 69 with expansion audio; PAL states use `R2NN`. States cannot be exchanged between regions. Older formats are rejected, except that mapper 69 accepts its legacy `R2NL` states in NTSC. Earlier emulator versions cannot read the new formats.
+- NTSC save states use `R2NU` and PAL states use `R2NV`. States cannot be exchanged between regions. Older formats are rejected, and earlier emulator versions cannot read the current formats.
 - Unlimited Sprites changes hardware behavior. Disable it when checking normal sprite limits and compatibility.
-- Mapper 147 supports the 72-pin latch variant; the JV001 variant is not implemented. Mapper 150 supports the CPU D2 pad setting.
+- Mapper 23 supports the iNES VRC4-compatible superset and NES 2.0 submappers 1 (VRC4f), 2 (VRC4e) and 3 (VRC2b); see the [test documentation](tests/README.md) for memory limits. Mapper 147 supports the 72-pin latch variant; the JV001 variant is not implemented. Mapper 150 supports the CPU D2 pad setting.
 - Video currently uses SDL3's `SDL_Renderer`. Custom GPU shaders remain future work.
 
 See the [compatibility list](COMPATIBILITY_LIST.md) for game observations and the [test documentation](tests/README.md) for board details, automated checks, and known limitations.
