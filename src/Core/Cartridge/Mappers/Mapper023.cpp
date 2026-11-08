@@ -1,12 +1,15 @@
 #include "Core/Cartridge/Mappers/Mapper023.h"
+#include <algorithm>
 #include <cstring>
 #include <type_traits>
 #include "Core/Memory/StateRead.h"
 
 namespace R2NES::Core
 {
-    Mapper023::Mapper023(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror)
-        : Mapper(prgBanks, chrBanks), mirrorMode(mirror), ogMirrorMode(mirror)
+    Mapper023::Mapper023(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror,
+                         uint8_t submapper, uint16_t ramBytes, bool battery)
+        : Mapper(prgBanks, chrBanks), mirrorMode(mirror), ogMirrorMode(mirror),
+          submapper(submapper), ramBytes(ramBytes), battery(battery)
     {
         reset();
     }
@@ -21,7 +24,8 @@ namespace R2NES::Core
         prgMode = false;
         prgRamEnable = true;
 
-        std::memset(vPRGRAM, 0, sizeof(vPRGRAM));
+        if (submapper == 3)
+            vPRGRAM[0] = 0;
         std::memset(chrBank, 0, sizeof(chrBank));
         std::memset(chrBankRegLow, 0, sizeof(chrBankRegLow));
         std::memset(chrBankRegHigh, 0, sizeof(chrBankRegHigh));
@@ -52,10 +56,17 @@ namespace R2NES::Core
     {
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
-            if (prgRamEnable)
+            if (submapper == 3 && addr < 0x7000)
             {
                 mapped_addr = 0xFFFFFFFF;
-                data = vPRGRAM[addr & 0x1FFF];
+                data = (data & 0xFE) | (vPRGRAM[0] & 1);
+                return true;
+            }
+            if (submapper != 3 && ramBytes && prgRamEnable &&
+                (ramBytes == 8192 || addr < 0x7000))
+            {
+                mapped_addr = 0xFFFFFFFF;
+                data = vPRGRAM[addr & (ramBytes - 1)];
                 return true;
             }
             return false;
@@ -96,9 +107,16 @@ namespace R2NES::Core
     {
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
-            if (prgRamEnable)
+            if (submapper == 3 && addr < 0x7000)
             {
-                vPRGRAM[addr & 0x1FFF] = data;
+                vPRGRAM[0] = data & 1;
+                mapped_addr = 0xFFFFFFFF;
+                return true;
+            }
+            if (submapper != 3 && ramBytes && prgRamEnable &&
+                (ramBytes == 8192 || addr < 0x7000))
+            {
+                vPRGRAM[addr & (ramBytes - 1)] = data;
                 mapped_addr = 0xFFFFFFFF;
                 return true;
             }
@@ -111,14 +129,11 @@ namespace R2NES::Core
 
             uint16_t major = addr & 0xF000;
 
-            // Decodificação flexível para VRC2b (CPU A0, A1), VRC4e (CPU A2, A3) e VRC4f (CPU A3, A2)
-            uint8_t regOffset = 0;
-            regOffset |= (addr & 0x01);        // A0 -> bit 0 (VRC2b)
-            regOffset |= (addr & 0x02);        // A1 -> bit 1 (VRC2b)
-            regOffset |= ((addr >> 2) & 0x01); // A2 -> bit 0 (VRC4e)
-            regOffset |= ((addr >> 2) & 0x02); // A3 -> bit 1 (VRC4e)
-            regOffset |= ((addr >> 3) & 0x01); // A3 -> bit 0 (VRC4f)
-            regOffset |= ((addr >> 1) & 0x02); // A2 -> bit 1 (VRC4f)
+            // VRC2b/VRC4f usam A0/A1; VRC4e usa A2/A3. No iNES sem
+            // submapper, o superset combina apenas essas duas ligações.
+            const uint8_t regOffset = submapper == 2   ? ((addr >> 2) & 3)
+                                      : submapper == 0 ? ((addr | (addr >> 2)) & 3)
+                                                       : (addr & 3);
 
             switch (major)
             {
@@ -127,9 +142,9 @@ namespace R2NES::Core
                 break;
 
             case 0x9000: // Espelhamento & PRG Swap / WRAM Control ($9000-$9003)
-                if (regOffset == 0 || regOffset == 1)
+                if (submapper == 3 || regOffset == 0 || regOffset == 1)
                 {
-                    switch (data & 0x03)
+                    switch (data & (submapper == 3 ? 0x01 : 0x03))
                     {
                     case 0:
                         mirrorMode = MirrorMode::VERTICAL;
@@ -186,6 +201,8 @@ namespace R2NES::Core
             }
 
             case 0xF000: // IRQ Control ($F000-$F003)
+                if (submapper == 3)
+                    break;
                 if (regOffset == 0)
                 {
                     irqLatch = (irqLatch & 0xF0) | (data & 0x0F);
@@ -199,11 +216,11 @@ namespace R2NES::Core
                     irqEnableOnAck = (data & 0x01) != 0;
                     irqEnabled = (data & 0x02) != 0;
                     irqMode = (data & 0x04) != 0;
+                    irqPrescaler = 341;
 
                     if (irqEnabled)
                     {
                         irqCounter = irqLatch;
-                        irqPrescaler = 341;
                     }
                     irqActive = false;
                 }
@@ -218,6 +235,20 @@ namespace R2NES::Core
         }
 
         return false;
+    }
+
+    std::vector<uint8_t> Mapper023::getBatteryData() const
+    {
+        return battery ? std::vector<uint8_t>(vPRGRAM, vPRGRAM + ramBytes) : std::vector<uint8_t>{};
+    }
+
+    bool Mapper023::setBatteryData(const std::vector<uint8_t> &data)
+    {
+        if (data.size() != (battery ? ramBytes : 0))
+            return false;
+        if (battery)
+            std::copy(data.begin(), data.end(), vPRGRAM);
+        return true;
     }
 
     bool Mapper023::ppuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data, uint32_t systemClockCounter)
@@ -325,6 +356,9 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&irqMode), sizeof(irqMode));
         os.write(reinterpret_cast<const char *>(&irqActive), sizeof(irqActive));
         os.write(reinterpret_cast<const char *>(&irqPrescaler), sizeof(irqPrescaler));
+        os.put(submapper | (ramBytes == 2048 ? 4 : ramBytes == 8192 ? 8
+                                                                    : 0) |
+               (battery ? 16 : 0));
     }
 
     void Mapper023::loadState(std::istream &is)
@@ -349,11 +383,19 @@ namespace R2NES::Core
         readStateBool(is, next.irqMode);
         readStateBool(is, next.irqActive);
         is.read(reinterpret_cast<char *>(&next.irqPrescaler), sizeof(irqPrescaler));
+        const int config = is.get();
         bool valid = original == static_cast<MirrorValue>(ogMirrorMode) &&
+                     config == (submapper | (ramBytes == 2048 ? 4 : ramBytes == 8192 ? 8
+                                                                                     : 0) |
+                                (battery ? 16 : 0)) &&
                      (mirror == original || (mirror >= static_cast<MirrorValue>(MirrorMode::HORIZONTAL) &&
                                              mirror <= static_cast<MirrorValue>(MirrorMode::ONESCREEN_HI))) &&
                      next.prgBank0 <= 31 && next.prgBank1 <= 31 &&
                      next.irqPrescaler >= 1 && next.irqPrescaler <= 341;
+        if (submapper == 3)
+            valid = valid && (mirror == static_cast<MirrorValue>(MirrorMode::HORIZONTAL) || mirror == static_cast<MirrorValue>(MirrorMode::VERTICAL)) &&
+                    !next.prgMode && !next.irqEnabled && !next.irqEnableOnAck &&
+                    !next.irqMode && !next.irqActive && next.vPRGRAM[0] <= 1;
         for (unsigned i = 0; i < 8; ++i)
             valid = valid && next.chrBank[i] <= 0x1ff && next.chrBankRegLow[i] <= 15 && next.chrBankRegHigh[i] <= 31;
         if (!is || !valid)
@@ -362,6 +404,22 @@ namespace R2NES::Core
             return;
         }
         next.mirrorMode = static_cast<MirrorMode>(mirror);
-        *this = next;
+        // A configuração é imutável; todos os demais campos foram validados.
+        mirrorMode = next.mirrorMode;
+        prgBank0 = next.prgBank0;
+        prgBank1 = next.prgBank1;
+        prgMode = next.prgMode;
+        prgRamEnable = next.prgRamEnable;
+        std::memcpy(vPRGRAM, next.vPRGRAM, sizeof(vPRGRAM));
+        std::memcpy(chrBank, next.chrBank, sizeof(chrBank));
+        std::memcpy(chrBankRegLow, next.chrBankRegLow, sizeof(chrBankRegLow));
+        std::memcpy(chrBankRegHigh, next.chrBankRegHigh, sizeof(chrBankRegHigh));
+        irqLatch = next.irqLatch;
+        irqCounter = next.irqCounter;
+        irqEnabled = next.irqEnabled;
+        irqEnableOnAck = next.irqEnableOnAck;
+        irqMode = next.irqMode;
+        irqActive = next.irqActive;
+        irqPrescaler = next.irqPrescaler;
     }
 }

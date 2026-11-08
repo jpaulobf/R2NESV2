@@ -364,6 +364,24 @@ namespace R2NES::Core
         }
         prgBanks = static_cast<uint16_t>(prgSize / 16384);
         chrBanks = static_cast<uint16_t>(chrSize / 8192);
+        if (mapperID == 23)
+        {
+            const uint32_t ram = mmc1Config.prgRamSize, nvram = mmc1Config.prgNvRamSize;
+            const auto powerOfTwo = [](size_t n)
+            { return n && !(n & (n - 1)); };
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
+            if (submapper > 3 || prgBanks > 16 || !powerOfTwo(prgBanks) ||
+                chrBanks > (submapper == 3 ? 32 : 64) || (chrBanks && !powerOfTwo(chrBanks)) ||
+                mirror == MirrorMode::FOUR_SCREEN || (header.mapper1 & 4) ||
+                (isNes2Header && ((ram && nvram) ||
+                                  (ram && ram != 2048 && ram != 8192) || (nvram && nvram != 2048 && nvram != 8192) ||
+                                  (submapper == 3 && (ram || nvram)) || chrRam != (chrBanks ? 0 : 7) ||
+                                  (static_cast<uint8_t>(header.unused[3]) & 3))))
+            {
+                std::cerr << "Error: Unsupported Mapper 23 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
         if (mapperID == 69)
         {
             const uint32_t ram = mmc1Config.prgRamSize, nvram = mmc1Config.prgNvRamSize;
@@ -514,7 +532,7 @@ namespace R2NES::Core
         if (prgSize > buffer.size() - offset)
         {
             if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
-                mapperID == 11 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || isNes2Header)
+                mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || isNes2Header)
             {
                 std::cerr << "Error: Truncated PRG ROM." << std::endl;
                 return false;
@@ -548,7 +566,7 @@ namespace R2NES::Core
             if (chrSize > buffer.size() - offset)
             {
                 if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 5 || mapperID == 9 ||
-                    mapperID == 11 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || isNes2Header)
+                    mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || isNes2Header)
                 {
                     std::cerr << "Error: Truncated CHR ROM." << std::endl;
                     return false;
@@ -615,7 +633,9 @@ namespace R2NES::Core
             pMapper = std::make_shared<Mapper011>(prgBanks, chrBanks, mirror);
             break;
         case 23:
-            pMapper = std::make_shared<Mapper023>(prgBanks, chrBanks, mirror);
+            pMapper = std::make_shared<Mapper023>(prgBanks, chrBanks, mirror, submapper,
+                                                  static_cast<uint16_t>(isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : 8192),
+                                                  isNes2Header ? mmc1Config.prgNvRamSize != 0 : (header.mapper1 & 2) != 0);
             break;
         case 40:
             pMapper = std::make_shared<Mapper040>(prgBanks, chrBanks);

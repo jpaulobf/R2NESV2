@@ -69,7 +69,6 @@ namespace R2NES::Core
         // Serialização para Save / Load states
         virtual void saveState(std::ostream &os) = 0;
         virtual void loadState(std::istream &is) = 0;
-        virtual void loadLegacyState(std::istream &is) { loadState(is); }
 
         // Somente memória não volátil, em ordem física; nunca registradores ou RAM de trabalho.
         virtual std::vector<uint8_t> getBatteryData() const;

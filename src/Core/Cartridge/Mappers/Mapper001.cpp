@@ -366,7 +366,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(nPRGStaticRAM),
                  static_cast<std::streamsize>(nPRGRAMBanks) * 0x2000);
         os.write(reinterpret_cast<const char *>(&nLastWriteCycle), sizeof(nLastWriteCycle));
-        // Bit 6 antes reservado: conserva o tamanho dos estados antigos e aceita ciclo zero.
+        // Bit 6 registra se houve escrita, inclusive no ciclo zero.
         const uint8_t packedHigh = nPRGBankHigh | (hasLastWrite ? 0x40 : 0);
         os.write(reinterpret_cast<const char *>(&packedHigh), sizeof(packedHigh));
     }
@@ -390,12 +390,13 @@ namespace R2NES::Core
         if (candidate.nControlRegister > 31 || candidate.nCHRBankSelect0 > 31 ||
             candidate.nCHRBankSelect1 > 31 || candidate.nPRGBankSelect > 31 || count > 4 ||
             candidate.nShiftRegister > 31 || (candidate.nPRGBankHigh & ~0xC1) ||
+            (!(candidate.nPRGBankHigh & 0x40) && candidate.nLastWriteCycle != 0) ||
             (candidate.nShiftRegister & ((1u << (5 - count)) - 1)))
         {
             is.setstate(std::ios::failbit);
             return;
         }
-        candidate.hasLastWrite = (candidate.nPRGBankHigh & 0x40) || candidate.nLastWriteCycle != 0;
+        candidate.hasLastWrite = (candidate.nPRGBankHigh & 0x40) != 0;
         candidate.nPRGBankHigh &= 0x80;
         candidate.updateExtendedPrgBank();
         *this = candidate;

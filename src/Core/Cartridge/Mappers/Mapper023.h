@@ -9,7 +9,8 @@ namespace R2NES::Core
     class Mapper023 : public Mapper
     {
     public:
-        Mapper023(uint8_t prgBanks, uint8_t chrBanks, MirrorMode mirror);
+        Mapper023(uint16_t prgBanks, uint16_t chrBanks, MirrorMode mirror,
+                  uint8_t submapper = 0, uint16_t ramBytes = 8192, bool battery = false);
         ~Mapper023();
 
         bool cpuMapRead(uint16_t addr, uint32_t &mapped_addr, uint8_t &data) override;
@@ -26,10 +27,15 @@ namespace R2NES::Core
         // Serialização para Save / Load states
         void saveState(std::ostream &os) override;
         void loadState(std::istream &is) override;
+        std::vector<uint8_t> getBatteryData() const override;
+        bool setBatteryData(const std::vector<uint8_t> &data) override;
 
     private:
         MirrorMode mirrorMode = MirrorMode::HORIZONTAL;
         MirrorMode ogMirrorMode = MirrorMode::HORIZONTAL;
+        const uint8_t submapper;
+        const uint16_t ramBytes;
+        const bool battery;
 
         // Regs de bancos PRG (unidades de 8KB)
         uint8_t prgBank0 = 0;
