@@ -50,7 +50,7 @@ namespace R2NES::Core
 
         // Serialização para Save / Load states
         void saveState(std::ostream &os);
-        void loadState(std::istream &is, bool includesFrameBuffer = true);
+        void loadState(std::istream &is);
 
         const std::array<uint8_t, 32> &getPaletteTable() const { return paletteTable; }
         VRAM &getVram();

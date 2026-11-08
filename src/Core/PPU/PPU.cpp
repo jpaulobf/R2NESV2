@@ -1520,7 +1520,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&pendingMapperRead), sizeof(pendingMapperRead));
     }
 
-    void PPU::loadState(std::istream &is, bool includesFrameBuffer)
+    void PPU::loadState(std::istream &is)
     {
         pendingScrollConflictAxes = 0;
         pendingScrollConflictScanline = -2;
@@ -1577,8 +1577,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(nextSprites.data()), sizeof(nextSprites));
         is.read(reinterpret_cast<char *>(oamMemory.data()), oamMemory.size());
         is.read(reinterpret_cast<char *>(paletteTable.data()), paletteTable.size());
-        if (includesFrameBuffer)
-            is.read(reinterpret_cast<char *>(frameBuffer.data()), frameBuffer.size() * sizeof(frameBuffer[0]));
+        is.read(reinterpret_cast<char *>(frameBuffer.data()), frameBuffer.size() * sizeof(frameBuffer[0]));
         readStateBool(is, tilesEnabled);
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
