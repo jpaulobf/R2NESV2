@@ -42,7 +42,6 @@ namespace R2NES::Core
 
         // Valida e restaura um estado; sinaliza falha no fluxo se for inválido.
         void loadState(std::istream &) override;
-        void loadLegacyState(std::istream &) override;
 
         // Retorna a RAM persistente quando o cartucho possui bateria.
         std::vector<uint8_t> getBatteryData() const override;
@@ -67,7 +66,6 @@ namespace R2NES::Core
         uint32_t noiseLfsr = 1;
         uint8_t envelopeStep = 31, envelopeAttack = 0;
         bool envelopeHolding = false;
-        void loadStateImpl(std::istream &, bool legacy);
         void audioTick();
         void audioWrite(uint8_t value);
     };

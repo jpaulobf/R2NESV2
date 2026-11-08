@@ -247,9 +247,7 @@ namespace R2NES::Core
         s.put(envelopeAttack);
         s.put(envelopeHolding ? 1 : 0);
     }
-    void Mapper069::loadState(std::istream &s) { loadStateImpl(s, false); }
-    void Mapper069::loadLegacyState(std::istream &s) { loadStateImpl(s, true); }
-    void Mapper069::loadStateImpl(std::istream &s, bool legacy)
+    void Mapper069::loadState(std::istream &s)
     {
         // Lê em temporários para não alterar o mapper caso o estado seja inválido.
         std::array<uint8_t, 8> c{};
@@ -268,27 +266,6 @@ namespace R2NES::Core
             p[1] > 63 || p[2] > 63 || p[3] > 63)
         {
             s.setstate(std::ios::failbit);
-            return;
-        }
-        if (legacy)
-        {
-            audioRegs.fill(0);
-            toneCounter.fill(0);
-            toneOutput.fill(0);
-            audioSelect = audioDivider = noiseCounter = 0;
-            envelopeCounter = 0;
-            noiseLfsr = 1;
-            envelopeStep = 31;
-            envelopeAttack = 0;
-            envelopeHolding = false;
-            chr = c;
-            prg = p;
-            command = v[0];
-            control = v[1];
-            counter = v[2] | (uint16_t(v[3]) << 8);
-            irq = v[4];
-            mirror = static_cast<MirrorMode>(v[5]);
-            ram = r;
             return;
         }
         std::array<uint8_t, 40> audio{};
