@@ -159,6 +159,47 @@ conflitos e o comportamento PAL do DMC ainda exigem investigação. `DMA +
 $2002 Read` continua falhando. Referências: [NESdev: DMA](https://www.nesdev.org/wiki/DMA)
 e [pesquisa sobre os registradores internos durante DMA](https://forums.nesdev.org/viewtopic.php?t=23543).
 
+### DMA durante escritas não oficiais
+
+Em 2026-11-08, o AccuracyCoin passou de **111 para 116/147**, sem regressões
+PASS/FAIL. Os cinco novos PASS são SHA indireto,Y, SHA absoluto,Y, SHS/TAS,
+SHY e SHX. Quando a parada DMC ocorre na leitura indexada imediatamente antes
+da escrita, o valor deixa de ser mascarado pelo byte alto do endereço base;
+com cruzamento de página, a alteração do endereço continua usando a máscara.
+As condições seguem o comportamento de CPU inicial já escolhido pela suíte;
+as instruções são instáveis e outros chips podem diferir. Referência:
+[NESdev: instruções não oficiais](https://www.nesdev.org/wiki/Programming_with_unofficial_opcodes).
+
+Os testes cobrem as cinco instruções com e sem cruzamento de página, DMA no
+ciclo relevante, DMA um ciclo antes e ausência de DMA. Também verificam a
+restauração durante a parada e a rejeição com rollback de estados corrompidos.
+O indicador da parada usa um campo já serializado da CPU, mantendo o formato
+de save state. Um estado salvo por uma versão anterior exatamente durante
+essa interrupção rara não contém o indicador e pode retomar com o resultado
+antigo. Log completo: `build-headless/accuracycoin/dmc-unstable-stores.txt`.
+
+### Sequenciador de quadro e IRQ da APU
+
+Em 2026-11-08, o AccuracyCoin passou de **116 para 119/147**, sem regressões
+PASS/FAIL. Passaram `Frame Counter 4-step`, `Frame Counter IRQ` e `DMA + $2002
+Read` (código informativo 1). O sequenciador de quatro passos reinicia um
+ciclo após o último clock, evitando adiantar as sequências seguintes.
+
+Em NTSC, a leitura de `$4015` agenda a limpeza da flag de IRQ para a próxima
+transição de put para get. A flag pode ser reafirmada durante os três ciclos
+do último passo e fica temporariamente visível nos dois primeiros mesmo com a
+IRQ inibida, sem acionar a linha de interrupção. Esse ajuste também permite que
+a ROM sincronize corretamente o teste `DMA + $2002 Read`.
+
+Os testes sintéticos verificam a cadência de length counter em NTSC e PAL,
+as fases de leitura, a reafirmação da flag, a inibição e a restauração da
+limpeza pendente, inclusive no estado completo do console. O formato atual de
+save state mantém o mesmo tamanho; versões anteriores podem rejeitar um
+estado salvo exatamente com a limpeza pendente. O comportamento PAL dessa
+limpeza e da indicação com IRQ inibida não foi validado nesta rodada.
+Resultado: `build-headless/accuracycoin/frame-irq-inhibit.txt`. Referência:
+[NESdev: timing da IRQ da APU](https://forums.nesdev.org/viewtopic.php?t=635).
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
