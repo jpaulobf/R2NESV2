@@ -1,5 +1,6 @@
 #include "Window.h"
 #include "ScopedImGuiContext.h"
+#include "NtscShaderPipeline.h"
 #include <iostream>
 #include <algorithm>
 #include <cctype>
@@ -140,6 +141,7 @@ namespace R2NES::Core
             ImGui::DestroyContext(imguiContext);
         }
 
+        SDL_DestroyTexture(shaderTexture);
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -367,6 +369,34 @@ namespace R2NES::Core
     // Armazena o efeito de pós-processamento escolhido pelo menu.
     void Window::setShader(ShaderType shader)
     {
+        if (shader == ShaderType::SCANLINES || shader == ShaderType::XBR2P || shader == ShaderType::XBR6P3D || shader == ShaderType::HQ2 || shader == ShaderType::SCALEFX)
+        {
+            auto &selected = shader == ShaderType::XBR2P ? xbrShader : shader == ShaderType::XBR6P3D ? xbr6pShader
+                                                                   : shader == ShaderType::HQ2       ? hq2Shader
+                                                                   : shader == ShaderType::SCALEFX   ? scaleFxShader
+                                                                                                     : ntscShader;
+            if (!selected)
+            {
+                auto candidate = std::make_unique<NtscShaderPipeline>();
+                std::string error;
+                const char *base = SDL_GetBasePath();
+                const char *presetName = shader == ShaderType::XBR2P ? "shaders/xbr/super-xbr-2p.cgp" : shader == ShaderType::XBR6P3D ? "shaders/xbr/super-4xbr-3d-6p-smoother-nes.cgp"
+                                                                                                    : shader == ShaderType::HQ2       ? "shaders/hqx/hq2x-visual.cgp"
+                                                                                                    : shader == ShaderType::SCALEFX   ? "shaders/scalefx/scalefx-visual.cgp"
+                                                                                                                                      : "shaders/ntsc/ntsc-256px-gauss-scanline.cgp";
+                const char *effectName = shader == ShaderType::XBR2P ? "Super xbr 2p" : shader == ShaderType::XBR6P3D ? "Super 4xbr 3D 6p smoother"
+                                                                                    : shader == ShaderType::HQ2       ? "HQ2"
+                                                                                    : shader == ShaderType::SCALEFX   ? "ScaleFX"
+                                                                                                                      : "Gauss Scanlines";
+                const auto preset = std::filesystem::path(base ? base : "") / presetName;
+                if (!candidate->initialize(preset, error))
+                {
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, effectName, error.c_str(), window);
+                    return;
+                }
+                selected = std::move(candidate);
+            }
+        }
         this->shader = shader;
     }
 
@@ -613,7 +643,7 @@ namespace R2NES::Core
                 }
                 if (ImGui::BeginMenu("Shaders"))
                 {
-                    const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Scanlines"}, {ShaderType::CRT, "CRT"}, {ShaderType::CRT3D, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}, {ShaderType::XBRZMULTI, "xBRZ Multi"}};
+                    const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Gauss Scanlines"}, {ShaderType::HQ2, "HQ2"}, {ShaderType::CRT, "CRT"}, {ShaderType::CRT3D, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}};
                     for (const auto &[shaderType, label] : shaders)
                         if (ImGui::MenuItem(label, nullptr, shader == shaderType))
                             setShader(shaderType);
@@ -1399,13 +1429,60 @@ namespace R2NES::Core
             dest_rect.h = render_h;
             dest_rect.x = (current_window_w - render_w) / 2;
             dest_rect.y = (current_window_h - render_h) / 2;
-
-            SDL_RenderTexture(renderer, texture, &src_rect, &dest_rect);
         }
         else
         {
-            SDL_RenderTexture(renderer, texture, &src_rect, nullptr);
+            int outputWidth = 0, outputHeight = 0;
+            SDL_GetRenderOutputSize(renderer, &outputWidth, &outputHeight);
+            dest_rect = {0, 0, static_cast<float>(outputWidth), static_cast<float>(outputHeight)};
         }
+
+        bool renderedShader = false;
+        NtscShaderPipeline *activeShader = shader == ShaderType::SCANLINES ? ntscShader.get() : shader == ShaderType::XBR2P ? xbrShader.get()
+                                                                                            : shader == ShaderType::XBR6P3D ? xbr6pShader.get()
+                                                                                            : shader == ShaderType::HQ2     ? hq2Shader.get()
+                                                                                            : shader == ShaderType::SCALEFX ? scaleFxShader.get()
+                                                                                                                            : nullptr;
+        if (activeShader && dest_rect.w >= 1 && dest_rect.h >= 1)
+        {
+            const int outWidth = static_cast<int>(dest_rect.w), outHeight = static_cast<int>(dest_rect.h);
+            const int srcX = static_cast<int>(src_rect.x), srcY = static_cast<int>(src_rect.y);
+            std::string error;
+            if (activeShader->render(finalPixels + srcY * width + srcX, width,
+                                     {static_cast<int>(src_rect.w), static_cast<int>(src_rect.h)},
+                                     {outWidth, outHeight}, shaderPixels, error))
+            {
+                if (!shaderTexture || shaderTextureWidth != outWidth || shaderTextureHeight != outHeight)
+                {
+                    SDL_DestroyTexture(shaderTexture);
+                    shaderTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                                                      SDL_TEXTUREACCESS_STREAMING, outWidth, outHeight);
+                    shaderTextureWidth = outWidth;
+                    shaderTextureHeight = outHeight;
+                    if (shaderTexture)
+                    {
+                        SDL_SetTextureBlendMode(shaderTexture, SDL_BLENDMODE_NONE);
+                        SDL_SetTextureScaleMode(shaderTexture, SDL_SCALEMODE_NEAREST);
+                    }
+                }
+                if (shaderTexture && SDL_UpdateTexture(shaderTexture, nullptr, shaderPixels.data(), outWidth * sizeof(uint32_t)) &&
+                    SDL_RenderTexture(renderer, shaderTexture, nullptr, &dest_rect))
+                    renderedShader = true;
+                else
+                    error = SDL_GetError();
+            }
+            if (!renderedShader)
+            {
+                const char *effectName = shader == ShaderType::XBR2P ? "Super xbr 2p" : shader == ShaderType::XBR6P3D ? "Super 4xbr 3D 6p smoother"
+                                                                                    : shader == ShaderType::HQ2       ? "HQ2"
+                                                                                    : shader == ShaderType::SCALEFX   ? "ScaleFX"
+                                                                                                                      : "Gauss Scanlines";
+                shader = ShaderType::NONE;
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, effectName, error.c_str(), window);
+            }
+        }
+        if (!renderedShader)
+            SDL_RenderTexture(renderer, texture, &src_rect, &dest_rect);
 
         if (imguiContext)
         {
