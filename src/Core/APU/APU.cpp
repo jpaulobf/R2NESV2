@@ -83,6 +83,7 @@ namespace R2NES::Core
         apuCyclePhase = false;
         frameIrqEnabled = false;
         frameIrqFlag = false;
+        frameIrqClearPending = false;
         frameCounterWritePending = false;
         frameCounterWriteDelay = 0;
         pendingFrameCounterMode = 4;
@@ -247,7 +248,10 @@ namespace R2NES::Core
             pendingFrameCounterMode = (data & 0x80) ? 5 : 4;
             frameIrqEnabled = (data & 0x40) == 0;
             if (!frameIrqEnabled)
+            {
                 frameIrqFlag = false;
+                frameIrqClearPending = false;
+            }
 
             // Inclui o step() do ciclo de escrita na contagem de 3 ou 4
             // ciclos, conforme a fase. A CPU escreve antes do step da APU.
@@ -281,12 +285,25 @@ namespace R2NES::Core
         // O bit 5 é open bus no hardware; o barramento atual não mantém uma
         // trava geral de open bus, então ele permanece zero nesta implementação.
         if (!readOnly)
-            frameIrqFlag = false;
+        {
+            if (pal)
+                frameIrqFlag = false;
+            else
+                frameIrqClearPending = true;
+        }
         return status;
     }
 
     void APU::step()
     {
+        // Em NTSC, a leitura de $4015 agenda a limpeza para a transição
+        // seguinte de put para get. A CPU acessa o barramento antes do step;
+        // nesse ponto o contador do sistema já aponta para o próximo ciclo.
+        if (frameIrqClearPending && (bus ? (bus->systemClockCounter & 1) == 0 : apuCyclePhase))
+        {
+            frameIrqFlag = false;
+            frameIrqClearPending = false;
+        }
         bool frameCounterReset = false;
         if (frameCounterWritePending)
         {
@@ -307,6 +324,17 @@ namespace R2NES::Core
 
         if (frameCounterMode == 4)
         {
+            // O sinal de IRQ é afirmado nos três ciclos em torno do último
+            // passo; uma leitura no meio dessa janela pode ser seguida por
+            // uma nova afirmação da flag.
+            const uint32_t lastStep = pal ? 33253 : 29829;
+            if (frameClockCounter >= lastStep - 1 && frameClockCounter <= lastStep + 1)
+            {
+                if (!pal && !frameIrqEnabled)
+                    frameIrqFlag = frameClockCounter <= lastStep;
+                else if (frameIrqEnabled)
+                    frameIrqFlag = true;
+            }
             if (frameClockCounter == (pal ? 8313 : 7457))
                 quarterFrame = true;
             else if (frameClockCounter == (pal ? 16627 : 14913))
@@ -316,8 +344,9 @@ namespace R2NES::Core
             else if (frameClockCounter == (pal ? 33253 : 29829))
             {
                 quarterFrame = halfFrame = true;
-                if (frameIrqEnabled)
-                    frameIrqFlag = true;
+            }
+            else if (frameClockCounter == (pal ? 33254 : 29830))
+            {
                 frameClockCounter = 0;
             }
         }
@@ -874,7 +903,10 @@ namespace R2NES::Core
         write(frameIrqEnabled);
         write(frameIrqFlag);
         write(frameCounterWritePending);
-        write(frameCounterWriteDelay);
+        // Bit 7 antes reservado permite salvar a limpeza pendente sem mudar
+        // o tamanho do estado nem invalidar estados anteriores comuns.
+        const uint8_t savedFrameWriteDelay = frameCounterWriteDelay | (frameIrqClearPending ? 0x80 : 0);
+        write(savedFrameWriteDelay);
         write(pendingFrameCounterMode);
         write(cycleCounter);
         write(sampleSum);
@@ -972,7 +1004,10 @@ namespace R2NES::Core
         read(frameIrqEnabled);
         read(frameIrqFlag);
         read(frameCounterWritePending);
-        read(frameCounterWriteDelay);
+        uint8_t savedFrameWriteDelay = 0;
+        read(savedFrameWriteDelay);
+        frameCounterWriteDelay = savedFrameWriteDelay & 0x7F;
+        frameIrqClearPending = (savedFrameWriteDelay & 0x80) != 0;
         read(pendingFrameCounterMode);
         read(cycleCounter);
         read(sampleSum);
@@ -1051,7 +1086,7 @@ namespace R2NES::Core
                    (dmc.loadDelay != 0 && (!dmc.dmaPending || pal)) ||
                    (frameCounterMode != 4 && frameCounterMode != 5) ||
                    (pendingFrameCounterMode != 4 && pendingFrameCounterMode != 5) ||
-                   frameClockCounter >= (frameCounterMode == 4 ? (pal ? 33253u : 29829u) : (pal ? 41565u : 37281u)) ||
+                   frameClockCounter >= (frameCounterMode == 4 ? (pal ? 33254u : 29830u) : (pal ? 41565u : 37281u)) ||
                    frameCounterWriteDelay > 5 || !std::isfinite(cycleCounter) || cycleCounter < 0.0 ||
                    cycleCounter >= cpuClockRate() / 8000.0 ||
                    sampleCount > static_cast<uint32_t>(std::ceil(cpuClockRate() / 8000.0)) ||

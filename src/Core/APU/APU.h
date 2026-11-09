@@ -30,7 +30,7 @@ namespace R2NES::Core
         bool hasSamples() const { return !audioBuffer.empty(); }
         // Descarta amostras pendentes sem alterar canais ou filtros restaurados.
         void clearPendingSamples();
-        bool getIrqFlag() const { return frameIrqFlag || dmc.irqFlag; }
+        bool getIrqFlag() const { return (frameIrqFlag && frameIrqEnabled) || dmc.irqFlag; }
 
         // Interface usada pelo NES para transferir bytes do canal DMC e roubar
         // ciclos da CPU sem acoplar o APU ao escalonador principal.
@@ -216,6 +216,7 @@ namespace R2NES::Core
         bool apuCyclePhase = false;
         bool frameIrqEnabled = false;
         bool frameIrqFlag = false;
+        bool frameIrqClearPending = false;
         bool frameCounterWritePending = false;
         uint8_t frameCounterWriteDelay = 0;
         uint8_t pendingFrameCounterMode = 4;
