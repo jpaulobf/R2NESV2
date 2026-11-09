@@ -67,14 +67,16 @@ namespace R2NES::Core
     // - CRT: emulação de CRT 2D
     // - CRT3D: emulação de CRT com profundidade 3D
     // - SCALEFX: efeitos de escala (zoom/filtragem)
-    // - XBRZMULTI: algoritmo xBRZ multi-scale para upscaling de pixels
+    // - XBR2P, XBR6P3D: presets super-xBR para upscaling de pixels
     enum class ShaderType
     {
         NONE,
         SCANLINES,
+        HQ2,
         CRT,
         CRT3D,
         SCALEFX,
-        XBRZMULTI
+        XBR2P,
+        XBR6P3D
     };
 }
