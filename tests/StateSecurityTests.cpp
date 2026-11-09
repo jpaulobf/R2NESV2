@@ -70,12 +70,13 @@ int main(int argc, char **argv)
         };
         rejectApuByte(4, 3, "APU accepted invalid frame mode");
         rejectApuByte(9, 6, "APU accepted invalid frame-write delay");
+        rejectApuByte(9, 0x86, "APU accepted invalid frame-write delay with IRQ clear pending");
         rejectApuByte(10, 3, "APU accepted invalid pending mode");
         rejectApuByte(39, 16, "APU accepted invalid envelope volume");
         rejectApuByte(45, 8, "APU accepted invalid sweep shift");
         rejectApuByte(46, 8, "APU accepted invalid sweep timer");
         auto invalidClock = apuBaseline;
-        const uint32_t clock = 29829;
+        const uint32_t clock = 29830;
         std::memcpy(&invalidClock[0], &clock, sizeof(clock));
         APU clockTarget;
         std::istringstream clockInput(invalidClock);

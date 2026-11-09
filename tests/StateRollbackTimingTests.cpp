@@ -188,6 +188,74 @@ int main(int argc, char **argv)
         check(nes.insertCartridge(path.string()), "fixture ROM rejected");
         nes.reset();
         {
+            NES frame("");
+            frame.setCheatDirectory(dir / "no-cheats");
+            check(frame.insertCartridge(path.string()), "frame IRQ fixture rejected");
+            auto &bus = frame.getBus();
+            auto &apu = frame.getApu();
+            apu.setAudioOutputSuppressed(true);
+            apu.cpuWrite(0x4017, 0);
+            for (int i = 0; i < 30020; ++i)
+            {
+                ++bus.systemClockCounter;
+                apu.step();
+            }
+            if (bus.systemClockCounter & 1)
+            {
+                ++bus.systemClockCounter;
+                apu.step();
+            }
+            check((bus.cpuRead(0x4015) & 0x40) != 0, "frame IRQ fixture not set");
+            frame.step(false); // Leitura em get: a limpeza aguarda o put.
+            check(apu.getIrqFlag(), "frame IRQ cleared before pending checkpoint");
+            const auto pendingClear = save(frame);
+            frame.step(false);
+            check(!apu.getIrqFlag(), "frame IRQ did not clear after put");
+            const auto expected = save(frame);
+            load(frame, pendingClear);
+            check(apu.getIrqFlag(), "pending frame IRQ not restored");
+            frame.step(false);
+            check(!apu.getIrqFlag() && save(frame) == expected, "pending frame IRQ clear not restored");
+        }
+        {
+            NES special("");
+            special.setCheatDirectory(dir / "no-cheats");
+            check(special.insertCartridge(path.string()), "DMC store fixture rejected");
+            auto &cpu = special.getCpu();
+            auto &bus = special.getBus();
+            auto &apu = special.getApu();
+            while (!cpu.complete())
+                special.step(false);
+            apu.cpuWrite(0x4015, 0x10);
+            for (int i = 0; i < 5 && !apu.isDmcDmaReady(); ++i)
+            {
+                ++bus.systemClockCounter;
+                apu.step();
+            }
+            check(apu.isDmcDmaReady(), "DMC store request not ready");
+            bus.ram->write(0x300, 0x9C); // SHY $0500,X
+            bus.ram->write(0x301, 0x00);
+            bus.ram->write(0x302, 0x05);
+            bus.ram->write(0x500, 0xCC);
+            cpu.pc = 0x300;
+            cpu.x = 0;
+            cpu.y = 0xA5;
+            for (int i = 0; i < 3; ++i)
+                cpu.clock();
+            special.step(false); // A DMA interrompe a leitura indexada.
+            const auto interrupted = save(special);
+            verifyScenario(special, path, "DMC interrupted unstable store");
+            load(special, interrupted);
+            for (int i = 0; i < 6; ++i)
+                special.step(false);
+            check(bus.ram->read(0x500) == 0xA5, "restored DMC store lost unmasked value");
+            const auto expected = save(special);
+            load(special, interrupted);
+            for (int i = 0; i < 6; ++i)
+                special.step(false);
+            check(save(special) == expected, "DMC store replay changed after restore");
+        }
+        {
             auto &bus = nes.getBus();
             auto &pad = nes.getJoysticks().controller1;
             pad.setButton(IO::BUTTON_A, true);

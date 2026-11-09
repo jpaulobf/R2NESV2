@@ -117,6 +117,70 @@ int main()
             }
         }
 
+        // A parada DMC na leitura indexada imediatamente antes da escrita
+        // retira a máscara do dado, mas não da corrupção do endereço.
+        for (const uint8_t opcode : {uint8_t{0x93}, uint8_t{0x9F}, uint8_t{0x9B}, uint8_t{0x9C}, uint8_t{0x9E}})
+        {
+            for (const bool cross : {false, true})
+            {
+                // 0: sem DMA, 1: parada um ciclo antes, 2: parada na leitura indexada.
+                for (int scenario = 0; scenario < 3; ++scenario)
+                {
+                    NES storeNes("");
+                    auto &storeCpu = storeNes.getCpu();
+                    auto &storeBus = storeNes.getBus();
+                    auto &storeApu = storeNes.getApu();
+                    while (!storeCpu.complete())
+                        storeNes.step(false);
+                    storeBus.ram->write(0x300, opcode);
+                    storeBus.ram->write(0x301, opcode == 0x93 ? 0x20 : (cross ? 0xF0 : 0x00));
+                    storeBus.ram->write(0x302, cross ? 0x01 : 0x05);
+                    storeBus.ram->write(0x20, cross ? 0xF0 : 0x00);
+                    storeBus.ram->write(0x21, cross ? 0x01 : 0x05);
+                    storeBus.ram->write(0x000, 0xCC);
+                    storeBus.ram->write(0x200, 0xCC);
+                    storeBus.ram->write(0x500, 0xCC);
+                    storeCpu.pc = 0x300;
+                    storeCpu.a = 0xFF;
+                    storeCpu.x = opcode == 0x9C ? (cross ? 0x10 : 0) : 0xA5;
+                    storeCpu.y = opcode == 0x9C ? 0xA5 : (cross ? 0x10 : 0);
+                    if (scenario != 0)
+                    {
+                        storeApu.cpuWrite(0x4015, 0x10);
+                        for (int i = 0; i < 5 && !storeApu.isDmcDmaReady(); ++i)
+                        {
+                            ++storeBus.systemClockCounter;
+                            storeApu.step();
+                        }
+                        check(storeApu.isDmcDmaReady(), "DMC store test request missing");
+                        const int beforeDummy = opcode == 0x93 ? 4 : 3;
+                        for (int i = 0; i < beforeDummy - (scenario == 1 ? 1 : 0); ++i)
+                            storeCpu.clock();
+                        storeNes.step(false); // Início da parada, antes da leitura da CPU.
+                        std::ostringstream saved;
+                        storeCpu.saveState(saved);
+                        std::istringstream restore(saved.str());
+                        storeCpu.loadState(restore);
+                        check(bool(restore), "CPU state during DMC store rejected");
+                        for (int i = 0; i < 5 && storeApu.hasDmcDmaRequest(); ++i)
+                            storeNes.step(false);
+                        check(!storeApu.hasDmcDmaRequest(), "DMC store test fetch missing");
+                    }
+                    do
+                    {
+                        storeCpu.clock();
+                    } while (!storeCpu.complete());
+                    const uint8_t expected = scenario == 2 ? 0xA5 : (cross ? 0x00 : 0x04);
+                    check(storeBus.ram->read(cross ? 0x000 : 0x500) == expected,
+                          "DMC unstable store value or address incorrect");
+                    if (cross)
+                        check(storeBus.ram->read(0x200) == 0xCC, "DMC changed crossed store address");
+                    if (opcode == 0x9B)
+                        check(storeCpu.stkp == 0xA5, "TAS stack pointer incorrect after DMA");
+                }
+            }
+        }
+
         // INC $4014 deve concluir ambas as escritas antes da parada de OAM.
         for (const bool pal : {false, true})
         {
