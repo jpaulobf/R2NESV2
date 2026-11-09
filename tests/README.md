@@ -53,6 +53,20 @@ cmake --build build-headless --target mapper023-tests
 ctest --test-dir build-headless -R '^mapper023$' --output-on-failure
 ```
 
+## APU frame timing
+
+`apu-frame-timing` checks the third half-frame clock in four-step NTSC and PAL,
+the NTSC frame IRQ clear on each CPU phase, repeated assertions, IRQ inhibit,
+and serialization while a clear is pending. `state-rollback-timing` also
+restores a pending clear through a complete console save state. The NTSC
+AccuracyCoin checks pass for the four-step sequence and frame IRQ; PAL IRQ
+clear and inhibit behavior have not been validated against hardware here.
+
+```powershell
+cmake --build build-headless --target apu-frame-timing-tests
+ctest --test-dir build-headless -R '^apu-frame-timing$' --output-on-failure
+```
+
 ## AccuracyCoin baseline
 
 `accuracycoin-runner` is an optional headless diagnostic, not part of CTest.
@@ -80,6 +94,8 @@ NTSC DMC reload requests use the put phase at all 16 rates and both initial
 clock phases. A reload on CPU reads must halt for four cycles and then resume.
 The initial load is checked at both clock phases, along with a DMC/controller
 bus conflict and a control case without conflict.
+The SHA, TAS, SHY and SHX tests cover a DMC halt at the indexed dummy read,
+a halt on the preceding cycle, no DMA, page crossing and interrupted restore.
 `cpu-cycle` checks CPU read/write cycle prediction across all 256 opcodes in
 the existing scenarios, including interrupt polling and mid-instruction loads.
 It also checks sampled and unsampled controller strobes on both ports; the
