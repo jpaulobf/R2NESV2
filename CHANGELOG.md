@@ -2,8 +2,10 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## Em desenvolvimento
+## [1.3.0] - 2026-11-09
 
+- APU: corrigida a duração da sequência de quatro passos e o comportamento da flag de IRQ ao ler `$4015`, incluindo a janela de três ciclos e a indicação temporária com IRQ inibida. AccuracyCoin passou de 116 para 119/147, sem regressões PASS/FAIL; adicionados testes de ciclos e restauração.
+- CPU/DMC: corrigida a escrita das instruções não oficiais SHA, TAS, SHY e SHX quando uma DMA interrompe a leitura indexada anterior. AccuracyCoin passou de 111 para 116/147, sem regressões PASS/FAIL; testes cobrem ciclos adjacentes, cruzamento de página e save/load durante a parada.
 - Mapper 23: corrigida a decodificação VRC4e e separadas as variantes NES 2.0 VRC4f/VRC4e/VRC2b. O VRC2b implementa o latch de um bit e não habilita os recursos exclusivos do VRC4. Testes cobrem bancos, IRQ, RAM, bateria, cabeçalhos e save states. Save states antigos do mapper 23 são incompatíveis com o novo payload.
 - Save states: apenas os formatos atuais `R2NU` (NTSC) e `R2NV` (PAL) são aceitos. Estados anteriores são rejeitados sem alterar o console.
 - DMA: a carga inicial do DMC NTSC respeita o atraso após `$4015`, e leituras DMC podem ativar registradores internos quando a CPU está parada em `$4000-$401F`. AccuracyCoin passou de 109 para 111/147, sem regressões PASS/FAIL. Os save states `R2NU`/`R2NV` preservam a espera. Cancelamentos, conflitos durante OAM e detalhes PAL continuam pendentes.

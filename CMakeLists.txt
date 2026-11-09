@@ -8,7 +8,7 @@ set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF CACHE BOOL "" FORCE)
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS OFF CACHE BOOL "" FORCE)
 set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS OFF CACHE BOOL "" FORCE)
 
-project(R2NESV2 VERSION 1.0 LANGUAGES C CXX)
+project(R2NESV2 VERSION 1.3.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(R2NES_BUILD_GUI "Build the SDL3 / Dear ImGui application and GUI tests" ON)
@@ -64,10 +64,15 @@ if(R2NES_BUILD_GUI)
   add_executable(R2NESV2 src/Emulator.cpp ${APP_SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})
   target_include_directories(R2NESV2 PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
   target_link_libraries(R2NESV2 PRIVATE r2nes_core SDL3::SDL3-static zlibstatic)
+  if(WIN32)
+    target_link_libraries(R2NESV2 PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
+  endif()
   target_include_directories(R2NESV2 PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
   add_custom_command(TARGET R2NESV2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/resources" "$<TARGET_FILE_DIR:R2NESV2>/resources")
+    "${CMAKE_SOURCE_DIR}/resources" "$<TARGET_FILE_DIR:R2NESV2>/resources"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:R2NESV2>/shaders")
 endif()
 
 include(CTest)
@@ -75,6 +80,34 @@ if(BUILD_TESTING)
   add_executable(snapshot-buffer-tests tests/SnapshotBufferTests.cpp)
   target_include_directories(snapshot-buffer-tests PRIVATE src)
   add_test(NAME snapshot-buffer COMMAND snapshot-buffer-tests)
+
+  add_executable(shader-preset-tests tests/ShaderPresetTests.cpp src/Window/ShaderPreset.cpp)
+  target_include_directories(shader-preset-tests PRIVATE src)
+  add_test(NAME shader-preset COMMAND shader-preset-tests
+    "${CMAKE_SOURCE_DIR}/shaders/ntsc/ntsc-256px-gauss-scanline.cgp"
+    "${CMAKE_CURRENT_BINARY_DIR}/shader-preset-test-data")
+
+  if(WIN32)
+    add_executable(ntsc-shader-pipeline-tests tests/NtscShaderPipelineTests.cpp
+      src/Window/NtscShaderPipeline.cpp src/Window/ShaderPreset.cpp)
+    target_include_directories(ntsc-shader-pipeline-tests PRIVATE src)
+    target_link_libraries(ntsc-shader-pipeline-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
+    add_test(NAME ntsc-shader-pipeline COMMAND ntsc-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/ntsc/ntsc-256px-gauss-scanline.cgp")
+    add_executable(xbr-shader-pipeline-tests tests/XbrShaderPipelineTests.cpp
+      src/Window/NtscShaderPipeline.cpp src/Window/ShaderPreset.cpp)
+    target_include_directories(xbr-shader-pipeline-tests PRIVATE src)
+    target_link_libraries(xbr-shader-pipeline-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
+    add_test(NAME xbr-shader-pipeline COMMAND xbr-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/xbr/super-xbr-2p.cgp")
+    add_test(NAME xbr-6p-shader-pipeline COMMAND xbr-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/xbr/super-4xbr-3d-6p-smoother-nes.cgp"
+      "${CMAKE_SOURCE_DIR}/shaders/xbr/super-xbr-2p.cgp")
+    add_test(NAME hq2-shader-pipeline COMMAND xbr-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/hqx/hq2x-visual.cgp")
+    add_test(NAME scalefx-shader-pipeline COMMAND xbr-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/scalefx/scalefx-visual.cgp")
+  endif()
 
   if(R2NES_BUILD_GUI)
     add_executable(audio-manager-tests tests/AudioManagerTests.cpp src/System/AudioManager.cpp)
@@ -93,6 +126,9 @@ if(BUILD_TESTING)
       ${WINDOW_TEST_SOURCES} ${IMGUI_SOURCES} src/System/AudioManager.cpp src/System/GameStateManager.cpp src/Util/ConfigManager.cpp)
     target_include_directories(sdl3-integration-tests PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
     target_link_libraries(sdl3-integration-tests PRIVATE r2nes_core SDL3::SDL3-static zlibstatic)
+    if(WIN32)
+      target_link_libraries(sdl3-integration-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
+    endif()
     target_include_directories(sdl3-integration-tests PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
     add_test(NAME sdl3-integration COMMAND sdl3-integration-tests)
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sdl3-test-data")
@@ -113,6 +149,7 @@ if(BUILD_TESTING)
   target_include_directories(rom-file-tests PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
   target_link_libraries(rom-file-tests PRIVATE zlibstatic)
   add_core_test(apu-output-suppression-tests tests/APUOutputSuppressionTests.cpp apu-output-suppression)
+  add_core_test(apu-frame-timing-tests tests/APUFrameTimingTests.cpp apu-frame-timing)
   add_core_test(state-security-tests tests/StateSecurityTests.cpp state-security "${CMAKE_CURRENT_BINARY_DIR}/state-security-test-data")
   add_core_test(hostile-state-tests tests/HostileStateTests.cpp hostile-state "${CMAKE_CURRENT_BINARY_DIR}/hostile-state-test-data")
   set_tests_properties(hostile-state PROPERTIES TIMEOUT 90)
