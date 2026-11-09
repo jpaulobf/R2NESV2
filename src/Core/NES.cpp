@@ -231,6 +231,7 @@ namespace R2NES::Core
             if (!oamActive)
             {
                 dmcHaltAddress = cpu.nextReadAddress();
+                cpu.notifyDmcHalt();
                 bus.cpuRead(dmcHaltAddress);
             }
             dmcDmaPhase = 1;
