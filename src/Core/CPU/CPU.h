@@ -46,6 +46,8 @@ namespace R2NES::Core
         // RDY não suspende a CPU durante ciclos de escrita.
         bool nextCycleIsWrite() const;
         uint16_t nextReadAddress() const;
+        // Informa a borda de RDY para as escritas não oficiais indexadas.
+        void notifyDmcHalt();
 
         // Serialização para Save / Load states
         void saveState(std::ostream &os);
@@ -85,6 +87,7 @@ namespace R2NES::Core
         // Cada entrada contém o nome da instrução, ponteiros para as funções
         // de operação e modo de endereçamento, e o número base de ciclos
         uint8_t fetch();
+        void writeUnstableStore(uint8_t value);
 
         // Estrutura para representar uma instrução do 6502
         struct INSTRUCTION
@@ -240,6 +243,8 @@ namespace R2NES::Core
         uint16_t wrongPageAddress = 0;
         uint16_t branchTarget = 0;
         bool pageCrossed = false;
+        // Cache de leitura; nas escritas SHA/TAS/SHY/SHX sinaliza a parada
+        // de DMC no ciclo indexado. Ambas as situações terminam na instrução.
         bool fetchedCached = false;
         bool branchTaken = false;
         uint8_t interruptKind = 0; // 0=nenhuma, 1=IRQ, 2=NMI, 3=RESET

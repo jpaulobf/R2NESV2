@@ -1024,6 +1024,17 @@ namespace R2NES::Core
         return bus->endCpuProbe();
     }
 
+    void CPU::notifyDmcHalt()
+    {
+        // Em SHA/TAS/SHY/SHX, fetchedCached não é usado como cache. Guardamos
+        // nele a interrupção da leitura indexada imediatamente anterior à
+        // escrita; finishCycle o limpa ao terminar a instrução. O campo já
+        // integra o save state e sobrevive a toda a parada do DMC.
+        if (interruptKind == 0 && cycles == 2 &&
+            (opcode == 0x93 || opcode == 0x9F || opcode == 0x9B || opcode == 0x9C || opcode == 0x9E))
+            fetchedCached = true;
+    }
+
     void CPU::saveState(std::ostream &os)
     {
         os.write(reinterpret_cast<const char *>(&a), sizeof(a));
@@ -1931,36 +1942,35 @@ namespace R2NES::Core
         return 0;
     }
 
+    void CPU::writeUnstableStore(uint8_t value)
+    {
+        const uint8_t masked = value & static_cast<uint8_t>((baseAddress >> 8) + 1);
+        const uint16_t address = pageCrossed ? (static_cast<uint16_t>(masked) << 8) | (addr_abs & 0xFF) : addr_abs;
+        bus->cpuWrite(address, fetchedCached ? value : masked);
+    }
+
     uint8_t CPU::SHA()
     {
-        // Armazena A & X & (High Byte do endereço + 1)
-        uint8_t val = a & x & static_cast<uint8_t>((baseAddress >> 8) + 1);
-        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
+        writeUnstableStore(a & x);
         return 0;
     }
 
     uint8_t CPU::SHY()
     {
-        // Armazena Y & (High Byte do endereço + 1)
-        uint8_t val = y & static_cast<uint8_t>((baseAddress >> 8) + 1);
-        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
+        writeUnstableStore(y);
         return 0;
     }
 
     uint8_t CPU::SHX()
     {
-        // Armazena X & (High Byte do endereço + 1)
-        uint8_t val = x & static_cast<uint8_t>((baseAddress >> 8) + 1);
-        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
+        writeUnstableStore(x);
         return 0;
     }
 
     uint8_t CPU::TAS()
     {
-        // S = A & X, depois armazena S & (High Byte do endereço + 1)
         stkp = a & x;
-        uint8_t val = stkp & static_cast<uint8_t>((baseAddress >> 8) + 1);
-        bus->cpuWrite(pageCrossed ? (static_cast<uint16_t>(val) << 8) | (addr_abs & 0xFF) : addr_abs, val);
+        writeUnstableStore(stkp);
         return 0;
     }
 
