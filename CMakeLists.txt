@@ -94,19 +94,24 @@ if(BUILD_TESTING)
     target_link_libraries(ntsc-shader-pipeline-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
     add_test(NAME ntsc-shader-pipeline COMMAND ntsc-shader-pipeline-tests
       "${CMAKE_SOURCE_DIR}/shaders/ntsc/ntsc-256px-gauss-scanline.cgp")
-    add_executable(xbr-shader-pipeline-tests tests/XbrShaderPipelineTests.cpp
+    add_executable(shader-effects-tests tests/ShaderEffectsTests.cpp
       src/Window/NtscShaderPipeline.cpp src/Window/ShaderPreset.cpp)
-    target_include_directories(xbr-shader-pipeline-tests PRIVATE src)
-    target_link_libraries(xbr-shader-pipeline-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
-    add_test(NAME xbr-shader-pipeline COMMAND xbr-shader-pipeline-tests
-      "${CMAKE_SOURCE_DIR}/shaders/xbr/super-xbr-2p.cgp")
-    add_test(NAME xbr-6p-shader-pipeline COMMAND xbr-shader-pipeline-tests
-      "${CMAKE_SOURCE_DIR}/shaders/xbr/super-4xbr-3d-6p-smoother-nes.cgp"
-      "${CMAKE_SOURCE_DIR}/shaders/xbr/super-xbr-2p.cgp")
-    add_test(NAME hq2-shader-pipeline COMMAND xbr-shader-pipeline-tests
+    target_include_directories(shader-effects-tests PRIVATE src)
+    target_link_libraries(shader-effects-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
+    add_test(NAME hq2-shader-pipeline COMMAND shader-effects-tests
       "${CMAKE_SOURCE_DIR}/shaders/hqx/hq2x-visual.cgp")
-    add_test(NAME scalefx-shader-pipeline COMMAND xbr-shader-pipeline-tests
+    add_test(NAME scalefx-shader-pipeline COMMAND shader-effects-tests
       "${CMAKE_SOURCE_DIR}/shaders/scalefx/scalefx-visual.cgp")
+    add_executable(crt-shader-pipeline-tests tests/CrtShaderPipelineTests.cpp
+      src/Window/NtscShaderPipeline.cpp src/Window/ShaderPreset.cpp)
+    target_include_directories(crt-shader-pipeline-tests PRIVATE src)
+    target_link_libraries(crt-shader-pipeline-tests PRIVATE d3d11 d3dcompiler ole32 windowscodecs uuid)
+    add_test(NAME crt-lottes-shader-pipeline COMMAND crt-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/crt/crt-lottes.cgp" "${CMAKE_SOURCE_DIR}/shaders/stock.cg"
+      "${CMAKE_CURRENT_BINARY_DIR}/crt-lottes-test-data")
+    add_test(NAME crt-hyllian-shader-pipeline COMMAND crt-shader-pipeline-tests
+      "${CMAKE_SOURCE_DIR}/shaders/crt/crt-hyllian-3d-nes.cgp" "${CMAKE_SOURCE_DIR}/shaders/stock.cg"
+      "${CMAKE_CURRENT_BINARY_DIR}/crt-hyllian-test-data")
   endif()
 
   if(R2NES_BUILD_GUI)
