@@ -1,22 +1,22 @@
 # Shaders: notas para R2NESV2, R2BOY e R2SEGA8
 
 Display > Shaders > Gauss Scanlines executa no Windows o preset
-`ntsc/ntsc-256px-gauss-scanline.cgp`, com seus quatro passes Cg. O preset
-experimental `xbr/super-xbr-2p.cgp` usa dois passes super-xBR e um de
-redimensionamento Jinc. O Super 4xbr 3D 6p smoother usa
-`xbr/super-4xbr-3d-6p-smoother-nes.cgp`: uma ampliação inicial 4x com
-vizinho mais próximo, seis passes de efeito e um stock final. O preset
-original de sete passes continua em `super-4xbr-3d-6p-smoother.cgp`.
-Os dois xBR foram retirados dos menus após avaliação visual; os arquivos,
-a integração interna e os testes foram mantidos para referência.
+`ntsc/ntsc-256px-gauss-scanline.cgp`, com seus quatro passes Cg.
 O filtro anterior Display > Scanlines é independente e pode ser usado em conjunto.
 Display > Shaders > HQ2 usa o HQ2x de um passe do pacote `hqx`, sua tabela
 `resources/hq2x.png` e um passe final de cópia para o viewport. A versão de
-um passe é uma prova visual; o pacote também contém uma variante multipasse.
-Display > Shaders > ScaleFX usa os cinco passes de `scalefx.cgp`, com uma
+um passe é uma prova visual.
+Display > Shaders > ScaleFX usa os cinco passes originais do ScaleFX, com uma
 cópia final para o viewport em `scalefx-visual.cgp`. Os dois primeiros passes
 usam texturas de ponto flutuante; o resultado seleciona cores da imagem de
 origem e é gerado em 3x antes da cópia final.
+Display > Shaders > CRT 3D usa `crt/crt-lottes.cgp`, incluindo o parâmetro de
+bloom definido no preset. O Lottes já aplica uma curvatura discreta.
+CRT usa `crt-hyllian-3d.cg` pelo preset `crt-hyllian-3d-nes.cgp`: uma cópia
+com ampliação 2x prepara a entrada esperada pelos parâmetros padrão do efeito,
+e o passe final grava em uma textura sRGB. O nome 3D no arquivo do Hyllian
+diz respeito à entrada para a qual o shader foi concebido.
+Ambos são experimentais e aguardam avaliação visual com jogos.
 
 `ShaderPreset` lê o subconjunto de `.cgp` usado pelo preset, verifica os
 arquivos e includes e planeja as dimensões dos passes. `NtscShaderPipeline`
@@ -37,8 +37,6 @@ WARP. Sem Direct3D 11 ou compilador disponível, a seleção informa o erro e a
 imagem continua normal. Em Linux e outros sistemas o efeito ainda não está
 disponível. Revalidar desempenho, proporção, crop e fullscreen em GPUs reais.
 
-O segundo passe super-xBR também recebe a textura original como PASSPREV2;
-o preset de seis passes usa a mesma imagem por meio de ORIG.
 O ScaleFX também acessa um passe anterior com PASSPREV2 e o framebuffer
 original com PASSPREV5; a referência é resolvida de acordo com o passe atual.
 As declarações `#pragma parameter` fornecem os valores padrão compartilhados
@@ -53,8 +51,7 @@ presets arbitrários. Para portar aos outros emuladores, adaptar a origem e a
 área de saída e manter o efeito antes do desenho da interface. Novos presets
 podem exigir recursos adicionais, revisão de licenças e outros backends.
 
-Os testes `shader-preset`, `ntsc-shader-pipeline`, `xbr-shader-pipeline` e
-`xbr-6p-shader-pipeline` verificam a leitura, os
+Os testes `shader-preset` e `ntsc-shader-pipeline` verificam a leitura, os
 arquivos, a escala, a execução dos quatro passes, a mudança de fase por quadro
 do NTSC, o redimensionamento, a cor uniforme e a suavização de diagonais. A validação
 visual com jogos continua necessária.
@@ -63,6 +60,9 @@ detalhes diagonais, cor uniforme e redimensionamento. A implementação foi
 compilada e testada, mas ainda aguarda avaliação visual com jogos.
 O teste `scalefx-shader-pipeline` verifica também a preservação das cores da
 imagem de origem. A avaliação visual e de desempenho com jogos ainda falta.
+Os testes `crt-lottes-shader-pipeline` e `crt-hyllian-shader-pipeline`
+verificam variação de scanlines, redimensionamento
+e conversão sRGB do alvo. O teste do Lottes também verifica o parâmetro bloom.
 
 ## Estado e orientações para a próxima rodada
 
@@ -70,11 +70,7 @@ imagem de origem. A avaliação visual e de desempenho com jogos ainda falta.
   um carregador genérico de shaders para o usuário. A seleção definitiva dos
   presets ainda depende de comparação visual e de desempenho.
 - O usuário confirmou que Gauss Scanlines funcionou muito bem no Windows.
-  Os dois presets xBR foram avaliados e removidos do menu. O usuário relatou uma
-  imagem muito borrada no 6p original: esse shader foi projetado para uma
-  entrada 3D já ampliada em 4x, mas recebia a imagem nativa do NES. Foi
-  adicionada uma ampliação inicial de 4x. O teste automatizado
-  verifica o contraste de traços de um pixel e falha com o preset anterior.
+  Os presets xBR e NES Mini foram removidos após avaliação visual.
 - A implementação e os recursos estão no workspace do R2NESV2. No estado
   atual vários arquivos, inclusive este documento, a pasta `shaders`, o
   pipeline, o leitor de presets e seus testes, ainda não estão rastreados pelo
@@ -83,14 +79,14 @@ imagem de origem. A avaliação visual e de desempenho com jogos ainda falta.
   dimensões do destino, apresentação e mensagens de falha; `Common.h` para os
   identificadores; `ShaderPreset` e `NtscShaderPipeline` para leitura e GPU;
   e `CMakeLists.txt` para bibliotecas Direct3D, cópia dos recursos e testes.
-  O nome `NtscShaderPipeline` é histórico: ele também executa os dois xBR.
+  O nome `NtscShaderPipeline` é histórico: ele executa todos os presets atuais.
 - Ajustar as dimensões nativas, formato e pitch do framebuffer de cada
   emulador. Testar recorte, redimensionamento, proporção, fullscreen, pausa,
   troca de preset e falhas. Preservar os filtros e menus existentes de cada
   projeto e manter a interface fora do processamento do jogo.
-- A pasta completa de shaders foi mantida para experimentação. Antes de uma
-  distribuição, selecionar presets e suas dependências recursivas, conferir
-  licenças e avisos dos arquivos escolhidos e decidir como empacotá-los.
+- A pasta de shaders contém os presets escolhidos, suas dependências e o README
+  de créditos do HQx. Preservar os avisos de autoria e as licenças dos arquivos
+  utilizados ao preparar uma distribuição.
 - Os testes atuais exercitam a execução Direct3D e a integração SDL por
   software; não substituem comparação visual e medição de FPS com jogos.
 
