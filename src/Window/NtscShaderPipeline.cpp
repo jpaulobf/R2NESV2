@@ -108,6 +108,7 @@ namespace R2NES::Core
             Com<ID3D11PixelShader> pixel;
             Com<ID3D11InputLayout> layout;
             unsigned previousDistance = 0; // Distância indicada por PASSPREVn.
+            bool explicitPointSampling = false;
         };
     }
 
@@ -187,6 +188,16 @@ namespace R2NES::Core
             // adaptações abaixo ocorrem apenas na cópia carregada em memória;
             // elas não alteram os arquivos originais dos shaders.
             std::string source = expand(pass.source);
+            if (pass.source.filename() == "crt-lottes.cg")
+            {
+                // A implementação usa os defaults dos #pragma e as opções do
+                // preset, mesmo sem habilitar uniforms PARAMETER_UNIFORM.
+                for (const auto &parameter : parameterDefaults)
+                {
+                    const std::regex definition("(^|\\n)[ \\t]*#define[ \\t]+" + parameter.first + "[ \\t]+[^\\r\\n]*");
+                    source = std::regex_replace(source, definition, "$1#define " + parameter.first + " " + parameter.second);
+                }
+            }
             unsigned previousDistance = 0;
             std::smatch previousMatch;
             if (std::regex_search(source, previousMatch, std::regex(R"(PASSPREV([0-9]+))")))
@@ -240,6 +251,9 @@ namespace R2NES::Core
             D3D_SHADER_MACRO macros[] = {{"HLSL_4", "1"}, {nullptr, nullptr}};
             auto program = std::make_unique<Program>();
             program->previousDistance = previousDistance;
+            // Este shader usa COMPAT_SamplePoint em todas as leituras, mesmo
+            // quando o preset configura filtragem linear para a textura.
+            program->explicitPointSampling = pass.source.filename() == "crt-hyllian-3d.cg";
             Com<ID3DBlob> vs, ps, diagnostics;
             auto runCompiler = [&](const char *entry, const char *profile, Com<ID3DBlob> &blob)
             {
@@ -267,9 +281,10 @@ namespace R2NES::Core
         {
             std::string error;
             std::filesystem::path lookup;
-            if (!loadShaderPreset(preset, passes, error, &lookup))
+            std::map<std::string, std::string> overrides;
+            if (!loadShaderPreset(preset, passes, error, &lookup, &overrides))
                 throw std::runtime_error(error);
-            if (passes.size() != 2 && passes.size() != 4 && passes.size() != 3 && passes.size() != 6 && passes.size() != 7 && passes.size() != 8)
+            if (passes.size() != 1 && passes.size() != 2 && passes.size() != 4 && passes.size() != 3 && passes.size() != 6 && passes.size() != 7 && passes.size() != 8)
                 throw std::runtime_error("Unsupported number of shader passes");
             // Recolhe os valores padrão declarados pelos passes. Isso não
             // implementa uma interface geral de parâmetros configuráveis.
@@ -279,6 +294,13 @@ namespace R2NES::Core
                 const std::string text = expand(pass.source);
                 for (std::sregex_iterator it(text.begin(), text.end(), parameterPattern), end; it != end; ++it)
                     parameterDefaults.emplace((*it)[1].str(), (*it)[2].str());
+            }
+            for (const auto &parameter : overrides)
+            {
+                if (!parameterDefaults.count(parameter.first) || passes.size() != 1 ||
+                    passes[0].source.filename() != "crt-lottes.cg")
+                    throw std::runtime_error("Unsupported shader parameter: " + parameter.first);
+                parameterDefaults[parameter.first] = parameter.second;
             }
             D3D_FEATURE_LEVEL level;
             HRESULT hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0,
@@ -316,7 +338,7 @@ namespace R2NES::Core
             require(device->CreateSamplerState(&sampler, linear.put()), "Create linear sampler");
         }
 
-        std::unique_ptr<Target> createTarget(ShaderPassSize size, bool floating)
+        std::unique_ptr<Target> createTarget(ShaderPassSize size, bool floating, bool srgb = false)
         {
             auto result = std::make_unique<Target>();
             D3D11_TEXTURE2D_DESC desc{};
@@ -324,7 +346,8 @@ namespace R2NES::Core
             desc.Height = size.height;
             desc.MipLevels = 1;
             desc.ArraySize = 1;
-            desc.Format = floating ? DXGI_FORMAT_R32G32B32A32_FLOAT : DXGI_FORMAT_B8G8R8A8_UNORM;
+            desc.Format = floating ? DXGI_FORMAT_R32G32B32A32_FLOAT :
+                          srgb ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM;
             desc.SampleDesc.Count = 1;
             desc.Usage = D3D11_USAGE_DEFAULT;
             desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
@@ -350,7 +373,7 @@ namespace R2NES::Core
                 auto newInput = createTarget(source, false);
                 std::vector<std::unique_ptr<Target>> newTargets;
                 for (size_t i = 0; i < passes.size(); ++i)
-                    newTargets.push_back(createTarget(sizes[i], passes[i].floatingPoint));
+                    newTargets.push_back(createTarget(sizes[i], passes[i].floatingPoint, passes[i].srgb));
                 D3D11_TEXTURE2D_DESC desc{};
                 newTargets.back()->texture->GetDesc(&desc);
                 desc.Usage = D3D11_USAGE_STAGING;
@@ -408,7 +431,8 @@ namespace R2NES::Core
                 ID3D11ShaderResourceView *resources[] = {i ? targets[i - 1]->resource.get() : input->resource.get(),
                                                          lookupResource.get() ? lookupResource.get() : previousResource};
                 context->PSSetShaderResources(0, 2, resources);
-                ID3D11SamplerState *samplers[] = {passes[i].linear ? linear.get() : nearest.get(), passes[i].linear ? linear.get() : nearest.get()};
+                const bool useLinear = passes[i].linear && !programs[i]->explicitPointSampling;
+                ID3D11SamplerState *samplers[] = {useLinear ? linear.get() : nearest.get(), useLinear ? linear.get() : nearest.get()};
                 context->PSSetSamplers(0, 2, samplers);
                 context->Draw(4, 0);
                 ID3D11ShaderResourceView *none[] = {nullptr, nullptr};
