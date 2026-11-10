@@ -131,8 +131,8 @@ namespace R2NES::Core
         appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_NONE, L"None", state.shader == ShaderType::NONE);
         appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_SCANLINES, L"Scanlines", state.shader == ShaderType::SCANLINES);
         appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_HQ2, L"HQ2", state.shader == ShaderType::HQ2);
-        appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_CRT, L"CRT", state.shader == ShaderType::CRT);
-        appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_CRT3D, L"CRT 3D", state.shader == ShaderType::CRT3D);
+        appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_CRT3D, L"CRT", state.shader == ShaderType::CRT3D);
+        appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_CRT, L"CRT 3D", state.shader == ShaderType::CRT);
         appendItem(shaderMenu, NativeMenuCommand::IDM_VIEW_SHADERS_SCALEFX, L"ScaleFX", state.shader == ShaderType::SCALEFX);
         AppendMenuW(displayMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(shaderMenu), L"&Shaders");
 

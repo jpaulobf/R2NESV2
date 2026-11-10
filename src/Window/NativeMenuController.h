@@ -63,8 +63,6 @@ namespace R2NES::Core
         inline constexpr int IDM_VIEW_SHADERS_CRT = 2303;
         inline constexpr int IDM_VIEW_SHADERS_CRT3D = 2304;
         inline constexpr int IDM_VIEW_SHADERS_SCALEFX = 2305;
-        inline constexpr int IDM_VIEW_SHADERS_XBR2P = 2306;
-        inline constexpr int IDM_VIEW_SHADERS_XBR6P3D = 2307;
         inline constexpr int IDM_VIEW_SHADERS_HQ2 = 2308;
         inline constexpr int IDM_VIEW_RENDER = 2500;
         inline constexpr int IDM_VIEW_RENDER_TILES = 2501;
