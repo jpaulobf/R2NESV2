@@ -79,7 +79,7 @@ namespace R2NES::Core
     }
 
     bool loadShaderPreset(const std::filesystem::path &path, std::vector<ShaderPass> &passes, std::string &error,
-                          std::filesystem::path *lookupTexture)
+                          std::filesystem::path *lookupTexture, std::map<std::string, std::string> *parameters)
     {
         try
         {
@@ -112,6 +112,32 @@ namespace R2NES::Core
             if (count == 0 || count > 32)
                 throw std::runtime_error("Invalid shaders count");
             values.erase(countIt);
+            std::map<std::string, std::string> overrides;
+            auto parameterList = values.find("parameters");
+            if (parameterList != values.end())
+            {
+                std::string names = parameterList->second;
+                values.erase(parameterList);
+                size_t start = 0;
+                while (start <= names.size())
+                {
+                    const size_t end = names.find(';', start);
+                    const std::string name = trim(names.substr(start, end == std::string::npos ? end : end - start));
+                    if (!std::regex_match(name, std::regex(R"([A-Za-z_][A-Za-z_0-9]*)")))
+                        throw std::runtime_error("Invalid parameter name: " + name);
+                    auto value = values.find(name);
+                    if (value == values.end())
+                        throw std::runtime_error("Missing parameter value: " + name);
+                    size_t used = 0;
+                    const double number = std::stod(value->second, &used);
+                    if (used != value->second.size() || !std::isfinite(number) || !overrides.emplace(name, value->second).second)
+                        throw std::runtime_error("Invalid parameter value: " + name);
+                    values.erase(value);
+                    if (end == std::string::npos)
+                        break;
+                    start = end + 1;
+                }
+            }
             std::filesystem::path lookup;
             auto texturesIt = values.find("textures");
             // O HQ2 usa uma única tabela de consulta (LUT), sem interpolação.
@@ -162,6 +188,10 @@ namespace R2NES::Core
                      { pass.linear = boolean(v); });
                 take("float_framebuffer" + suffix, [&](const std::string &v)
                      { pass.floatingPoint = boolean(v); });
+                take("srgb_framebuffer" + suffix, [&](const std::string &v)
+                     { pass.srgb = boolean(v); });
+                if (pass.floatingPoint && pass.srgb)
+                    throw std::runtime_error("Floating-point and sRGB framebuffers cannot be combined");
                 take("frame_count_mod" + suffix, [&](const std::string &v)
                      { pass.frameCountMod = nonnegativeInteger(v); });
                 // Opções por eixo sobrescrevem a opção aplicada aos dois eixos.
@@ -184,6 +214,8 @@ namespace R2NES::Core
             passes = std::move(result);
             if (lookupTexture)
                 *lookupTexture = std::move(lookup);
+            if (parameters)
+                *parameters = std::move(overrides);
             error.clear();
             return true;
         }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -19,9 +20,10 @@ namespace R2NES::Core
     {
         std::filesystem::path source; // Arquivo .cg, relativo ao preset após a leitura.
         ShaderScale scaleX = ShaderScale::Source, scaleY = ShaderScale::Source;
-        double factorX = 1.0, factorY = 1.0; // Fatores horizontais e verticais.
+        double factorX = 1.0, factorY = 1.0;        // Fatores horizontais e verticais.
         bool linear = false, floatingPoint = false; // Filtragem da entrada e formato da saída.
-        unsigned frameCountMod = 0; // Módulo do contador de quadros; zero desativa o módulo.
+        bool srgb = false;                          // Converte a saída linear para sRGB ao gravar a textura.
+        unsigned frameCountMod = 0;                 // Módulo do contador de quadros; zero desativa o módulo.
     };
 
     // Largura e altura em pixels de uma imagem ou textura intermediária.
@@ -33,11 +35,14 @@ namespace R2NES::Core
     // Lê o subconjunto de .cgp usado pelos presets disponíveis, verifica os
     // shaders e seus includes e, quando presente, localiza uma LUT sem filtro
     // linear. Configurações não suportadas são rejeitadas explicitamente.
-    // Em caso de sucesso, preenche passes e lookupTexture (se fornecido),
+    // Também lê valores numéricos das chaves listadas em parameters; cabe ao
+    // backend verificar se consegue aplicá-los. Em caso de sucesso, preenche
+    // passes, lookupTexture e parameters (quando fornecidos),
     // limpa error e retorna true. Em caso de falha, retorna false e descreve
     // o erro; os resultados anteriores não são substituídos.
     bool loadShaderPreset(const std::filesystem::path &path, std::vector<ShaderPass> &passes, std::string &error,
-                          std::filesystem::path *lookupTexture = nullptr);
+                          std::filesystem::path *lookupTexture = nullptr,
+                          std::map<std::string, std::string> *parameters = nullptr);
 
     // Calcula o tamanho de saída de cada passe, em ordem. A escala Source usa
     // a saída do passe anterior; no primeiro passe, usa a imagem de origem.
