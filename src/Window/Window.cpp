@@ -369,25 +369,28 @@ namespace R2NES::Core
     // Armazena o efeito de pós-processamento escolhido pelo menu.
     void Window::setShader(ShaderType shader)
     {
-        if (shader == ShaderType::SCANLINES || shader == ShaderType::XBR2P || shader == ShaderType::XBR6P3D || shader == ShaderType::HQ2 || shader == ShaderType::SCALEFX)
+        if (shader == ShaderType::SCANLINES || shader == ShaderType::HQ2 || shader == ShaderType::SCALEFX || shader == ShaderType::CRT || shader == ShaderType::CRT3D)
         {
-            auto &selected = shader == ShaderType::XBR2P ? xbrShader : shader == ShaderType::XBR6P3D ? xbr6pShader
-                                                                   : shader == ShaderType::HQ2       ? hq2Shader
-                                                                   : shader == ShaderType::SCALEFX   ? scaleFxShader
-                                                                                                     : ntscShader;
+            auto &selected = shader == ShaderType::HQ2       ? hq2Shader
+                             : shader == ShaderType::SCALEFX ? scaleFxShader
+                             : shader == ShaderType::CRT     ? crtShader
+                             : shader == ShaderType::CRT3D   ? crt3dShader
+                                                             : ntscShader;
             if (!selected)
             {
                 auto candidate = std::make_unique<NtscShaderPipeline>();
                 std::string error;
                 const char *base = SDL_GetBasePath();
-                const char *presetName = shader == ShaderType::XBR2P ? "shaders/xbr/super-xbr-2p.cgp" : shader == ShaderType::XBR6P3D ? "shaders/xbr/super-4xbr-3d-6p-smoother-nes.cgp"
-                                                                                                    : shader == ShaderType::HQ2       ? "shaders/hqx/hq2x-visual.cgp"
-                                                                                                    : shader == ShaderType::SCALEFX   ? "shaders/scalefx/scalefx-visual.cgp"
-                                                                                                                                      : "shaders/ntsc/ntsc-256px-gauss-scanline.cgp";
-                const char *effectName = shader == ShaderType::XBR2P ? "Super xbr 2p" : shader == ShaderType::XBR6P3D ? "Super 4xbr 3D 6p smoother"
-                                                                                    : shader == ShaderType::HQ2       ? "HQ2"
-                                                                                    : shader == ShaderType::SCALEFX   ? "ScaleFX"
-                                                                                                                      : "Gauss Scanlines";
+                const char *presetName = shader == ShaderType::HQ2       ? "shaders/hqx/hq2x-visual.cgp"
+                                         : shader == ShaderType::SCALEFX ? "shaders/scalefx/scalefx-visual.cgp"
+                                         : shader == ShaderType::CRT     ? "shaders/crt/crt-lottes.cgp"
+                                         : shader == ShaderType::CRT3D   ? "shaders/crt/crt-hyllian-3d-nes.cgp"
+                                                                         : "shaders/ntsc/ntsc-256px-gauss-scanline.cgp";
+                const char *effectName = shader == ShaderType::HQ2       ? "HQ2"
+                                         : shader == ShaderType::SCALEFX ? "ScaleFX"
+                                         : shader == ShaderType::CRT     ? "CRT 3D"
+                                         : shader == ShaderType::CRT3D   ? "CRT"
+                                                                         : "Gauss Scanlines";
                 const auto preset = std::filesystem::path(base ? base : "") / presetName;
                 if (!candidate->initialize(preset, error))
                 {
@@ -510,7 +513,7 @@ namespace R2NES::Core
             {
                 if (ImGui::MenuItem("Open ROM..."))
                     openFileDialog();
-                if (ImGui::MenuItem("Reset"))
+                if (ImGui::MenuItem("Reset", "F12", false, cartLoaded))
                     reset();
                 if (ImGui::MenuItem("Unload", nullptr, false, cartLoaded))
                     unload();
@@ -529,6 +532,7 @@ namespace R2NES::Core
                     }
                     ImGui::EndMenu();
                 }
+                ImGui::Separator();
                 if (ImGui::BeginMenu("Recent Files"))
                 {
                     // Faz uma cópia da lista para não invalidar iteradores caso a lista seja alterada
@@ -643,7 +647,9 @@ namespace R2NES::Core
                 }
                 if (ImGui::BeginMenu("Shaders"))
                 {
-                    const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Gauss Scanlines"}, {ShaderType::HQ2, "HQ2"}, {ShaderType::CRT, "CRT"}, {ShaderType::CRT3D, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}};
+                    // Os tipos identificam os presets originais: CRT3D é o
+                    // Hyllian e CRT é o Lottes, cujos nomes no menu foram trocados.
+                    const std::pair<ShaderType, const char *> shaders[] = {{ShaderType::NONE, "None"}, {ShaderType::SCANLINES, "Gauss Scanlines"}, {ShaderType::HQ2, "HQ2"}, {ShaderType::CRT3D, "CRT"}, {ShaderType::CRT, "CRT 3D"}, {ShaderType::SCALEFX, "ScaleFX"}};
                     for (const auto &[shaderType, label] : shaders)
                         if (ImGui::MenuItem(label, nullptr, shader == shaderType))
                             setShader(shaderType);
@@ -1438,11 +1444,12 @@ namespace R2NES::Core
         }
 
         bool renderedShader = false;
-        NtscShaderPipeline *activeShader = shader == ShaderType::SCANLINES ? ntscShader.get() : shader == ShaderType::XBR2P ? xbrShader.get()
-                                                                                            : shader == ShaderType::XBR6P3D ? xbr6pShader.get()
-                                                                                            : shader == ShaderType::HQ2     ? hq2Shader.get()
-                                                                                            : shader == ShaderType::SCALEFX ? scaleFxShader.get()
-                                                                                                                            : nullptr;
+        NtscShaderPipeline *activeShader = shader == ShaderType::SCANLINES ? ntscShader.get()
+                                           : shader == ShaderType::HQ2     ? hq2Shader.get()
+                                           : shader == ShaderType::SCALEFX ? scaleFxShader.get()
+                                           : shader == ShaderType::CRT     ? crtShader.get()
+                                           : shader == ShaderType::CRT3D   ? crt3dShader.get()
+                                                                           : nullptr;
         if (activeShader && dest_rect.w >= 1 && dest_rect.h >= 1)
         {
             const int outWidth = static_cast<int>(dest_rect.w), outHeight = static_cast<int>(dest_rect.h);
@@ -1473,10 +1480,11 @@ namespace R2NES::Core
             }
             if (!renderedShader)
             {
-                const char *effectName = shader == ShaderType::XBR2P ? "Super xbr 2p" : shader == ShaderType::XBR6P3D ? "Super 4xbr 3D 6p smoother"
-                                                                                    : shader == ShaderType::HQ2       ? "HQ2"
-                                                                                    : shader == ShaderType::SCALEFX   ? "ScaleFX"
-                                                                                                                      : "Gauss Scanlines";
+                const char *effectName = shader == ShaderType::HQ2       ? "HQ2"
+                                         : shader == ShaderType::SCALEFX ? "ScaleFX"
+                                         : shader == ShaderType::CRT     ? "CRT 3D"
+                                         : shader == ShaderType::CRT3D   ? "CRT"
+                                                                         : "Gauss Scanlines";
                 shader = ShaderType::NONE;
                 SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, effectName, error.c_str(), window);
             }

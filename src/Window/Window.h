@@ -535,10 +535,10 @@ namespace R2NES::Core
         SDL_Texture *shaderTexture = nullptr;
         int shaderTextureWidth = 0, shaderTextureHeight = 0;
         std::unique_ptr<NtscShaderPipeline> ntscShader;
-        std::unique_ptr<NtscShaderPipeline> xbrShader;
-        std::unique_ptr<NtscShaderPipeline> xbr6pShader;
         std::unique_ptr<NtscShaderPipeline> hq2Shader;
         std::unique_ptr<NtscShaderPipeline> scaleFxShader;
+        std::unique_ptr<NtscShaderPipeline> crtShader;
+        std::unique_ptr<NtscShaderPipeline> crt3dShader;
         std::vector<uint32_t> shaderPixels;
         ImGuiContext *imguiContext = nullptr;
         std::string selectedPath = "";
@@ -555,7 +555,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.3.0";
+        std::string title = "R2NESV2 - build 1.3.1";
         std::string romFile = "";
 
         bool bilinearFiltering = false;
