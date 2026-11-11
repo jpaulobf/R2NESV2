@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include "FullscreenResolution.h"
 #include <array>
 #include <string>
 #include <cstdint>
@@ -160,6 +161,8 @@ namespace R2NES::Core
 
         /* Processa eventos do sistema (como o botão de fechar, entradas de teclado e mouse). */
         void pollEvents();
+        bool isMinimized() const { return window && (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED); }
+        void setDisplayTransitionCallback(std::function<void()> cb) { displayTransitionCallback = std::move(cb); }
 
         /* Atualiza a textura principal com os pixels da PPU e renderiza na tela. */
         void render(const uint32_t *pixels, float fps);
@@ -530,6 +533,8 @@ namespace R2NES::Core
         } sdlSession;
 
         SDL_Window *window = nullptr;
+        FullscreenResolution fullscreenResolution;
+        std::function<void()> displayTransitionCallback;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
         SDL_Texture *shaderTexture = nullptr;
@@ -555,7 +560,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.3.1";
+        std::string title = "R2NESV2 - build 1.3.5";
         std::string romFile = "";
 
         bool bilinearFiltering = false;

@@ -188,6 +188,9 @@ namespace R2NES::Core
                                          resetPlaybackTiming();
                                      } });
 
+        window->setDisplayTransitionCallback([this]()
+                                             { resetPlaybackTiming(); });
+
         // Verifica os estados iniciais das opções
         this->vsyncEnabled = window->isVSyncEnabled();
         this->unlimitedSprites = window->isUnlimitedSpritesEnabled();
@@ -279,6 +282,7 @@ namespace R2NES::Core
         uint64_t lastTime = SDL_GetPerformanceCounter();
         uint64_t frequency = SDL_GetPerformanceFrequency();
 
+        bool wasMinimized = false;
         while (!window->shouldClose() && isRunning)
         {
             uint64_t currentTime = SDL_GetPerformanceCounter();
@@ -288,6 +292,18 @@ namespace R2NES::Core
             processEmulatorInput();
             if (window->shouldClose() || !isRunning)
                 break;
+
+            const bool minimized = window->isMinimized();
+            if (minimized != wasMinimized)
+            {
+                resetPlaybackTiming();
+                wasMinimized = minimized;
+            }
+            if (minimized)
+            {
+                SDL_Delay(50);
+                continue;
+            }
 
             if (timingResetPending)
             {

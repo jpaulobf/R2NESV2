@@ -178,12 +178,35 @@ namespace R2NES::Core
                     menuPauseSuspendedUntilClose = false;
             }
 
+            if (e.type == SDL_EVENT_KEY_DOWN && e.key.windowID == SDL_GetWindowID(window) && !e.key.repeat &&
+                ((e.key.key == SDLK_F && (e.key.mod & SDL_KMOD_CTRL) && !(e.key.mod & (SDL_KMOD_ALT | SDL_KMOD_SHIFT | SDL_KMOD_GUI))) ||
+                 (e.key.key == SDLK_RETURN && (e.key.mod & SDL_KMOD_ALT) && !(e.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_GUI)))))
+            {
+                if (currentDisplayMode == DisplayMode::WINDOWED)
+                    windowBorderlessFullscreen();
+                else
+                {
+                    SDL_SetWindowFullscreen(window, false);
+                    SDL_SyncWindow(window);
+                    if (displayTransitionCallback)
+                        displayTransitionCallback();
+                    SDL_SetWindowBordered(window, true);
+                    SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
+                    SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
+                    createMenu();
+                    currentDisplayMode = DisplayMode::WINDOWED;
+                }
+                continue;
+            }
             // Sai do modo tela cheia e restaura o menu ao apertar ESC
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.windowID == SDL_GetWindowID(window) && e.key.key == SDLK_ESCAPE)
             {
                 if (currentDisplayMode != DisplayMode::WINDOWED)
                 {
-                    SDL_SetWindowFullscreen(window, 0);
+                    SDL_SetWindowFullscreen(window, false);
+                    SDL_SyncWindow(window);
+                    if (displayTransitionCallback)
+                        displayTransitionCallback();
                     SDL_SetWindowBordered(window, true);
                     SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
                     SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
@@ -595,9 +618,10 @@ namespace R2NES::Core
                         windowResize(scaleValue);
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Borderless Fullscreen Stretch"))
+                fullscreenResolution.menu(window);
+                if (ImGui::MenuItem("Fullscreen Stretched"))
                     windowBorderlessFullscreenStretch();
-                if (ImGui::MenuItem("Borderless Fullscreen"))
+                if (ImGui::MenuItem("Fullscreen", "Ctrl+F ou Alt+Enter"))
                     windowBorderlessFullscreen();
                 ImGui::Separator();
                 if (ImGui::MenuItem("Bilinear Filtering", nullptr, bilinearFiltering))
@@ -1206,7 +1230,10 @@ namespace R2NES::Core
         // Exit fullscreen mode if currently in one
         if (currentDisplayMode != DisplayMode::WINDOWED)
         {
-            SDL_SetWindowFullscreen(window, 0);  // Set to windowed mode
+            SDL_SetWindowFullscreen(window, false);
+            SDL_SyncWindow(window);
+            if (displayTransitionCallback)
+                displayTransitionCallback();
             SDL_SetWindowBordered(window, true); // Restore border
             createMenu();                        // Restaura o menu nativo
         }
@@ -1242,8 +1269,12 @@ namespace R2NES::Core
             SDL_GetWindowSize(window, &lastWindowedW, &lastWindowedH);
         }
 
-        if (SDL_SetWindowFullscreenMode(window, nullptr) && SDL_SetWindowFullscreen(window, true))
+        if (fullscreenResolution.enter(window))
+        {
             currentDisplayMode = dm;
+            if (displayTransitionCallback)
+                displayTransitionCallback();
+        }
     }
 
     // Entra em fullscreen preenchendo toda a área disponível.
