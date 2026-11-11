@@ -1,5 +1,7 @@
 #include "GameStateManager.h"
 #include "Core/NES.h"
+#include "Core/Cartridge/RomFile.h"
+#include "System/RomReader.h"
 #include "Window/Window.h"
 #include <filesystem>
 #include <iostream>
@@ -75,20 +77,25 @@ namespace R2NES::System
     // Prepara o NES e a Window para uma nova ROM, incluindo o cache inicial do disassembly.
     bool GameStateManager::loadRom(const std::string &path, Core::NES &nes, Core::Window &window)
     {
-        if (nes.isCartridgeLoaded() && !nes.flushBattery() &&
-            !nes.getBus().cart->hasBatteryLoadError())
+        if (nes.isCartridgeLoaded() && !flushBattery(window))
         {
-            window.showBatteryMessage(nes.getBus().cart->getBatteryMessage());
             // Uma falha de escrita não deve descartar a sessão com progresso novo.
             window.clearSelectedPath();
             return false;
         }
         std::cout << "GameStateManager: Loading ROM -> " << path << std::endl;
-        if (!nes.insertCartridge(path))
+        // A aplicação lê e descompacta o arquivo; o cartucho recebe somente bytes.
+        std::vector<uint8_t> bytes;
+        const bool read = readRomImage(path, bytes);
+        if (!read || !nes.insertCartridge(std::make_shared<Core::Cartridge>(bytes)))
         {
             window.clearSelectedPath();
             return false;
         }
+        battery = std::make_unique<BatterySession>(nes.getBus().cart, batteryDirectory);
+        const auto cheatPath = cheatDirectory / (nes.getBus().cart->getRomHash() + ".cht");
+        std::ifstream cheats(cheatPath);
+        nes.getBus().cheats.load(cheats, cheatPath.string());
         window.uncheckZapperMenu();
         nes.getJoysticks().port2Device = Core::IO::DeviceType::Gamepad;
         cachedDisassembly.clear();
@@ -96,17 +103,16 @@ namespace R2NES::System
         currentRomPath = path;
         if (nes.isCartridgeLoaded())
         {
-            auto cart = nes.getBus().cart;
-            if (cart->canImportBattery())
+            if (battery->canImport())
             {
-                if (window.confirmBatteryImport(cart->getBatteryMessage()))
+                if (window.confirmBatteryImport(battery->message()))
                 {
-                    cart->importBattery();
-                    window.showBatteryMessage(cart->getBatteryMessage());
+                    battery->importBattery();
+                    window.showBatteryMessage(battery->message());
                 }
             }
-            else if (!cart->getBatteryMessage().empty())
-                window.showBatteryMessage(cart->getBatteryMessage());
+            else if (!battery->message().empty())
+                window.showBatteryMessage(battery->message());
         }
         nes.reset();
 
@@ -122,18 +128,25 @@ namespace R2NES::System
         return true;
     }
 
+    bool GameStateManager::flushBattery(Core::Window &window)
+    {
+        if (!battery || battery->flush() || battery->hasLoadError())
+            return true;
+        window.showBatteryMessage(battery->message());
+        return false;
+    }
+
     // Descarta o cartucho e remove da Window os estados associados à ROM anterior.
     void GameStateManager::unloadRom(Core::NES &nes, Core::Window &window)
     {
-        if (nes.isCartridgeLoaded() && !nes.flushBattery() &&
-            !nes.getBus().cart->hasBatteryLoadError())
+        if (nes.isCartridgeLoaded() && !flushBattery(window))
         {
-            window.showBatteryMessage(nes.getBus().cart->getBatteryMessage());
             window.clearUnloadRequest();
             return;
         }
         std::cout << "GameStateManager: Unloading ROM..." << std::endl;
         nes.unload();
+        battery.reset();
         cachedDisassembly.clear();
         window.clearUnloadRequest();
         window.uncheckZapperMenu();
@@ -166,7 +179,8 @@ namespace R2NES::System
 
             if (window.getIsToSave())
             {
-                if (nes.saveState(filename))
+                std::ofstream output(filename, std::ios::binary);
+                if (output && nes.saveState(output) && output.flush())
                 {
                     std::cout << "GameStateManager: State saved to " << filename << std::endl;
                     const char *basePath = SDL_GetBasePath();
@@ -184,7 +198,8 @@ namespace R2NES::System
             }
             else if (window.getIsToLoad())
             {
-                if (nes.loadState(filename))
+                std::ifstream input(filename, std::ios::binary);
+                if (input && nes.loadState(input))
                 {
                     std::cout << "GameStateManager: State loaded from " << filename << std::endl;
                     stateLoaded = true;

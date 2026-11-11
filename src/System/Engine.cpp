@@ -13,6 +13,7 @@ namespace R2NES::Core
         // Inicializa os componentes principais
         window = std::make_unique<Window>("R2NES v2", 256, 240, 1);
         nes = std::make_unique<NES>();
+        stateManager = std::make_unique<R2NES::System::GameStateManager>();
         // Keep project cheats accessible when the executable is started from bin/.
         if (!std::filesystem::is_directory("cheats"))
         {
@@ -20,12 +21,11 @@ namespace R2NES::Core
             {
                 const auto base = std::filesystem::path(basePath);
                 const auto projectCheats = base.parent_path().parent_path() / "cheats";
-                nes->setCheatDirectory(std::filesystem::is_directory(projectCheats) ? projectCheats : base / "cheats");
+                stateManager->setCheatDirectory(std::filesystem::is_directory(projectCheats) ? projectCheats : base / "cheats");
             }
         }
         audioManager = std::make_unique<R2NES::System::AudioManager>();
         inputManager = std::make_unique<R2NES::System::InputManager>();
-        stateManager = std::make_unique<R2NES::System::GameStateManager>();
 
         this->init();
     }
@@ -419,8 +419,7 @@ namespace R2NES::Core
 
             waitForNextWork(currentTime, frequency);
         }
-        if (!nes->flushBattery() && nes->getBus().cart && !nes->getBus().cart->hasBatteryLoadError())
-            window->showBatteryMessage(nes->getBus().cart->getBatteryMessage());
+        stateManager->flushBattery(*window);
     }
 
     void Engine::waitForNextWork(uint64_t iterationStart, uint64_t frequency)

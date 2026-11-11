@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool ok, const char *message)
@@ -58,7 +59,7 @@ int main(int argc, char **argv)
         file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
         check(bool(file), "fixture write failed");
         file.close();
-        NES nes("");
+        FixtureNES nes("");
         nes.setCheatDirectory(dir / "no-cheats");
         check(nes.insertCartridge(path.string()), "fixture ROM rejected");
         nes.reset();

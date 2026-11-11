@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -33,7 +34,7 @@ int main(int argc, char **argv)
             std::ofstream output(romPath, std::ios::binary);
             output.write(reinterpret_cast<const char *>(rom.data()), rom.size());
         }
-        Cartridge cartridge(romPath.string());
+        FixtureCartridge cartridge(romPath.string());
         check(cartridge.isValid(), "Invalid synthetic NROM");
         const auto cheatPath = directory / (cartridge.getRomHash() + ".cht");
         {
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
                    << "cheat10_code = \"183C:22\"\n" // Internal RAM mirror.
                    << "cheat99999999999999999999999999999_code = \"SXIOPO\"\n";
         }
-        NES nes(directory / "battery");
+        FixtureNES nes(directory / "battery");
         nes.setCheatDirectory(directory);
         nes.insertCartridge(romPath.string());
         auto &bus = nes.getBus();
@@ -102,9 +103,12 @@ int main(int argc, char **argv)
         check(!cheats.isEnabled() && cheats.getEntries()[0].enabled, "Reload did not restore file defaults with master off");
         nes.unload();
         check(!cheats.isEnabled() && cheats.getEntries().empty(), "Unload retained cheat state");
-        cheats.load(directory / "missing.cht");
+        std::ifstream missing(directory / "missing.cht");
+        cheats.load(missing, "missing.cht");
         check(cheats.getEntries().empty(), "Missing file should yield empty list");
-        cheats.load(argv[2]);
+        std::ifstream sample(argv[2]);
+        check(static_cast<bool>(sample), "Sample cheat file unavailable");
+        cheats.load(sample, argv[2]);
         const auto &entries = cheats.getEntries();
         check(entries.size() > 100, "Sample cheat file was not loaded");
         for (const auto &entry : entries)

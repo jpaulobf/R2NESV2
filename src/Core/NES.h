@@ -16,7 +16,7 @@ namespace R2NES::Core
     public:
         // Construtor / destrutor: inicializam os componentes do console e suas
         // conexões (bus, CPU, PPU, APU, RAM, Joysticks).
-        explicit NES(std::filesystem::path batteryDirectory = "battery");
+        NES();
         ~NES();
 
         // Avança um passo do sistema. honorCPUOverclock=false mantém um clock
@@ -27,17 +27,14 @@ namespace R2NES::Core
         void setPAL(bool enabled);
         bool isPAL() const { return pal; }
 
-        // Carrega um cartucho a partir de arquivo ROM (path). Valida o cartucho
-        // antes de conectá-lo ao barramento.
-        bool insertCartridge(const std::string &path);
+        // Conecta um cartucho previamente construído e validado ao barramento.
+        bool insertCartridge(std::shared_ptr<Cartridge> cartridge);
 
         // Reseta todo o estado do console para um estado limpo (cold boot simulation).
         void reset();
 
         // Remove o cartucho atualmente carregado e restaura estado básico.
         void unload();
-        bool flushBattery();
-        void setCheatDirectory(std::filesystem::path directory) { cheatDirectory = std::move(directory); }
 
         // Acesso aos subsistemas para depuração/inspeção.
         CPU &getCpu() { return cpu; }
@@ -60,8 +57,6 @@ namespace R2NES::Core
         IO::Joysticks &getJoysticks() { return joysticks; }
 
         // Persistência de estado (savestate)
-        bool saveState(const std::string &filename);
-        bool loadState(const std::string &filename);
         bool saveState(std::ostream &output);
         bool loadState(std::istream &input);
 
@@ -73,7 +68,6 @@ namespace R2NES::Core
         void setCPUOverclock(bool enabled, float multiplier = 2.0f);
 
     private:
-        std::filesystem::path cheatDirectory = "cheats";
         template <bool Pal>
         void stepRegion(bool honorCPUOverclock);
         void serviceIRQ();
@@ -95,6 +89,5 @@ namespace R2NES::Core
         uint8_t dmcDmaPhase = 0; // 0=idle, 1=dummy, 2=alignment/get
         uint16_t dmcHaltAddress = 0;
         bool oamReadAvailable = false;
-        std::filesystem::path batteryDirectory;
     };
 }

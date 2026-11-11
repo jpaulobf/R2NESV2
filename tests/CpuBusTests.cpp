@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -15,7 +16,7 @@ int main()
 {
     try
     {
-        NES nes("");
+        FixtureNES nes("");
         auto &bus = nes.getBus();
         auto &pad = nes.getJoysticks().controller1;
         pad.setButton(IO::BUTTON_A, true);
@@ -126,7 +127,7 @@ int main()
                 // 0: sem DMA, 1: parada um ciclo antes, 2: parada na leitura indexada.
                 for (int scenario = 0; scenario < 3; ++scenario)
                 {
-                    NES storeNes("");
+                    FixtureNES storeNes("");
                     auto &storeCpu = storeNes.getCpu();
                     auto &storeBus = storeNes.getBus();
                     auto &storeApu = storeNes.getApu();
@@ -184,7 +185,7 @@ int main()
         // INC $4014 deve concluir ambas as escritas antes da parada de OAM.
         for (const bool pal : {false, true})
         {
-            NES oamNes("");
+            FixtureNES oamNes("");
             oamNes.setPAL(pal);
             auto &oamCpu = oamNes.getCpu();
             auto &oamBus = oamNes.getBus();
@@ -210,7 +211,7 @@ int main()
         }
 
         // O DMC deve aguardar as duas escritas consecutivas de INC $0010.
-        NES dmaNes("");
+        FixtureNES dmaNes("");
         auto &dmaCpu = dmaNes.getCpu();
         auto &dmaBus = dmaNes.getBus();
         while (!dmaCpu.complete())
@@ -241,7 +242,7 @@ int main()
         // depois da escrita em $4015, conforme a fase dessa escrita.
         for (unsigned phase = 0; phase < 2; ++phase)
         {
-            NES loadNes("");
+            FixtureNES loadNes("");
             auto &loadCpu = loadNes.getCpu();
             auto &loadBus = loadNes.getBus();
             auto &loadApu = loadNes.getApu();
@@ -288,7 +289,7 @@ int main()
         // terminado em $16 também aciona a porta 1 e deixa seu bit no bus.
         for (const bool conflict : {false, true})
         {
-            NES conflictNes("");
+            FixtureNES conflictNes("");
             auto &conflictCpu = conflictNes.getCpu();
             auto &conflictBus = conflictNes.getBus();
             auto &conflictApu = conflictNes.getApu();
@@ -345,7 +346,7 @@ int main()
         {
             for (unsigned rate = 0; rate < 16; ++rate)
             {
-                NES reloadNes("");
+                FixtureNES reloadNes("");
                 auto &reloadBus = reloadNes.getBus();
                 auto &reloadApu = reloadNes.getApu();
                 reloadApu.setAudioOutputSuppressed(true);
@@ -375,7 +376,7 @@ int main()
 
         for (unsigned seed = 0; seed < 2; ++seed)
         {
-            NES reloadNes("");
+            FixtureNES reloadNes("");
             auto &reloadCpu = reloadNes.getCpu();
             auto &reloadBus = reloadNes.getBus();
             auto &reloadApu = reloadNes.getApu();

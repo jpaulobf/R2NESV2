@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include "TestFixtures.h"
+
 
 using namespace R2NES::Core;
 static void check(bool ok, const char *message)
@@ -160,7 +162,7 @@ static void images(const std::filesystem::path &dir)
                 for (bool vertical : {false, true})
                 {
                     const auto bytes = rom(prg, chr, nes2, vertical);
-                    Cartridge cart(saveRom(dir, bytes).string());
+                    FixtureCartridge cart(saveRom(dir, bytes).string());
                     check(cart.isValid(), "Valid Color Dreams cartridge rejected");
                     unsigned selected = 0;
                     for (uint16_t reg : {0x8000, 0xBFFF, 0xC000, 0xFFFF})
@@ -184,7 +186,7 @@ static void images(const std::filesystem::path &dir)
                         check(cart.ppuRead(0x1FFF, data, 0) && data == 0xA5, "CHR RAM write lost");
                 }
     // Os conflitos precisam ler o banco anterior à escrita, e não o destino.
-    Cartridge c(saveRom(dir, rom(8, 16, true)).string());
+    FixtureCartridge c(saveRom(dir, rom(8, 16, true)).string());
     check(c.cpuWrite(0x8001, 0xF3, 0), "Safe bank select rejected");
     check(state(*c.getMapper()) == std::string{3, 15}, "Safe bank select failed");
     c.cpuWrite(0x8002, 0xF3, 0);
@@ -207,14 +209,14 @@ static void images(const std::filesystem::path &dir)
                 bytes[5] = ch << 2;
                 bytes[9] |= 0xF0;
             }
-            Cartridge cart(saveRom(dir, bytes).string());
+            FixtureCartridge cart(saveRom(dir, bytes).string());
             check(cart.isValid(), "Exponent/multiplier header rejected");
         }
 }
 static void invalid(const std::filesystem::path &dir)
 {
     auto reject = [&](const std::vector<uint8_t> &bytes)
-    {Cartridge c(saveRom(dir,bytes).string());check(!c.isValid()&&!c.getMapper(),"Invalid image accepted"); };
+    {FixtureCartridge c(saveRom(dir,bytes).string());check(!c.isValid()&&!c.getMapper(),"Invalid image accepted"); };
     for (bool nes2 : {false, true})
     {
         for (unsigned p : {0, 3, 16})
@@ -272,7 +274,7 @@ static void invalid(const std::filesystem::path &dir)
     // O byte 8 de iNES antigo não é submapper nem cria PRG-RAM nesta placa.
     bytes = rom(8, 16, false);
     bytes[8] = 0x20;
-    Cartridge legacy(saveRom(dir, bytes).string());
+    FixtureCartridge legacy(saveRom(dir, bytes).string());
     check(legacy.isValid(), "Legacy byte 8 misread as submapper");
 }
 static std::string consoleState(NES &nes)
@@ -286,7 +288,7 @@ static void console(const std::filesystem::path &dir)
     for (unsigned chr : {0, 16})
         for (bool vertical : {false, true})
         {
-            NES nes;
+            FixtureNES nes;
             nes.insertCartridge(saveRom(dir, rom(8, chr, true, vertical)).string());
             check(nes.isCartridgeLoaded(), "Console insert failed");
             auto &bus = nes.getBus();

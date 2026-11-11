@@ -1,3 +1,4 @@
+#include "System/BatterySession.h"
 #include "Core/NES.h"
 #include "Core/Cartridge/Mappers/Mapper004.h"
 #include "Core/Cartridge/Mappers/Mapper005.h"
@@ -7,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool ok, const char *message)
@@ -171,7 +173,7 @@ static void sessions(const std::filesystem::path &root)
             std::filesystem::path persisted;
             const uint16_t address = id == 4 && special ? 0x7000 : 0x6000;
             {
-                NES nes(saves);
+                FixtureNES nes(saves);
                 nes.insertCartridge(path.string());
                 check(nes.isCartridgeLoaded(), "Battery fixture rejected");
                 auto &mapper = *nes.getBus().cart->getMapper();
@@ -190,7 +192,7 @@ static void sessions(const std::filesystem::path &root)
             }
             check(std::filesystem::file_size(persisted) == expected, "Battery file includes volatile memory or wrong capacity");
             {
-                NES nes(saves);
+                FixtureNES nes(saves);
                 nes.insertCartridge(path.string());
                 auto &mapper = *nes.getBus().cart->getMapper();
                 enable(mapper, id, special);
@@ -209,7 +211,7 @@ static void sessions(const std::filesystem::path &root)
     for (unsigned id : {4, 5, 9})
     {
         const auto path = saveRom(root, image(id, 7));
-        Cartridge cart(path.string());
+        FixtureCartridge cart(path.string());
         check(cart.isValid() && cart.getMapper()->getBatteryData().empty(), "Volatile header enabled battery");
         check(cart.loadBattery(root / "unused") && cart.flushBattery() && !std::filesystem::exists(root / "unused"), "Volatile game created a battery directory");
     }
@@ -218,7 +220,7 @@ static void sessions(const std::filesystem::path &root)
         auto bytes = image(5, 0x70);
         bytes[7] = 0;
         bytes[8] = units;
-        Cartridge cart(saveRom(root, bytes).string());
+        FixtureCartridge cart(saveRom(root, bytes).string());
         check(cart.isValid(), "Legacy MMC5 battery header rejected");
         const unsigned total = units ? units * 8192 : 65536;
         const unsigned nv = total == 16384 || total == 65536 ? total / 2 : total;
@@ -227,16 +229,16 @@ static void sessions(const std::filesystem::path &root)
     auto legacy = image(9, 0x70);
     legacy[7] = 0;
     legacy[8] = 0;
-    Cartridge battery(saveRom(root, legacy).string());
+    FixtureCartridge battery(saveRom(root, legacy).string());
     check(battery.isValid() && battery.getMapper()->getBatteryData().size() == 8192, "Legacy MMC2 battery extension rejected");
     for (uint8_t ram : {6, 8, 0x60, 0x80, 0x77})
     {
-        Cartridge invalid(saveRom(root, image(9, ram)).string());
+        FixtureCartridge invalid(saveRom(root, image(9, ram)).string());
         check(!invalid.isValid(), "Invalid MMC2 RAM geometry accepted");
     }
     auto contradictory = image(9, 0);
     contradictory[6] |= 2;
-    Cartridge invalid(saveRom(root, contradictory).string());
+    FixtureCartridge invalid(saveRom(root, contradictory).string());
     check(!invalid.isValid(), "NES 2.0 MMC2 battery without NVRAM accepted");
 }
 static std::string consoleState(NES &nes)
@@ -256,7 +258,7 @@ static void snapshotIntegrity(const std::filesystem::path &root)
     const auto path = saveRom(root, bytes);
     for (unsigned prefix : {0, 1, 2, 7, 257})
     {
-        NES nes(std::filesystem::path{});
+        FixtureNES nes(std::filesystem::path{});
         nes.insertCartridge(path.string());
         for (unsigned i = 0; i < 7; ++i)
             nes.step();
@@ -310,21 +312,21 @@ static void snapshotIntegrity(const std::filesystem::path &root)
         check(!nes.loadState(badMapper) && consoleState(nes) == completed && !bus.dma_transfer,
               "Failed mapper load did not roll back DMA");
     }
-    NES first(std::filesystem::path{});
+    FixtureNES first(std::filesystem::path{});
     first.insertCartridge(path.string());
     const auto original = consoleState(first);
     const auto otherDir = root / "other";
     std::filesystem::create_directories(otherDir);
     auto changed = bytes;
     changed[16 + 100] ^= 0x5A;
-    NES second(std::filesystem::path{});
+    FixtureNES second(std::filesystem::path{});
     second.insertCartridge(saveRom(otherDir, changed).string());
     const auto untouched = consoleState(second);
     std::stringstream wrongRom(original);
     check(!second.loadState(wrongRom) && consoleState(second) == untouched, "Same-capacity different ROM state accepted");
     changed = bytes;
     changed[6] = 0x40;
-    NES otherMapper(std::filesystem::path{});
+    FixtureNES otherMapper(std::filesystem::path{});
     otherMapper.insertCartridge(saveRom(otherDir, changed).string());
     check(otherMapper.getBus().cart->getRomHash() == first.getBus().cart->getRomHash(), "Mapper identity fixture changed payload");
     const auto mapperBefore = consoleState(otherMapper);
@@ -350,7 +352,7 @@ static void imports(const std::filesystem::path &root)
         std::filesystem::create_directories(dir);
         const unsigned targetNv = kind == 1 ? 32768 : 8192;
         const auto path = saveRom(dir, image(5, targetNv == 32768 ? 0x90 : 0x70));
-        Cartridge cart(path.string());
+        FixtureCartridge cart(path.string());
         const auto save = dir / (cart.getRomHash() + ".sav");
         std::vector<uint8_t> source(kind >= 2 ? 32768 + 1024 : 8192, 0x5A);
         if (kind >= 2)
@@ -395,9 +397,113 @@ static void imports(const std::filesystem::path &root)
         check(imported[targetNv] == (kind >= 2 ? 0xC7 : 0), "Import ExRAM initialization mismatch");
         if (targetNv > 8192)
             check(imported[8192] == 0, "Expanded NVRAM not initialized");
-        Cartridge fresh(path.string());
+        FixtureCartridge fresh(path.string());
         check(fresh.loadBattery(dir) && fresh.getMapper()->getBatteryData() == imported, "Converted battery failed normal reload");
     }
+}
+static void sessionImports(const std::filesystem::path &root)
+{
+    const auto readFile = [](const std::filesystem::path &path)
+    {
+        std::ifstream input(path, std::ios::binary);
+        return std::vector<uint8_t>(std::istreambuf_iterator<char>(input), {});
+    };
+    const auto writeFile = [](const std::filesystem::path &path, const std::vector<uint8_t> &data)
+    {
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+        output.write(reinterpret_cast<const char *>(data.data()), data.size());
+        check(output.good(), "Import fixture write failed");
+    };
+    for (unsigned kind : {0, 1, 2, 3, 4})
+    {
+        const auto dir = root / ("session-import-" + std::to_string(kind));
+        std::filesystem::create_directories(dir);
+        const unsigned targetNv = kind == 1 ? 32768 : 8192;
+        const auto path = saveRom(dir, image(5, targetNv == 32768 ? 0x90 : 0x70));
+        auto cart = std::make_shared<FixtureCartridge>(path.string());
+        const auto save = dir / (cart->getRomHash() + ".sav");
+        std::vector<uint8_t> source(kind >= 2 ? 32768 + 1024 : 8192, 0x5A);
+        if (kind >= 2)
+        {
+            std::fill(source.end() - 1024, source.end(), 0xC7);
+            if (kind == 3)
+                source[9000] = 0xB6; // Dados distintos impedem reduzir bancos.
+        }
+        writeFile(save, source);
+        const auto before = state(*cart->getMapper());
+        R2NES::System::BatterySession session(cart, dir);
+        check(session.hasLoadError() && state(*cart->getMapper()) == before,
+              "Import proposal changed emulated memory");
+        if (kind == 3)
+        {
+            check(!session.canImport() && !session.importBattery() && readFile(save) == source,
+                  "Ambiguous shrink discarded data");
+            continue;
+        }
+        check(session.canImport() && !session.message().empty() && !session.flush() && readFile(save) == source,
+              "Recognized import was applied without explicit request");
+        if (kind == 4)
+        {
+            writeFile(save, {1});
+            check(!session.importBattery() && state(*cart->getMapper()) == before && readFile(save) == std::vector<uint8_t>{1},
+                  "Import used a stale file proposal");
+            continue;
+        }
+        auto backup = save;
+        backup += ".bak";
+        if (kind == 1)
+            writeFile(backup, {0x11}); // Um backup anterior não pode ser sobrescrito.
+        check(session.importBattery() && !session.hasLoadError(), "Explicit MMC5 import failed");
+        if (kind == 1)
+        {
+            check(readFile(backup) == std::vector<uint8_t>{0x11}, "Previous backup overwritten");
+            backup += ".1";
+        }
+        check(readFile(backup) == source, "Original import file not preserved exactly");
+        const auto imported = cart->getMapper()->getBatteryData();
+        check(readFile(save) == imported && imported.size() == targetNv + 1024 && imported[0] == 0x5A,
+              "Imported memory/file mismatch");
+        check(imported[targetNv] == (kind >= 2 ? 0xC7 : 0), "Import ExRAM initialization mismatch");
+        if (targetNv > 8192)
+            check(imported[8192] == 0, "Expanded NVRAM not initialized");
+        FixtureCartridge fresh(path.string());
+        check(fresh.loadBattery(dir) && fresh.getMapper()->getBatteryData() == imported, "Converted battery failed normal reload");
+        auto changed = imported;
+        changed[0] ^= 0xFF;
+        check(cart->getMapper()->setBatteryData(changed) && session.flush(), "Session battery write failed");
+        check(readFile(save) == changed, "Session did not persist changed battery");
+        auto reloaded = std::make_shared<FixtureCartridge>(path.string());
+        R2NES::System::BatterySession next(reloaded, dir);
+        check(!next.hasLoadError() && reloaded->getMapper()->getBatteryData() == changed,
+              "New session did not restore persisted battery");
+    }
+}
+static void memoryInsertionDoesNotAccessBattery(const std::filesystem::path &root)
+{
+    const auto directory = root / "memory-insertion";
+    std::filesystem::create_directories(directory);
+    auto cartridge = std::make_shared<Cartridge>(image(5, 0x70));
+    check(cartridge->isValid(), "In-memory cartridge rejected");
+    const auto save = directory / (cartridge->getRomHash() + ".sav");
+    const auto initial = cartridge->getMapper()->getBatteryData();
+    std::vector<uint8_t> sentinel(initial.size(), 0xBC);
+    {
+        std::ofstream output(save, std::ios::binary);
+        output.write(reinterpret_cast<const char *>(sentinel.data()), sentinel.size());
+        check(static_cast<bool>(output), "Battery fixture write failed");
+    }
+    {
+        FixtureNES nes(directory);
+        check(nes.insertCartridge(cartridge), "In-memory insertion failed");
+        check(cartridge->getMapper()->getBatteryData() == initial,
+              "In-memory insertion read a battery file");
+        auto changed = initial;
+        changed[0] ^= 0xFF;
+        check(cartridge->getMapper()->setBatteryData(changed), "Battery fixture mutation failed");
+    }
+    std::ifstream input(save, std::ios::binary);
+    const std::vector<uint8_t> actual((std::istreambuf_iterator<char>(input)), {});
+    check(actual == sentinel, "In-memory insertion wrote a battery file");
 }
 int main(int argc, char **argv)
 {
@@ -410,6 +516,8 @@ int main(int argc, char **argv)
         sessions(root);
         snapshotIntegrity(root);
         imports(root);
+        sessionImports(root);
+        memoryInsertionDoesNotAccessBattery(root);
         std::cout << "Battery tests passed (MMC3/MMC6, MMC5/ExRAM, explicit MMC2 expansion)\n";
         return 0;
     }

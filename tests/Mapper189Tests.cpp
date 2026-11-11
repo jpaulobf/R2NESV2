@@ -5,12 +5,14 @@
 #include <fstream>
 #include <set>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
 static void check(bool condition, const char *message)
 {
-    if (!condition) throw std::runtime_error(message);
+    if (!condition)
+        throw std::runtime_error(message);
 }
 
 static uint32_t read(Mapper189 &mapper, uint16_t address)
@@ -61,7 +63,9 @@ static void testMapper()
     for (int edge = 0; edge < 2; ++edge)
     {
         mapper.onPpuAddress(0, 0);
-        mapper.tick(); mapper.tick(); mapper.tick();
+        mapper.tick();
+        mapper.tick();
+        mapper.tick();
         mapper.onPpuAddress(0x1000, 0);
     }
     check(mapper.getIrqFlag(), "MMC3 IRQ failed");
@@ -82,14 +86,22 @@ static void testMapper()
 static void testCartridge(const std::filesystem::path &directory, uint8_t mapperId)
 {
     std::vector<uint8_t> rom(16 + 0x20000 + 0x20000, 0);
-    rom[0] = 'N'; rom[1] = 'E'; rom[2] = 'S'; rom[3] = 0x1A;
-    rom[4] = 8; rom[5] = 16;
-    rom[6] = (mapperId & 15) << 4; rom[7] = mapperId & 0xF0;
-    for (size_t i = 0; i < 0x20000; ++i) rom[16 + i] = i / 0x8000;
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 8;
+    rom[5] = 16;
+    rom[6] = (mapperId & 15) << 4;
+    rom[7] = mapperId & 0xF0;
+    for (size_t i = 0; i < 0x20000; ++i)
+        rom[16 + i] = i / 0x8000;
     const auto path = directory / ("mapper" + std::to_string(mapperId) + ".nes");
-    { std::ofstream file(path, std::ios::binary);
-      file.write(reinterpret_cast<const char *>(rom.data()), rom.size()); }
-    Cartridge cart(path.string());
+    {
+        std::ofstream file(path, std::ios::binary);
+        file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
+    }
+    FixtureCartridge cart(path.string());
     check(cart.isValid(), "Cartridge rejected");
     check(mapperId == 189 ? dynamic_cast<Mapper189 *>(cart.getMapper().get()) != nullptr
                           : dynamic_cast<Mapper187 *>(cart.getMapper().get()) != nullptr,
@@ -116,7 +128,7 @@ int main(int argc, char **argv)
         testCartridge(argv[1], 187); // Unrelated mapper 187 payloads must stay unchanged.
         if (argc >= 3)
         {
-            NES nes;
+            FixtureNES nes;
             nes.insertCartridge(argv[2]);
             check(nes.isCartridgeLoaded(), "Game load failed");
             int frames = 0;

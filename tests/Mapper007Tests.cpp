@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include "TestFixtures.h"
+
 
 using namespace R2NES::Core;
 
@@ -43,7 +45,7 @@ static void testCartridge(const std::filesystem::path &directory, bool nes2, uin
         file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
         check(file.good(), "Could not write fixture");
     }
-    Cartridge cart(path.string());
+    FixtureCartridge cart(path.string());
     check(cart.isValid(), "Mapper 7 cartridge rejected");
     const bool conflicts = nes2 && submapper == 2;
     auto read = [&](uint16_t address) {
@@ -231,7 +233,7 @@ static void testImages(const std::filesystem::path &directory)
             bytes[4] = power << 2; bytes[9] = 0x0F;
         }
         bytes[6] |= 1; // H/V do header não substitui o registrador AxROM.
-        Cartridge cart(saveRom(directory, bytes).string());
+        FixtureCartridge cart(saveRom(directory, bytes).string());
         check(cart.isValid(), "Valid PRG size or exponent header rejected");
         check(cart.cpuWrite(0xFFFF, 0xFF, 0), "Bank write rejected");
         uint8_t data = 0;
@@ -240,7 +242,7 @@ static void testImages(const std::filesystem::path &directory)
         check(cart.getMirrorMode() == MirrorMode::ONESCREEN_HI, "Header overrode mirroring register");
     }
     auto reject = [&](const std::vector<uint8_t> &bytes) {
-        Cartridge cart(saveRom(directory, bytes).string());
+        FixtureCartridge cart(saveRom(directory, bytes).string());
         check(!cart.isValid() && !cart.getMapper(), "Invalid AxROM image accepted");
     };
     for (bool nes2 : {false, true})
@@ -284,7 +286,7 @@ static std::string consoleState(NES &nes)
 
 static void testConsole(const std::filesystem::path &directory)
 {
-    NES nes;
+    FixtureNES nes;
     nes.insertCartridge(saveRom(directory, makeRom(32)).string());
     check(nes.isCartridgeLoaded(), "Console insertion failed");
     auto &bus = nes.getBus();
@@ -342,7 +344,7 @@ static void testConsole(const std::filesystem::path &directory)
 // Optional local BB Car dump (.nes or .zip); no commercial data in the suite.
 static void testBBCar(const std::filesystem::path &directory, const char *path)
 {
-    Cartridge cart(path);
+    FixtureCartridge cart(path);
     check(cart.isValid(), "Legacy BB Car rejected");
     check(cart.getRomHash() == "7F9C1DEC", "Expected original BB Car payload");
     check(cart.getMirrorMode() == MirrorMode::ONESCREEN_LO, "BB Car needs fixed single-screen mirroring");
@@ -361,22 +363,22 @@ static void testBBCar(const std::filesystem::path &directory, const char *path)
         std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(file)), {});
         auto changed = bytes;
         changed[16] ^= 1;
-        check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+        check(!FixtureCartridge(saveRom(directory, changed).string()).isValid(),
               "BB Car correction accepted a different payload");
         for (uint8_t flag : {2, 4, 8})
         {
             changed = bytes; changed[6] |= flag;
-            check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+            check(!FixtureCartridge(saveRom(directory, changed).string()).isValid(),
                   "BB Car correction accepted incompatible header flags");
         }
         changed = bytes; changed[7] = 8; changed[11] = 7;
-        check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+        check(!FixtureCartridge(saveRom(directory, changed).string()).isValid(),
               "BB Car correction accepted NES 2.0 CHR-ROM configuration");
         changed = bytes; changed.pop_back();
-        check(!Cartridge(saveRom(directory, changed).string()).isValid(),
+        check(!FixtureCartridge(saveRom(directory, changed).string()).isValid(),
               "BB Car correction accepted truncated payload");
     }
-    NES nes;
+    FixtureNES nes;
     nes.insertCartridge(path);
     check(nes.isCartridgeLoaded(), "BB Car console load failed");
     bool visible = false;

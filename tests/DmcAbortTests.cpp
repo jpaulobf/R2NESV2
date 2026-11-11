@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -11,7 +12,7 @@ static void check(bool condition, const char *message)
         throw std::runtime_error(message);
 }
 
-static void tickApuTo(NES &nes, uint32_t cycle)
+static void tickApuTo(FixtureNES &nes, uint32_t cycle)
 {
     auto &bus = nes.getBus();
     while (bus.systemClockCounter < cycle)
@@ -21,7 +22,7 @@ static void tickApuTo(NES &nes, uint32_t cycle)
     }
 }
 
-static void setup(NES &nes, bool loop)
+static void setup(FixtureNES &nes, bool loop)
 {
     auto &cpu = nes.getCpu();
     auto &bus = nes.getBus();
@@ -58,7 +59,7 @@ static void restoreApu(NES &nes)
 
 static void explicitFullFetch()
 {
-    NES nes("");
+    FixtureNES nes("");
     setup(nes, true);
     tickApuTo(nes, 806); // Timer is 0; stop on the output cycle.
     nes.getApu().cpuWrite(0x4015, 0);
@@ -78,7 +79,7 @@ static void explicitFullFetch()
 
 static void explicitAbort(bool landOnWrite)
 {
-    NES nes("");
+    FixtureNES nes("");
     setup(nes, true);
     tickApuTo(nes, 804); // Two timer counts before the output cycle.
     nes.getApu().cpuWrite(0x4015, 0);
@@ -118,7 +119,7 @@ static void implicitCases()
 {
     for (const bool duplicate : {false, true})
     {
-        NES nes("");
+        FixtureNES nes("");
         setup(nes, false);
         tickApuTo(nes, duplicate ? 1238 : 1236);
         nes.getApu().cpuWrite(0x4015, 0x10);

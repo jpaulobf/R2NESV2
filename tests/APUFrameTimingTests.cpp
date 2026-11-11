@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool value, const char *message)
@@ -9,7 +10,7 @@ static void check(bool value, const char *message)
     if (!value)
         throw std::runtime_error(message);
 }
-static void tick(NES &nes, int count = 1)
+static void tick(FixtureNES &nes, int count = 1)
 {
     for (int i = 0; i < count; ++i)
     {
@@ -17,13 +18,13 @@ static void tick(NES &nes, int count = 1)
         nes.getApu().step();
     }
 }
-static uint8_t status(NES &nes, bool peek = true)
+static uint8_t status(FixtureNES &nes, bool peek = true)
 {
     return nes.getBus().cpuRead(0x4015, peek);
 }
 static void cadence(bool pal)
 {
-    NES nes("");
+    FixtureNES nes("");
     nes.setPAL(pal);
     auto &apu = nes.getApu();
     apu.setAudioOutputSuppressed(true);
@@ -42,7 +43,7 @@ static void cadence(bool pal)
 }
 static void clearPhase(bool firstGet)
 {
-    NES nes("");
+    FixtureNES nes("");
     auto &apu = nes.getApu();
     auto &bus = nes.getBus();
     apu.setAudioOutputSuppressed(true);
@@ -75,7 +76,7 @@ static void clearPhase(bool firstGet)
 }
 static void inhibitedWindow()
 {
-    NES nes("");
+    FixtureNES nes("");
     auto &apu = nes.getApu();
     apu.setAudioOutputSuppressed(true);
     // Reset inhibits IRQ; the first two cycles of the last step still drive
@@ -91,7 +92,7 @@ static void inhibitedWindow()
 }
 static void reassertion()
 {
-    NES nes("");
+    FixtureNES nes("");
     auto &apu = nes.getApu();
     apu.setAudioOutputSuppressed(true);
     apu.cpuWrite(0x4017, 0);

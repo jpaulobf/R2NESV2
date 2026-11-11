@@ -4,7 +4,6 @@
 #include "Core/Cartridge/Cartridge.h"
 #include <algorithm>
 #include <cctype>
-#include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -82,10 +81,9 @@ namespace R2NES::Core
         ramPatches.clear();
     }
 
-    void CheatManager::load(const std::filesystem::path &path)
+    void CheatManager::load(std::istream &input, const std::string &source)
     {
         clear();
-        std::ifstream input(path);
         if (!input)
             return;
         std::map<unsigned long, Entry> parsed;
@@ -140,12 +138,12 @@ namespace R2NES::Core
                 entry.patches.clear();
                 entry.enabled = false;
                 if (!entry.code.empty())
-                    std::cerr << "Cheats: invalid code in " << path << ": " << entry.code << '\n';
+                    std::cerr << "Cheats: invalid code in " << source << ": " << entry.code << '\n';
             }
             entries.push_back(std::move(entry));
         }
         rebuild();
-        std::cout << "Cheats: loaded " << entries.size() << " entries from " << path << '\n';
+        std::cout << "Cheats: loaded " << entries.size() << " entries from " << source << '\n';
     }
 
     void CheatManager::rebuild()

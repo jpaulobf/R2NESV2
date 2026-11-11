@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool ok, const char *message)
@@ -1519,7 +1520,7 @@ static void memoryHeaders(const std::filesystem::path &dir)
     };
     const auto reject = [&](const std::vector<uint8_t> &bytes)
     {
-        Cartridge cart(save(bytes));
+        FixtureCartridge cart(save(bytes));
         check(!cart.isValid() && !cart.getMapper(), "Unsupported/truncated MMC5 image accepted");
     };
     for (bool nes2 : {false, true})
@@ -1527,7 +1528,7 @@ static void memoryHeaders(const std::filesystem::path &dir)
         for (unsigned prg : {1, 2, 8, 64})
             for (unsigned chr : {0, 1, 16, 128})
             {
-                Cartridge cart(save(image(prg, chr, nes2)));
+                FixtureCartridge cart(save(image(prg, chr, nes2)));
                 check(cart.isValid(), "Valid MMC5 ROM capacity rejected");
             }
         for (unsigned prg : {0, 3, 65})
@@ -1546,7 +1547,7 @@ static void memoryHeaders(const std::filesystem::path &dir)
     }
     for (uint8_t ram : {0, 7, 8, 9, 10, 11, 0x70, 0x77, 0x79, 0x97, 0x99})
     {
-        Cartridge cart(save(image(8, 16, true, ram)));
+        FixtureCartridge cart(save(image(8, 16, true, ram)));
         check(cart.isValid(), "Valid MMC5 RAM declaration rejected");
         const auto decoded = [](unsigned shift)
         { return shift ? 64u << shift : 0; };
@@ -1573,12 +1574,12 @@ static void memoryHeaders(const std::filesystem::path &dir)
     exponent[4] = 14 << 2;
     exponent[5] = 13 << 2;
     exponent[9] = 0xFF;
-    Cartridge encoded(save(exponent));
+    FixtureCartridge encoded(save(exponent));
     check(encoded.isValid(), "NES 2.0 exponent size rejected");
     for (bool nes2 : {false, true})
     {
         auto bytes = image(8, 16, nes2, nes2 ? 7 : 1, true);
-        Cartridge cart(save(bytes));
+        FixtureCartridge cart(save(bytes));
         check(cart.isValid(), "Valid MMC5 trainer image rejected");
         for (unsigned i = 0; i < 512; ++i)
         {
@@ -1594,7 +1595,7 @@ static void memoryHeaders(const std::filesystem::path &dir)
     reject(image(8, 16, true, 0, true));
     for (uint8_t legacyRam : {0, 1, 2, 4, 8, 16})
     {
-        Cartridge cart(save(image(8, 16, false, legacyRam)));
+        FixtureCartridge cart(save(image(8, 16, false, legacyRam)));
         check(cart.isValid(), "Valid explicit/legacy iNES WRAM rejected");
         check(state(*cart.getMapper()).size() == 3181 + (legacyRam ? legacyRam * 8192 : 65536), "iNES WRAM fallback/explicit size mismatch");
     }
@@ -1700,7 +1701,7 @@ static void console(const std::filesystem::path &dir)
             output.write(reinterpret_cast<const char *>(rom.data()), rom.size());
             check(output.good(), "Fixture write failed");
         }
-        NES nes;
+        FixtureNES nes;
         nes.insertCartridge(path.string());
         check(nes.isCartridgeLoaded(), "MMC5 fixture rejected");
         auto &cart = *nes.getBus().cart;

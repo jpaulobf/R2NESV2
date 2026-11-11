@@ -1,4 +1,4 @@
-#include "Core/Cartridge/BatterySave.h"
+#include "System/BatterySave.h"
 #include <fstream>
 #include <atomic>
 #include <chrono>
@@ -9,7 +9,7 @@
 #include <windows.h>
 #endif
 
-namespace R2NES::Core
+namespace R2NES::System
 {
     bool BatterySave::readFile(const std::filesystem::path &path, size_t maximumSize,
                                std::vector<uint8_t> &data, std::string &error)

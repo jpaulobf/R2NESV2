@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -96,7 +97,10 @@ static void testCartridge(const std::filesystem::path &directory, bool nes2, uin
 {
     // ROM sintética: cada banco contém seu número para identificar o mapeamento.
     std::vector<uint8_t> rom(16 + 16 * 0x4000, 0);
-    rom[0] = 'N'; rom[1] = 'E'; rom[2] = 'S'; rom[3] = 0x1A;
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
     rom[4] = 16;
     rom[6] = 0x71; // Mapper 71, espelhamento vertical.
     rom[7] = nes2 ? 0x48 : 0x40;
@@ -114,7 +118,7 @@ static void testCartridge(const std::filesystem::path &directory, bool nes2, uin
         file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
         check(file.good(), "Could not write fixture");
     }
-    Cartridge cart(path.string());
+    FixtureCartridge cart(path.string());
     check(cart.isValid(), "Mapper 71 cartridge rejected");
     uint8_t data = 0;
     check(cart.cpuRead(0x8000, data) && data == 0, "Cartridge initial bank");

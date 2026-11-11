@@ -4,6 +4,8 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include "TestFixtures.h"
+
 using namespace R2NES::Core;
 static void check(bool b, const char *s)
 {
@@ -68,7 +70,7 @@ int main(int argc, char **argv)
         check(ss && m.getIrqFlag(), "IRQ state restore");
         if (argc > 1)
         {
-            NES nes("");
+            FixtureNES nes("");
             nes.setCheatDirectory("");
             check(nes.insertCartridge(argv[1]), "ROM load");
             for (int i = 0; i < 2500000; ++i)

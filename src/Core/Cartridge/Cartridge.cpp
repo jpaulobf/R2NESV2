@@ -1,5 +1,4 @@
 #include "Core/Cartridge/Cartridge.h"
-#include "Core/Cartridge/BatterySave.h"
 #include "Core/Cartridge/RomFile.h"
 #include "Core/Cartridge/Mappers/Mapper000.h"
 #include "Core/Cartridge/Mappers/Mapper001.h"
@@ -25,7 +24,6 @@
 #include <algorithm>
 #include <cstring>
 #include <cctype>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -53,143 +51,17 @@ namespace R2NES::Core
         return true;
     }
 
-    Cartridge::Cartridge(const std::string &fileName)
+    Cartridge::Cartridge(const std::vector<uint8_t> &rom)
     {
-        std::vector<uint8_t> buffer;
-        std::string ext = "";
-        size_t dotPos = fileName.find_last_of(".");
-        if (dotPos != std::string::npos)
-            ext = fileName.substr(dotPos);
-
-        std::transform(ext.begin(), ext.end(), ext.begin(),
-                       [](unsigned char c)
-                       { return char(std::tolower(c)); });
-
-        if (ext == ".zip")
+        if (!rom.empty() && rom.size() <= MaxRomFileSize)
         {
-            std::vector<uint8_t> zip;
-            if (!readRomFile(fileName, MaxZipFileSize, zip) || !extractRomFromZip(zip, buffer))
-                std::cerr << "Error: Invalid, unsupported or oversized ZIP " << fileName << std::endl;
-        }
-        else if (ext == ".nes" || ext == ".unf" || ext == ".unif")
-        {
-            if (!readRomFile(fileName, MaxRomFileSize, buffer))
-                std::cerr << "Error: Could not read ROM or file exceeds size limit: " << fileName << std::endl;
-        }
-        else
-        {
-            std::cerr << "Error: Unsupported file format. Please use .nes, .unf, .unif or .zip files." << std::endl;
-        }
-
-        if (buffer.empty())
-        {
-            std::cerr << "Error: No ROM data read from " << fileName << std::endl;
-        }
-        else
-        {
-            imageValid = loadFromBuffer(buffer);
-            if (imageValid)
-            {
-                if (romHash.empty())
-                    romHash = calculateRomHash(buffer);
-            }
+            imageValid = loadFromBuffer(rom);
+            if (imageValid && romHash.empty())
+                romHash = calculateRomHash(rom);
         }
     }
 
-    Cartridge::~Cartridge()
-    {
-        try
-        {
-            flushBattery();
-        }
-        catch (const std::exception &error)
-        {
-            std::cerr << "Battery save failed: " << error.what() << '\n';
-        }
-    }
-
-    bool Cartridge::loadBattery(const std::filesystem::path &directory)
-    {
-        if (!batteryPath.empty())
-            return !batteryLoadFailed;
-        if (!imageValid || !pMapper)
-            return false;
-        if (directory.empty())
-            return true; // Desabilitação explícita, útil em ferramentas/testes.
-        auto data = pMapper->getBatteryData();
-        if (data.empty())
-            return true;
-        batteryPath = directory / (romHash + ".sav");
-        std::string error;
-        const auto result = BatterySave::load(batteryPath, data, error);
-        if (result == BatterySave::LoadResult::Error || !pMapper->setBatteryData(data))
-        {
-            batteryLoadFailed = true; // Não substitui automaticamente um arquivo que não pôde ler.
-            std::vector<uint8_t> source, converted;
-            std::string description, readError;
-            if (BatterySave::readFile(batteryPath, 132096, source, readError))
-                batteryImportAvailable = pMapper->convertBatteryData(source, converted, description);
-            batteryMessage = "Nao foi possivel carregar a bateria: " + batteryPath.string() + "\n" + error +
-                             (description.empty() ? "" : "\n" + description) +
-                             "\nA gravacao automatica desta bateria esta desativada ate reabrir ou importar o arquivo.";
-            std::cerr << "Battery load failed ('" << batteryPath.string() << "'): " << error << '\n';
-            return false;
-        }
-        lastBatteryData = std::move(data);
-        return true;
-    }
-
-    bool Cartridge::importBattery()
-    {
-        if (!batteryImportAvailable || !pMapper)
-            return false;
-        // Releitura impede usar uma proposta antiga se o arquivo mudou no disco.
-        std::vector<uint8_t> source, converted;
-        std::string error;
-        if (!BatterySave::readFile(batteryPath, 132096, source, error) ||
-            !pMapper->convertBatteryData(source, converted, error) ||
-            converted.size() != pMapper->getBatteryData().size())
-        {
-            batteryImportAvailable = false;
-            batteryMessage = "Importacao de bateria recusada. O arquivo foi preservado.\n" + error;
-            return false;
-        }
-        std::filesystem::path backup;
-        if (!BatterySave::backup(batteryPath, backup, error) || !BatterySave::save(batteryPath, converted, error))
-        {
-            batteryMessage = "Nao foi possivel importar a bateria.\n" + error;
-            return false;
-        }
-        if (!pMapper->setBatteryData(converted))
-        {
-            batteryMessage = "O mapper recusou os dados importados. Backup: " + backup.string();
-            return false;
-        }
-        batteryLoadFailed = batteryImportAvailable = false;
-        lastBatteryData = std::move(converted);
-        batteryMessage = "Bateria importada. Original preservado em: " + backup.string();
-        return true;
-    }
-
-    bool Cartridge::flushBattery()
-    {
-        if (batteryLoadFailed)
-            return false;
-        if (batteryPath.empty() || !pMapper)
-            return true;
-        auto data = pMapper->getBatteryData();
-        if (data == lastBatteryData)
-            return true; // Não regrava sessões sem alterações na NVRAM.
-        std::string error;
-        if (!BatterySave::save(batteryPath, data, error))
-        {
-            batteryMessage = "Nao foi possivel gravar a bateria: " + batteryPath.string() + "\n" + error;
-            std::cerr << "Battery save failed ('" << batteryPath.string() << "'): " << error << '\n';
-            return false;
-        }
-        lastBatteryData = std::move(data);
-        return true;
-    }
+    Cartridge::~Cartridge() = default;
 
     void Cartridge::clearIrqFlag()
     {

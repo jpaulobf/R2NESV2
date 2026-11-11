@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool ok, const std::string &message)
@@ -21,7 +22,7 @@ static std::string save(NES &nes)
     check(nes.saveState(out), "save failed");
     return out.str();
 }
-static void load(NES &nes, const std::string &bytes)
+static void load(FixtureNES &nes, const std::string &bytes)
 {
     std::istringstream in(bytes);
     check(nes.loadState(in), "valid snapshot rejected");
@@ -47,7 +48,7 @@ struct Layout
 {
     size_t cpu, ppu, apu, mapper, end;
 };
-static Layout layout(NES &nes, const std::string &snapshot)
+static Layout layout(FixtureNES &nes, const std::string &snapshot)
 {
     const size_t cpu = 4 + 8 + 2 + 2 * sizeof(uint32_t) + 1 + 5;
     const auto cpuBytes = component(nes.getCpu());
@@ -77,7 +78,7 @@ static std::pair<int16_t, int16_t> position(NES &nes)
     return {line, dot};
 }
 
-static void verifyScenario(NES &live, const std::filesystem::path &rom, const std::string &name)
+static void verifyScenario(FixtureNES &live, const std::filesystem::path &rom, const std::string &name)
 {
     const auto baseline = save(live);
     const auto offsets = layout(live, baseline);
@@ -119,20 +120,20 @@ static void verifyScenario(NES &live, const std::filesystem::path &rom, const st
     check(!live.loadState(badIrq) && live.getCpu().isIrqLineAsserted() != oldIrq,
           name + ": failed load changed CPU IRQ line");
     live.getCpu().setIrqLine(oldIrq);
-    NES control("");
+    FixtureNES control("");
     control.setCheatDirectory(rom.parent_path() / "no-cheats");
     check(control.insertCartridge(rom.string()), "control cartridge rejected");
     load(control, baseline);
     for (const auto &sample : invalid)
     {
-        NES candidate("");
+        FixtureNES candidate("");
         candidate.setCheatDirectory(rom.parent_path() / "no-cheats");
         check(candidate.insertCartridge(rom.string()), "candidate cartridge rejected");
         load(candidate, baseline);
         std::istringstream broken(sample.bytes);
         check(!candidate.loadState(broken) && broken.fail(), name + ": accepted " + sample.name);
         check(save(candidate) == baseline, name + ": rollback mismatch for " + sample.name);
-        NES expected("");
+        FixtureNES expected("");
         expected.setCheatDirectory(rom.parent_path() / "no-cheats");
         check(expected.insertCartridge(rom.string()), "reference cartridge rejected");
         load(expected, baseline);
@@ -183,12 +184,12 @@ int main(int argc, char **argv)
         file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
         check(bool(file), "fixture write failed");
         file.close();
-        NES nes("");
+        FixtureNES nes("");
         nes.setCheatDirectory(dir / "no-cheats");
         check(nes.insertCartridge(path.string()), "fixture ROM rejected");
         nes.reset();
         {
-            NES frame("");
+            FixtureNES frame("");
             frame.setCheatDirectory(dir / "no-cheats");
             check(frame.insertCartridge(path.string()), "frame IRQ fixture rejected");
             auto &bus = frame.getBus();
@@ -218,7 +219,7 @@ int main(int argc, char **argv)
             check(!apu.getIrqFlag() && save(frame) == expected, "pending frame IRQ clear not restored");
         }
         {
-            NES special("");
+            FixtureNES special("");
             special.setCheatDirectory(dir / "no-cheats");
             check(special.insertCartridge(path.string()), "DMC store fixture rejected");
             auto &cpu = special.getCpu();

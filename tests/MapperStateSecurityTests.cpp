@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool ok, const char *message)
@@ -189,7 +190,7 @@ int main(int argc, char **argv)
         std::ofstream file(path, std::ios::binary);
         file.write(rom.data(), rom.size());
         file.close();
-        NES nes("");
+        FixtureNES nes("");
         nes.setCheatDirectory(dir / "no-cheats");
         check(nes.insertCartridge(path.string()), "mapper 23 ROM rejected");
         for (int i = 0; i < 25; ++i)

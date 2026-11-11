@@ -1,5 +1,8 @@
 #pragma once
 
+#include "BatterySession.h"
+#include <memory>
+#include <filesystem>
 #include <string>
 #include <map>
 #include <SDL3/SDL.h>
@@ -21,10 +24,14 @@ namespace R2NES::System
     public:
         // Não possui recursos externos; o estado é mantido pelas strings e pelo cache interno.
         GameStateManager() = default;
+        void setCheatDirectory(std::filesystem::path path) { cheatDirectory = std::move(path); }
+        void setBatteryDirectory(std::filesystem::path path) { batteryDirectory = std::move(path); }
         ~GameStateManager() = default;
 
         // Carrega uma ROM, reinicializa o NES e sincroniza a interface com o novo cartucho.
         bool loadRom(const std::string &path, Core::NES &nes, Core::Window &window);
+
+        bool flushBattery(Core::Window &window);
 
         // Remove o cartucho atual e limpa o estado de interface e dados derivados.
         void unloadRom(Core::NES &nes, Core::Window &window);
@@ -43,7 +50,9 @@ namespace R2NES::System
 
     private:
         // Caminho da ROM que define o nome dos arquivos de save state.
+        std::filesystem::path batteryDirectory = "battery", cheatDirectory = "cheats";
         std::string currentRomPath;
+        std::unique_ptr<BatterySession> battery;
 
         // Mapeia endereços da CPU para instruções, evitando reconstrução a cada quadro.
         std::map<uint16_t, std::string> cachedDisassembly;

@@ -1,11 +1,13 @@
 #include "Core/Cartridge/Mappers/Mapper001.h"
 #include "Core/NES.h"
-#include "Core/Cartridge/BatterySave.h"
+#include "System/BatterySave.h"
+using R2NES::System::BatterySave;
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
 #include <chrono>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool ok, const char *message)
@@ -131,10 +133,10 @@ static void battery(const std::filesystem::path &dir)
     bytes[8] = 0;
     bytes[10] = 0;
     const auto path = saveRom(root, bytes);
-    Cartridge identity(path.string());
+    FixtureCartridge identity(path.string());
     const auto saves = root / "saves", save = saves / (identity.getRomHash() + ".sav");
     {
-        NES nes(saves);
+        FixtureNES nes(saves);
         nes.insertCartridge(path.string());
         check(nes.isCartridgeLoaded() && !std::filesystem::exists(saves), "Loading created a battery file before changes");
         nes.getBus().cpuWrite(0x6000, 0xA5);
@@ -162,7 +164,7 @@ static void battery(const std::filesystem::path &dir)
     std::filesystem::copy_file(path, renamed);
     std::shared_ptr<Cartridge> held;
     {
-        NES nes(saves);
+        FixtureNES nes(saves);
         nes.insertCartridge(renamed.string());
         check(nes.cpuRead(0x6000) == 0xD8, "Battery did not survive a new console/renamed ROM");
         held = nes.getBus().cart;
@@ -171,7 +173,7 @@ static void battery(const std::filesystem::path &dir)
     check(fileBytes(save)[0] == 0xE9, "Console destruction did not flush battery");
     held.reset();
     {
-        Cartridge cart(path.string());
+        FixtureCartridge cart(path.string());
         check(cart.loadBattery(saves), "Direct cartridge load failed");
         cart.cpuWrite(0x6000, 0xFA, 0);
     }
@@ -181,7 +183,7 @@ static void battery(const std::filesystem::path &dir)
     std::filesystem::create_directories(noBattery);
     const auto volatilePath = saveRom(noBattery, rom(16, 0));
     {
-        NES nes(noBattery / "saves");
+        FixtureNES nes(noBattery / "saves");
         nes.insertCartridge(volatilePath.string());
         nes.getBus().cpuWrite(0x6000, 0xA5);
         check(nes.flushBattery(), "Volatile flush failed");
@@ -191,7 +193,7 @@ static void battery(const std::filesystem::path &dir)
     // O header iNES de 16 KiB com bateria representa dois chips, só o segundo persistente.
     auto legacy = bytes;
     legacy[8] = 2;
-    Cartridge sorom(saveRom(noBattery, legacy).string());
+    FixtureCartridge sorom(saveRom(noBattery, legacy).string());
     check(sorom.isValid() && sorom.getMapper()->getBatteryData().size() == 8192, "Legacy SOROM persisted both chips");
 
     std::string error;
@@ -207,7 +209,7 @@ static void battery(const std::filesystem::path &dir)
         check(BatterySave::load(save, memory, error) == BatterySave::LoadResult::Error && memory[0] == 0x5A,
               "Bad battery size was accepted or changed memory");
         {
-            NES nes(saves);
+            FixtureNES nes(saves);
             nes.insertCartridge(path.string());
             check(nes.isCartridgeLoaded(), "Bad battery prevented ROM loading");
             nes.getBus().cpuWrite(0x6000, 0x11);
@@ -353,15 +355,15 @@ static void cartridges(const std::filesystem::path &dir)
 {
     for (unsigned sub : {1, 2, 4})
     {
-        Cartridge deprecated(saveRom(dir, rom(sub == 2 ? 16 : 32, 0, sub == 1 ? 7 : sub == 2 ? 8
-                                                                                             : 9,
-                                              sub))
-                                 .string());
+        FixtureCartridge deprecated(saveRom(dir, rom(sub == 2 ? 16 : 32, 0, sub == 1 ? 7 : sub == 2 ? 8
+                                                                                                    : 9,
+                                                     sub))
+                                        .string());
         check(deprecated.isValid(), "Valid deprecated submapper rejected");
     }
     for (unsigned ram : {0, 7, 8, 9, 0x70, 0x77, 0x90})
     {
-        Cartridge c(saveRom(dir, rom(32, 0, ram)).string());
+        FixtureCartridge c(saveRom(dir, rom(32, 0, ram)).string());
         check(c.isValid(), "RAM configuration rejected");
         unsigned banks = ram == 0 ? 0 : ram == 0x77 ? 2
                                                     : 1u << ((ram & 15 ? ram & 15 : ram >> 4) - 7);
@@ -388,17 +390,17 @@ static void cartridges(const std::filesystem::path &dir)
     }
     for (unsigned chr : {0, 1})
     {
-        Cartridge c(saveRom(dir, rom(32, chr)).string());
+        FixtureCartridge c(saveRom(dir, rom(32, chr)).string());
         uint32_t t = 0;
         writeRegister(*c.getMapper(), 0xA000, 16, t);
         check(read(c, 0xC000) == 31, "CHR ROM/RAM outer bank failed");
-        Cartridge sn(saveRom(dir, rom(16, chr)).string());
+        FixtureCartridge sn(saveRom(dir, rom(16, chr)).string());
         t = 0;
         uint8_t data = 0;
         writeRegister(*sn.getMapper(), 0xA000, 16, t);
         check(!sn.cpuRead(0x6000, data), "SNROM CHR.4 disable failed");
     }
-    Cartridge sz(saveRom(dir, rom(16, 8, 0x77)).string());
+    FixtureCartridge sz(saveRom(dir, rom(16, 8, 0x77)).string());
     uint32_t t = 0;
     writeRegister(*sz.getMapper(), 0x8000, 14, t);
     writeRegister(*sz.getMapper(), 0xA000, 0, t);
@@ -409,7 +411,7 @@ static void cartridges(const std::filesystem::path &dir)
     check(read(sz, 0x6000) == 1, "SZROM bank zero");
     writeRegister(*sz.getMapper(), 0xA000, 16, t);
     check(read(sz, 0x6000) == 2, "SZROM bank one");
-    Cartridge fixed(saveRom(dir, rom(2, 2, 0, 5)).string());
+    FixtureCartridge fixed(saveRom(dir, rom(2, 2, 0, 5)).string());
     t = 0;
     for (unsigned mode = 0; mode < 4; ++mode)
     {
@@ -421,7 +423,7 @@ static void cartridges(const std::filesystem::path &dir)
     {
         auto bytes = rom(16, 2, 0, 7);
         bytes[6] |= horizontal;
-        Cartridge hard(saveRom(dir, bytes).string());
+        FixtureCartridge hard(saveRom(dir, bytes).string());
         t = 0;
         for (unsigned mirror = 0; mirror < 4; ++mirror)
         {
@@ -432,10 +434,10 @@ static void cartridges(const std::filesystem::path &dir)
     auto trained = rom(16, 0);
     trained[6] |= 4;
     trained.insert(trained.begin() + 16, 512, 0xA5);
-    Cartridge trainer(saveRom(dir, trained).string());
+    FixtureCartridge trainer(saveRom(dir, trained).string());
     check(trainer.isValid() && read(trainer, 0x7000) == 0xA5, "Trainer not loaded");
     auto reject = [&](std::vector<uint8_t> bytes)
-    { Cartridge c(saveRom(dir, bytes).string()); check(!c.isValid(), "Invalid MMC1 image accepted"); };
+    { FixtureCartridge c(saveRom(dir, bytes).string()); check(!c.isValid(), "Invalid MMC1 image accepted"); };
     for (unsigned sub : {3, 6, 8, 15})
         reject(rom(16, 0, 7, sub));
     reject(rom(16, 0, 7, 1));
@@ -490,7 +492,7 @@ static void consoleTests(const std::filesystem::path &dir)
             bytes[base + 2] = 0xc0;
             bytes[base + 0x3ffc] = 0x00;
             bytes[base + 0x3ffd] = 0xc0;
-            NES nes;
+            FixtureNES nes;
             check(nes.insertCartridge(saveRom(dir, bytes).string()), "Overclock ROM failed");
             nes.setPAL(pal);
             nes.setCPUOverclock(true, percent / 100.0f);
@@ -528,7 +530,7 @@ static void consoleTests(const std::filesystem::path &dir)
             bytes[base + 0x2010] = original; // JAM after RMW.
             bytes[base + 0x3FFC] = 0;
             bytes[base + 0x3FFD] = 0xC0;
-            NES nes;
+            FixtureNES nes;
             nes.insertCartridge(saveRom(dir, bytes).string());
             nes.setCPUOverclock(overclock);
             for (unsigned i = 0; i < 100; ++i)
@@ -549,14 +551,14 @@ static void consoleTests(const std::filesystem::path &dir)
         bytes[base + 0x2010] = 0;
         bytes[base + 0x3FFC] = 0;
         bytes[base + 0x3FFD] = 0xC0;
-        NES cpu;
+        FixtureNES cpu;
         cpu.insertCartridge(saveRom(dir, bytes).string());
         cpu.setCPUOverclock(overclock);
         for (unsigned i = 0; i < 100; ++i)
             cpu.step();
         check(static_cast<uint8_t>(state(*cpu.getBus().cart->getMapper())[5]) == 0, "RRA second-write reset ignored");
     }
-    NES nes;
+    FixtureNES nes;
     nes.insertCartridge(saveRom(dir, rom(16, 0)).string());
     auto &bus = nes.getBus();
     uint32_t t = 0;
@@ -610,7 +612,7 @@ static void nmiTiming(const std::filesystem::path &dir)
         bytes[base + 0x3FFB] = 0xC1;
         bytes[base + 0x3FFC] = 0;
         bytes[base + 0x3FFD] = 0xC0;
-        NES nes;
+        FixtureNES nes;
         nes.insertCartridge(saveRom(dir, bytes).string());
         for (unsigned i = 0; i < 9; ++i)
             nes.step(); // Reset + LDA #$80.
@@ -653,7 +655,7 @@ static void nmiTiming(const std::filesystem::path &dir)
 
 static void gameBoot(const char *path)
 {
-    NES nes;
+    FixtureNES nes;
     nes.insertCartridge(path);
     check(nes.isCartridgeLoaded(), "Game ROM load failed");
     std::vector<uint32_t> colors;

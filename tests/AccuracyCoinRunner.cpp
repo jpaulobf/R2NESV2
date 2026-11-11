@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "TestFixtures.h"
 
 struct Result
 {
@@ -34,32 +35,46 @@ int main(int argc, char **argv)
     std::string line;
     while (std::getline(baseline, line))
     {
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || line[0] == '#')
+            continue;
         Result entry{};
         std::istringstream row(line);
         std::string address, value;
         if (!std::getline(row, address, '\t') || !std::getline(row, value, '\t') ||
             !std::getline(row, entry.page, '\t') || !std::getline(row, entry.name))
             return 2;
-        try {
+        try
+        {
             entry.address = std::stoul(address, nullptr, 16);
             entry.baseline = std::stoul(value, nullptr, 16);
-        } catch (...) { return 2; }
-        if (entry.address < 0x400 || entry.address > 0x498 || entry.baseline > 255) return 2;
+        }
+        catch (...)
+        {
+            return 2;
+        }
+        if (entry.address < 0x400 || entry.address > 0x498 || entry.baseline > 255)
+            return 2;
         expected.push_back(entry);
     }
-    if (expected.size() != 147) { std::cerr << "Invalid baseline.\n"; return 2; }
+    if (expected.size() != 147)
+    {
+        std::cerr << "Invalid baseline.\n";
+        return 2;
+    }
 
-    NES nes("");
+    FixtureNES nes("");
     nes.setCheatDirectory("");
-    if (!nes.insertCartridge(argv[1])) return 2;
+    if (!nes.insertCartridge(argv[1]))
+        return 2;
     nes.getBus().cheats.clear();
     // Pressione Start na tela inicial; mantenha os mesmos instantes da linha de base.
     constexpr uint64_t totalCycles = 150000000;
     for (uint64_t tick = 0; tick < totalCycles; ++tick)
     {
-        if (tick == 3000000) nes.getJoysticks().controller1.setButton(IO::BUTTON_START, true);
-        if (tick == 3300000) nes.getJoysticks().controller1.setButton(IO::BUTTON_START, false);
+        if (tick == 3000000)
+            nes.getJoysticks().controller1.setButton(IO::BUTTON_START, true);
+        if (tick == 3300000)
+            nes.getJoysticks().controller1.setButton(IO::BUTTON_START, false);
         nes.step(false);
     }
     // Contadores são preenchidos enquanto a própria ROM desenha a tabela final.
@@ -75,7 +90,11 @@ int main(int argc, char **argv)
         const unsigned current = nes.cpuRead(item.address);
         const unsigned status = current & 3;
         const unsigned previous = item.baseline & 3;
-        if (status != 1 && status != 2) { std::cerr << "Unexpected result status.\n"; return 2; }
+        if (status != 1 && status != 2)
+        {
+            std::cerr << "Unexpected result status.\n";
+            return 2;
+        }
         passed += status == 1;
         failed += status == 2;
         improved += status == 1 && previous == 2;
@@ -84,7 +103,11 @@ int main(int argc, char **argv)
                   << '\t' << std::hex << std::uppercase << (current >> 2) << std::dec
                   << '\t' << (previous == 1 ? "PASS" : "FAIL") << '\n';
     }
-    if (passed != nes.cpuRead(0x38)) { std::cerr << "Result count does not match ROM tally.\n"; return 2; }
+    if (passed != nes.cpuRead(0x38))
+    {
+        std::cerr << "Result count does not match ROM tally.\n";
+        return 2;
+    }
     std::cout << "PASS " << passed << "/147; FAIL " << failed << "; improved " << improved
               << "; regressed " << regressed << '\n';
     return regressed ? 1 : 0;

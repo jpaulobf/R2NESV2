@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 using Bytes = std::vector<uint8_t>;
@@ -69,7 +70,7 @@ static void generated(const std::filesystem::path &dir)
         check(normalized[16] == 0x11 && normalized[16 + 32768] == 0x22, "PRG chip order wrong");
         for (const std::string ext : {".nes", ".unf", ".unif"})
         {
-            Cartridge c(save(dir, "fixture" + ext, bytes).string());
+            FixtureCartridge c(save(dir, "fixture" + ext, bytes).string());
             check(c.isValid(), "UNIF extension/content detection failed");
             uint8_t d = 0;
             check(c.cpuRead(0x8000, d) && d == 0x11, "Initial PRG bank wrong");
@@ -77,7 +78,7 @@ static void generated(const std::filesystem::path &dir)
             check(c.cpuRead(0x8000, d) && d == 0x22, "Sachen PRG switch failed");
             check(c.ppuRead(0, d, 0) && d == 0x55, "Sachen CHR switch failed");
             check(!c.ppuWrite(0, 0, 0), "Sachen CHR ROM writable");
-            Cartridge canonical(save(dir, "canonical.nes", normalized).string());
+            FixtureCartridge canonical(save(dir, "canonical.nes", normalized).string());
             check(c.getRomHash() == canonical.getRomHash(), "UNIF hash depends on wrapper metadata");
         }
         std::unique_ptr<Mapper> m = tc ? std::unique_ptr<Mapper>(new Mapper147(4, 16, MirrorMode::VERTICAL)) : std::unique_ptr<Mapper>(new Mapper079(4, 8, MirrorMode::VERTICAL));
@@ -138,7 +139,7 @@ static void generated(const std::filesystem::path &dir)
     std::string error;
     check(decodeSachenUNIF(unif(true), normalized, error), "Fixture normalize failed");
     normalized[16 + 0x4102] = 0xFF;
-    Cartridge c(save(dir, "conflicts.nes", normalized).string());
+    FixtureCartridge c(save(dir, "conflicts.nes", normalized).string());
     c.cpuWrite(0xC102, 0x44, 0);
     check(state(*c.getMapper()) == std::string{1, 8}, "Conflict-safe high mirror failed");
     c.cpuWrite(0xC102, 0x44, 0);
@@ -239,7 +240,7 @@ static void mapper150(const std::filesystem::path &dir)
     std::string error;
     const auto bytes = boardImage("UNL-Sachen-74LS374N", 5, 131072);
     check(decodeSachenUNIF(bytes, normalized, error) && normalized[6] == 0x60 && normalized[7] == 0x98, "MIRR 5 incorrectly encoded as iNES flags");
-    NES nes;
+    FixtureNES nes;
     nes.insertCartridge(save(dir, "150.nes", bytes).string());
     check(nes.isCartridgeLoaded(), "150 UNIF load failed");
     auto &bus = nes.getBus();
@@ -287,7 +288,7 @@ static void mapper150(const std::filesystem::path &dir)
     check(!decodeSachenUNIF(duplicate, normalized, error), "Duplicate MIRR 5 accepted");
     const auto cnrom = boardImage("NES-CNROM", 0, 32768, 32768);
     check(decodeSachenUNIF(cnrom, normalized, error) && normalized[8] == 0x20, "CNROM submapper conflicts not declared");
-    Cartridge c(save(dir, "cnrom.unf", cnrom).string());
+    FixtureCartridge c(save(dir, "cnrom.unf", cnrom).string());
     check(c.isValid(), "UNIF CNROM rejected");
     c.cpuWrite(0x8001, 3, 0);
     check(c.ppuRead(0, data, 0) && data == 0x43, "UNIF CNROM CHR select wrong");
@@ -296,7 +297,7 @@ static void mapper150(const std::filesystem::path &dir)
 }
 static void boot(const char *path)
 {
-    NES nes;
+    FixtureNES nes;
     nes.insertCartridge(path);
     check(nes.isCartridgeLoaded(), "Real Sachen archive rejected");
     unsigned frames = 0;

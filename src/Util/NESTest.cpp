@@ -1,4 +1,5 @@
 #include "Util/NESTest.h"
+#include "System/RomReader.h"
 #include <iostream>
 #include <iomanip>
 #include <set>
@@ -35,7 +36,10 @@ namespace R2NES::Core
 
     bool NESTest::run(const std::string &romPath, int maxLines)
     {
-        nes.insertCartridge(romPath);
+        std::vector<uint8_t> bytes;
+        if (!R2NES::System::readRomImage(romPath, bytes) ||
+            !nes.insertCartridge(std::make_shared<Cartridge>(bytes)))
+            return false;
         nes.reset();
 
         // Consome ciclos de reset

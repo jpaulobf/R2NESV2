@@ -1,6 +1,7 @@
 #include "Core/NES.h"
 #include <iostream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -10,7 +11,7 @@ static void check(bool condition, const char *message)
         throw std::runtime_error(message);
 }
 
-static void tick(NES &nes, uint32_t until)
+static void tick(FixtureNES &nes, uint32_t until)
 {
     auto &bus = nes.getBus();
     while (bus.systemClockCounter < until)
@@ -22,7 +23,7 @@ static void tick(NES &nes, uint32_t until)
 
 static void checkRateWriteAtFirstReload(bool writeOnReload)
 {
-    NES nes("");
+    FixtureNES nes("");
     auto &apu = nes.getApu();
     apu.setAudioOutputSuppressed(true);
     apu.cpuWrite(0x4010, 0x4F); // loop, 54 CPU cycles per output bit

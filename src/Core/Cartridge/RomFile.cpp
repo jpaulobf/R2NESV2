@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
-#include <fstream>
 #include <zlib.h>
 
 namespace R2NES::Core
@@ -41,22 +40,6 @@ namespace R2NES::Core
         }
     }
 
-    bool readRomFile(const std::string &path, size_t limit, std::vector<uint8_t> &data)
-    {
-        std::ifstream in(path, std::ios::binary | std::ios::ate);
-        if (!in)
-            return false;
-        const auto end = in.tellg();
-        if (end < 0 || static_cast<uint64_t>(end) > limit)
-            return false;
-        std::vector<uint8_t> bytes(static_cast<size_t>(end));
-        in.seekg(0);
-        if (!in || (!bytes.empty() && !in.read(reinterpret_cast<char *>(bytes.data()), bytes.size())))
-            return false;
-        data = std::move(bytes);
-        return true;
-    }
-
     bool extractRomFromZip(const std::vector<uint8_t> &zip, std::vector<uint8_t> &rom)
     {
         // O diretório central fornece os metadados, inclusive quando há descritor de dados.
@@ -82,7 +65,7 @@ namespace R2NES::Core
         size_t p = cdOffset;
         std::vector<uint8_t> selected;
         bool found = false;
-        
+
         // Percorre todo o diretório, mesmo após encontrar a primeira ROM.
         for (unsigned i = 0; i < count; ++i)
         {

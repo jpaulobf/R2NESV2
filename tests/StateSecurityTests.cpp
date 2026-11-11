@@ -9,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 static void check(bool value, const char *message)
@@ -223,7 +224,7 @@ int main(int argc, char **argv)
         std::ofstream romFile(path, std::ios::binary);
         romFile.write(rom.data(), rom.size());
         romFile.close();
-        NES nes("");
+        FixtureNES nes("");
         nes.setCheatDirectory(dir / "no-cheats");
         check(nes.insertCartridge(path.string()), "fixture ROM rejected");
         for (int i = 0; i < 23; ++i)

@@ -1,6 +1,7 @@
 #include "Core/NES.h"
 #include <stdexcept>
 #include <iostream>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -14,7 +15,7 @@ int main()
 {
 	try
 	{
-		NES nes("");
+		FixtureNES nes("");
 		auto &bus = nes.getBus();
 		auto &apu = nes.getApu();
 		auto &pad = nes.getJoysticks().controller1;
@@ -81,7 +82,7 @@ int main()
 			  "ordinary OAM byte lost bits 2-4");
 
 		// Depois do put final, a trava externa contém o dado da OAM DMA.
-		NES transferNes("");
+		FixtureNES transferNes("");
 		auto &transferBus = transferNes.getBus();
 		transferBus.ram->write(0x2FF, 0xAB);
 		transferBus.cpuWrite(0x4014, 0x02);

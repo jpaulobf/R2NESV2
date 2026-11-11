@@ -4,12 +4,14 @@
 #include "System/GameStateManager.h"
 #include "Core/NES.h"
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -81,7 +83,7 @@ static void testInvalidRomPreservesSession(Window &window)
     std::ofstream file("session.nes", std::ios::binary);
     file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
     file.close();
-    NES nes("");
+    FixtureNES nes("");
     nes.setCheatDirectory("no-cheats");
     R2NES::System::GameStateManager manager;
     check(manager.loadRom("session.nes", nes, window), "Valid ROM rejected");
@@ -95,6 +97,37 @@ static void testInvalidRomPreservesSession(Window &window)
           "Invalid ROM changed active session");
 }
 
+static void testBatteryPersistence(Window &window)
+{
+    const auto id = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto directory = std::filesystem::path("battery-integration") / std::to_string(id);
+    std::filesystem::create_directories(directory);
+    const auto romPath = directory / "battery.nes";
+    std::vector<uint8_t> rom(16 + 16 * 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1a;
+    rom[4] = 16;
+    rom[6] = 0x12;
+    {
+        std::ofstream output(romPath, std::ios::binary);
+        output.write(reinterpret_cast<const char *>(rom.data()), rom.size());
+        check(static_cast<bool>(output), "Could not create battery ROM");
+    }
+
+    NES console;
+    R2NES::System::GameStateManager manager;
+    manager.setBatteryDirectory(directory / "saves");
+    manager.setCheatDirectory(directory / "cheats");
+    check(manager.loadRom(romPath.string(), console, window), "Battery ROM rejected");
+    console.getBus().cpuWrite(0x6000, 0xA5);
+    manager.unloadRom(console, window);
+    check(!console.isCartridgeLoaded(), "Unload did not remove cartridge");
+    check(manager.loadRom(romPath.string(), console, window), "Battery ROM reload failed");
+    check(console.cpuRead(0x6000) == 0xA5, "Battery did not survive unload and reload");
+    manager.unloadRom(console, window);
+}
 static void testGamepads(Window &window)
 {
     std::vector<int> buttons;
@@ -260,6 +293,7 @@ int main()
             window.setPauseCallback({});
             testAudio();
             testInvalidRomPreservesSession(window);
+            testBatteryPersistence(window);
             testGamepads(window);
             testViewers(window);
             window.setVSync(false);

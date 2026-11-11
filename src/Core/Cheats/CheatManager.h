@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <filesystem>
+#include <iosfwd>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -29,7 +29,7 @@ namespace R2NES::Core
             bool valid() const { return !patches.empty(); }
         };
 
-        void load(const std::filesystem::path &path);
+        void load(std::istream &input, const std::string &source);
         void clear();
         bool isEnabled() const { return enabled; }
         // Permite pular a aplicação por ciclo quando não há RAM a congelar.

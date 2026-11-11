@@ -7,6 +7,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "TestFixtures.h"
+
 
 using namespace R2NES::Core;
 static void check(bool value, const char *message)
@@ -183,7 +185,7 @@ static void cartridge(const std::filesystem::path &dir)
     { std::ofstream out(path, std::ios::binary); out.write(reinterpret_cast<const char *>(rom.data()), rom.size()); };
     rom[8] = 0x30; // NES 2.0, mapper 23.3 (VRC2b).
     saveRom();
-    NES nes("");
+    FixtureNES nes("");
     nes.setCheatDirectory("");
     check(nes.insertCartridge(path.string()), "VRC2b NES 2.0 ROM rejected");
     auto &bus = nes.getBus();
@@ -204,7 +206,7 @@ static void cartridge(const std::filesystem::path &dir)
         rom[7] = variant == 0 ? 0x10 : 0x18;
         rom[8] = variant << 4;
         saveRom();
-        NES console("");
+        FixtureNES console("");
         console.setCheatDirectory("");
         check(console.insertCartridge(path.string()), "VRC4 ROM rejected");
         console.getBus().cpuWrite(0xB000, 3);
@@ -216,12 +218,12 @@ static void cartridge(const std::filesystem::path &dir)
     rom[7] = 0x18;
     rom[8] = 0x40;
     saveRom();
-    Cartridge unsupported(path.string());
+    FixtureCartridge unsupported(path.string());
     check(!unsupported.isValid(), "unknown submapper accepted");
     rom[8] = 0x30;
     rom[10] = 7;
     saveRom();
-    Cartridge invalidRam(path.string());
+    FixtureCartridge invalidRam(path.string());
     check(!invalidRam.isValid(), "VRC2 with unsupported RAM accepted");
 
     // Confere o caminho completo de persistência em arquivo, inclusive reset.
@@ -232,7 +234,7 @@ static void cartridge(const std::filesystem::path &dir)
     saveRom();
     const auto batteryDir = dir / "battery";
     {
-        NES writer(batteryDir);
+        FixtureNES writer(batteryDir);
         writer.setCheatDirectory("");
         check(writer.insertCartridge(path.string()), "battery ROM rejected");
         writer.getBus().cpuWrite(0x6005, 0xB4);
@@ -240,7 +242,7 @@ static void cartridge(const std::filesystem::path &dir)
         check(writer.getBus().cpuRead(0x6005) == 0xB4, "reset erased battery RAM");
     }
     {
-        NES reader(batteryDir);
+        FixtureNES reader(batteryDir);
         reader.setCheatDirectory("");
         check(reader.insertCartridge(path.string()), "battery ROM reload rejected");
         check(reader.getBus().cpuRead(0x6005) == 0xB4, "battery file not restored");

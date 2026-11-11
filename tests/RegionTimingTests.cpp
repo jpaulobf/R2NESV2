@@ -5,6 +5,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include "TestFixtures.h"
+
 using namespace R2NES::Core;
 static void check(bool ok, const char *msg)
 {
@@ -43,7 +45,7 @@ int main(int argc, char **argv)
             std::ofstream f(path, std::ios::binary);
             f.write((char *)rom.data(), rom.size());
         }
-        NES nes;
+        FixtureNES nes;
         check(nes.insertCartridge(path.string()), "cartridge");
         frame(nes);
         auto ntsc = frame(nes);

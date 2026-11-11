@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include "TestFixtures.h"
 
 int main(int argc, char **argv)
 {
@@ -33,7 +34,7 @@ int main(int argc, char **argv)
     std::ofstream file(path, std::ios::binary);
     file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
     file.close();
-    NES nes("");
+    FixtureNES nes("");
     nes.setCheatDirectory(directory / "no-cheats");
     nes.insertCartridge(path);
     auto &cpu = nes.getCpu();

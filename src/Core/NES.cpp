@@ -1,13 +1,12 @@
 #include "Core/NES.h"
 #include <algorithm>
 #include <cmath>
-#include <fstream>
 #include <iostream>
 #include <sstream>
 
 namespace R2NES::Core
 {
-    NES::NES(std::filesystem::path directory) : batteryDirectory(std::move(directory))
+    NES::NES()
     {
         // Conecta os subsistemas no barramento e entre si.
         // A ordem de conexão importa para garantir que cada componente tenha
@@ -25,26 +24,10 @@ namespace R2NES::Core
         reset();
     }
 
-    NES::~NES()
-    {
-        try
-        {
-            flushBattery();
-        }
-        catch (const std::exception &error)
-        {
-            std::cerr << "Battery save failed: " << error.what() << '\n';
-        }
-    }
-
-    bool NES::flushBattery()
-    {
-        return !bus.cart || bus.cart->flushBattery();
-    }
+    NES::~NES() = default;
 
     void NES::unload()
     {
-        flushBattery();
         // Ao remover o cartucho, restaura entrada e limpa referência no barramento.
         joysticks.port2Device = R2NES::Core::IO::DeviceType::Gamepad;
         bus.setCartridge(nullptr);
@@ -292,35 +275,21 @@ namespace R2NES::Core
         cpu.setIrqLine(apu.getIrqFlag() || (bus.cart && bus.cart->getIrqFlag()));
     }
 
-    bool NES::insertCartridge(const std::string &path)
+    bool NES::insertCartridge(std::shared_ptr<Cartridge> newCart)
     {
-        // Cria e valida o cartucho; em caso de sucesso conecta-o ao barramento.
-        std::shared_ptr<Cartridge> newCart = std::make_shared<Cartridge>(path);
-        if (newCart->isValid())
+        if (newCart && newCart->isValid())
         {
-            // Salva o anterior antes de ler o novo, inclusive ao recarregar a mesma ROM.
-            flushBattery();
-            newCart->loadBattery(batteryDirectory);
             bus.setCartridge(newCart);
-            bus.cheats.load(cheatDirectory / (newCart->getRomHash() + ".cht"));
+            bus.cheats.clear();
             cartridgeLoaded = true;
-            std::cout << "Cartridge '" << path << "' loaded successfully. ROM Hash: " << newCart->getRomHash() << std::endl;
+            std::cout << "Cartridge loaded successfully. ROM Hash: " << newCart->getRomHash() << std::endl;
             return true;
         }
         else
         {
-            std::cerr << "Failed to load cartridge '" << path << "'." << std::endl;
+            std::cerr << "Failed to load cartridge." << std::endl;
             return false;
         }
-    }
-
-    bool NES::saveState(const std::string &filename)
-    {
-        std::ofstream os(filename, std::ios::binary);
-        if (!os.is_open())
-            return false;
-
-        return saveState(os);
     }
 
     bool NES::saveState(std::ostream &os)
@@ -370,15 +339,6 @@ namespace R2NES::Core
         bus.cart->saveState(os);
 
         return os.good();
-    }
-
-    bool NES::loadState(const std::string &filename)
-    {
-        std::ifstream is(filename, std::ios::binary);
-        if (!is.is_open())
-            return false;
-
-        return loadState(is);
     }
 
     bool NES::loadState(std::istream &is)

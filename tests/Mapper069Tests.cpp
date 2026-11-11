@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <vector>
+#include "TestFixtures.h"
+
 using namespace R2NES::Core;
 static void check(bool x, const char *s)
 {
@@ -141,7 +143,7 @@ int main(int argc, char **argv)
             std::ofstream f(path, std::ios::binary);
             f.write((char *)rom.data(), rom.size());
         }
-        Cartridge cart(path.string());
+        FixtureCartridge cart(path.string());
         check(cart.isValid(), "valid cartridge rejected");
         // The cartridge must forward the mapper's live mirroring to the PPU.
         for (unsigned i = 0; i < 4; ++i)
@@ -158,7 +160,7 @@ int main(int argc, char **argv)
                 check(vram.read(0x2000 + n * 0x400, cart.getMirrorMode()) == expected[i][n], "nametable mapping");
         }
         {
-            NES nes;
+            FixtureNES nes;
             check(nes.insertCartridge(path.string()), "console cartridge rejected");
             auto &bus = nes.getBus();
             bus.cpuWrite(0xc000, 7);
@@ -199,7 +201,7 @@ int main(int argc, char **argv)
             std::ofstream f(path, std::ios::binary | std::ios::trunc);
             f.write((char *)rom.data(), rom.size());
         }
-        Cartridge invalid(path.string());
+        FixtureCartridge invalid(path.string());
         check(!invalid.isValid(), "truncated cartridge accepted");
         std::cout << "Mapper 69 tests passed\n";
         return 0;

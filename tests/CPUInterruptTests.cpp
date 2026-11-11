@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "TestFixtures.h"
 
 using namespace R2NES::Core;
 
@@ -58,7 +59,7 @@ int main(int argc, char **argv)
         for (int mode = 0; mode < 2; ++mode)
             for (int edgeAfter = 1; edgeAfter <= 6; ++edgeAfter)
             {
-                NES nes("");
+                FixtureNES nes("");
                 nes.setCheatDirectory(std::filesystem::path(argv[1]) / "no-cheats");
                 check(nes.insertCartridge(path.string()), "ROM failed to load");
                 auto &cpu = nes.getCpu();
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
             }
         for (uint8_t opcode : {uint8_t{0x58}, uint8_t{0x78}, uint8_t{0x28}, uint8_t{0x40}})
         {
-            NES nes("");
+            FixtureNES nes("");
             nes.setCheatDirectory(std::filesystem::path(argv[1]) / "no-cheats");
             check(nes.insertCartridge(path.string()), "IRQ latency ROM failed to load");
             auto &cpu = nes.getCpu();
@@ -144,7 +145,7 @@ int main(int argc, char **argv)
         // O formato atual valida o vetor e rejeita estados antigos sem alterar
         // o console, mesmo durante uma instrução de interrupção.
         {
-            NES nes("");
+            FixtureNES nes("");
             nes.setCheatDirectory(std::filesystem::path(argv[1]) / "no-cheats");
             check(nes.insertCartridge(path.string()), "state fixture ROM failed to load");
             auto &cpu = nes.getCpu();

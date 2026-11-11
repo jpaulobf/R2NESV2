@@ -1,5 +1,4 @@
 #pragma once
-#include <filesystem>
 #include "Common/Common.h"
 #include "Core/Cartridge/Mappers/Mapper.h"
 #include "Core/Cartridge/ROM/CHRROM.h"
@@ -16,16 +15,8 @@ namespace R2NES::Core
     class Cartridge
     {
     public:
-        Cartridge(const std::string &fileName);
+        explicit Cartridge(const std::vector<uint8_t> &rom);
         virtual ~Cartridge();
-
-        // A aplicação escolhe o diretório; construir um cartucho isolado não acessa saves.
-        bool loadBattery(const std::filesystem::path &directory);
-        bool flushBattery();
-        bool canImportBattery() const { return batteryImportAvailable; }
-        bool hasBatteryLoadError() const { return batteryLoadFailed; }
-        bool importBattery();
-        const std::string &getBatteryMessage() const { return batteryMessage; }
 
         // Leitura/Escrita do lado da CPU
         bool cpuRead(uint16_t addr, uint8_t &data, bool readOnly = false) const;
@@ -89,10 +80,5 @@ namespace R2NES::Core
         std::string romHash;
 
         bool imageValid = false;
-        std::filesystem::path batteryPath;
-        std::vector<uint8_t> lastBatteryData;
-        bool batteryLoadFailed = false;
-        bool batteryImportAvailable = false;
-        std::string batteryMessage;
     };
 }

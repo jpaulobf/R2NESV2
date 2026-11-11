@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace R2NES::Core
+namespace R2NES::System
 {
     // Infraestrutura de arquivo independente do mapper e do formato de save state.
     class BatterySave
