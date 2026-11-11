@@ -73,7 +73,10 @@ namespace R2NES::Core
         triangle = TriangleChannel{};
         noise = NoiseChannel{};
         dmc = DMCChannel{};
-        dmc.timer = (pal ? DmcPeriodsPal[0] : DmcPeriodsNtsc[0]) - 1;
+        // A primeira recarga NTSC ocorre um ciclo depois da fase usada
+        // anteriormente. A DMA continua alinhada ao put; a escrita em $4010
+        // no ciclo da recarga deve fornecer o novo período.
+        dmc.timer = pal ? DmcPeriodsPal[0] - 1 : DmcPeriodsNtsc[0];
         dmc.timerReload = (pal ? DmcPeriodsPal[0] : DmcPeriodsNtsc[0]) - 1;
         noise.shiftRegister = 1;
         noise.timerReload = ((pal ? NoisePeriodsPal[0] : NoisePeriodsNtsc[0]) / 2) - 1;
@@ -221,6 +224,18 @@ namespace R2NES::Core
 
             // Toda escrita em $4015 reconhece a IRQ do DMC.
             dmc.irqFlag = false;
+            if (!pal && !(data & 0x10) && dmc.bytesRemaining > 0 &&
+                !dmc.sampleBufferEmpty && dmc.bitsRemaining == 1 &&
+                !dmc.dmaPending)
+            {
+                // O decodificador DMA ainda vê a última amostra quando a
+                // desativação coincide com a expiração do timer. Um ou dois
+                // ciclos antes, ele produz somente um halt abortado.
+                if (dmc.timer == 0)
+                    dmc.dmaPending = true;
+                else if (dmc.timer <= 2)
+                    dmc.abortArmed = true;
+            }
             dmc.enabled = (data & 0x10) != 0;
             if (dmc.enabled)
             {
@@ -239,7 +254,10 @@ namespace R2NES::Core
             else
             {
                 dmc.bytesRemaining = 0;
-                dmc.dmaPending = false;
+                // Uma transferência já agendada atravessa a escrita de stop.
+                // Uma carga ainda em espera, porém, não começa.
+                if (dmc.loadDelay != 0)
+                    dmc.dmaPending = false;
                 dmc.loadDelay = 0;
             }
             break;
@@ -381,7 +399,14 @@ namespace R2NES::Core
         apuCyclePhase = !apuCyclePhase;
 
         triangle.clock();
+        const bool dmcOutputEnds = dmc.timer == 0 && dmc.bitsRemaining == 1;
         dmc.clock();
+        if (dmcOutputEnds && dmc.abortArmed)
+        {
+            dmc.abortArmed = false;
+            dmc.abortPending = true;
+            dmc.dmaPending = true;
+        }
         if (dmc.loadDelay > 0)
             --dmc.loadDelay;
         // Recargas param a CPU em uma fase put. O contador já aponta
@@ -492,9 +517,26 @@ namespace R2NES::Core
 
     void APU::completeDmcDma(uint8_t value, uint8_t totalStallCycles)
     {
-        if (!dmc.dmaPending || !dmc.enabled || dmc.bytesRemaining == 0)
+        if (!dmc.dmaPending)
             return;
+        if (!dmc.enabled || dmc.bytesRemaining == 0)
+        {
+            // Na leitura extra do RP2A03G tardio, o endereço não avança,
+            // mas a segunda cópia do byte entra no buffer de reprodução.
+            if (dmc.enabled && dmc.bytesRemaining == 0)
+            {
+                dmc.sampleBuffer = value;
+                dmc.sampleBufferEmpty = false;
+            }
+            dmc.dmaPending = false;
+            dmc.loadDelay = 0;
+            return;
+        }
 
+        const bool lastByteNearOutputEnd = !pal && !dmc.loop &&
+                                           dmc.bytesRemaining == 1 && dmc.bitsRemaining == 1;
+        const uint16_t timerAtGet = dmc.timer;
+        const uint16_t fetchedAddress = dmc.currentAddress;
         dmc.sampleBuffer = value;
         dmc.sampleBufferEmpty = false;
         dmc.dmaPending = false;
@@ -516,6 +558,16 @@ namespace R2NES::Core
             {
                 dmc.irqFlag = true;
             }
+            if (lastByteNearOutputEnd)
+            {
+                if (timerAtGet == 0)
+                {
+                    dmc.currentAddress = fetchedAddress;
+                    dmc.dmaPending = true; // RP2A03G tardio: leitura extra.
+                }
+                else if (timerAtGet <= 2)
+                    dmc.abortArmed = true;
+            }
         }
 
         // O ciclo da leitura do byte já foi consumido pelo NES; os ciclos
@@ -523,6 +575,12 @@ namespace R2NES::Core
         dmc.dmaStallCyclesRemaining = totalStallCycles > 0
                                           ? static_cast<uint8_t>(totalStallCycles - 1)
                                           : 0;
+    }
+
+    void APU::finishDmcDmaAbort()
+    {
+        dmc.dmaPending = false;
+        dmc.abortPending = false;
     }
 
     bool APU::consumeDmcDmaStallCycle()
@@ -960,7 +1018,10 @@ namespace R2NES::Core
             write(filter.z1);
             write(filter.z2);
         }
-        write(dmc.loadDelay);
+        const uint8_t savedDmcLoadDelay = static_cast<uint8_t>(dmc.loadDelay |
+                                                               (dmc.abortArmed ? 0x80 : 0) |
+                                                               (dmc.abortPending ? 0x40 : 0));
+        write(savedDmcLoadDelay);
     }
 
     void APU::loadState(std::istream &is)
@@ -1061,7 +1122,11 @@ namespace R2NES::Core
             read(filter.z1);
             read(filter.z2);
         }
-        read(dmc.loadDelay);
+        uint8_t savedDmcLoadDelay = 0;
+        read(savedDmcLoadDelay);
+        dmc.loadDelay = savedDmcLoadDelay & 0x0F;
+        dmc.abortArmed = (savedDmcLoadDelay & 0x80) != 0;
+        dmc.abortPending = (savedDmcLoadDelay & 0x40) != 0;
 
         const auto validEnvelope = [](const Envelope &envelope)
         {
@@ -1083,6 +1148,10 @@ namespace R2NES::Core
                    triangle.dutyValue > 31 || dmc.rateIndex > 15 || dmc.outputLevel > 127 ||
                    triangle.linearCount > 127 || triangle.linearReload > 127 ||
                    dmc.bitsRemaining > 8 || dmc.dmaStallCyclesRemaining > 4 || dmc.loadDelay > 4 ||
+                   (savedDmcLoadDelay & 0x30) != 0 ||
+                   (dmc.abortArmed && dmc.abortPending) ||
+                   (dmc.abortPending && (!dmc.dmaPending || dmc.loadDelay != 0)) ||
+                   (pal && (dmc.abortArmed || dmc.abortPending)) ||
                    (dmc.loadDelay != 0 && (!dmc.dmaPending || pal)) ||
                    (frameCounterMode != 4 && frameCounterMode != 5) ||
                    (pendingFrameCounterMode != 4 && pendingFrameCounterMode != 5) ||

@@ -124,6 +124,66 @@ namespace R2NES::Core
         return value;
     }
 
+    uint8_t Bus::readOamDmaSource(uint16_t addr, uint16_t haltedCpuAddress)
+    {
+        // O decodificador dos registradores internos vê os bits altos do
+        // endereço da CPU parada e os cinco bits baixos da fonte da DMA.
+        const bool internalActive = (haltedCpuAddress & 0xFFE0) == 0x4000;
+        const uint16_t reg = 0x4000 | (addr & 0x001F);
+        if (internalActive && reg >= 0x4015 && reg <= 0x4017)
+        {
+            uint8_t external = cpuDataBus;
+            bool externalDriven = cart && cart->cpuRead(addr, external, false);
+            if (!externalDriven && addr < 0x2000)
+            {
+                external = ram ? ram->read(addr & 0x07FF) : 0;
+                externalDriven = true;
+            }
+            else if (!externalDriven && addr < 0x4000)
+            {
+                external = ppu ? ppu->cpuRead(addr, false) : 0;
+                externalDriven = true;
+            }
+            cpuDataBus = external;
+
+            uint8_t original = external;
+            if (reg == 0x4015)
+            {
+                // O status dirige o barramento interno, preservando o bit 5
+                // do barramento externo, mas não altera a trava externa.
+                original = static_cast<uint8_t>((apu ? apu->cpuRead(reg) : 0) | (external & 0x20));
+            }
+            else
+            {
+                // Os controles ainda recebem o pulso de leitura. Quando a
+                // fonte da DMA dirige o barramento, seu dado prevalece.
+                bool internalApuRead = false;
+                const uint8_t controller = readCpuDevice(reg, false, internalApuRead, true);
+                if (!externalDriven)
+                    original = controller;
+            }
+            const uint8_t value = cheats.filterRead(addr, original);
+            if (reg != 0x4015)
+                cpuDataBus = value;
+            if (cart)
+                cart->cpuReadOccurred(addr, original);
+            return value;
+        }
+
+        // Fora da faixa ativa, $4000-$401F não ativa APU nem controles.
+        // A região de expansão $4020-$40FF continua acessível ao cartucho.
+        if ((addr & 0xFFE0) == 0x4000)
+        {
+            uint8_t original = cpuDataBus;
+            if (cart && cart->cpuRead(addr, original, false))
+                cpuDataBus = cheats.filterRead(addr, original);
+            if (cart)
+                cart->cpuReadOccurred(addr, original);
+            return cpuDataBus;
+        }
+        return cpuRead(addr);
+    }
+
     void Bus::clockDmcRegisterConflict(uint16_t addr)
     {
         bool internalApuRead = false;

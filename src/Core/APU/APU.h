@@ -36,6 +36,8 @@ namespace R2NES::Core
         // ciclos da CPU sem acoplar o APU ao escalonador principal.
         bool hasDmcDmaRequest() const { return dmc.dmaPending; }
         bool isDmcDmaReady() const { return dmc.dmaPending && dmc.loadDelay == 0; }
+        bool isDmcDmaAbortPending() const { return dmc.abortPending; }
+        void finishDmcDmaAbort();
         uint16_t getDmcDmaAddress() const { return dmc.currentAddress; }
         void completeDmcDma(uint8_t value, uint8_t totalStallCycles);
         bool consumeDmcDmaStallCycle();
@@ -144,6 +146,8 @@ namespace R2NES::Core
             bool sampleBufferEmpty = true;
             bool silence = true;
             bool dmaPending = false;
+            bool abortArmed = false;
+            bool abortPending = false;
             uint8_t rateIndex = 0;
             uint8_t outputLevel = 0;
             uint8_t sampleBuffer = 0;

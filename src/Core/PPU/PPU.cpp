@@ -218,7 +218,11 @@ namespace R2NES::Core
         {
             // Durante a renderização, a CPU observa o barramento interno usado
             // pela limpeza, avaliação e busca dos sprites.
-            const uint8_t data = isRenderingOamAccess() ? oamDataBusLatch : oamMemory[oamAddr];
+            const bool rendering = isRenderingOamAccess();
+            uint8_t data = rendering ? oamDataBusLatch : oamMemory[oamAddr];
+            // Os bits 2-4 do byte de atributos não existem na OAM primária.
+            if (!rendering && (oamAddr & 3) == 2)
+                data &= 0xE3;
             if (!readOnly)
                 drivePpuIoBus(data, 0xFF);
             return data;
@@ -313,7 +317,7 @@ namespace R2NES::Core
             }
             else
             {
-                oamMemory[oamAddr] = data;
+                oamMemory[oamAddr] = (oamAddr & 3) == 2 ? (data & 0xE3) : data;
                 oamDataBusLatch = data;
                 oamAddr++;
             }

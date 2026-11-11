@@ -58,6 +58,7 @@ namespace R2NES::Core
         // Leitura pela CPU via barramento. `readOnly` é usado
         // quando a operação não deve causar efeitos colaterais.
         uint8_t cpuRead(uint16_t addr, bool readOnly = false);
+        uint8_t readOamDmaSource(uint16_t addr, uint16_t haltedCpuAddress);
         // Aciona somente o decodificador interno durante um get DMC.
         void clockDmcRegisterConflict(uint16_t addr);
         void beginCpuProbe()

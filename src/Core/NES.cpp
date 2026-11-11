@@ -131,13 +131,15 @@ namespace R2NES::Core
                 // Em ciclos pares lê da memória do CPU
                 if (bus.systemClockCounter % 2 == 0 && !dmcGet)
                 {
-                    bus.dma_data = bus.cpuRead((bus.dma_page << 8) | bus.dma_addr);
+                    bus.dma_data = bus.readOamDmaSource((bus.dma_page << 8) | bus.dma_addr,
+                                                        cpu.nextReadAddress());
                     oamReadAvailable = true;
                 }
                 // Em ciclos ímpares escreve no registrador $2004 do PPU
                 else if ((bus.systemClockCounter & 1) && oamReadAvailable)
                 {
                     ppu.cpuWrite(0x2004, bus.dma_data);
+                    bus.cpuDataBus = bus.dma_data;
                     oamReadAvailable = false;
                     bus.dma_addr++;
 
@@ -226,7 +228,21 @@ namespace R2NES::Core
         }
         if (dmcDmaPhase == 0)
         {
-            if (!apu.isDmcDmaReady() || (!oamActive && cpu.nextCycleIsWrite()))
+            if (!apu.isDmcDmaReady())
+                return false;
+            if (apu.isDmcDmaAbortPending())
+            {
+                if (oamActive || cpu.nextCycleIsWrite())
+                {
+                    apu.finishDmcDmaAbort();
+                    return false;
+                }
+                dmcHaltAddress = cpu.nextReadAddress();
+                bus.cpuRead(dmcHaltAddress);
+                apu.finishDmcDmaAbort();
+                return true;
+            }
+            if (!oamActive && cpu.nextCycleIsWrite())
                 return false;
             if (!oamActive)
             {
