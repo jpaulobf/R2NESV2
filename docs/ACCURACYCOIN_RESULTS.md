@@ -200,6 +200,65 @@ limpeza e da indicação com IRQ inibida não foi validado nesta rodada.
 Resultado: `build-headless/accuracycoin/frame-irq-inhibit.txt`. Referência:
 [NESdev: timing da IRQ da APU](https://forums.nesdev.org/viewtopic.php?t=635).
 
+### Fase inicial do temporizador DMC
+
+Em 2026-11-11, o AccuracyCoin passou de **119 para 120/147**: `DMC Reload
+Timing` passou, sem regressões PASS/FAIL. A fase inicial NTSC do temporizador
+DMC foi atrasada em um ciclo. Isso permite que uma escrita em `$4010` no ciclo
+da primeira recarga forneça o novo período, sem alterar a cadência entre
+recargas posteriores. A implementação PAL permanece na fase anterior, sem
+afirmação de equivalência com o hardware 2A07.
+
+O teste `apu-dmc-reload` verifica escritas em `$4010` no ciclo da primeira
+recarga e no ciclo seguinte, observando quando o buffer esvazia e solicita a
+DMA. O teste `cpu-bus` continua cobrindo as 16 taxas NTSC nas duas fases e a
+parada da CPU. Resultado completo:
+`build-headless/accuracycoin/dmc-reload-phase.txt`. Referências:
+[NESdev: APU DMC](https://www.nesdev.org/wiki/APU_DMC) e
+[NESdev: DMA](https://www.nesdev.org/wiki/DMA).
+
+### Cancelamento de DMA do DMC
+
+Em 2026-11-11, o AccuracyCoin avançou de **120 para 122/147**, sem regressões
+PASS/FAIL: passaram `Explicit DMA Abort` e `Implicit DMA Abort` (este último
+com código informativo 1, correspondente ao comportamento do RP2A03G tardio).
+Desligar `$4015.4` não apaga uma transferência já agendada. Se a amostra
+termina um ou dois ciclos antes da tentativa de parada, a DMA pode parar a CPU
+por apenas um ciclo; quando essa tentativa coincide com uma escrita da CPU, ela
+é descartada. No caso implícito, uma amostra de um byte sem loop pode gerar
+essa parada ou uma leitura extra do mesmo endereço, conforme a fase.
+
+O teste `dmc-abort` cobre a transferência completa após stop, a parada
+abortada, a escrita que a cancela, os dois resultados da parada implícita e a
+restauração dos estados armado e pendente. Esses estados usam bits livres do
+byte serializado do atraso de carga DMC, sem alterar o tamanho do save state;
+uma versão anterior pode rejeitar um estado salvo nesses instantes raros.
+O comportamento PAL permanece pendente. Resultado completo:
+`build-headless/accuracycoin/dmc-abort.txt`. Referência:
+[NESdev: DMA do DMC e seus bugs](https://www.nesdev.org/wiki/DMA#Bugs).
+
+### Ativação de registradores durante a DMA de OAM
+
+Em 2026-11-11, o AccuracyCoin avançou de **122 para 123/147**, sem regressões
+PASS/FAIL. `APU Register Activation` passou com código 2. Os bits 15–5 do
+endereço no qual a CPU foi parada controlam a ativação dos registradores
+internos; os bits 4–0 vêm da fonte da DMA. Assim, uma fonte `$50xx` pode ler
+`$4015–$4017` enquanto a CPU está parada em `$4000–$401F`, e uma fonte
+`$40xx` não os ativa fora dessa janela. Quando a RAM dirige o barramento,
+o controle ainda avança, mas o byte copiado vem da RAM. O put da DMA atualiza
+a trava externa de dados. Os bits 2–4 dos atributos da OAM primária agora
+voltam como zero.
+
+O teste `oam-dma-register` cobre a janela de ativação, limpeza da IRQ de
+quadro, conflito com RAM, avanço do controle, atributos da OAM e barramento
+após o put. O teste de restauração de estado foi atualizado para comparar
+os atributos efetivamente armazenados. `Address $2004 behavior` continuou
+FAIL, mas seu código mudou de 3 para A; as outras 145 linhas mantiveram o
+mesmo código. Resultado completo:
+`build-headless/accuracycoin/oam-register-activation.txt`. Referências:
+[NESdev: DMA](https://www.nesdev.org/wiki/DMA) e
+[NESdev: PPU OAM](https://www.nesdev.org/wiki/PPU_OAM).
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
