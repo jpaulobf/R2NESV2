@@ -290,9 +290,14 @@ int main(int argc, char **argv)
         check(!pendingAudio(nes).empty(), "DMA checkpoint did not contain pending audio");
         const auto dmaCheckpoint = save(nes);
         const auto dmaClock = nes.getSystemClockCounter();
+        const auto expectedOamByte = [](int index)
+        {
+            const uint8_t source = uint8_t(index ^ 0x5a);
+            return (index & 3) == 2 ? uint8_t(source & 0xE3) : source;
+        };
         verifyScenario(nes, path, "OAM DMA first phase");
         for (int i = 0; i < 256; ++i)
-            check(nes.getPpu().getOamMemory()[i] == uint8_t(i ^ 0x5a), "OAM DMA produced incorrect bytes");
+            check(nes.getPpu().getOamMemory()[i] == expectedOamByte(i), "OAM DMA produced incorrect bytes");
         load(nes, dmaCheckpoint);
         nes.getApu().cpuWrite(0x4012, 0);
         nes.getApu().cpuWrite(0x4013, 0);
@@ -309,7 +314,7 @@ int main(int argc, char **argv)
         check(uint8_t(overlap[overlapLayout.mapper - 4]) == 1, "DMC/OAM overlap not reached");
         verifyScenario(nes, path, "DMC during OAM DMA");
         for (int i = 0; i < 256; ++i)
-            check(nes.getPpu().getOamMemory()[i] == uint8_t(i ^ 0x5a), "DMC collision corrupted OAM DMA");
+            check(nes.getPpu().getOamMemory()[i] == expectedOamByte(i), "DMC collision corrupted OAM DMA");
         load(nes, dmaCheckpoint);
         nes.step();
         check(nes.getBus().dma_transfer && ((nes.getSystemClockCounter() ^ dmaClock) & 1),

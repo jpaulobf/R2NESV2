@@ -335,7 +335,8 @@ int main()
                   "DMC/controller bus conflict shifted at the wrong time");
         }
 
-        // O timer inicia em 427 e o buffer é consumido no oitavo bit.
+        // Em NTSC, a primeira expiração ocorre no ciclo 429; o buffer é
+        // consumido no oitavo bit.
         // Recargas seguintes repetem a cada oito períodos,
         // sempre solicitando a parada em put, nas duas fases de inicialização.
         constexpr unsigned periods[] = {428, 380, 340, 320, 286, 254, 226, 214,
@@ -351,7 +352,7 @@ int main()
                 reloadApu.cpuWrite(0x4010, 0x40 | rate);
                 reloadApu.cpuWrite(0x4015, 0x10);
                 reloadApu.completeDmcDma(0, 0);
-                unsigned expected = 427 + 7 * periods[rate];
+                unsigned expected = 428 + 7 * periods[rate];
                 if (((seed + expected + 1) & 1) == 0)
                     ++expected;
                 unsigned requests = 0;

@@ -99,6 +99,9 @@ int main(int argc, char **argv)
         filterTarget.loadState(filterInput);
         check(filterInput.fail(), "APU accepted non-finite filter state");
         rejectApuByte(apuBaseline.size() - 1, 5, "APU accepted invalid DMC load delay");
+        rejectApuByte(apuBaseline.size() - 1, 0x20, "APU accepted reserved DMC abort bit");
+        rejectApuByte(apuBaseline.size() - 1, 0x40, "APU accepted abort without pending DMA");
+        rejectApuByte(apuBaseline.size() - 1, 0xC0, "APU accepted conflicting abort phases");
 
         // Legitimate intermediate states must remain loadable even when the
         // host chooses a different audio rate after the snapshot was made.

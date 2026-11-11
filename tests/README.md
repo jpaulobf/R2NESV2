@@ -67,6 +67,20 @@ cmake --build build-headless --target apu-frame-timing-tests
 ctest --test-dir build-headless -R '^apu-frame-timing$' --output-on-failure
 ```
 
+`apu-dmc-reload` checks the NTSC DMC power-on timer phase by writing `$4010`
+on the first reload cycle and one cycle later. It observes the resulting
+reload DMA request without relying on audio output. `cpu-bus` also checks
+subsequent reload cadence at all 16 NTSC rates and both clock phases. PAL's
+initial timer phase remains unchanged and has not been hardware validated.
+
+`dmc-abort` checks the NTSC DMC stop windows: a full fetch already scheduled,
+the one-cycle aborted halt, suppression when that halt lands on a CPU write,
+and both the short and extra full DMA after a non-looping one-byte sample.
+It also restores APU snapshots while the abort is armed and pending. The
+abort flags share unused bits in the serialized DMC load-delay byte; earlier
+builds may reject states saved during those rare windows. PAL abort behavior
+is not covered by this implementation.
+
 ## AccuracyCoin baseline
 
 `accuracycoin-runner` is an optional headless diagnostic, not part of CTest.
@@ -94,6 +108,11 @@ NTSC DMC reload requests use the put phase at all 16 rates and both initial
 clock phases. A reload on CPU reads must halt for four cycles and then resume.
 The initial load is checked at both clock phases, along with a DMC/controller
 bus conflict and a control case without conflict.
+`oam-dma-register` checks internal APU/controller activation during OAM DMA,
+including a mirrored source page, an inactive $40xx source, a RAM/controller
+bus conflict, the data bus after a put, and the five stored attribute bits in
+primary OAM. `state-rollback-timing` compares OAM DMA output using those
+stored attribute bits after state restore.
 The SHA, TAS, SHY and SHX tests cover a DMC halt at the indexed dummy read,
 a halt on the preceding cycle, no DMA, page crossing and interrupted restore.
 `cpu-cycle` checks CPU read/write cycle prediction across all 256 opcodes in
