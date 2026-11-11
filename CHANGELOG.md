@@ -2,6 +2,12 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [Não lançado]
+
+- DMA de OAM: corrigida a ativação dos registradores internos pelos bits altos do endereço da CPU parada e pelos cinco bits baixos da fonte DMA, inclusive quando a RAM ou o cartucho dirigem o barramento externo. Leituras dos controles ainda avançam sob conflito; o put atualiza o barramento externo. A OAM primária agora descarta os bits inexistentes 2–4 dos atributos. `APU Register Activation` passou e o AccuracyCoin avançou de 122 para 123/147, sem regressões PASS/FAIL; adicionados testes de barramento e ajustada a expectativa de restauração da OAM.
+- DMA do DMC: modeladas a transferência completa que sobrevive ao stop de `$4015`, a parada abortada de um ciclo e sua supressão quando cai numa escrita da CPU. O caso implícito de amostra única inclui a leitura extra do RP2A03G tardio. `Explicit DMA Abort` e `Implicit DMA Abort` passaram; AccuracyCoin avançou de 120 para 122/147, sem regressões PASS/FAIL. Adicionados testes de ciclos e restauração dos estados intermediários.
+- APU: corrigida a fase inicial NTSC do temporizador DMC. Uma escrita em `$4010` no ciclo da recarga usa o novo período; `DMC Reload Timing` passou e o AccuracyCoin avançou de 119 para 120/147, sem regressões PASS/FAIL. Adicionado teste de ciclo para as escritas na borda da recarga; o caminho PAL não foi alterado.
+
 ## [1.3.0] - 2026-11-09
 
 - APU: corrigida a duração da sequência de quatro passos e o comportamento da flag de IRQ ao ler `$4015`, incluindo a janela de três ciclos e a indicação temporária com IRQ inibida. AccuracyCoin passou de 116 para 119/147, sem regressões PASS/FAIL; adicionados testes de ciclos e restauração.
