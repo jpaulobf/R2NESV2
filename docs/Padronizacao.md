@@ -6,7 +6,7 @@ Os projetos R2SEGA8, R2BOY e R2NES continuam independentes. O objetivo é aproxi
 
 1. **Concluído:** causas de pausa independentes e testáveis nos três projetos: pausa manual, menus, minimização e depuração quando aplicável. Há testes de causas simultâneas e mudanças em ordens diferentes.
 2. **Concluído:** extrair o controle SDL de fullscreen e resolução nos três projetos. A janela restaura sua geometria e a engine mantém as decisões de áudio e tempo.
-3. Separar gradualmente leitura e gravação de ROM, bateria, cheats e estados do núcleo, começando pelo R2NES e preservando compatibilidade dos arquivos.
+3. **Concluído:** no R2NES, a aplicação lê ROMs, save states e cheats e controla a persistência de bateria; o núcleo recebe bytes e streams. As interfaces legadas por caminho foram substituídas por auxiliares externos nos testes e no diagnóstico. No R2SEGA8, o cartucho também recebe bytes e a leitura usada nos testes fica fora do núcleo. Os formatos e as proteções de bateria foram preservados.
 4. Dividir responsabilidades de janela, menus, apresentação de vídeo e ferramentas de depuração onde houver fronteiras claras.
 5. Definir e testar o comportamento de temporização e VSync em diferentes frequências, regiões e modos de execução. Esta etapa altera comportamento e exige medições.
 6. Revisar contratos e duplicações após estabilizar as etapas anteriores. Os projetos permanecem independentes.
