@@ -186,15 +186,7 @@ namespace R2NES::Core
                     windowBorderlessFullscreen();
                 else
                 {
-                    SDL_SetWindowFullscreen(window, false);
-                    SDL_SyncWindow(window);
-                    if (displayTransitionCallback)
-                        displayTransitionCallback();
-                    SDL_SetWindowBordered(window, true);
-                    SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
-                    SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
-                    createMenu();
-                    currentDisplayMode = DisplayMode::WINDOWED;
+                    restoreFullscreenWindow();
                 }
                 continue;
             }
@@ -203,15 +195,7 @@ namespace R2NES::Core
             {
                 if (currentDisplayMode != DisplayMode::WINDOWED)
                 {
-                    SDL_SetWindowFullscreen(window, false);
-                    SDL_SyncWindow(window);
-                    if (displayTransitionCallback)
-                        displayTransitionCallback();
-                    SDL_SetWindowBordered(window, true);
-                    SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
-                    SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
-                    createMenu();
-                    currentDisplayMode = DisplayMode::WINDOWED;
+                    restoreFullscreenWindow();
                 }
             }
 
@@ -618,7 +602,15 @@ namespace R2NES::Core
                         windowResize(scaleValue);
                 }
                 ImGui::Separator();
-                fullscreenResolution.menu(window);
+                if (ImGui::BeginMenu("Fullscreen Resolution"))
+                {
+                    if (ImGui::MenuItem("Desktop Resolution", nullptr, fullscreenResolution.selected() < 0))
+                        fullscreenResolution.selectDesktop();
+                    for (int i = 0; i < fullscreenResolution.count(); ++i)
+                        if (ImGui::MenuItem(fullscreenResolution.label(i), nullptr, fullscreenResolution.selected() == i, fullscreenResolution.available(i)))
+                            fullscreenResolution.select(window, i);
+                    ImGui::EndMenu();
+                }
                 if (ImGui::MenuItem("Fullscreen Stretched"))
                     windowBorderlessFullscreenStretch();
                 if (ImGui::MenuItem("Fullscreen", "Ctrl+F ou Alt+Enter"))
@@ -844,12 +836,10 @@ namespace R2NES::Core
 
         if (!menuPauseActive)
         {
-            menuPausedBeforeInteraction = paused;
             menuPauseActive = true;
+            pauseState.setMenu(true);
+            publishPause();
         }
-
-        if (!paused)
-            setPaused(true);
     }
 
     // Libera o estado de pausa do menu, possivelmente suspendendo até que o menu seja fechado.
@@ -858,7 +848,8 @@ namespace R2NES::Core
         if (menuPauseActive)
         {
             menuPauseActive = false;
-            setPaused(menuPausedBeforeInteraction);
+            pauseState.setMenu(false);
+            publishPause();
         }
 
         if (suspendUntilClosed)
@@ -1224,14 +1215,26 @@ namespace R2NES::Core
         }
     }
 
+    void Window::restoreFullscreenWindow()
+    {
+        if (!fullscreenResolution.leave(window))
+            return;
+        if (displayTransitionCallback)
+            displayTransitionCallback();
+        SDL_SetWindowBordered(window, true);
+        SDL_SetWindowPosition(window, lastWindowedX, lastWindowedY);
+        SDL_SetWindowSize(window, lastWindowedW, lastWindowedH);
+        createMenu();
+        currentDisplayMode = DisplayMode::WINDOWED;
+    }
+
     // Ajusta o tamanho visível conforme escala e recorte de overscan atuais.
     void Window::windowResize(int times)
     {
         // Exit fullscreen mode if currently in one
         if (currentDisplayMode != DisplayMode::WINDOWED)
         {
-            SDL_SetWindowFullscreen(window, false);
-            SDL_SyncWindow(window);
+            fullscreenResolution.leave(window);
             if (displayTransitionCallback)
                 displayTransitionCallback();
             SDL_SetWindowBordered(window, true); // Restore border

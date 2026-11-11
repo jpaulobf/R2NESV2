@@ -240,6 +240,24 @@ int main()
         {
             Window window("SDL3 integration", 256, 240, 1);
             check(!window.shouldClose(), "Main window initialization failed");
+            bool effectivePause = false;
+            int pauseChanges = 0;
+            window.setPauseCallback([&](bool value)
+                                    { effectivePause = value; ++pauseChanges; });
+            window.setPaused(true);
+            window.setMinimizedPaused(true);
+            window.setMinimizedPaused(false);
+            check(effectivePause && window.isManuallyPaused() && pauseChanges == 1,
+                  "Restoring a minimized window must preserve manual pause");
+            window.setPaused(false);
+            check(!effectivePause && pauseChanges == 2, "Manual resume must clear effective pause");
+            window.setMinimizedPaused(true);
+            window.setPaused(true);
+            window.setPaused(false);
+            check(effectivePause && pauseChanges == 3, "Minimization must remain paused after manual resume");
+            window.setMinimizedPaused(false);
+            check(!effectivePause && pauseChanges == 4, "Restoring must clear minimization pause");
+            window.setPauseCallback({});
             testAudio();
             testInvalidRomPreservesSession(window);
             testGamepads(window);

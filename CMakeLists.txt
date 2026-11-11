@@ -69,14 +69,20 @@ if(R2NES_BUILD_GUI)
   endif()
   target_include_directories(R2NESV2 PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
   add_custom_command(TARGET R2NESV2 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/resources" "$<TARGET_FILE_DIR:R2NESV2>/resources"
+    COMMAND ${CMAKE_COMMAND}
+    "-DRESOURCE_SOURCE=${CMAKE_SOURCE_DIR}/resources"
+    "-DRESOURCE_DESTINATION=$<TARGET_FILE_DIR:R2NESV2>/resources"
+    -P "${CMAKE_SOURCE_DIR}/cmake/CopyResources.cmake"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:R2NESV2>/shaders")
 endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(pause-state-tests tests/PauseStateTests.cpp)
+  target_include_directories(pause-state-tests PRIVATE src)
+  add_test(NAME pause-state COMMAND pause-state-tests)
+
   add_executable(snapshot-buffer-tests tests/SnapshotBufferTests.cpp)
   target_include_directories(snapshot-buffer-tests PRIVATE src)
   add_test(NAME snapshot-buffer COMMAND snapshot-buffer-tests)

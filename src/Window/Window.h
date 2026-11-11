@@ -1,7 +1,8 @@
 #pragma once
 
 #include <SDL3/SDL.h>
-#include "FullscreenResolution.h"
+#include "System/PauseState.h"
+#include "FullscreenController.h"
 #include <array>
 #include <string>
 #include <cstdint>
@@ -369,13 +370,18 @@ namespace R2NES::Core
 
         /* Verifica se a emulação está pausada. */
         bool isPaused() const { return paused; }
+        bool isManuallyPaused() const { return pauseState.manual(); }
 
-        /* Define o estado de pause da janela e notifica a engine. */
+        // Alterar uma causa nunca substitui as demais.
         void setPaused(bool p)
         {
-            paused = p;
-            if (pauseCallback)
-                pauseCallback(paused);
+            pauseState.setManual(p);
+            publishPause();
+        }
+        void setMinimizedPaused(bool p)
+        {
+            pauseState.setMinimized(p);
+            publishPause();
         }
 
         /* Informa se há uma solicitação pendente para salvar estado. */
@@ -446,6 +452,7 @@ namespace R2NES::Core
 
         /* Função genérica para configurar o modo de tela cheia sem bordas. */
         void setWindowBorderlessFullscreen(DisplayMode currentDisplayMode);
+        void restoreFullscreenWindow();
 
         /* Atualiza o estado do cartucho e recria o menu para refletir as opções disponíveis. */
         void setCartLoaded(bool loaded)
@@ -533,7 +540,7 @@ namespace R2NES::Core
         } sdlSession;
 
         SDL_Window *window = nullptr;
-        FullscreenResolution fullscreenResolution;
+        FullscreenController fullscreenResolution;
         std::function<void()> displayTransitionCallback;
         SDL_Renderer *renderer = nullptr;
         SDL_Texture *texture = nullptr;
@@ -622,9 +629,18 @@ namespace R2NES::Core
         bool fastForwardEnabled = true;
         bool rewindEnabled = false;
         int rewindPrecisionLevel = 1;
+        R2NES::System::PauseState pauseState;
+        void publishPause()
+        {
+            const bool next = pauseState.paused();
+            if (next == paused)
+                return;
+            paused = next;
+            if (pauseCallback)
+                pauseCallback(paused);
+        }
         bool paused = false;
         bool menuPauseActive = false;
-        bool menuPausedBeforeInteraction = false;
         bool menuPauseSuspendedUntilClose = false;
         bool useZapper = false;
 

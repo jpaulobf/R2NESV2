@@ -294,6 +294,7 @@ namespace R2NES::Core
                 break;
 
             const bool minimized = window->isMinimized();
+            window->setMinimizedPaused(minimized);
             if (minimized != wasMinimized)
             {
                 resetPlaybackTiming();
@@ -329,7 +330,7 @@ namespace R2NES::Core
                 // O rewind solicita apresentação no caminho comum, evitando dois
                 // renders (e duas esperas por VSync) na mesma iteração.
                 bool rewindFrameReady = false;
-                if (runningRewind)
+                if (runningRewind && !paused)
                 {
                     rewindFrameReady = updateRewind(deltaTime);
                 }
@@ -561,7 +562,7 @@ namespace R2NES::Core
         case SDLK_PAUSE:
             if (isPressed && nes->isCartridgeLoaded())
             {
-                window->setPaused(!window->isPaused());
+                window->setPaused(!window->isManuallyPaused());
             }
             break;
         }
