@@ -753,13 +753,12 @@ namespace R2NES::Core
 
     void PPU::updateShifters()
     {
-        if (effectivePpuMask() & 0x08) // Background enabled
-        {
-            bgShifterPatternLow <<= 1;
-            bgShifterPatternHigh <<= 1;
-            bgShifterAttrLow <<= 1;
-            bgShifterAttrHigh <<= 1;
-        }
+        // O pipeline de fundo avança também com apenas sprites habilitados.
+        // A seleção do pixel visível continua controlada pelo bit de fundo.
+        bgShifterPatternLow <<= 1;
+        bgShifterPatternHigh <<= 1;
+        bgShifterAttrLow <<= 1;
+        bgShifterAttrHigh <<= 1;
     }
 
     void PPU::driveRenderingAddress()

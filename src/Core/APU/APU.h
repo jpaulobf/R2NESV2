@@ -160,7 +160,8 @@ namespace R2NES::Core
             uint16_t currentAddress = 0xC000;
             uint16_t bytesRemaining = 0;
             uint8_t dmaStallCyclesRemaining = 0;
-            // Tempo até a primeira tentativa de parada após habilitar o DMC.
+            // Tempo até a DMA poder parar a CPU após habilitar o DMC,
+            // inclusive quando ainda há uma amostra no buffer.
             uint8_t loadDelay = 0;
 
             uint8_t sample() const { return outputLevel; }

@@ -240,6 +240,7 @@ namespace R2NES::Core
             if (dmc.enabled)
             {
                 const bool startingLoad = dmc.bytesRemaining == 0 && dmc.sampleBufferEmpty && !dmc.dmaPending;
+                const bool restartingBuffered = dmc.bytesRemaining == 0 && !dmc.sampleBufferEmpty && !dmc.dmaPending;
                 if (dmc.bytesRemaining == 0)
                 {
                     dmc.currentAddress = dmc.sampleAddress;
@@ -249,6 +250,11 @@ namespace R2NES::Core
                 // A primeira tentativa ocorre na segunda fase get da APU
                 // após a escrita, três ou quatro ciclos de CPU depois dela.
                 if (startingLoad && dmc.dmaPending && !pal && bus)
+                    dmc.loadDelay = (bus->systemClockCounter & 1) ? 3 : 4;
+                // Mesmo com um byte no buffer, a reativação só permite uma
+                // nova DMA na segunda fase get após a escrita. Se o buffer
+                // esvaziar antes, a recarga espera o fim dessa janela.
+                if (restartingBuffered && !pal && bus)
                     dmc.loadDelay = (bus->systemClockCounter & 1) ? 3 : 4;
             }
             else
@@ -407,6 +413,8 @@ namespace R2NES::Core
             dmc.abortPending = true;
             dmc.dmaPending = true;
         }
+        if (dmc.loadDelay > 0 && !dmc.dmaPending && dmc.sampleBufferEmpty)
+            requestDmcDma();
         if (dmc.loadDelay > 0)
             --dmc.loadDelay;
         // Recargas param a CPU em uma fase put. O contador já aponta
@@ -1152,7 +1160,9 @@ namespace R2NES::Core
                    (dmc.abortArmed && dmc.abortPending) ||
                    (dmc.abortPending && (!dmc.dmaPending || dmc.loadDelay != 0)) ||
                    (pal && (dmc.abortArmed || dmc.abortPending)) ||
-                   (dmc.loadDelay != 0 && (!dmc.dmaPending || pal)) ||
+                   (dmc.loadDelay != 0 && pal) ||
+                   (dmc.loadDelay != 0 && !dmc.dmaPending &&
+                    (!dmc.enabled || dmc.bytesRemaining == 0 || dmc.sampleBufferEmpty)) ||
                    (frameCounterMode != 4 && frameCounterMode != 5) ||
                    (pendingFrameCounterMode != 4 && pendingFrameCounterMode != 5) ||
                    frameClockCounter >= (frameCounterMode == 4 ? (pal ? 33254u : 29830u) : (pal ? 41565u : 37281u)) ||
