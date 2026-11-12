@@ -73,6 +73,12 @@ reload DMA request without relying on audio output. `cpu-bus` also checks
 subsequent reload cadence at all 16 NTSC rates and both clock phases. PAL's
 initial timer phase remains unchanged and has not been hardware validated.
 
+The same test covers restarting an NTSC sample with a filled buffer one to
+three cycles before it empties, on both clock phases. It verifies that the
+pending reload waits for activation and restores snapshots before and after the
+request. Earlier builds may reject a state saved during the activation delay
+before the request exists; PAL behavior is unchanged.
+
 `dmc-abort` checks the NTSC DMC stop windows: a full fetch already scheduled,
 the one-cycle aborted halt, suppression when that halt lands on a CPU write,
 and both the short and extra full DMA after a non-looping one-byte sample.
@@ -882,6 +888,8 @@ This regression checks eight versus nine or more sprites, both sprite sizes,
 background-only and sprite-only rendering, disabled rendering, status reads,
 and pre-render clearing, with Unlimited Sprites both enabled and disabled.
 It does not check cycle accuracy or the hardware's diagonal overflow bug.
+It also checks that the background pipeline continues while only sprites are
+enabled, comparing pixels after re-enabling the background mid-scanline.
 
 ```powershell
 cmake --build build --target ppu-sprite-overflow-tests

@@ -259,6 +259,59 @@ mesmo código. Resultado completo:
 [NESdev: DMA](https://www.nesdev.org/wiki/DMA) e
 [NESdev: PPU OAM](https://www.nesdev.org/wiki/PPU_OAM).
 
+### Investigação de $2004 após 123/147
+
+Uma experiência em 2026-11-12 zerou os dois bits baixos de OAMADDR em toda
+escrita de `$2004` durante a renderização. O AccuracyCoin então retornou
+**124/147**, com `Address $2004 behavior` PASS e nenhuma regressão PASS/FAIL
+frente aos 123 anteriores. Essa alteração foi descartada: aplicar o alinhamento
+indistintamente contraria a descrição usual do incremento dos seis bits altos
+de OAMADDR durante a renderização. O resultado experimental, por si só, não
+valida o comportamento nas demais fases.
+
+No ponto que distinguiu as duas implementações, a instrumentação observou a
+escrita com OAMADDR igual a 1 no ciclo 0 da scanline 0; o comentário do código
+da ROM situa a escrita no dot 321 da linha de pré-renderização. Essa diferença
+merece investigação do sincronismo entre a ROM, os acessos da CPU e a PPU,
+antes de decidir como modelar o alinhamento. O núcleo continua com o comportamento
+anterior; naquela experiência, a pontuação confirmada permaneceu **123/147**. Log da experiência:
+`build-headless/accuracycoin/oam-align-experiment.txt`. Referência:
+[NESdev: registradores da PPU](https://www.nesdev.org/wiki/PPU_registers#OAMDATA).
+
+### Reativação do DMC com buffer cheio
+
+Em 2026-11-12, o AccuracyCoin avançou de **123 para 124/147**: `Delta
+Modulation Channel` passou, e as outras 146 linhas conservaram seus resultados
+e códigos. Em NTSC, quando `$4015` reinicia uma amostra e ainda há um byte no
+buffer, a DMA também deve aguardar a janela de ativação de três ou quatro
+ciclos, conforme a fase. Se o buffer esvazia nessa janela, a solicitação de
+recarga fica pendente até a ativação. Isso cobre as últimas três verificações
+da ROM, em que o buffer esvazia próximo à escrita de reativação.
+
+O teste `apu-dmc-reload` cobre três instantes de reativação, as duas fases e a
+restauração antes e depois de a recarga ficar pendente. O campo de atraso já
+serializado passou a poder existir antes da solicitação; o tamanho do save state
+não mudou, mas versões anteriores podem rejeitar estados salvos nessa janela.
+O comportamento PAL não foi alterado nem validado nesta rodada. CTest headless:
+**47/47**. Resultado: `build-headless/accuracycoin/dmc-buffered-restart.txt`.
+Referência: [NESdev: DMA do DMC](https://www.nesdev.org/wiki/DMA#DMC_DMA).
+
+### Pipeline de fundo com apenas sprites habilitados
+
+Em 2026-11-12, o AccuracyCoin avançou de **124 para 125/147**: `Rendering
+Flag Behavior` passou; as outras 146 linhas mantiveram resultados e códigos.
+O pipeline de fundo agora avança os registradores de
+deslocamento quando qualquer uma das duas camadas está habilitada. O bit de
+fundo continua determinando se seus pixels aparecem na imagem, e desligar as
+duas camadas continua suspendendo o pipeline.
+
+O teste `ppu-sprite-overflow` compara os pixels após reativar o fundo no meio
+da linha com uma PPU que manteve o fundo habilitado; a variante antiga falha
+nessa comparação. O teste também mantém os casos de avaliação de sprites com
+ambas as camadas separadamente habilitadas. CTest headless: **47/47**.
+Resultado completo: `build-headless/accuracycoin/ppu-rendering-flags.txt`. Referência:
+[NESdev: registradores e habilitação da renderização](https://www.nesdev.org/wiki/PPU_registers).
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
