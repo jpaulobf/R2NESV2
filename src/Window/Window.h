@@ -476,6 +476,8 @@ namespace R2NES::Core
 
         /* Renderiza a barra principal de menus e o navegador de arquivos. */
         void renderMenu();
+        void renderDisplayMenu();
+        void renderVideo(const uint32_t *pixels);
 
         /* Renderiza o diálogo de seleção de arquivos. */
         void renderFileDialog();
