@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/IO/NESButtons.h"
+#include "KeyboardMapping.h"
 #include <SDL3/SDL.h>
 #include <map>
 #include <cstdint>
@@ -29,6 +30,9 @@ namespace R2NES::System
         // Configura a associação dos botões físicos A/B/X/Y e seus atalhos turbo.
         void configureABBAButtons(bool invert);
 
+        // Libera as teclas anteriores e aplica os mapeamentos dos dois controles.
+        void setKeyboardMapping(const R2Keyboard::Mapping &mapping, Core::NES &nes);
+
         // Seleciona Gamepad ou Zapper como dispositivo da segunda porta do NES.
         void configureUseZapper(bool enabled, Core::NES &nes);
 
@@ -46,6 +50,13 @@ namespace R2NES::System
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1KeyMap;
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player2KeyMap;
         std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player1TurboKeyMap;
+        std::map<SDL_Keycode, R2NES::Core::IO::NESButtons> player2TurboKeyMap;
+        R2Keyboard::Mapping keyboardMapping = R2Keyboard::defaults();
+        // Mantém o turbo do segundo controle separado das pressões normais.
+        bool turbo2A = false, turbo2B = false;
+        bool normal2A = false, normal2B = false, turboPulse2 = false;
+        // Recria as associações após mudar as teclas ou a inversão do primeiro controle.
+        void rebuildKeyboardMap();
 
         // Mapeamento de botões de controle
         std::map<SDL_GamepadButton, R2NES::Core::IO::NESButtons> player1ControllerMap;

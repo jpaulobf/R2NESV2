@@ -19,6 +19,8 @@
 #include "Disassembler.h"
 #include "OamViewer.h"
 #include "Util/ConfigManager.h"
+#include "KeyboardDialog.h"
+#include "KeyboardConfig.h"
 #include "Common/Common.h"
 #include "imgui.h"
 #include "MemoryAccess.h"
@@ -87,6 +89,9 @@ namespace R2NES::Core
 
         /* Destrutor da classe Window: libera os recursos do SDL, ImGui e fecha os controles. */
         ~Window();
+
+        // Entrega à Engine o mapeamento carregado e as alterações confirmadas.
+        void setKeyboardMappingCallback(std::function<void(const R2Keyboard::Mapping &)> callback);
 
         /* Define a função de callback para eventos de teclado. */
         void setKeyCallback(KeyCallback cb) { keyCallback = cb; }
@@ -561,6 +566,9 @@ namespace R2NES::Core
         DebugWindowManager debugWindowManager;
 
         Util::ConfigManager configManager;
+        KeyboardConfig keyboardConfig{configManager};
+        R2Keyboard::KeyboardDialog keyboardDialog;
+        std::function<void(const R2Keyboard::Mapping &)> keyboardMappingCallback;
 
         bool closed = false;
         bool resetRequested = false;

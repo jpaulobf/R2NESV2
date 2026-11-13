@@ -147,12 +147,23 @@ namespace R2NES::Core
         SDL_DestroyWindow(window);
     }
 
+    void Window::setKeyboardMappingCallback(std::function<void(const R2Keyboard::Mapping &)> callback)
+    {
+        keyboardMappingCallback = std::move(callback);
+        keyboardDialog.setMapping(keyboardConfig.load());
+        if (keyboardMappingCallback)
+            keyboardMappingCallback(keyboardDialog.mapping());
+    }
+
     // Distribui eventos SDL entre ImGui, controles, mouse, teclado, menus e janelas auxiliares.
     void Window::pollEvents()
     {
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
+            // A captura do diálogo tem prioridade sobre os atalhos e a entrada de jogo.
+            if (keyboardDialog.processEvent(e, SDL_GetWindowID(window)))
+                continue;
             // Processa eventos para o ImGui da janela principal se o evento pertencer a ela
             if (imguiContext)
             {
@@ -607,6 +618,11 @@ namespace R2NES::Core
                     setInvertBAYB(!invertBAYB);
                 if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper))
                     setUseZapper(!useZapper);
+                ImGui::Separator();
+                if (ImGui::MenuItem("Configure Keyboard..."))
+                    keyboardDialog.open(invertBAYB ? std::array<int, 10>{0, 1, 2, 3, 6, 4, 7, 5, 8, 9}
+                                                   : std::array<int, 10>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+                                        true);
                 ImGui::EndMenu();
             }
 
@@ -719,6 +735,11 @@ namespace R2NES::Core
         }
 
         renderFileDialog();
+        keyboardDialog.draw([this](const R2Keyboard::Mapping &mapping)
+                            {
+            if (!keyboardConfig.save(mapping)) return false;
+            if (keyboardMappingCallback) keyboardMappingCallback(mapping);
+            return true; });
         updateMenuPause(ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId));
     }
 

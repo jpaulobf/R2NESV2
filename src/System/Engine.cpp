@@ -74,6 +74,10 @@ namespace R2NES::Core
                                                  bus.cheats.setEntryEnabled(index, enabled);
                                                  bus.cheats.applyRam(bus); });
 
+        // A Engine conecta o mapeamento confirmado à entrada do sistema emulado.
+        window->setKeyboardMappingCallback([this](const R2Keyboard::Mapping &mapping)
+                                           { inputManager->setKeyboardMapping(mapping, *nes); });
+
         // Conecta o callback da janela à função da Engine
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
                                { this->handleKeyboard(key, isPressed); });

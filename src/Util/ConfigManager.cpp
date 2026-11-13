@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include "System/AtomicFile.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -70,17 +71,8 @@ namespace R2NES::Core::Util
     }
 
     // Garante o diretório de saída e grava as ROMs recentes antes das demais chaves.
-    void ConfigManager::saveConfigFile()
+    bool ConfigManager::saveConfigFile()
     {
-        // Garante que a pasta 'resources' exista antes de tentar salvar
-        std::filesystem::path path(configFilePath);
-        if (path.has_parent_path() && !std::filesystem::exists(path.parent_path()))
-        {
-            std::filesystem::create_directories(path.parent_path());
-        }
-
-        std::cout << "ConfigManager: Salvando configuracoes em: " << std::filesystem::absolute(configFilePath) << std::endl;
-
         // Atualiza os valores f1-f10 no map antes de salvar
         int i = 1;
         for (const auto &rom : listOfRoms)
@@ -97,9 +89,7 @@ namespace R2NES::Core::Util
         // Ensure last_rom_path is updated in the map before saving
         configValues["last_rom_path"] = lastRomPath;
 
-        std::ofstream file(configFilePath);
-        if (!file.is_open())
-            return;
+        std::ostringstream file;
 
         file << "# Last Opened Files\n";
         for (int j = 1; j <= 10; ++j)
@@ -115,6 +105,17 @@ namespace R2NES::Core::Util
             {
                 file << key << "=" << val << "\n";
             }
+        }
+        try
+        {
+            const auto text = file.str();
+            System::writeAtomicFile(configFilePath, std::vector<std::uint8_t>(text.begin(), text.end()));
+            return true;
+        }
+        catch (const std::exception &error)
+        {
+            std::cerr << "ConfigManager: Unable to save configuration: " << error.what() << '\n';
+            return false;
         }
     }
 

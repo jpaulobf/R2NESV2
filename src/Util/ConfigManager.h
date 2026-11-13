@@ -20,7 +20,16 @@ namespace R2NES::Core::Util
         void loadConfigFile();
 
         // Serializa as ROMs recentes e demais chaves conhecidas para o arquivo INI.
-        void saveConfigFile();
+        bool saveConfigFile();
+
+        // Retorna o valor de uma preferência ou uma string vazia se a chave não existir.
+        std::string getValue(const std::string &key) const
+        {
+            const auto it = configValues.find(key);
+            return it == configValues.end() ? std::string{} : it->second;
+        }
+        // Atualiza a preferência em memória; saveConfigFile() grava as alterações.
+        void setValue(const std::string &key, const std::string &value) { configValues[key] = value; }
 
         // Move a ROM informada para o topo da lista de recentes, limitada a dez entradas.
         void addRomToList(const std::string &romPath);

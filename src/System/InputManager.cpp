@@ -3,26 +3,11 @@
 
 namespace R2NES::System
 {
-    SDL_Keycode defaultKeyMap[] = {SDLK_J, SDLK_K, SDLK_I, SDLK_U, SDLK_BACKSPACE, SDLK_RETURN, SDLK_W, SDLK_S, SDLK_A, SDLK_D};
     SDL_GamepadButton defaultControllerMap[] = {SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST, SDL_GAMEPAD_BUTTON_WEST, SDL_GAMEPAD_BUTTON_NORTH, SDL_GAMEPAD_BUTTON_BACK, SDL_GAMEPAD_BUTTON_START, SDL_GAMEPAD_BUTTON_DPAD_UP, SDL_GAMEPAD_BUTTON_DPAD_DOWN, SDL_GAMEPAD_BUTTON_DPAD_LEFT, SDL_GAMEPAD_BUTTON_DPAD_RIGHT};
 
     // Define os controles padrão de teclado, gamepad e turbo do jogador 1.
     InputManager::InputManager()
     {
-        // Inicializa o mapeamento de teclas padrão para o Player 1
-        player1KeyMap[defaultKeyMap[0]] = R2NES::Core::IO::BUTTON_B;
-        player1KeyMap[defaultKeyMap[1]] = R2NES::Core::IO::BUTTON_A;
-        player1KeyMap[defaultKeyMap[4]] = R2NES::Core::IO::BUTTON_SELECT;
-        player1KeyMap[defaultKeyMap[5]] = R2NES::Core::IO::BUTTON_START;
-        player1KeyMap[defaultKeyMap[6]] = R2NES::Core::IO::BUTTON_UP;
-        player1KeyMap[defaultKeyMap[7]] = R2NES::Core::IO::BUTTON_DOWN;
-        player1KeyMap[defaultKeyMap[8]] = R2NES::Core::IO::BUTTON_LEFT;
-        player1KeyMap[defaultKeyMap[9]] = R2NES::Core::IO::BUTTON_RIGHT;
-
-        // Mapeamento de Turbo (Teclado)
-        player1TurboKeyMap[defaultKeyMap[2]] = R2NES::Core::IO::BUTTON_A;
-        player1TurboKeyMap[defaultKeyMap[3]] = R2NES::Core::IO::BUTTON_B;
-
         // Mapeamento de Controles padrão
         player1ControllerMap[defaultControllerMap[4]] = R2NES::Core::IO::BUTTON_SELECT;
         player1ControllerMap[defaultControllerMap[5]] = R2NES::Core::IO::BUTTON_START;
@@ -46,14 +31,7 @@ namespace R2NES::System
         player1TurboControllerMap.erase(defaultControllerMap[2]);
         player1TurboControllerMap.erase(defaultControllerMap[3]);
 
-        player1KeyMap.erase(defaultKeyMap[0]);
-        player1KeyMap.erase(defaultKeyMap[1]);
-        player1KeyMap.erase(defaultKeyMap[2]);
-        player1KeyMap.erase(defaultKeyMap[3]);
-        player1TurboKeyMap.erase(defaultKeyMap[0]);
-        player1TurboKeyMap.erase(defaultKeyMap[1]);
-        player1TurboKeyMap.erase(defaultKeyMap[2]);
-        player1TurboKeyMap.erase(defaultKeyMap[3]);
+        rebuildKeyboardMap();
 
         if (invert)
         {
@@ -63,10 +41,6 @@ namespace R2NES::System
             player1ControllerMap[defaultControllerMap[3]] = R2NES::Core::IO::BUTTON_B;
             player1TurboControllerMap[defaultControllerMap[3]] = R2NES::Core::IO::BUTTON_B;
             player1TurboControllerMap[defaultControllerMap[1]] = R2NES::Core::IO::BUTTON_A;
-            player1KeyMap[defaultKeyMap[3]] = R2NES::Core::IO::BUTTON_B;
-            player1KeyMap[defaultKeyMap[0]] = R2NES::Core::IO::BUTTON_A;
-            player1TurboKeyMap[defaultKeyMap[1]] = R2NES::Core::IO::BUTTON_A;
-            player1TurboKeyMap[defaultKeyMap[2]] = R2NES::Core::IO::BUTTON_B;
         }
         else
         {
@@ -76,11 +50,43 @@ namespace R2NES::System
             player1ControllerMap[defaultControllerMap[3]] = R2NES::Core::IO::BUTTON_A;
             player1TurboControllerMap[defaultControllerMap[2]] = R2NES::Core::IO::BUTTON_B;
             player1TurboControllerMap[defaultControllerMap[3]] = R2NES::Core::IO::BUTTON_A;
-            player1KeyMap[defaultKeyMap[0]] = R2NES::Core::IO::BUTTON_B;
-            player1KeyMap[defaultKeyMap[1]] = R2NES::Core::IO::BUTTON_A;
-            player1TurboKeyMap[defaultKeyMap[2]] = R2NES::Core::IO::BUTTON_A;
-            player1TurboKeyMap[defaultKeyMap[3]] = R2NES::Core::IO::BUTTON_B;
         }
+    }
+
+    void InputManager::rebuildKeyboardMap()
+    {
+        using namespace R2NES::Core::IO;
+        player1KeyMap.clear();
+        player2KeyMap.clear();
+        player1TurboKeyMap.clear();
+        player2TurboKeyMap.clear();
+        constexpr NESButtons buttons[] = {BUTTON_UP, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT,
+                                          BUTTON_B, BUTTON_A, BUTTON_B, BUTTON_A, BUTTON_START, BUTTON_SELECT};
+        // A inversão afeta o primeiro controle e preserva a configuração armazenada.
+        constexpr int inverted[] = {0, 1, 2, 3, 5, 7, 4, 6, 8, 9};
+        for (int p = 0; p < 2; ++p)
+            for (int i = 0; i < 10; ++i)
+            {
+                const auto key = keyboardMapping[p][i];
+                const int target = invertBAYB && p == 0 ? inverted[i] : i;
+                if (!key)
+                    continue;
+                auto &map = target == 6 || target == 7
+                                ? (p == 0 ? player1TurboKeyMap : player2TurboKeyMap)
+                                : (p == 0 ? player1KeyMap : player2KeyMap);
+                map[key] = buttons[target];
+            }
+    }
+
+    void InputManager::setKeyboardMapping(const R2Keyboard::Mapping &mapping, Core::NES &nes)
+    {
+        // Solta as associações antigas antes de reconstruir os mapas de teclado.
+        for (const auto &pad : keyboardMapping)
+            for (const auto key : pad)
+                if (key)
+                    handleKeyboard(key, false, nes);
+        keyboardMapping = mapping;
+        rebuildKeyboardMap();
     }
 
     // Atualiza a porta 2 do NES para o dispositivo selecionado no menu.
@@ -119,6 +125,34 @@ namespace R2NES::System
 
             if (!isPressed)
                 joy1.setButton(itTurbo->second, false);
+        }
+        auto &joy2 = nes.getJoysticks().controller2;
+        // Pressões normais do Pad 2 prevalecem quando o pulso turbo está desligado.
+        const auto normal2 = player2KeyMap.find(key);
+        if (normal2 != player2KeyMap.end())
+        {
+            if (normal2->second == R2NES::Core::IO::BUTTON_A)
+            {
+                normal2A = isPressed;
+                joy2.setButton(normal2->second, normal2A || (turbo2A && turboPulse2));
+            }
+            else if (normal2->second == R2NES::Core::IO::BUTTON_B)
+            {
+                normal2B = isPressed;
+                joy2.setButton(normal2->second, normal2B || (turbo2B && turboPulse2));
+            }
+            else
+                joy2.setButton(normal2->second, isPressed);
+        }
+        const auto turbo2 = player2TurboKeyMap.find(key);
+        if (turbo2 != player2TurboKeyMap.end())
+        {
+            if (turbo2->second == R2NES::Core::IO::BUTTON_A)
+                turbo2A = isPressed;
+            if (turbo2->second == R2NES::Core::IO::BUTTON_B)
+                turbo2B = isPressed;
+            const bool normal = turbo2->second == R2NES::Core::IO::BUTTON_A ? normal2A : normal2B;
+            joy2.setButton(turbo2->second, normal || (isPressed && turboPulse2));
         }
     }
 
@@ -179,5 +213,11 @@ namespace R2NES::System
             joy1.setButton(R2NES::Core::IO::BUTTON_A, turboPulse);
         if (turboB)
             joy1.setButton(R2NES::Core::IO::BUTTON_B, turboPulse);
+        auto &joy2 = nes.getJoysticks().controller2;
+        turboPulse2 = turboPulse;
+        if (turbo2A)
+            joy2.setButton(R2NES::Core::IO::BUTTON_A, normal2A || turboPulse);
+        if (turbo2B)
+            joy2.setButton(R2NES::Core::IO::BUTTON_B, normal2B || turboPulse);
     }
 }
