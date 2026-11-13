@@ -561,6 +561,7 @@ namespace R2NES::Core
     void Window::renderMenu()
     {
         bool isFullscreen = (currentDisplayMode != DisplayMode::WINDOWED);
+        bool openAbout = false;
 
         if (!isFullscreen && ImGui::BeginMainMenuBar())
         {
@@ -651,6 +652,9 @@ namespace R2NES::Core
 
             if (ImGui::BeginMenu("Input"))
             {
+                if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper))
+                    setUseZapper(!useZapper);
+                ImGui::Separator();
                 if (ImGui::BeginMenu("Player Controller"))
                 {
                     for (int player = 1; player <= 2; ++player)
@@ -666,11 +670,8 @@ namespace R2NES::Core
                     }
                     ImGui::EndMenu();
                 }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Invert BA/YB Buttons", nullptr, invertBAYB))
+                if (ImGui::MenuItem("Use Y/B Buttons (SNES Style)", nullptr, invertBAYB))
                     setInvertBAYB(!invertBAYB);
-                if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper))
-                    setUseZapper(!useZapper);
                 ImGui::Separator();
                 if (ImGui::MenuItem("Configure Keyboard..."))
                     keyboardDialog.open(invertBAYB ? std::array<int, 10>{0, 1, 2, 3, 6, 4, 7, 5, 8, 9}
@@ -784,7 +785,25 @@ namespace R2NES::Core
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("About"))
+            {
+                openAbout = ImGui::MenuItem("About R2NES");
+                ImGui::EndMenu();
+            }
             ImGui::EndMainMenuBar();
+        }
+
+        if (openAbout)
+            ImGui::OpenPopup("About R2NES");
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        bool aboutVisible = true;
+        if (ImGui::BeginPopupModal("About R2NES", &aboutVisible, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings))
+        {
+            ImGui::TextUnformatted("Software livre e aberto para a comunidade.");
+            ImGui::TextUnformatted("Ver licen\xC3\xA7" "a de uso.");
+            ImGui::Spacing();
+            ImGui::TextUnformatted("Vers\xC3\xA3" "o: " R2_APP_VERSION " - Data: 13/11/2026");
+            ImGui::EndPopup();
         }
 
         renderFileDialog();
