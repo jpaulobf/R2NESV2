@@ -132,6 +132,21 @@ if(BUILD_TESTING)
   endif()
 
   if(R2NES_BUILD_GUI)
+    add_executable(keyboard-dialog-tests tests/KeyboardDialogTests.cpp src/Window/KeyboardDialog.cpp ${IMGUI_SOURCES})
+    target_include_directories(keyboard-dialog-tests PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+    target_link_libraries(keyboard-dialog-tests PRIVATE SDL3::SDL3-static)
+    add_test(NAME keyboard-dialog COMMAND keyboard-dialog-tests)
+    set_tests_properties(keyboard-dialog PROPERTIES ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
+
+    add_executable(keyboard-config-tests tests/KeyboardConfigTests.cpp src/Window/KeyboardConfig.cpp src/Util/ConfigManager.cpp src/System/AtomicFile.cpp)
+    target_include_directories(keyboard-config-tests PRIVATE src)
+    target_link_libraries(keyboard-config-tests PRIVATE SDL3::SDL3-static)
+    add_test(NAME keyboard-config COMMAND keyboard-config-tests)
+
+    add_executable(keyboard-mapping-tests tests/KeyboardMappingTests.cpp src/System/InputManager.cpp)
+    target_link_libraries(keyboard-mapping-tests PRIVATE r2nes_core SDL3::SDL3-static)
+    add_test(NAME keyboard-mapping COMMAND keyboard-mapping-tests)
+
     add_executable(audio-manager-tests tests/AudioManagerTests.cpp src/System/AudioManager.cpp)
     target_include_directories(audio-manager-tests PRIVATE src)
     target_link_libraries(audio-manager-tests PRIVATE SDL3::SDL3-static)
@@ -145,7 +160,7 @@ if(BUILD_TESTING)
 
     file(GLOB WINDOW_TEST_SOURCES CONFIGURE_DEPENDS "src/Window/*.cpp")
     add_executable(sdl3-integration-tests tests/SDL3IntegrationTests.cpp
-      ${WINDOW_TEST_SOURCES} ${IMGUI_SOURCES} src/System/AudioManager.cpp src/System/GameStateManager.cpp src/Util/ConfigManager.cpp)
+      ${WINDOW_TEST_SOURCES} ${IMGUI_SOURCES} src/System/AudioManager.cpp src/System/GameStateManager.cpp src/System/AtomicFile.cpp src/Util/ConfigManager.cpp)
     target_include_directories(sdl3-integration-tests PRIVATE src ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
     target_link_libraries(sdl3-integration-tests PRIVATE r2nes_host SDL3::SDL3-static zlibstatic)
     if(WIN32)
