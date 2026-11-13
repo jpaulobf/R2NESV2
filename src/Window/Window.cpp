@@ -155,6 +155,40 @@ namespace R2NES::Core
             keyboardMappingCallback(keyboardDialog.mapping());
     }
 
+    int Window::playerForGamepad(int slot) const
+    {
+        for (int player = 0; player < 2; ++player)
+            if (playerJoystick[player] && slot-- == 0)
+                return player + 1;
+        return 0;
+    }
+
+    void Window::releaseGamepad(int player)
+    {
+        if (!player)
+            return;
+        if (controllerCallback)
+            for (int button = 0; button < SDL_GAMEPAD_BUTTON_COUNT; ++button)
+                controllerCallback(player, static_cast<SDL_GamepadButton>(button), false);
+        if (controllerTriggerCallback)
+        {
+            controllerTriggerCallback(player, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, false);
+            controllerTriggerCallback(player, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, false);
+        }
+    }
+
+    void Window::setPlayerJoystick(int player, bool enabled)
+    {
+        if (player < 1 || player > 2 || playerJoystick[player - 1] == enabled)
+            return;
+        // A mudança pode deslocar também o controle atribuído ao outro jogador.
+        for (int slot = 0; slot < 2; ++slot)
+            releaseGamepad(playerForGamepad(slot));
+        playerJoystick[player - 1] = enabled;
+        if (playerControllerCallback)
+            playerControllerCallback(player, enabled);
+    }
+
     // Distribui eventos SDL entre ImGui, controles, mouse, teclado, menus e janelas auxiliares.
     void Window::pollEvents()
     {
@@ -226,7 +260,7 @@ namespace R2NES::Core
                         {
                             controllers[i] = SDL_OpenGamepad(deviceId);
                             if (controllers[i])
-                                std::cout << "Controller connected as Player " << (i + 1) << ": "
+                                std::cout << "Controller connected in slot " << (i + 1) << ": "
                                           << SDL_GetGamepadName(controllers[i]) << std::endl;
                             break;
                         }
@@ -239,17 +273,18 @@ namespace R2NES::Core
                 {
                     if (controllers[i] && SDL_GetGamepadID(controllers[i]) == e.gdevice.which)
                     {
-                        std::cout << "Controller disconnected from Player " << (i + 1) << std::endl;
-                        if (controllerCallback)
-                            for (int button = 0; button < SDL_GAMEPAD_BUTTON_COUNT; ++button)
-                                controllerCallback(i + 1, static_cast<SDL_GamepadButton>(button), false);
-                        if (controllerTriggerCallback)
-                        {
-                            controllerTriggerCallback(i + 1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, false);
-                            controllerTriggerCallback(i + 1, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, false);
-                        }
+                        for (int slot = 0; slot < 2; ++slot)
+                            releaseGamepad(playerForGamepad(slot));
                         SDL_CloseGamepad(controllers[i]);
-                        controllers[i] = nullptr;
+                        if (i == 0)
+                            controllers[0] = controllers[1];
+                        controllers[1] = nullptr;
+                        int count = 0;
+                        SDL_JoystickID *available = SDL_GetGamepads(&count);
+                        for (int device = 0; device < count && !controllers[1]; ++device)
+                            if (!controllers[0] || SDL_GetGamepadID(controllers[0]) != available[device])
+                                controllers[controllers[0] ? 1 : 0] = SDL_OpenGamepad(available[device]);
+                        SDL_free(available);
                         break;
                     }
                 }
@@ -262,7 +297,8 @@ namespace R2NES::Core
                 {
                     for (int i = 0; i < 2; ++i)
                         if (controllers[i] && SDL_GetGamepadID(controllers[i]) == e.gbutton.which)
-                            controllerCallback(i + 1, static_cast<SDL_GamepadButton>(e.gbutton.button), e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
+                            if (const int player = playerForGamepad(i))
+                                controllerCallback(player, static_cast<SDL_GamepadButton>(e.gbutton.button), e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
                 }
             }
 
@@ -276,7 +312,8 @@ namespace R2NES::Core
                 {
                     for (int i = 0; i < 2; ++i)
                         if (controllers[i] && SDL_GetGamepadID(controllers[i]) == e.gaxis.which)
-                            controllerTriggerCallback(i + 1, static_cast<SDL_GamepadAxis>(e.gaxis.axis), e.gaxis.value > TRIGGER_THRESHOLD);
+                            if (const int player = playerForGamepad(i))
+                                controllerTriggerCallback(player, static_cast<SDL_GamepadAxis>(e.gaxis.axis), e.gaxis.value > TRIGGER_THRESHOLD);
                 }
             }
 
@@ -614,6 +651,22 @@ namespace R2NES::Core
 
             if (ImGui::BeginMenu("Input"))
             {
+                if (ImGui::BeginMenu("Player Controller"))
+                {
+                    for (int player = 1; player <= 2; ++player)
+                    {
+                        if (ImGui::BeginMenu(player == 1 ? "Player 1" : "Player 2"))
+                        {
+                            if (ImGui::MenuItem("Keyboard", nullptr, !playerJoystick[player - 1]))
+                                setPlayerJoystick(player, false);
+                            if (ImGui::MenuItem("Joystick", nullptr, playerJoystick[player - 1]))
+                                setPlayerJoystick(player, true);
+                            ImGui::EndMenu();
+                        }
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem("Invert BA/YB Buttons", nullptr, invertBAYB))
                     setInvertBAYB(!invertBAYB);
                 if (ImGui::MenuItem("Enable Zapper", nullptr, useZapper))

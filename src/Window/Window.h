@@ -140,6 +140,10 @@ namespace R2NES::Core
         void setSaveSlotCallback(SaveSlotCallback cb) { saveSlotCallback = cb; }
 
         /* Define a função de callback para eventos de botões do controle. */
+        void setPlayerControllerCallback(std::function<void(int, bool)> cb) { playerControllerCallback = std::move(cb); }
+        void setPlayerJoystick(int player, bool enabled);
+        int playerForGamepad(int slot) const;
+
         void setControllerCallback(ControllerCallback cb) { controllerCallback = cb; }
 
         /* Define a função de callback para eventos de gatilho do controle. */
@@ -577,7 +581,7 @@ namespace R2NES::Core
         std::filesystem::path fileDialogDirectory;
         int width, height, scale;
 
-        std::string title = "R2NESV2 - build 1.3.6";
+        std::string title = "R2NESV2 - build 1.3.7";
         std::string romFile = "";
 
         bool bilinearFiltering = false;
@@ -619,6 +623,9 @@ namespace R2NES::Core
 
         // Suporte para até 2 controles
         SDL_Gamepad *controllers[2] = {nullptr, nullptr};
+        bool playerJoystick[2] = {false, false};
+        std::function<void(int, bool)> playerControllerCallback;
+        void releaseGamepad(int player);
 
         // Membros para gerenciamento do modo de exibição
         DisplayMode currentDisplayMode = DisplayMode::WINDOWED;

@@ -17,6 +17,8 @@ namespace R2NES::System
         player1ControllerMap[defaultControllerMap[9]] = R2NES::Core::IO::BUTTON_RIGHT;
 
         player2ControllerMap = player1ControllerMap;
+        player2ControllerMap[SDL_GAMEPAD_BUTTON_SOUTH] = R2NES::Core::IO::BUTTON_B;
+        player2ControllerMap[SDL_GAMEPAD_BUTTON_EAST] = R2NES::Core::IO::BUTTON_A;
         configureABBAButtons(false);
     }
 
@@ -104,19 +106,33 @@ namespace R2NES::System
         }
     }
 
+    void InputManager::setPlayerJoystick(int player, bool enabled, Core::NES &nes)
+    {
+        if (player < 1 || player > 2 || playerJoystick[player - 1] == enabled)
+            return;
+        playerJoystick[player - 1] = enabled;
+        auto &pad = player == 1 ? nes.getJoysticks().controller1 : nes.getJoysticks().controller2;
+        for (int bit = 0; bit < 8; ++bit)
+            pad.setButton(static_cast<Core::IO::NESButtons>(1u << bit), false);
+        if (player == 1)
+            turboA = turboB = false;
+        else
+            turbo2A = turbo2B = normal2A = normal2B = false;
+    }
+
     // Processa teclas de jogo e mantém o estado de turbo separado do botão normal.
     void InputManager::handleKeyboard(SDL_Keycode key, bool isPressed, Core::NES &nes)
     {
         auto &joy1 = nes.getJoysticks().controller1;
 
         auto it = player1KeyMap.find(key);
-        if (it != player1KeyMap.end())
+        if (!playerJoystick[0] && it != player1KeyMap.end())
         {
             joy1.setButton(it->second, isPressed);
         }
 
         auto itTurbo = player1TurboKeyMap.find(key);
-        if (itTurbo != player1TurboKeyMap.end())
+        if (!playerJoystick[0] && itTurbo != player1TurboKeyMap.end())
         {
             if (itTurbo->second == R2NES::Core::IO::BUTTON_A)
                 turboA = isPressed;
@@ -129,7 +145,7 @@ namespace R2NES::System
         auto &joy2 = nes.getJoysticks().controller2;
         // Pressões normais do Pad 2 prevalecem quando o pulso turbo está desligado.
         const auto normal2 = player2KeyMap.find(key);
-        if (normal2 != player2KeyMap.end())
+        if (!playerJoystick[1] && normal2 != player2KeyMap.end())
         {
             if (normal2->second == R2NES::Core::IO::BUTTON_A)
             {
@@ -145,7 +161,7 @@ namespace R2NES::System
                 joy2.setButton(normal2->second, isPressed);
         }
         const auto turbo2 = player2TurboKeyMap.find(key);
-        if (turbo2 != player2TurboKeyMap.end())
+        if (!playerJoystick[1] && turbo2 != player2TurboKeyMap.end())
         {
             if (turbo2->second == R2NES::Core::IO::BUTTON_A)
                 turbo2A = isPressed;
@@ -159,11 +175,11 @@ namespace R2NES::System
     // Direciona o evento do gamepad ao controlador emulado do jogador correto.
     void InputManager::handleJoystick(int playerNum, SDL_GamepadButton button, bool isPressed, Core::NES &nes)
     {
-        if (playerNum == 1)
+        if (playerNum == 1 && playerJoystick[0])
         {
             handleJoystick1(button, isPressed, nes);
         }
-        else if (playerNum == 2)
+        else if (playerNum == 2 && playerJoystick[1])
         {
             handleJoystick2(button, isPressed, nes);
         }
@@ -192,15 +208,30 @@ namespace R2NES::System
         }
     }
 
-    // Atualiza exclusivamente os botões convencionais do segundo controle.
+    // Combina os botões normais e turbo do segundo controle.
     void InputManager::handleJoystick2(SDL_GamepadButton button, bool isPressed, Core::NES &nes)
     {
+        using namespace R2NES::Core::IO;
         auto &joy2 = nes.getJoysticks().controller2;
-        auto it = player2ControllerMap.find(button);
-        if (it != player2ControllerMap.end())
+        if (button == SDL_GAMEPAD_BUTTON_WEST || button == SDL_GAMEPAD_BUTTON_NORTH)
         {
-            joy2.setButton(it->second, isPressed);
+            const bool isA = button == SDL_GAMEPAD_BUTTON_NORTH;
+            (isA ? turbo2A : turbo2B) = isPressed;
+            joy2.setButton(isA ? BUTTON_A : BUTTON_B,
+                           (isA ? normal2A : normal2B) || (isPressed && turboPulse2));
+            return;
         }
+        const auto it = player2ControllerMap.find(button);
+        if (it == player2ControllerMap.end())
+            return;
+        if (it->second == BUTTON_A || it->second == BUTTON_B)
+        {
+            const bool isA = it->second == BUTTON_A;
+            (isA ? normal2A : normal2B) = isPressed;
+            joy2.setButton(it->second, isPressed || ((isA ? turbo2A : turbo2B) && turboPulse2));
+        }
+        else
+            joy2.setButton(it->second, isPressed);
     }
 
     // Mantém o pulso de turbo ligado por um quadro a cada quatro quadros emulados.

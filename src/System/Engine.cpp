@@ -82,6 +82,9 @@ namespace R2NES::Core
         window->setKeyCallback([this](SDL_Keycode key, bool isPressed)
                                { this->handleKeyboard(key, isPressed); });
 
+        window->setPlayerControllerCallback([this](int player, bool joystick)
+                                            { inputManager->setPlayerJoystick(player, joystick, *nes); });
+
         // Conecta o callback de controle
         window->setControllerCallback([this](int player, SDL_GamepadButton button, bool isPressed)
                                       { this->inputManager->handleJoystick(player, button, isPressed, *nes); });

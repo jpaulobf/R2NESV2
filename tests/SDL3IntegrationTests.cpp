@@ -140,6 +140,8 @@ static void testGamepads(Window &window)
                                         {
                                             if (axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER && pressed)
                                                 triggers.push_back(player); });
+    window.setPlayerJoystick(1, true);
+    window.setPlayerJoystick(2, true);
     SDL_VirtualJoystickDesc description{};
     SDL_INIT_INTERFACE(&description);
     description.type = SDL_JOYSTICK_TYPE_GAMEPAD;
@@ -173,11 +175,28 @@ static void testGamepads(Window &window)
     poll(window);
     check(buttons == std::vector<int>({1, 2}), "Gamepad buttons reached wrong player");
     check(triggers == std::vector<int>({1, 2}), "Gamepad triggers reached wrong player");
+    window.setPlayerJoystick(1, false);
+    buttons.clear();
+    SDL_Event first{};
+    first.type = SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+    first.gbutton.which = ids[0];
+    first.gbutton.button = SDL_GAMEPAD_BUTTON_SOUTH;
+    check(SDL_PushEvent(&first), "Could not push first gamepad button");
+    poll(window);
+    check(buttons == std::vector<int>({2}), "First gamepad was not assigned to player 2");
+    window.setPlayerJoystick(1, true);
+    buttons.clear();
     check(SDL_DetachVirtualJoystick(ids[0]), "Could not disconnect gamepad");
     poll(window);
+    first.gbutton.which = ids[1];
+    check(SDL_PushEvent(&first), "Could not push remaining gamepad button");
+    poll(window);
+    check(buttons == std::vector<int>({1}), "Remaining gamepad was not reassigned to player 1");
     check(SDL_DetachVirtualJoystick(ids[1]), "Could not disconnect second gamepad");
     check(SDL_DetachVirtualJoystick(ids[2]), "Could not disconnect ignored gamepad");
     poll(window);
+    window.setPlayerJoystick(1, false);
+    window.setPlayerJoystick(2, false);
     window.setControllerCallback({});
     window.setControllerTriggerCallback({});
 }

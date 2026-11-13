@@ -26,6 +26,7 @@ namespace R2NES::System
 
         // Direciona um evento de controle SDL para o jogador correspondente.
         void handleJoystick(int playerNum, SDL_GamepadButton button, bool isPressed, Core::NES &nes);
+        void setPlayerJoystick(int player, bool enabled, Core::NES &nes);
 
         // Configura a associação dos botões físicos A/B/X/Y e seus atalhos turbo.
         void configureABBAButtons(bool invert);
@@ -68,6 +69,7 @@ namespace R2NES::System
         bool turboB = false;
 
         // Registram a configuração ativa de layout e dispositivo da segunda porta.
+        bool playerJoystick[2] = {false, false};
         bool invertBAYB = false;
         bool useZapper = false;
     };
