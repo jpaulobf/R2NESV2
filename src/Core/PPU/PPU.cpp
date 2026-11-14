@@ -768,7 +768,8 @@ namespace R2NES::Core
         // O pipeline de fundo avança também com apenas sprites habilitados.
         // A seleção do pixel visível continua controlada pelo bit de fundo.
         bgShifterPatternLow <<= 1;
-        bgShifterPatternHigh <<= 1;
+        // A entrada serial dos planos de padrão é 0 no baixo e 1 no alto.
+        bgShifterPatternHigh = static_cast<uint16_t>((bgShifterPatternHigh << 1) | 1);
         bgShifterAttrLow <<= 1;
         bgShifterAttrHigh <<= 1;
     }

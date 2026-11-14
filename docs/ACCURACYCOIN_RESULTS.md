@@ -478,6 +478,21 @@ congelamento do incremento da OAM2. O teste da ROM, por si, não valida esses
 casos. CTest headless: **48/48**. Resultado final:
 `build-headless/accuracycoin/oam2-address-final.txt`.
 
+### Entrada serial do fundo
+
+Em 2026-11-14, `BG Serial In` passou e o AccuracyCoin avançou de **137 para
+138/147**; as demais 146 linhas mantiveram os mesmos resultados e códigos.
+O deslocamento do plano alto de padrão agora insere 1, enquanto o plano baixo
+continua inserindo 0. Com cargas regulares dos tiles, esses bits são
+substituídos; quando a renderização é interrompida no instante de uma carga,
+eles podem se tornar pixels visíveis. O comportamento é descrito na pesquisa
+dos circuitos do [NESdev](https://www.nesdev.org/wiki/PPU_rendering).
+
+O teste `ppu-sprite-overflow` interrompe a renderização para observar o pixel
+da entrada serial, repete a verificação após restaurar o estado e falha com o
+deslocamento anterior. CTest headless: **48/48**. O formato de save state não
+mudou. Resultado: `build-headless/accuracycoin/bg-serial-final.txt`.
+
 ### Contadores de sprite durante forced blanking
 
 Em 2026-11-13, foi corrigida uma parte do comportamento de `Stale Sprite

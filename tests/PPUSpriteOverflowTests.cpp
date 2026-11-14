@@ -226,6 +226,48 @@ static void testBackgroundPipelineWithSpritesOnly()
     check(sawBothColors, "background fixture did not produce a varied pattern");
 }
 
+static void testBackgroundSerialInput()
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N'; rom[1] = 'E'; rom[2] = 'S'; rom[3] = 0x1A; rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "serial input fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F02, 0x30);
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x0A);
+    for (int dot = 0; dot < 341 + 62; ++dot)
+        ppu.clock();
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto render = [&]()
+    {
+        ppu.cpuWrite(0x2001, 0);
+        for (int dot = 0; dot < 3; ++dot)
+            ppu.clock();
+        ppu.cpuWrite(0x2001, 0x0A);
+        for (int dot = 0; dot < 45; ++dot)
+            ppu.clock();
+        const auto *frame = ppu.getFrameBuffer();
+        const uint32_t background = frame[256 + 50];
+        const uint32_t serialPixel = PPU::getSystemPalette()[0x30];
+        bool foundSerialPixel = false;
+        for (int x = 62; x < 105; ++x)
+            foundSerialPixel |= frame[256 + x] == serialPixel;
+        check(background != serialPixel && foundSerialPixel,
+              "background high-plane serial input did not reach a visible pixel");
+    };
+    render();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "background serial input state rejected");
+    render();
+}
+
 static void testSpriteStartAtDot339(bool disableAt339)
 {
     std::vector<uint8_t> rom(16 + 16384, 0);
@@ -452,6 +494,7 @@ int main()
                     for (int count : {8, 9, 64})
                         testOverflow(unlimited, count, mask, tall);
         testBackgroundPipelineWithSpritesOnly();
+        testBackgroundSerialInput();
         testOverflowFlagPhaseAndState();
         testCpuStatusReadPhase();
         testSecondaryOamReadAfterFetch(false);
