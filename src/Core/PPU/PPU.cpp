@@ -182,21 +182,21 @@ namespace R2NES::Core
 
             // Fallback temporário de Battletoads: o wait de raster do jogo
             // não recebe o hit pela composição normal dos pixels.
-            const bool mapper7RasterHitHack = !readOnly && scanline == 30 && cycle >= 255 && cycle < 341 &&
-                                              ppuCtrl == 0x10 && ppuMask == 0x18 &&
-                                              oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
-                                              isBattletoadsSpriteZeroWait(bus);
-            if ((data & 0x40) == 0 && mapper7RasterHitHack)
-            {
-                ppuStatus |= 0x40;
-                data |= 0x40;
-                static bool loggedHack = false;
-                if (!loggedHack)
-                {
-                    std::cerr << "PPU: Battletoads Sprite 0 wait-loop hack enabled" << std::endl;
-                    loggedHack = true;
-                }
-            }
+            // const bool mapper7RasterHitHack = !readOnly && scanline == 30 && cycle >= 255 && cycle < 341 &&
+            //                                   ppuCtrl == 0x10 && ppuMask == 0x18 &&
+            //                                   oamMemory[0] == 0x1C && oamMemory[3] == 0xFE &&
+            //                                   isBattletoadsSpriteZeroWait(bus);
+            // if ((data & 0x40) == 0 && mapper7RasterHitHack)
+            // {
+            //     ppuStatus |= 0x40;
+            //     data |= 0x40;
+            //     static bool loggedHack = false;
+            //     if (!loggedHack)
+            //     {
+            //         std::cerr << "PPU: Battletoads Sprite 0 wait-loop hack enabled" << std::endl;
+            //         loggedHack = true;
+            //     }
+            // }
 
             // No NES real, apenas o bit de VBlank ($80) é limpo na leitura de $2002.
             // O bit de Sprite 0 Hit ($40) permanece setado até o pré-render scanline.
