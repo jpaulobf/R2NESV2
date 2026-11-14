@@ -312,6 +312,144 @@ ambas as camadas separadamente habilitadas. CTest headless: **47/47**.
 Resultado completo: `build-headless/accuracycoin/ppu-rendering-flags.txt`. Referência:
 [NESdev: registradores e habilitação da renderização](https://www.nesdev.org/wiki/PPU_registers).
 
+### Barramento interno da CPU
+
+Em 2026-11-13, o AccuracyCoin avançou de **125 para 126/147**: `Internal
+Data Bus` passou e as outras 146 linhas conservaram seus resultados e códigos.
+O bit 5 aberto de `$4015` agora usa uma trava interna própria. Leituras e
+escritas da CPU atualizam essa trava, enquanto o get DMC NTSC altera o
+barramento externo sem alterar a trava interna. Leituras de `$4015` continuam
+sem alterar a trava externa.
+
+Os testes verificam a independência das duas travas, leituras de depuração e
+restauração de um estado em que elas diferem. A ROM exercita a transferência
+DMC real. CTest headless: **48/48**. Resultado completo:
+`build-headless/accuracycoin/internal-data-bus.txt`. O modelo PAL de DMA e
+interações adicionais durante DMA de OAM não foram validados nesta rodada.
+
+Os save states agora usam `R2NW` (NTSC) e `R2NX` (PAL), com o bit interno
+guardado no byte de estado da DMA de OAM. Os formatos anteriores são rejeitados
+porque não guardam essa informação; versões anteriores não leem o novo formato.
+
+### Início da contagem X dos sprites
+
+Em 2026-11-13, o AccuracyCoin avançou de **126 para 127/147**: `Stale BG
+Shift Registers` passou e as outras 146 linhas conservaram seus resultados e
+códigos. Quando ambas as camadas estão desligadas no dot 339, as unidades de
+sprite preparadas para a linha seguinte passam a emitir imediatamente ao
+reativar a renderização, em vez de esperar pela coordenada X carregada.
+
+O teste `ppu-sprite-overflow` verifica sprites com X igual a 128 nas duas
+condições do dot 339 e restauração após esse dot. CTest headless: **48/48**.
+O formato de save state não mudou. A correção cobre essa condição específica;
+o avanço dos shifters quando a renderização é desligada durante uma linha e
+outras particularidades dos sprites ainda não estão integralmente modelados.
+Resultado completo: `build-headless/accuracycoin/sprite-339-experiment.txt`.
+Referência: [pesquisa sobre renderização de sprites no NESdev](https://forums.nesdev.org/viewtopic.php?t=26291).
+
+### Mudança do tamanho do sprite durante a busca
+
+Em 2026-11-13, o AccuracyCoin avançou de **127 para 128/147**: `Suddenly
+Resize Sprite` passou e as outras 146 linhas mantiveram seus resultados e
+códigos. Um sprite pode ser selecionado enquanto o tamanho é 8×16 e ter seu
+padrão buscado depois de uma mudança para 8×8. Nesse caso, o endereço do
+padrão usa apenas os três bits baixos da linha, antes da inversão vertical.
+
+O teste `ppu-sprite-overflow` verifica a mudança antes e depois da busca do
+primeiro plano do padrão, com e sem inversão vertical. A implementação anterior
+falha no teste novo. CTest headless: **48/48**. O formato de save state não
+mudou. Resultado completo: `build-headless/accuracycoin/sprite-resize-experiment.txt`.
+Referência: [NESdev: sinais da PPU](https://www.nesdev.org/wiki/PPU_signals).
+O resultado não valida todas as mudanças de PPUCTRL durante buscas parciais.
+
+### Amostragem de NMI entre CPU e PPU
+
+Em 2026-11-13, o AccuracyCoin passou de **128 para 131/147**: `NMI Overlap
+BRK`, `NMI Overlap IRQ` e `NMI Timing` passaram. As outras 144 linhas mantiveram
+seus resultados e códigos. A comparação das tabelas de interrupção mostrou
+um deslocamento comum; em NTSC, a NMI passou a ser entregue à CPU após o
+primeiro dos três clocks de PPU do passo, em vez de após o terceiro. Bordas
+geradas nos dois últimos ficam pendentes até a amostragem seguinte.
+
+O teste `cpu-interrupt` cobre as três fases de VBlank, a entrega da NMI e
+save/load após cada fase, além dos testes existentes de sobreposição com
+BRK/IRQ. CTest headless: **48/48**. Resultado completo:
+`build-headless/accuracycoin/nmi-sampling-final.txt`. O estado pendente da PPU
+já era serializado e o formato não mudou; versões anteriores podem retomá-lo
+em outra fase. PAL mantém a ordem anterior, sem validação adicional. As
+verificações `NMI Suppression`, `NMI at VBlank end` e `NMI disabled at VBlank`
+continuam falhando: este ajuste não modela completamente a linha de NMI nem
+todos os alinhamentos físicos de CPU/PPU. Referência:
+[NESdev: interrupções da CPU](https://www.nesdev.org/wiki/Interrupts).
+
+### Cancelamento de NMI antes da amostragem
+
+Em 2026-11-13, o AccuracyCoin avançou de **131 para 134/147**: `NMI
+Suppression`, `NMI at VBlank end` e `NMI disabled at VBlank` passaram; as
+outras 144 linhas mantiveram os mesmos resultados e códigos. Uma NMI ainda
+pendente na PPU é descartada quando a leitura de `$2002`, a desativação de
+NMI em `$2000` ou o fim do VBlank tornam a linha inativa antes de a CPU a
+amostrar. Uma interrupção já entregue à CPU continua pendente nela.
+
+O teste `cpu-interrupt` cobre as três formas de cancelamento, leitura sem
+efeitos, reativação durante VBlank e entrega já efetuada. CTest headless:
+**48/48**. Resultado: `build-headless/accuracycoin/nmi-cancel-experiment.txt`.
+O formato de save state não mudou. Este ajuste não modela explicitamente o
+nível anterior da linha na CPU, pelo que transições múltiplas entre duas
+amostragens e a temporização PAL ainda não estão validadas.
+
+### Investigação da temporização de `$2002`
+
+O teste `$2002 flag timing` ainda falha com código 1, na primeira parte:
+ele compara a leitura dos três flags em torno do fim do VBlank. Segundo os
+comentários da própria ROM, o bit de VBlank é capturado no começo da leitura,
+enquanto os bits de sprite são observados perto do fim, aproximadamente dois
+dots de PPU depois. A implementação atual de `PPU::cpuRead` obtém os três
+bits de `ppuStatus` na mesma chamada, antes dos três clocks de PPU do passo
+em `NES::step`. Esta diferença é uma hipótese para a falha, não uma prova
+de que seja a única causa; a segunda parte do teste também verifica quando
+os flags de sprite são ativados.
+
+Uma correção requer investigar a fase da leitura no barramento CPU/PPU,
+incluindo leituras descartadas e DMA, e manter os efeitos de `$2002` na fase
+correta. Antecipar a limpeza dos flags de sprite apenas para satisfazer a
+primeira parte alteraria a temporização do próprio estado da PPU e não
+representaria a diferença entre os instantes de amostragem. Nenhuma alteração
+de comportamento foi aplicada nesta investigação.
+
+### Contadores de sprite durante forced blanking
+
+Em 2026-11-13, foi corrigida uma parte do comportamento de `Stale Sprite
+Shift Regs`: durante os dots visíveis, os contadores X continuam a avançar
+mesmo quando a renderização está desligada; os shifters aguardam a sua
+reativação. O teste `ppu-sprite-overflow` verifica tanto o contador antes de
+chegar a zero quanto a pausa dos pixels depois de começar a emitir. A versão
+anterior falha no primeiro caso. Referência: [pesquisa sobre renderização de
+sprites no NESdev](https://forums.nesdev.org/viewtopic.php?t=26291).
+
+O AccuracyCoin permanece em **134/147** e as 147 linhas mantêm os mesmos
+resultados e códigos (`build-headless/accuracycoin/sprite-counter-blanking.txt`).
+O teste composto de sprites antigos continua falhando no código 3: a troca
+das unidades entre linhas ainda não preserva os shifters durante períodos
+prolongados com rendering desligado. A contagem fora dos dots visíveis também
+não foi modelada nesta mudança. O formato de save state não mudou.
+
+### Preservação de sprites após a interrupção da busca
+
+Em 2026-11-13, o AccuracyCoin avançou de **134 para 135/147**: `Stale Sprite
+Shift Regs` passou. Quando não há busca de padrões, as unidades de sprite da
+linha anterior são preservadas; a carga do contador X foi movida para a fase
+posterior da busca. O teste `ppu-sprite-overflow`, com o limite normal de oito
+sprites, cobre várias linhas em branco, interrupção no início da busca e
+save/load. Resultado: `build-headless/accuracycoin/sprite-stale-phase2.txt`.
+
+A troca de unidades ainda é feita por linha: buscas parcialmente executadas
+em diferentes slots não são modeladas integralmente, e o teste da ROM não
+valida todas essas combinações. O novo estado pendente é serializado e os save
+states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
+rejeitados, pois não contêm esse estado; versões anteriores também não leem
+o novo formato.
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
