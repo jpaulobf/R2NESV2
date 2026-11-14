@@ -65,6 +65,7 @@ namespace R2NES::Core
             return;
         }
         cpuDataBus = data;
+        cpuInternalBusBit5 = data & 0x20;
         // Escrita via CPU: primeiro delega ao cartucho (mappers podem interceptar).
         if (cart && cart->cpuWrite(addr, data, systemClockCounter, cpuCycleCounter))
         {
@@ -115,6 +116,7 @@ namespace R2NES::Core
         const uint8_t value = cheats.filterRead(addr, original);
         if (!readOnly)
         {
+            cpuInternalBusBit5 = value & 0x20;
             // $4015 é interno à CPU: a leitura não conduz o barramento externo.
             if (!internalApuRead)
                 cpuDataBus = value;
@@ -215,7 +217,7 @@ namespace R2NES::Core
         else if (addr == 0x4015)
         {
             internalApuRead = true;
-            return static_cast<uint8_t>((apu ? apu->cpuRead(addr, readOnly) : 0x00) | (cpuDataBus & 0x20));
+            return static_cast<uint8_t>((apu ? apu->cpuRead(addr, readOnly) : 0x00) | cpuInternalBusBit5);
         }
         // Leitura dos controles / porta 1
         else if (addr == 0x4016)

@@ -45,6 +45,7 @@ namespace R2NES::Core
         bus.systemClockCounter = 0;
         bus.cpuCycleCounter = 0;
         bus.cpuDataBus = 0;
+        bus.cpuInternalBusBit5 = 0;
         dmcDmaPhase = 0;
         dmcHaltAddress = 0;
         oamReadAvailable = false;
@@ -172,6 +173,17 @@ namespace R2NES::Core
 
         // A PPU roda 3x para cada passo de sistema (CPU)
         ppu.clock();
+        // Em NTSC, a CPU amostra a NMI numa fase interna do seu ciclo.
+        // Uma borda nos dois dots seguintes fica pendente até a amostragem
+        // seguinte; a fase PAL conserva a ordem anterior até ser validada.
+        if constexpr (!Pal)
+        {
+            if (ppu.nmi)
+            {
+                ppu.nmi = false;
+                cpu.nmi();
+            }
+        }
         ppu.clock();
         ppu.clock();
         if constexpr (Pal)
@@ -181,14 +193,11 @@ namespace R2NES::Core
                 palPhase = 0;
                 ppu.clock();
             }
-        }
-
-        // A borda de NMI é entregue à CPU; a CPU a aceita no próximo limite
-        // de instrução e executa a entrada da interrupção nos ciclos reais.
-        if (ppu.nmi)
-        {
-            ppu.nmi = false;
-            cpu.nmi();
+            if (ppu.nmi)
+            {
+                ppu.nmi = false;
+                cpu.nmi();
+            }
         }
 
         // APU avança na mesma cadência da CPU
@@ -252,7 +261,9 @@ namespace R2NES::Core
         if (apu.hasDmcDmaRequest())
         {
             const uint16_t sampleAddress = apu.getDmcDmaAddress();
+            const uint8_t internalBit5 = bus.cpuInternalBusBit5;
             const uint8_t sample = bus.cpuRead(sampleAddress);
+            bus.cpuInternalBusBit5 = internalBit5;
             // Com a CPU parada em $4000-$401F, o decodificador interno
             // permanece ativo durante o get DMC; os cinco bits baixos do
             // endereço da amostra selecionam o registrador que responde.
@@ -298,7 +309,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = pal ? 0x52324E56 : 0x52324E55; // R2NV/R2NU: agendamento da carga DMC.
+        uint32_t magic = pal ? 0x52324E5A : 0x52324E59; // R2NZ/R2NY: preservação da busca de sprites.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -319,7 +330,7 @@ namespace R2NES::Core
         os.put(bus.dma_addr);
         os.put(bus.dma_data);
         os.put(bus.dma_transfer);
-        os.put(bus.dma_dummy);
+        os.put((bus.dma_dummy ? 1 : 0) | bus.cpuInternalBusBit5);
 
         // Salva os estados dos subsistemas (ordem deve ser preservada ao carregar)
         cpu.saveState(os);
@@ -359,7 +370,7 @@ namespace R2NES::Core
         {
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-            if (!input || magic != (pal ? 0x52324E56 : 0x52324E55))
+            if (!input || magic != (pal ? 0x52324E5A : 0x52324E59))
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};
@@ -382,10 +393,11 @@ namespace R2NES::Core
             bus.dma_addr = uint8_t(input.get());
             bus.dma_data = uint8_t(input.get());
             const int dmaActive = input.get(), dmaDummy = input.get();
-            if ((dmaActive != 0 && dmaActive != 1) || (dmaDummy != 0 && dmaDummy != 1))
+            if ((dmaActive != 0 && dmaActive != 1) || dmaDummy < 0 || (dmaDummy & ~0x21) != 0)
                 return false;
             bus.dma_transfer = dmaActive != 0;
-            bus.dma_dummy = dmaDummy != 0;
+            bus.dma_dummy = (dmaDummy & 1) != 0;
+            bus.cpuInternalBusBit5 = dmaDummy & 0x20;
             if (!input)
                 return false;
             cpu.loadState(input);

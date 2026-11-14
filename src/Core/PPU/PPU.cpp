@@ -208,6 +208,8 @@ namespace R2NES::Core
                 // que já estava no barramento interno da PPU.
                 drivePpuIoBus(data, 0xE0);
                 ppuStatus &= ~0x80;
+                // Cancela apenas a borda ainda não amostrada pela CPU.
+                nmi = false;
                 // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
                 addressLatch = 0;
             }
@@ -294,6 +296,9 @@ namespace R2NES::Core
             // Se habilitar NMI durante o VBlank, dispara imediatamente
             if (!oldNmiEnabled && (ppuCtrl & 0x80) && (ppuStatus & 0x80))
                 nmi = true;
+            // A linha inativa não pode produzir uma NMI na próxima amostragem.
+            if (!(ppuCtrl & 0x80))
+                nmi = false;
             break;
         }
 
@@ -873,6 +878,7 @@ namespace R2NES::Core
         {
             // Limpa flags de VBlank, Sprite 0 Hit e Overflow no início do pre-render
             ppuStatus &= 0x1F; // Limpa os 3 bits superiores (7, 6, 5)
+            nmi = false;       // A linha de NMI também termina com o VBlank.
         }
 
         if (renderingEnabled)
@@ -1148,6 +1154,10 @@ namespace R2NES::Core
             }
             else if (cycle >= 257 && cycle <= 320)
             {
+                // Os primeiros acessos são buscas fictícias; só os acessos
+                // seguintes podem substituir os dados dos shifters.
+                if (((cycle - 257) % 8) >= 4)
+                    spriteFetchOccurred = true;
                 // Durante a busca dos sprites, a PPU força OAMADDR a zero.
                 oamAddr = 0;
 
@@ -1158,13 +1168,15 @@ namespace R2NES::Core
 
                 if (phase == 0 || phase == 2)
                     ppuFetch(0x2000 | (vramAddr & 0x0FFF), PpuReadContext::Sprite); // Busca fictícia de nametable
-                else if (phase == 3)
-                    nextSprites[slot].xCounter = nextSprites[slot].x;
                 else if (phase == 4)
                 {
                     SpriteFetchUnit &sprite = nextSprites[slot];
                     const int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
-                    const int patternRow = (sprite.attributes & 0x80) ? spriteHeight - 1 - sprite.row : sprite.row;
+                    // O tamanho pode mudar depois da avaliação; na busca,
+                    // apenas os bits de linha correspondentes ao tamanho atual
+                    // entram no endereço do padrão.
+                    const int row = sprite.row & (spriteHeight - 1);
+                    const int patternRow = (sprite.attributes & 0x80) ? spriteHeight - 1 - row : row;
                     if (spriteHeight == 16)
                     {
                         const uint16_t table = (sprite.tile & 0x01) ? 0x1000 : 0x0000;
@@ -1180,6 +1192,7 @@ namespace R2NES::Core
                 }
                 else if (phase == 6)
                 {
+                    nextSprites[slot].xCounter = nextSprites[slot].x;
                     nextSprites[slot].patternHigh = ppuFetchSprite(nextSprites[slot].patternAddress + 8);
                     if (nextSprites[slot].attributes & 0x40)
                     {
@@ -1190,10 +1203,25 @@ namespace R2NES::Core
             }
         }
 
+        // O sinal que inicia a contagem X dos sprites é gerado no dot 339
+        // apenas com rendering ativo. Sem ele, os shifters começam a emitir
+        // imediatamente quando a renderização voltar a ser habilitada.
+        if (scanline >= -1 && scanline < 240 && cycle == 339 && !renderingEnabled)
+        {
+            for (auto &sprite : nextSprites)
+                sprite.xCounter = 0;
+        }
+
         if (cycle == 0)
         {
-            std::swap(currentSprites, nextSprites);
-            scanlineSpriteCount = nextScanlineSpriteCount;
+            // Sem busca de padrões, os shifters da linha anterior continuam
+            // disponíveis quando a renderização for reativada.
+            if (spriteFetchOccurred)
+            {
+                std::swap(currentSprites, nextSprites);
+                scanlineSpriteCount = nextScanlineSpriteCount;
+            }
+            spriteFetchOccurred = false;
             nextScanlineSpriteCount = 0;
 
             if (renderingEnabled && scanline >= 0 && scanline < 240 && bus)
@@ -1206,23 +1234,22 @@ namespace R2NES::Core
             // Cada unidade de sprite mantém um contador X e dois shifters de
             // padrão. A amostra do dot é obtida antes de avançar os shifters.
             std::array<uint8_t, 8> hardwareSpritePixels{};
-            if (renderingEnabled)
+            for (int i = 0; i < std::min(scanlineSpriteCount, 8); ++i)
             {
-                for (int i = 0; i < std::min(scanlineSpriteCount, 8); ++i)
+                SpriteFetchUnit &sprite = currentSprites[i];
+                if (sprite.xCounter > 0)
                 {
-                    SpriteFetchUnit &sprite = currentSprites[i];
-                    if (sprite.xCounter > 0)
-                    {
-                        --sprite.xCounter;
-                    }
-                    else
-                    {
-                        hardwareSpritePixels[i] = static_cast<uint8_t>(
-                            ((sprite.patternLow >> 7) & 0x01) |
-                            (((sprite.patternHigh >> 7) & 0x01) << 1));
-                        sprite.patternLow <<= 1;
-                        sprite.patternHigh <<= 1;
-                    }
+                    // A contagem X continua mesmo em forced blanking.
+                    --sprite.xCounter;
+                }
+                else if (renderingEnabled)
+                {
+                    // Os shifters, ao contrário dos contadores, param.
+                    hardwareSpritePixels[i] = static_cast<uint8_t>(
+                        ((sprite.patternLow >> 7) & 0x01) |
+                        (((sprite.patternHigh >> 7) & 0x01) << 1));
+                    sprite.patternLow <<= 1;
+                    sprite.patternHigh <<= 1;
                 }
             }
 
@@ -1435,6 +1462,7 @@ namespace R2NES::Core
         cycle = 0;
         scanlineSpriteCount = 0;
         nextScanlineSpriteCount = 0;
+        spriteFetchOccurred = false;
         spriteEvaluationIndex = 0;
         spriteEvaluationStartIndex = 0;
         spriteEvaluationByteIndex = 0;
@@ -1473,8 +1501,9 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(renderMaskDelay.data()), renderMaskDelay.size());
         os.write(reinterpret_cast<const char *>(&effectiveRenderMask), sizeof(effectiveRenderMask));
         // Os cinco bits baixos de PPUSTATUS não são flags. Reserva o bit 0
-        // serializado para a supressão pendente, sem alterar o layout do PPU.
-        const uint8_t savedStatus = static_cast<uint8_t>((ppuStatus & 0xE0) | (suppressVblank ? 1 : 0));
+        // serializados para a supressão e a busca pendentes, sem alterar o layout.
+        const uint8_t savedStatus = static_cast<uint8_t>((ppuStatus & 0xE0) | (suppressVblank ? 1 : 0) |
+                                                         (spriteFetchOccurred ? 2 : 0));
         os.write(reinterpret_cast<const char *>(&savedStatus), sizeof(savedStatus));
         os.write(reinterpret_cast<const char *>(&oamAddr), sizeof(oamAddr));
         os.write(reinterpret_cast<const char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1536,6 +1565,7 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&ppuStatus), sizeof(ppuStatus));
         const uint8_t savedStatusLow = ppuStatus & 0x1F;
         suppressVblank = (savedStatusLow & 1) != 0;
+        spriteFetchOccurred = (savedStatusLow & 2) != 0;
         ppuStatus &= 0xE0;
         is.read(reinterpret_cast<char *>(&oamAddr), sizeof(oamAddr));
         is.read(reinterpret_cast<char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1584,7 +1614,7 @@ namespace R2NES::Core
         readStateBool(is, tilesEnabled);
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
-        if (is && ((savedStatusLow & 0x1E) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
+        if (is && ((savedStatusLow & 0x1C) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
                    (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||

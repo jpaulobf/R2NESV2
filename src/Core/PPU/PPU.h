@@ -155,6 +155,7 @@ namespace R2NES::Core
         std::array<SpriteFetchUnit, 64> nextSprites{};
         int scanlineSpriteCount = 0;
         int nextScanlineSpriteCount = 0;
+        bool spriteFetchOccurred = false;
         std::array<uint8_t, 32> secondaryOam{};
         uint8_t spriteEvaluationIndex = 0;       // n: índice do sprite na OAM primária (0-64)
         uint8_t spriteEvaluationStartIndex = 0;  // n inicial obtido de OAMADDR no dot 65
