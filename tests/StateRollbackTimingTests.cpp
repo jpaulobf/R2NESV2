@@ -189,6 +189,21 @@ int main(int argc, char **argv)
         check(nes.insertCartridge(path.string()), "fixture ROM rejected");
         nes.reset();
         {
+            auto &bus = nes.getBus();
+            bus.cpuWrite(0, 0x20);
+            bus.cpuDataBus = 0;
+            const auto separateBuses = save(nes);
+            bus.cpuWrite(0, 0);
+            load(nes, separateBuses);
+            check(bus.cpuDataBus == 0 && (bus.cpuRead(0x4015, true) & 0x20),
+                  "separate internal bus latch not restored");
+            auto old = separateBuses;
+            old[0] = char(0x55);
+            std::istringstream oldState(old);
+            check(!nes.loadState(oldState) && save(nes) == separateBuses,
+                  "old state accepted or failed load changed bus latches");
+        }
+        {
             FixtureNES frame("");
             frame.setCheatDirectory(dir / "no-cheats");
             check(frame.insertCartridge(path.string()), "frame IRQ fixture rejected");

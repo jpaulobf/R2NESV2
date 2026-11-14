@@ -1,5 +1,6 @@
 #include "Core/PPU/PPU.h"
 #include "TestFixtures.h"
+#include <sstream>
 #include <stdexcept>
 
 using namespace R2NES::Core;
@@ -97,6 +98,222 @@ static void testBackgroundPipelineWithSpritesOnly()
     check(sawBothColors, "background fixture did not produce a varied pattern");
 }
 
+static void testSpriteStartAtDot339(bool disableAt339)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "sprite fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    for (int row = 0; row < 8; ++row)
+        ppu.ppuWrite(row, 0xFF);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F11, 0x30);
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 64; ++i)
+    {
+        ppu.cpuWrite(0x2004, i == 0 ? 0 : 0xFF);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, 128);
+    }
+    ppu.cpuWrite(0x2001, 0x14);
+    // No dot 330 da linha 0, a busca do sprite da linha 1 já terminou.
+    for (int dot = 0; dot < 341 + 330; ++dot)
+        ppu.clock();
+    if (disableAt339)
+        ppu.cpuWrite(0x2001, 0);
+    for (int dot = 0; dot < 12; ++dot)
+        ppu.clock(); // Processa dot 339 e entra na linha 1.
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    ppu.cpuWrite(0x2001, 0x14);
+    for (int dot = 0; dot < 140; ++dot)
+        ppu.clock();
+    const auto *frame = ppu.getFrameBuffer();
+    const uint32_t early = frame[256 + 5], atX = frame[256 + 128], background = frame[256 + 30];
+    check(disableAt339 ? early != background && atX == background
+                       : early == background && atX != background,
+          "sprite X start did not follow rendering at dot 339");
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "sprite dot 339 state rejected");
+    ppu.cpuWrite(0x2001, 0x14);
+    for (int dot = 0; dot < 140; ++dot)
+        ppu.clock();
+    frame = ppu.getFrameBuffer();
+    check(frame[256 + 5] == early && frame[256 + 128] == atX,
+          "sprite dot 339 state did not restore");
+}
+
+static void testSpriteBlanking(bool blankAfterStart)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "sprite blanking fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    for (int row = 0; row < 8; ++row)
+        ppu.ppuWrite(row, 0xFF);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F11, 0x30);
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 64; ++i)
+    {
+        ppu.cpuWrite(0x2004, i == 0 ? 0 : 0xFF);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, blankAfterStart ? 31 : 100);
+    }
+    ppu.cpuWrite(0x2001, 0x14);
+    for (int dot = 0; dot < 2 * 341 + 32; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    for (int dot = 0; dot < 30; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x14);
+    for (int dot = 0; dot < 90; ++dot)
+        ppu.clock();
+    const auto *frame = ppu.getFrameBuffer();
+    const uint32_t background = frame[256 + 20];
+    if (blankAfterStart)
+        check(frame[256 + 66] != background, "sprite shifter did not pause during blanking");
+    else
+        check(frame[256 + 100] != background && frame[256 + 130] == background,
+              "sprite X counter stopped during blanking");
+}
+
+static void testSpriteSurvivesBlankLines(bool interruptFetch)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "stale sprite fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    for (int row = 0; row < 8; ++row)
+        ppu.ppuWrite(row, 0xFF);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F11, 0x30);
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 64; ++i)
+    {
+        ppu.cpuWrite(0x2004, i == 0 ? 0 : 0xFF);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, interruptFetch ? 255 : 48);
+    }
+    ppu.cpuWrite(0x2001, 0x14);
+    if (interruptFetch)
+    {
+        for (int dot = 0; dot < 341 + 265; ++dot)
+            ppu.clock();
+        std::stringstream duringFetch;
+        ppu.saveState(duringFetch);
+        for (int dot = 0; dot < 100; ++dot)
+            ppu.clock();
+        std::stringstream expected;
+        ppu.saveState(expected);
+        ppu.loadState(duringFetch);
+        check(bool(duringFetch), "sprite fetch state rejected");
+        for (int dot = 0; dot < 100; ++dot)
+            ppu.clock();
+        std::stringstream actual;
+        ppu.saveState(actual);
+        check(actual.str() == expected.str(), "sprite fetch state did not restore");
+        duringFetch.clear();
+        duringFetch.seekg(0);
+        ppu.loadState(duringFetch);
+        check(bool(duringFetch), "sprite fetch state could not be restored twice");
+        for (int dot = 0; dot < 341 - 265; ++dot)
+            ppu.clock();
+    }
+    for (int dot = 0; dot < (interruptFetch ? 257 : 2 * 341); ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    for (int dot = 0; dot < (interruptFetch ? 73 : 3 * 341 + 330); ++dot)
+        ppu.clock();
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    auto finish = [&]()
+    {
+        ppu.cpuWrite(0x2001, 0x14);
+        for (int dot = 0; dot < 341; ++dot)
+            ppu.clock();
+        const auto *frame = ppu.getFrameBuffer();
+        const int line = interruptFetch ? 2 : 5;
+        check(frame[line * 256] != frame[line * 256 + 20], "sprite shifter lost across blank scanlines");
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "stale sprite state rejected");
+    finish();
+}
+
+static void testSpriteResizeDuringFetch(bool flip, bool resizeBeforeFetch)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "sprite resize fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    // Na linha 12, o sprite de Y=0 usa a linha 12. Em 8x8 ela
+    // corresponde à linha 4 do tile 2, ou à linha 3 com flip vertical.
+    ppu.ppuWrite(2 * 16 + 4, 0x80);
+    ppu.ppuWrite(2 * 16 + 3, 0x40);
+    ppu.ppuWrite(3 * 16 + 4, 0x40);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F11, 0x30);
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 64; ++i)
+    {
+        ppu.cpuWrite(0x2004, i == 0 ? 0 : 0xFF);
+        ppu.cpuWrite(0x2004, 2);
+        ppu.cpuWrite(0x2004, flip ? 0x80 : 0);
+        ppu.cpuWrite(0x2004, 32);
+    }
+    ppu.cpuWrite(0x2000, 0x20);
+    ppu.cpuWrite(0x2001, 0x14);
+    for (int dot = 0; dot < 13 * 341 + (resizeBeforeFetch ? 260 : 262); ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2000, 0);
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    const auto *frame = ppu.getFrameBuffer();
+    const uint32_t background = frame[13 * 256 + 20];
+    const bool pixel0 = frame[13 * 256 + 32] != background;
+    const bool pixel1 = frame[13 * 256 + 33] != background;
+    const bool expectFirst = !flip && resizeBeforeFetch;
+    check(pixel0 == expectFirst && pixel1 != expectFirst,
+          "sprite resize fetched an incorrect pattern row");
+}
+
 int main()
 {
     try
@@ -107,6 +324,15 @@ int main()
                     for (int count : {8, 9, 64})
                         testOverflow(unlimited, count, mask, tall);
         testBackgroundPipelineWithSpritesOnly();
+        testSpriteStartAtDot339(false);
+        testSpriteStartAtDot339(true);
+        testSpriteBlanking(false);
+        testSpriteBlanking(true);
+        testSpriteSurvivesBlankLines(false);
+        testSpriteSurvivesBlankLines(true);
+        for (bool flip : {false, true})
+            for (bool before : {false, true})
+                testSpriteResizeDuringFetch(flip, before);
         std::cout << "PPU sprite overflow tests passed (48 cases)\n";
         return 0;
     }

@@ -69,6 +69,11 @@ int main()
               "APU status read changed external open bus");
         bus.cpuWrite(0x0002, 0x40);
         check((bus.cpuRead(0x4015) & 0x20) == 0, "APU status bit 5 did not clear");
+        bus.cpuDataBus = 0x20; // Uma leitura DMC pode alterar só a trava externa.
+        check((bus.cpuRead(0x4015, true) & 0x20) == 0, "status peek used external latch");
+        check((bus.cpuRead(0x4015) & 0x20) == 0, "status used external latch");
+        check(bus.cpuRead(0x4000) == 0x20, "status changed external latch");
+        check((bus.cpuRead(0x4015) & 0x20) != 0, "CPU read did not update internal latch");
 
         // LDA $3FFF,X: a leitura descartada de $3F16 alimenta o barramento
         // antes da leitura final de $4016, mesmo quando cruza uma página.

@@ -107,7 +107,9 @@ build-headless/bin/accuracycoin-runner roms/AccuracyCoin.nes tests/accuracycoin-
 
 `cpu-bus` exercises controller open-bus bits, the $4015 status read, peeks,
 Zapper input and an indexed CPU dummy read. The DMC DMA interaction with the
-CPU's internal data bus still needs a separate cycle-accurate implementation.
+CPU's internal bit 5 is tracked separately from the external bus for NTSC DMC
+sample reads and `$4015`; the AccuracyCoin ROM exercises that distinction.
+Additional OAM DMA interactions and PAL DMC behavior remain unvalidated.
 It also checks that a pending DMC transfer waits for both writes of an INC,
 that OAM DMA waits for the second write of INC $4014 in NTSC/PAL, and that
 NTSC DMC reload requests use the put phase at all 16 rates and both initial
@@ -125,7 +127,8 @@ a halt on the preceding cycle, no DMA, page crossing and interrupted restore.
 the existing scenarios, including interrupt polling and mid-instruction loads.
 It also checks sampled and unsampled controller strobes on both ports; the
 AccuracyCoin ROM exercises real CPU read-modify-write strobes in both phases.
-Console states now use `R2NU` (NTSC) or `R2NV` (PAL), preserving the strobe
+Console states now use `R2NW` (NTSC) or `R2NX` (PAL), preserving the internal
+bus bit, strobe
 output and both controller shift latches while leaving live button input with
 the host. Previous formats are rejected; older builds cannot read the current
 formats. `state-rollback-timing`
@@ -135,11 +138,17 @@ remain incomplete; PAL retains the previous DMA approximation.
 `ppu-decay` also covers a PPUSTATUS read immediately before VBlank, including
 debugger peeks and restoring the pending suppression from a PPU snapshot.
 This does not cover all NMI timing cases.
+`ppu-sprite-overflow` also checks sprite X startup when rendering is enabled
+or disabled at dot 339, including restoration immediately after that dot.
+It does not establish complete sprite shifter behavior during rendering toggles.
+It also checks 8x16 to 8x8 sprite size changes before and after the first
+pattern fetch, with and without vertical flip.
 
-`cpu-interrupt` tests NMI edges during BRK and IRQ, stacked PC/B, late NMI,
+`cpu-interrupt` tests the three NTSC PPU-dot phases of VBlank NMI sampling,
+including save/load with a PPU edge pending, NMI edges during BRK and IRQ, stacked PC/B, late NMI,
 CPU restore during the sequence, rejection of an old `R2NK` state, and IRQ
-latency for CLI, SEI, PLP and RTI. It does not validate CPU/PPU subcycle
-alignment or DMC arbitration. The current `R2NU`/`R2NV` states are not readable by
+latency for CLI, SEI, PLP and RTI. Other CPU/PPU alignments, NMI suppression,
+PAL sampling and DMC arbitration remain incompletely validated. The current `R2NW`/`R2NX` states are not readable by
 older builds; this build rejects all earlier console state formats.
 
 ## ROM and ZIP input validation
