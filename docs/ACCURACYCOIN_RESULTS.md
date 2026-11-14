@@ -417,6 +417,67 @@ primeira parte alteraria a temporização do próprio estado da PPU e não
 representaria a diferença entre os instantes de amostragem. Nenhuma alteração
 de comportamento foi aplicada nesta investigação.
 
+Em 2026-11-14, uma instrumentação do executor registrou os quatro valores da
+primeira etapa: **`E0 E0 E0 00`**, contra `E0 E0 80 00` ou `E0 80 80 00`
+aceitos pela ROM. As leituras ocorreram, respectivamente, na scanline 260/dot
+340 e no pré-render/dots 0, 1 e 2. Isso confirma a discrepância observável,
+mas não prova por si só a causa elétrica.
+
+Como experimento temporário, somente o valor retornado dos bits de sprite foi
+limpo nas leituras iniciadas nos dots 0 e 1 do pré-render. A primeira etapa
+passou, mas o teste continuou falhando com **código 2**, na etapa que verifica
+a ativação dos flags: os resultados em `$51–$58`, após a máscara da ROM, foram
+`00 00 00 00 00 60 60 00`, e a ROM exige `$55 = 60`. A experiência não foi
+mantida: ela não modela a evolução da PPU durante a leitura nem resolve a
+ativação dos flags. A pontuação permaneceu em **135/147**. Uma correção deve
+tratar também as leituras reais e descartadas durante DMA, a amostragem de NMI
+e a fase PAL, além de preservar os efeitos colaterais de `$2002`.
+
+### Leitura de `$2002` em fases e overflow
+
+Em 2026-11-14, o AccuracyCoin passou de **135 para 136/147**: `$2002 flag
+timing` passou e os outros 146 resultados e códigos ficaram iguais. Em passos
+NTSC, a leitura mantém o VBlank capturado no início e avança dois dots antes
+de capturar os bits de sprite. Os efeitos de limpeza de VBlank e cancelamento
+da borda pendente continuam no início; a amostragem de NMI do primeiro dot é
+entregue à CPU depois do ciclo corrente. Isso também se aplica às leituras
+descartadas que passam pelo barramento durante DMA. Leituras de inspeção não
+avançam a PPU.
+
+A segunda etapa também exigiu que o flag de overflow ficasse visível um dot
+após a comparação da avaliação de sprites. `ppu-sprite-overflow` verifica a
+transição, a restauração com overflow pendente e leituras reais da CPU nas três
+fases em torno da limpeza do pré-render. O bit pendente é armazenado num bit
+antes reservado do estado da PPU: estados antigos continuam legíveis, mas
+versões anteriores rejeitam um estado salvo nessa janela de um dot.
+
+O tratamento de leitura em fases ainda não foi validado para PAL; nessa região
+a ordem anterior da leitura foi mantida. O atraso do overflow se aplica às duas
+regiões, mas não foi comparado com hardware PAL. Em NTSC, os dois dots
+antecipados ocorrem antes do tick do cartucho nesse ciclo; interações finas com
+mappers e overclock durante a leitura ainda não foram validadas em hardware.
+CTest headless: **48/48**. Resultado final:
+`build-headless/accuracycoin/flag-phased-final.txt`.
+
+### Endereço da OAM secundária durante a busca
+
+Em 2026-11-14, `Misaligned OAM2 Address` passou e o AccuracyCoin avançou de
+**136 para 137/147**; as outras 146 linhas mantiveram seus resultados e códigos.
+A avaliação grava o Y candidato na OAM secundária mesmo quando ele está fora
+de faixa, sem avançar o endereço. Durante a busca, esse endereço avança com os
+quatro bytes de cada slot apenas enquanto a renderização está ativa. Depois da
+busca, `$2004` continua lendo a OAM secundária pelo endereço alcançado.
+
+O teste `ppu-sprite-overflow` cobre o último Y rejeitado, a interrupção da
+busca e a restauração de um estado durante essa interrupção. O endereço salvo
+passou a ter significado durante a busca; os formatos de save state agora são
+`R2N0` (NTSC) e `R2N1` (PAL), e estados de versões anteriores são rejeitados.
+O modelo ainda não usa os bytes desalinhados da OAM secundária para alimentar
+todos os campos das unidades de sprite, nem implementa integralmente o
+congelamento do incremento da OAM2. O teste da ROM, por si, não valida esses
+casos. CTest headless: **48/48**. Resultado final:
+`build-headless/accuracycoin/oam2-address-final.txt`.
+
 ### Contadores de sprite durante forced blanking
 
 Em 2026-11-13, foi corrigida uma parte do comportamento de `Stale Sprite

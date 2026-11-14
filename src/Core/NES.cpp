@@ -17,6 +17,7 @@ namespace R2NES::Core
         cpu.connectBus(&bus);
         bus.connectPPU(&ppu);
         ppu.connectBus(&bus);
+        ppu.setCpuReadPhaseCallback(&NES::advancePpuReadPhase, this);
         bus.connectAPU(&apu);
         apu.connectBus(&bus);
 
@@ -96,6 +97,11 @@ namespace R2NES::Core
     template <bool Pal>
     void NES::stepRegion(bool honorCPUOverclock)
     {
+        // Só leituras de status feitas durante um passo NTSC avançam a PPU
+        // até o fim da fase de leitura; inspeções externas são instantâneas.
+        ppuReadPhaseActive = !Pal;
+        ppuReadPhaseAdvanced = false;
+        ppuReadNmiSampled = false;
         if (bus.cheats.hasActiveRamPatches())
             bus.cheats.applyRam(bus);
         // RDY só para a CPU em leituras. Uma escrita RMW em $4014 ainda
@@ -161,6 +167,10 @@ namespace R2NES::Core
             }
         }
 
+        ppuReadPhaseActive = false;
+        if (ppuReadNmiSampled)
+            cpu.nmi();
+
         // Amostra a saída de $4016 uma vez a cada dois ciclos do sistema.
         if ((bus.systemClockCounter & 1) == 0)
             bus.clockControllerStrobe();
@@ -172,19 +182,21 @@ namespace R2NES::Core
             bus.cart->tick();
 
         // A PPU roda 3x para cada passo de sistema (CPU)
-        ppu.clock();
+        if (!ppuReadPhaseAdvanced)
+            ppu.clock();
         // Em NTSC, a CPU amostra a NMI numa fase interna do seu ciclo.
         // Uma borda nos dois dots seguintes fica pendente até a amostragem
         // seguinte; a fase PAL conserva a ordem anterior até ser validada.
         if constexpr (!Pal)
         {
-            if (ppu.nmi)
+            if (!ppuReadPhaseAdvanced && ppu.nmi)
             {
                 ppu.nmi = false;
                 cpu.nmi();
             }
         }
-        ppu.clock();
+        if (!ppuReadPhaseAdvanced)
+            ppu.clock();
         ppu.clock();
         if constexpr (Pal)
         {
@@ -204,6 +216,23 @@ namespace R2NES::Core
         apu.step();
 
         serviceIRQ();
+    }
+
+    void NES::advancePpuReadPhase(void *context)
+    {
+        auto &nes = *static_cast<NES *>(context);
+        if (!nes.ppuReadPhaseActive || nes.ppuReadPhaseAdvanced)
+            return;
+        nes.ppuReadPhaseAdvanced = true;
+        nes.ppu.clock();
+        // Preserve a amostragem no primeiro dot, mas entregue a borda só
+        // depois de terminar o ciclo da CPU, como no caminho normal.
+        if (nes.ppu.nmi)
+        {
+            nes.ppu.nmi = false;
+            nes.ppuReadNmiSampled = true;
+        }
+        nes.ppu.clock();
     }
 
     bool NES::clockDmcDma(bool oamActive)
@@ -309,7 +338,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = pal ? 0x52324E5A : 0x52324E59; // R2NZ/R2NY: preservação da busca de sprites.
+        uint32_t magic = pal ? 0x52324E31 : 0x52324E30; // R2N1/R2N0: endereço de busca da OAM secundária.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -370,7 +399,7 @@ namespace R2NES::Core
         {
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-            if (!input || magic != (pal ? 0x52324E5A : 0x52324E59))
+            if (!input || magic != (pal ? 0x52324E31 : 0x52324E30))
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};

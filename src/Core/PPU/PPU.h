@@ -21,6 +21,12 @@ namespace R2NES::Core
         // Comunicação com o barramento da CPU ($2000 - $2007)
         uint8_t cpuRead(uint16_t addr, bool readOnly = false);
         void cpuWrite(uint16_t addr, uint8_t data);
+        using CpuReadPhaseCallback = void (*)(void *);
+        void setCpuReadPhaseCallback(CpuReadPhaseCallback callback, void *context)
+        {
+            cpuReadPhaseCallback = callback;
+            cpuReadPhaseContext = context;
+        }
         bool nmi = false;
 
         // Comunicação com o barramento interno da PPU ($0000 - $3FFF)
@@ -67,6 +73,8 @@ namespace R2NES::Core
         const uint32_t *getFrameBuffer() const { return frameBuffer.data(); }
 
     private:
+        CpuReadPhaseCallback cpuReadPhaseCallback = nullptr;
+        void *cpuReadPhaseContext = nullptr;
         bool pal = false;
         Bus *bus = nullptr;
         VRAM vram; // Name Tables gerenciadas pela classe que você criou
@@ -130,6 +138,7 @@ namespace R2NES::Core
         // O hit é sinalizado um dot depois da composição do pixel coincidente.
         // O bit de status permanece setado até o início do pré-render.
         bool sprite0HitPending = false;
+        bool spriteOverflowPending = false;
 
         // Estado da renderização
         int16_t scanline = 0;

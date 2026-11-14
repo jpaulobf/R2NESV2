@@ -72,6 +72,7 @@ namespace R2NES::Core
         void stepRegion(bool honorCPUOverclock);
         void serviceIRQ();
         bool clockDmcDma(bool oamActive);
+        static void advancePpuReadPhase(void *context);
 
         // Subsistemas do console
         Bus bus;                 // Barramento do sistema, conecta todos os dispositivos
@@ -89,5 +90,8 @@ namespace R2NES::Core
         uint8_t dmcDmaPhase = 0; // 0=idle, 1=dummy, 2=alignment/get
         uint16_t dmcHaltAddress = 0;
         bool oamReadAvailable = false;
+        bool ppuReadPhaseActive = false;
+        bool ppuReadPhaseAdvanced = false;
+        bool ppuReadNmiSampled = false;
     };
 }

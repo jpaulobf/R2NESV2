@@ -45,7 +45,10 @@ int main(int argc, char **argv)
         rom[2] = 'S';
         rom[3] = 0x1A;
         rom[4] = 1;
-        rom[16] = 0x00; // BRK at $8000.
+        rom[16] = 0x00;        // BRK at $8000.
+        rom[16 + 0x10] = 0xAD; // LDA $2002 at $8010.
+        rom[16 + 0x11] = 0x02;
+        rom[16 + 0x12] = 0x20;
         rom[16 + 0x3FFA] = 0x00;
         rom[16 + 0x3FFB] = 0x90;
         rom[16 + 0x3FFC] = 0x00;
@@ -55,6 +58,35 @@ int main(int argc, char **argv)
         std::ofstream file(path, std::ios::binary);
         file.write(reinterpret_cast<const char *>(rom.data()), rom.size());
         file.close();
+
+        // A leitura de status avança dois dots antes de retornar, mas a
+        // amostragem da NMI continua no primeiro dot do ciclo da CPU.
+        for (int phase = 0; phase < 3; ++phase)
+        {
+            FixtureNES nes("");
+            nes.setCheatDirectory(std::filesystem::path(argv[1]) / "no-cheats");
+            check(nes.insertCartridge(path.string()), "status/NMI ROM failed to load");
+            auto &cpu = nes.getCpu();
+            auto &ppu = nes.getPpu();
+            while (!cpu.complete())
+                cpu.clock();
+            cpu.pc = 0x8010;
+            cycle(cpu, 3);
+            for (int dot = 0; dot < 262 * 341; ++dot)
+                ppu.clock();
+            ppu.cpuWrite(0x2000, 0x80);
+            for (int dot = 0; dot < 242 * 341 + 1 - phase; ++dot)
+                ppu.clock();
+            nes.step(false);
+            check((cpu.a & 0x80) == 0, "status read captured vblank too late");
+            check(ppu.nmi == (phase != 0), "status read sampled NMI at wrong phase");
+            if (phase != 0)
+            {
+                for (int i = 0; i < 14; ++i)
+                    nes.step(false);
+                check(cpu.pc >= 0x9000 && cpu.pc < 0x9100, "status read lost later NMI");
+            }
+        }
 
         // VBlank em cada um dos três dots de um ciclo CPU: apenas a borda
         // no primeiro dot é amostrada nesse ciclo NTSC.
@@ -247,6 +279,10 @@ int main(int argc, char **argv)
             state[0] = '\x4B'; // R2NK on little-endian hosts.
             std::istringstream input(state);
             check(!nes.loadState(input), "legacy R2NK accepted");
+            state = valid;
+            state[0] = '\x59'; // R2NY não preserva o endereço da OAM durante a busca.
+            std::istringstream previousFormat(state);
+            check(!nes.loadState(previousFormat), "legacy R2NY accepted");
             std::ostringstream after;
             check(nes.saveState(after) && after.str() == valid, "rejected state changed console");
             cycle(cpu, 2);

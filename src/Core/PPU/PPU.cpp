@@ -206,12 +206,19 @@ namespace R2NES::Core
                     suppressVblank = true;
                 // PPUSTATUS dirige os bits 7-5; os bits baixos mantêm o valor
                 // que já estava no barramento interno da PPU.
-                drivePpuIoBus(data, 0xE0);
                 ppuStatus &= ~0x80;
                 // Cancela apenas a borda ainda não amostrada pela CPU.
                 nmi = false;
                 // No NES real, $2005 e $2006 compartilham o mesmo latch de escrita (w)
                 addressLatch = 0;
+                // VBlank é capturado no início da leitura. Os flags de sprite
+                // continuam dirigindo o barramento até o fim de M2.
+                if (cpuReadPhaseCallback)
+                {
+                    cpuReadPhaseCallback(cpuReadPhaseContext);
+                    data = static_cast<uint8_t>((data & 0x9F) | (ppuStatus & 0x60));
+                }
+                drivePpuIoBus(data, 0xE0);
             }
             return data;
         }
@@ -455,7 +462,7 @@ namespace R2NES::Core
 
     bool PPU::isRenderingOamAccess() const
     {
-        return isRenderingActive() && cycle >= 1 && cycle <= 320;
+        return isRenderingActive() && cycle >= 1 && cycle <= 340;
     }
 
     uint8_t PPU::effectivePpuMask() const
@@ -846,6 +853,13 @@ namespace R2NES::Core
             ppuStatus |= 0x40;
             sprite0HitPending = false;
         }
+        // O resultado da avaliação do nono sprite aparece no status um dot
+        // depois da comparação, como acontece com o resultado do sprite zero.
+        if (spriteOverflowPending)
+        {
+            ppuStatus |= 0x20;
+            spriteOverflowPending = false;
+        }
 
         // Lógica de atualização de Scroll baseada em ciclos
         bool renderingEnabled = (activeMask & 0x18) != 0;
@@ -1015,7 +1029,7 @@ namespace R2NES::Core
                             // ainda precisa observar overflow ao encontrar o nono
                             // sprite (Bee 52 espera por esse bit em $2002).
                             if (nextScanlineSpriteCount > 8)
-                                ppuStatus |= 0x20;
+                                spriteOverflowPending = true;
 
                             sprite.oamIndex = index;
                             sprite.y = spriteY;
@@ -1065,9 +1079,12 @@ namespace R2NES::Core
                         {
                             if (spriteEvaluationBytesCopied == 0)
                             {
+                                // O Y candidato é escrito antes da comparação.
+                                // Se estiver fora de faixa, o endereço não avança
+                                // e o próximo candidato sobrescreve esse byte.
+                                secondaryOam[secondaryOamAddress] = spriteEvaluationLatch;
                                 if (row >= 0 && row < spriteHeight)
                                 {
-                                    secondaryOam[secondaryOamAddress] = spriteEvaluationLatch;
                                     SpriteFetchUnit &sprite = nextSprites[secondaryOamAddress / 4];
                                     // O endereço inicial de avaliação define a
                                     // identidade lógica do sprite 0. Se essa
@@ -1132,7 +1149,7 @@ namespace R2NES::Core
                             // somente quando m passa de 3.
                             if (row >= 0 && row < spriteHeight)
                             {
-                                ppuStatus |= 0x20;
+                                spriteOverflowPending = true;
                                 ++spriteEvaluationByteIndex;
                                 if (spriteEvaluationByteIndex == 4)
                                 {
@@ -1163,8 +1180,16 @@ namespace R2NES::Core
 
                 const int slot = (cycle - 257) / 8;
                 const int phase = (cycle - 257) % 8;
-                const int secondaryByte = phase < 4 ? phase : 3;
-                oamDataBusLatch = secondaryOam[slot * 4 + secondaryByte];
+                // Os quatro bytes de cada slot avançam o endereço apenas
+                // enquanto rendering está ativo. Uma interrupção da busca
+                // deixa esse endereço desalinhado para as leituras seguintes.
+                if (cycle == 257)
+                    secondaryOamAddress = 0;
+                if (phase < 4)
+                {
+                    oamDataBusLatch = secondaryOam[secondaryOamAddress & 0x1F];
+                    secondaryOamAddress = (secondaryOamAddress + 1) & 0x1F;
+                }
 
                 if (phase == 0 || phase == 2)
                     ppuFetch(0x2000 | (vramAddr & 0x0FFF), PpuReadContext::Sprite); // Busca fictícia de nametable
@@ -1200,6 +1225,11 @@ namespace R2NES::Core
                         nextSprites[slot].patternHigh = reverseSpriteBits(nextSprites[slot].patternHigh);
                     }
                 }
+            }
+            else if (cycle >= 321 && cycle <= 340)
+            {
+                // Após as buscas, $2004 continua expondo a OAM secundária.
+                oamDataBusLatch = secondaryOam[secondaryOamAddress & 0x1F];
             }
         }
 
@@ -1458,6 +1488,7 @@ namespace R2NES::Core
         pendingScrollConflictScanline = -2;
         pendingScrollConflictCycle = -1;
         sprite0HitPending = false;
+        spriteOverflowPending = false;
         scanline = -1;
         cycle = 0;
         scanlineSpriteCount = 0;
@@ -1500,10 +1531,11 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&ppuMask), sizeof(ppuMask));
         os.write(reinterpret_cast<const char *>(renderMaskDelay.data()), renderMaskDelay.size());
         os.write(reinterpret_cast<const char *>(&effectiveRenderMask), sizeof(effectiveRenderMask));
-        // Os cinco bits baixos de PPUSTATUS não são flags. Reserva o bit 0
-        // serializados para a supressão e a busca pendentes, sem alterar o layout.
+        // Os bits baixos de PPUSTATUS armazenam estados internos pendentes,
+        // sem alterar o layout do snapshot.
         const uint8_t savedStatus = static_cast<uint8_t>((ppuStatus & 0xE0) | (suppressVblank ? 1 : 0) |
-                                                         (spriteFetchOccurred ? 2 : 0));
+                                                         (spriteFetchOccurred ? 2 : 0) |
+                                                         (spriteOverflowPending ? 4 : 0));
         os.write(reinterpret_cast<const char *>(&savedStatus), sizeof(savedStatus));
         os.write(reinterpret_cast<const char *>(&oamAddr), sizeof(oamAddr));
         os.write(reinterpret_cast<const char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1566,6 +1598,7 @@ namespace R2NES::Core
         const uint8_t savedStatusLow = ppuStatus & 0x1F;
         suppressVblank = (savedStatusLow & 1) != 0;
         spriteFetchOccurred = (savedStatusLow & 2) != 0;
+        spriteOverflowPending = (savedStatusLow & 4) != 0;
         ppuStatus &= 0xE0;
         is.read(reinterpret_cast<char *>(&oamAddr), sizeof(oamAddr));
         is.read(reinterpret_cast<char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1614,7 +1647,7 @@ namespace R2NES::Core
         readStateBool(is, tilesEnabled);
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
-        if (is && ((savedStatusLow & 0x1C) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
+        if (is && ((savedStatusLow & 0x18) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
                    (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||

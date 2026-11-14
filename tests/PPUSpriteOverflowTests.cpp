@@ -52,6 +52,134 @@ static void testOverflow(bool unlimited, int spriteCount, uint8_t mask, bool tal
     check((ppu.cpuRead(0x2002) & 0x20) == 0, "Pre-render did not clear overflow");
 }
 
+static void testOverflowFlagPhaseAndState()
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int sprite = 0; sprite < 64; ++sprite)
+    {
+        ppu.cpuWrite(0x2004, sprite < 9 ? 40 : 0xFF);
+        for (int byte = 0; byte < 3; ++byte)
+            ppu.cpuWrite(0x2004, 0);
+    }
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x18);
+    for (int dot = 0; dot < 40 * 341 + 130; ++dot)
+        ppu.clock();
+    check((ppu.cpuRead(0x2002, true) & 0x20) == 0, "overflow set before ninth sprite evaluation");
+    ppu.clock(); // Dot 130: a avaliação encontra o nono sprite.
+    check((ppu.cpuRead(0x2002, true) & 0x20) == 0, "overflow exposed on evaluation dot");
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    ppu.clock();
+    check((ppu.cpuRead(0x2002, true) & 0x20) != 0, "overflow missing on next dot");
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "pending overflow state rejected");
+    check((ppu.cpuRead(0x2002, true) & 0x20) == 0, "restored overflow appeared early");
+    ppu.clock();
+    check((ppu.cpuRead(0x2002, true) & 0x20) != 0, "restored overflow did not appear");
+}
+
+static void testCpuStatusReadPhase()
+{
+    for (int offset = 0; offset < 3; ++offset)
+    {
+        std::vector<uint8_t> rom(16 + 16384, 0xEA);
+        std::fill_n(rom.begin(), 16, 0);
+        rom[0] = 'N';
+        rom[1] = 'E';
+        rom[2] = 'S';
+        rom[3] = 0x1A;
+        rom[4] = 1;
+        rom[16] = 0xAD;
+        rom[17] = 0x02;
+        rom[18] = 0x20; // LDA $2002
+        rom[16 + 0x3FFC] = 0;
+        rom[16 + 0x3FFD] = 0x80;
+        FixtureNES nes("");
+        auto cartridge = std::make_shared<FixtureCartridge>(rom);
+        check(cartridge->isValid() && nes.insertCartridge(cartridge), "status read fixture failed");
+        auto &cpu = nes.getCpu();
+        auto &ppu = nes.getPpu();
+        while (!cpu.complete())
+            cpu.clock();
+        for (int i = 0; i < 3; ++i)
+            cpu.clock(); // A próxima leitura da CPU é $2002.
+        for (int dot = 0; dot < 262 * 341; ++dot)
+            ppu.clock();
+        ppu.cpuWrite(0x2003, 0);
+        for (int sprite = 0; sprite < 64; ++sprite)
+        {
+            ppu.cpuWrite(0x2004, sprite < 9 ? 40 : 0xFF);
+            for (int byte = 0; byte < 3; ++byte)
+                ppu.cpuWrite(0x2004, 0);
+        }
+        for (int dot = 0; dot < 341; ++dot)
+            ppu.clock();
+        ppu.cpuWrite(0x2001, 0x18);
+        for (int dot = 0; dot < 260 * 341 + 340 + offset; ++dot)
+            ppu.clock();
+        check((ppu.cpuRead(0x2002, true) & 0xA0) == 0xA0, "status fixture did not set both flags");
+        nes.step(false);
+        check((cpu.a & 0xA0) == (offset == 0 ? 0xA0 : 0x80), "CPU sampled status flags at wrong phases");
+        check((ppu.cpuRead(0x2002, true) & 0x80) == 0, "CPU status read did not clear vblank");
+    }
+}
+
+static void testSecondaryOamReadAfterFetch(bool interruptFetch)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int sprite = 0; sprite < 64; ++sprite)
+    {
+        const uint8_t y = interruptFetch ? (sprite < 8 ? sprite : 0xFF)
+                                         : (sprite == 63 ? 0x5A : 0xFF);
+        ppu.cpuWrite(0x2004, y);
+        ppu.cpuWrite(0x2004, static_cast<uint8_t>(sprite * 32 + 1));
+        ppu.cpuWrite(0x2004, static_cast<uint8_t>(sprite * 32 + 2));
+        ppu.cpuWrite(0x2004, static_cast<uint8_t>(sprite * 32 + 3));
+    }
+    // Evita o dot omitido no pré-render e liga antes da linha examinada.
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x18);
+    if (!interruptFetch)
+    {
+        for (int dot = 0; dot < 324; ++dot)
+            ppu.clock();
+        check(ppu.cpuRead(0x2004, true) == 0x5A,
+              "last rejected Y was not visible from secondary OAM");
+        return;
+    }
+
+    for (int dot = 0; dot < 7 * 341 + 268; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    for (int dot = 0; dot < 18; ++dot)
+        ppu.clock();
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        ppu.cpuWrite(0x2001, 0x18);
+        for (int dot = 0; dot < 38; ++dot)
+            ppu.clock();
+        check(ppu.cpuRead(0x2004, true) == 6,
+              "secondary OAM fetch address did not pause with rendering");
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "interrupted OAM fetch state rejected");
+    finish();
+}
+
 static void testBackgroundPipelineWithSpritesOnly()
 {
     // NROM com CHR RAM: o tile de fundo contém pixels claros e escuros.
@@ -324,6 +452,10 @@ int main()
                     for (int count : {8, 9, 64})
                         testOverflow(unlimited, count, mask, tall);
         testBackgroundPipelineWithSpritesOnly();
+        testOverflowFlagPhaseAndState();
+        testCpuStatusReadPhase();
+        testSecondaryOamReadAfterFetch(false);
+        testSecondaryOamReadAfterFetch(true);
         testSpriteStartAtDot339(false);
         testSpriteStartAtDot339(true);
         testSpriteBlanking(false);
