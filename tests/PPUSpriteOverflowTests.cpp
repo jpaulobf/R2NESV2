@@ -168,6 +168,71 @@ static void testCpuOamReadPhase()
     check(cpu.a == 0x80, "CPU did not sample OAM near the end of the read cycle");
 }
 
+static void testCpuPpuDataReadDuringRendering(bool firstSpriteFetch)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0xEA);
+    std::fill_n(rom.begin(), 16, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    rom[6] = 1; // Nametables $2000 e $2400 independentes.
+    rom[16] = 0xAD;
+    rom[17] = 0x07;
+    rom[18] = 0x20; // LDA $2007
+    rom[16 + 0x3FFC] = 0;
+    rom[16 + 0x3FFD] = 0x80;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "PPUDATA read fixture failed");
+    auto &cpu = nes.getCpu();
+    auto &ppu = nes.getPpu();
+    while (!cpu.complete())
+        cpu.clock();
+    for (int i = 0; i < 3; ++i)
+        cpu.clock();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    if (firstSpriteFetch)
+    {
+        ppu.ppuWrite(0x2000, 0x12);
+        ppu.ppuWrite(0x2400, 0xB5);
+    }
+    else
+    {
+        for (int addr = 0; addr < 0x2000; ++addr)
+            ppu.ppuWrite(addr, 0x24);
+        for (int addr = 0x2000; addr < 0x3000; ++addr)
+            ppu.ppuWrite(addr, 0x24);
+    }
+    // O pré-render permanece em blanking, portanto não há dot omitido.
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x08);
+    for (int dot = 0; dot < (firstSpriteFetch ? 253 : 64); ++dot)
+        ppu.clock();
+    check(ppu.cpuRead(0x2007, true) == 0, "PPUDATA buffer fixture was not empty");
+    nes.step(false); // O buffer continua antigo enquanto a leitura externa está pendente.
+    check(cpu.a == 0 && ppu.cpuRead(0x2007, true) == 0, "PPUDATA buffer was filled too early");
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        ppu.clock();
+        ppu.clock();
+        check(ppu.cpuRead(0x2007, true) == 0, "PPUDATA buffer filled before the read phase");
+        ppu.clock();
+        check(ppu.cpuRead(0x2007, true) == (firstSpriteFetch ? 0xB5 : 0x24),
+              "PPUDATA buffer did not capture the rendering fetch");
+    };
+    finish();
+    checkpoint.seekg(0);
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "pending PPUDATA read state rejected");
+    finish();
+}
+
 static void testDeferredOamCorruption(bool enableInVblank)
 {
     PPU ppu;
@@ -993,6 +1058,8 @@ int main()
         testOverflowFlagPhaseAndState();
         testCpuStatusReadPhase();
         testCpuOamReadPhase();
+        testCpuPpuDataReadDuringRendering(false);
+        testCpuPpuDataReadDuringRendering(true);
         testDeferredOamCorruption(false);
         testDeferredOamCorruption(true);
         for (bool preRender : {false, true})
