@@ -547,6 +547,30 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Corrupção da OAM após interrupção da limpeza
+
+Em 2026-11-15, `OAM Corruption` passou e o AccuracyCoin avançou de **143 para
+144/147**; as outras 146 linhas conservaram resultado e código. Em NTSC,
+desligar ambas as camadas durante a limpeza da OAM secundária preserva o
+endereço da linha. Quando a PPU volta a acessar OAM2 com rendering ativo,
+a linha de oito bytes selecionada pelo OAMADDR corrente é copiada para aquela
+linha da OAM primária, junto do byte correspondente da OAM secundária. Se a
+renderização for ligada no VBlank, a cópia aguarda o pré-render.
+
+`ppu-sprite-overflow` verifica a cópia adiada, a escolha da origem durante o
+blanking, reativação na linha visível e no VBlank e restauração do estado
+pendente. O teste falha quando a cópia é desativada. CTest headless: **48/48**.
+Resultado: `build-headless/accuracycoin/oam-corruption-144-final.txt`.
+Referência: [errata de corrupção da OAM no NESdev](https://www.nesdev.org/wiki/Errata).
+
+Os novos estados `R2N6` (NTSC) e `R2N7` (PAL) guardam o endereço da limpeza
+e a linha pendente; formatos anteriores são rejeitados. A implementação cobre
+a interrupção durante os dots 1–64 de linhas visíveis; outras fases, efeitos
+de escritas em `$2003`, corrupção ao desligar rendering e diferenças entre
+alinhamentos ainda não foram modelados integralmente. A reativação em linha
+visível usa um resultado determinístico, embora o hardware possa variar com
+o alinhamento. PAL não foi alterado nem validado nesta rodada.
+
 ### Endereço híbrido de nametable
 
 Em 2026-11-15, `Hybrid Addresses` passou e o AccuracyCoin avançou de **142

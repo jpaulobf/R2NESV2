@@ -4,6 +4,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- PPU: em NTSC, interrupções durante a limpeza da OAM secundária podem causar uma cópia de linha quando a PPU volta a acessá-la. `OAM Corruption` passou e o AccuracyCoin avançou de 143 para 144/147, sem regressões. Testes cobrem a cópia adiada e restauração; os estados `R2N6`/`R2N7` não aceitam versões anteriores.
 - PPU: em NTSC, a transferência de `$2006` durante rendering ocorre após a escrita e pode combinar o byte alto atualizado com o byte baixo capturado para uma busca de nametable. `Hybrid Addresses` passou e o AccuracyCoin avançou de 142 para 143/147, sem regressões. Testes cobrem pixels e restauração; os estados `R2N4`/`R2N5` não aceitam versões anteriores.
 - PPU: leituras NTSC de `$2004` observam o barramento na fase final do ciclo da CPU; a avaliação continua lendo as duas OAMs após wrap e após encontrar overflow. `$2004 Stress Test` passou e o AccuracyCoin avançou de 141 para 142/147, sem regressões; testes cobrem fases e restauração.
 - PPU: escritas em `$2004` durante a pré-renderização e no dot 0 avançam e alinham o endereço da OAM primária. `Address $2004 behavior` passou e o AccuracyCoin avançou de 140 para 141/147, sem regressões; testes cobrem alinhamento, transbordamento e restauração.
