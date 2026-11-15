@@ -130,6 +130,50 @@ static void testCpuStatusReadPhase()
     }
 }
 
+static void testMisalignedEvaluation(bool rejectY, bool rejectX)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 256; ++i)
+    {
+        uint8_t value = 0xFF;
+        if (i == 1)
+            value = rejectY ? 0x80 : 0;
+        if (i == 2 || i == 3)
+            value = 0;
+        if (i == 4)
+            value = rejectX ? 0x80 : 0;
+        if (i == 5)
+            value = 0x55;
+        ppu.cpuWrite(0x2004, value);
+    }
+    ppu.cpuWrite(0x2001, 0x18);
+    for (int dot = 0; dot < 341 + 60; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 1);
+    for (int dot = 0; dot < 5; ++dot)
+        ppu.clock();
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        // A próxima leitura da OAM ocorre depois do candidato Y ou do X.
+        for (int dot = 0; dot < (rejectY ? 3 : 9); ++dot)
+            ppu.clock();
+        const uint8_t expected = rejectY ? (rejectX ? 0x80 : 0)
+                                         : (rejectX ? 0x80 : 0x55);
+        check(ppu.cpuRead(0x2004, true) == expected,
+              "misaligned evaluation read the wrong next OAM byte");
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "misaligned evaluation state rejected");
+    finish();
+}
+
 static void testSecondaryOamReadAfterFetch(bool interruptFetch)
 {
     PPU ppu;
@@ -592,6 +636,9 @@ int main()
         testBackgroundSerialInput();
         testOverflowFlagPhaseAndState();
         testCpuStatusReadPhase();
+        testMisalignedEvaluation(true, true);
+        testMisalignedEvaluation(false, true);
+        testMisalignedEvaluation(false, false);
         testSecondaryOamReadAfterFetch(false);
         testSecondaryOamReadAfterFetch(true);
         testFrozenSecondaryOamIncrement(false);
@@ -607,7 +654,7 @@ int main()
         for (bool flip : {false, true})
             for (bool before : {false, true})
                 testSpriteResizeDuringFetch(flip, before);
-        std::cout << "PPU sprite overflow tests passed (48 cases)\n";
+        std::cout << "PPU sprite overflow tests passed\n";
         return 0;
     }
     catch (const std::exception &error)
