@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [Não lançado]
+## [1.4.0] - 2026-11-15
 
 - PPU: uma leitura de `$2007` que coincide com ALE usa o dado anterior do barramento como byte baixo do endereço buscado. `ALE + Read` passou e o AccuracyCoin alcançou 147/147, sem regressões. Testes cobrem colisão estável, dot vizinho e restauração; o formato dos save states não mudou.
 - PPU: em NTSC, leituras de `$2007` durante rendering podem preencher o buffer com uma busca posterior da PPU; a primeira busca fictícia de sprites usa o endereço anterior à cópia horizontal. `$2007 Stress Test` passou e o AccuracyCoin avançou de 145 para 146/147, sem regressões. Testes cobrem temporização e restauração; os estados `R2Na`/`R2Nb` não aceitam versões anteriores.
