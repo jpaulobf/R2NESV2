@@ -167,6 +167,9 @@ namespace R2NES::Core
         int scanlineSpriteCount = 0;
         int nextScanlineSpriteCount = 0;
         bool spriteFetchOccurred = false;
+        // Latch de identidade do sprite zero e pixel antecipado pelo dot omitido.
+        bool spriteZeroOnNextScanline = false;
+        bool oddFrameFirstPixel = false;
         std::array<uint8_t, 32> secondaryOam{};
         uint8_t spriteEvaluationIndex = 0;       // n: índice do sprite na OAM primária (0-64)
         uint8_t spriteEvaluationStartIndex = 0;  // n inicial obtido de OAMADDR no dot 65

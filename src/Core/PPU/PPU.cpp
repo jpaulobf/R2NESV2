@@ -1027,6 +1027,14 @@ namespace R2NES::Core
         // dots 65-256. A opção Unlimited Sprites mantém o caminho de depuração.
         if (renderingEnabled && scanline >= -1 && scanline < 240)
         {
+            if (cycle == 66)
+            {
+                // A identidade do sprite zero é capturada apenas enquanto
+                // rendering está ativo; no pré-render ela é limpa.
+                const uint8_t firstY = unlimitedSprites ? oamMemory[0] : spriteEvaluationLatch;
+                spriteZeroOnNextScanline = scanline >= 0 && scanline - firstY >= 0 &&
+                                           scanline - firstY < ((ppuCtrl & 0x20) ? 16 : 8);
+            }
             // O circuito libera o incremento nesses dots apenas se a
             // renderização estiver ativa; forced blanking preserva a trava.
             if (cycle == 63 || cycle == 255 || cycle == 339)
@@ -1318,6 +1326,13 @@ namespace R2NES::Core
                 else if (phase == 4)
                 {
                     SpriteFetchUnit &sprite = nextSprites[slot];
+                    if (!pal && scanline == -1 && !unlimitedSprites)
+                    {
+                        // Na ausência de avaliação, a busca usa a OAM2
+                        // preservada e o latch anterior de sprite zero.
+                        sprite.oamIndex = (slot == 0 && spriteZeroOnNextScanline) ? 0 : static_cast<uint8_t>(slot + 1);
+                        nextScanlineSpriteCount = std::max(nextScanlineSpriteCount, slot + 1);
+                    }
                     // Uma busca após várias linhas em branco pode reutilizar
                     // a identidade que permaneceu na unidade de sprite.
                     if (!unlimitedSprites && secondaryOamIncrementFrozen &&
@@ -1327,7 +1342,10 @@ namespace R2NES::Core
                     // O tamanho pode mudar depois da avaliação; na busca,
                     // apenas os bits de linha correspondentes ao tamanho atual
                     // entram no endereço do padrão.
-                    const int row = (scanline >= 0 ? scanline - sprite.y : sprite.row) & (spriteHeight - 1);
+                    // No pré-render NTSC, o comparador vê 261 & 255 = 5.
+                    const int evalRow = scanline >= 0 ? scanline - sprite.y : !pal ? 5 - sprite.y
+                                                                                   : sprite.row;
+                    const int row = evalRow & (spriteHeight - 1);
                     const int patternRow = (sprite.attributes & 0x80) ? spriteHeight - 1 - row : row;
                     if (spriteHeight == 16)
                     {
@@ -1341,11 +1359,15 @@ namespace R2NES::Core
                         sprite.patternAddress = table + (static_cast<uint16_t>(sprite.tile) << 4) + patternRow;
                     }
                     sprite.patternLow = ppuFetchSprite(sprite.patternAddress);
+                    if (!pal && scanline == -1 && (evalRow < 0 || evalRow >= spriteHeight))
+                        sprite.patternLow = 0;
                 }
                 else if (phase == 6)
                 {
                     nextSprites[slot].xCounter = nextSprites[slot].x;
                     nextSprites[slot].patternHigh = ppuFetchSprite(nextSprites[slot].patternAddress + 8);
+                    if (!pal && scanline == -1 && (5 - nextSprites[slot].y < 0 || 5 - nextSprites[slot].y >= ((ppuCtrl & 0x20) ? 16 : 8)))
+                        nextSprites[slot].patternHigh = 0;
                     if (nextSprites[slot].attributes & 0x40)
                     {
                         nextSprites[slot].patternLow = reverseSpriteBits(nextSprites[slot].patternLow);
@@ -1394,7 +1416,16 @@ namespace R2NES::Core
             for (int i = 0; i < std::min(scanlineSpriteCount, 8); ++i)
             {
                 SpriteFetchUnit &sprite = currentSprites[i];
-                if (sprite.xCounter > 0)
+                if (scanline == 0 && cycle == 1 && oddFrameFirstPixel && renderingEnabled)
+                {
+                    // Ao omitir o último dot do pré-render, o primeiro pixel
+                    // sai em x=0 antes do início da contagem X.
+                    hardwareSpritePixels[i] = static_cast<uint8_t>(((sprite.patternLow >> 7) & 1) |
+                                                                   (((sprite.patternHigh >> 7) & 1) << 1));
+                    sprite.patternLow <<= 1;
+                    sprite.patternHigh <<= 1;
+                }
+                else if (sprite.xCounter > 0)
                 {
                     // A contagem X continua mesmo em forced blanking.
                     --sprite.xCounter;
@@ -1568,6 +1599,7 @@ namespace R2NES::Core
         // quadro (scanline 0, dot 0).
         if (!pal && scanline == -1 && cycle == 339 && renderingEnabled && (frameCounter % 2 != 0))
         {
+            oddFrameFirstPixel = true;
             cycle = 0;
             scanline = 0;
             return;
@@ -1577,6 +1609,8 @@ namespace R2NES::Core
         if (cycle >= 341)
         {
             cycle = 0;
+            if (scanline == -1)
+                oddFrameFirstPixel = false;
             scanline++;
 
             if (scanline >= (pal ? 311 : 261))
@@ -1622,6 +1656,8 @@ namespace R2NES::Core
         scanlineSpriteCount = 0;
         nextScanlineSpriteCount = 0;
         spriteFetchOccurred = false;
+        spriteZeroOnNextScanline = false;
+        oddFrameFirstPixel = false;
         spriteEvaluationIndex = 0;
         spriteEvaluationStartIndex = 0;
         spriteEvaluationByteIndex = 0;
@@ -1717,6 +1753,8 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&pendingAddressTransferDots), sizeof(pendingAddressTransferDots));
         os.write(reinterpret_cast<const char *>(&secondaryOamClearAddress), sizeof(secondaryOamClearAddress));
         os.write(reinterpret_cast<const char *>(&pendingOamCorruptionRow), sizeof(pendingOamCorruptionRow));
+        os.write(reinterpret_cast<const char *>(&spriteZeroOnNextScanline), sizeof(spriteZeroOnNextScanline));
+        os.write(reinterpret_cast<const char *>(&oddFrameFirstPixel), sizeof(oddFrameFirstPixel));
     }
 
     void PPU::loadState(std::istream &is)
@@ -1786,6 +1824,8 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&pendingAddressTransferDots), sizeof(pendingAddressTransferDots));
         is.read(reinterpret_cast<char *>(&secondaryOamClearAddress), sizeof(secondaryOamClearAddress));
         is.read(reinterpret_cast<char *>(&pendingOamCorruptionRow), sizeof(pendingOamCorruptionRow));
+        readStateBool(is, spriteZeroOnNextScanline);
+        readStateBool(is, oddFrameFirstPixel);
         if (is && ((savedStatusLow & 0x10) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
                    (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) || pendingAddressTransferDots > 4 ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
