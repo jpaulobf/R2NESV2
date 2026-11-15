@@ -802,7 +802,7 @@ namespace R2NES::Core
             ImGui::TextUnformatted("Software livre e aberto para a comunidade.");
             ImGui::TextUnformatted("Ver licen\xC3\xA7" "a de uso.");
             ImGui::Spacing();
-            ImGui::TextUnformatted("Vers\xC3\xA3" "o: " R2_APP_VERSION " - Data: 13/11/2026");
+            ImGui::TextUnformatted("Vers\xC3\xA3" "o: " R2_APP_VERSION " - Data: 15/11/2026");
             ImGui::EndPopup();
         }
 
