@@ -21,6 +21,7 @@
 #include "Core/Cartridge/Mappers/Mapper090.h"
 #include "Core/Cartridge/Mappers/Mapper187.h"
 #include "Core/Cartridge/Mappers/Mapper189.h"
+#include "Core/Cartridge/Mappers/Mapper212.h"
 #include <algorithm>
 #include <cstring>
 #include <cctype>
@@ -345,6 +346,18 @@ namespace R2NES::Core
                 return false;
             }
         }
+        if (mapperID == 212)
+        {
+            const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
+            if (!Mapper212::supports(prgBanks, chrBanks, mirror) || (header.mapper1 & 6) ||
+                (isNes2Header && (submapper != 0 || header.tv_system2 != 0 ||
+                                  chrRam != (chrBanks == 0 ? 7 : 0) ||
+                                  (static_cast<uint8_t>(header.unused[3]) & 3) != 0)))
+            {
+                std::cerr << "Error: Unsupported Mapper 212 memory configuration." << std::endl;
+                return false;
+            }
+        }
         if (mapperID == 79 || mapperID == 147 || mapperID == 150)
         {
             const bool supported = mapperID == 79    ? Mapper079::supports(prgBanks, chrBanks, mirror)
@@ -404,7 +417,7 @@ namespace R2NES::Core
         if (prgSize > buffer.size() - offset)
         {
             if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
-                mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || isNes2Header)
+                mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 212 || isNes2Header)
             {
                 std::cerr << "Error: Truncated PRG ROM." << std::endl;
                 return false;
@@ -438,7 +451,7 @@ namespace R2NES::Core
             if (chrSize > buffer.size() - offset)
             {
                 if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 5 || mapperID == 9 ||
-                    mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || isNes2Header)
+                    mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 212 || isNes2Header)
                 {
                     std::cerr << "Error: Truncated CHR ROM." << std::endl;
                     return false;
@@ -542,6 +555,9 @@ namespace R2NES::Core
             break;
         case 189:
             pMapper = std::make_shared<Mapper189>(prgBanks, chrBanks, mirror);
+            break;
+        case 212:
+            pMapper = std::make_shared<Mapper212>(prgBanks, chrBanks, mirror);
             break;
         default:
             std::cerr << "Error: Mapper " << (int)mapperID << " is not supported yet."
@@ -705,7 +721,7 @@ namespace R2NES::Core
         if (pMapper &&
             (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
              mapperID == 11 || mapperID == 19 || mapperID == 21 || mapperID == 22 ||
-             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 69 || mapperID == 71 || mapperID == 85 || mapperID == 90 || mapperID == 150 || mapperID == 187 || mapperID == 189))
+             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 69 || mapperID == 71 || mapperID == 85 || mapperID == 90 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 212))
         {
             return pMapper->getMirrorMode();
         }
