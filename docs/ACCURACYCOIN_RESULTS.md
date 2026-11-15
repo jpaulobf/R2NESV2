@@ -547,6 +547,29 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Sprites na scanline 0
+
+Em 2026-11-15, `Sprites On Scanline 0` passou e o AccuracyCoin avançou de
+**144 para 145/147**; as outras 146 linhas conservaram resultado e código.
+Em NTSC, a busca de sprites no pré-render usa os dados preservados na OAM
+secundária e compara Y com a linha 5, correspondente aos bits baixos de 261.
+Um latch preserva a identidade de sprite zero se a renderização estiver
+desligada no dot em que seria atualizado; se estiver ligada, o pré-render
+limpa essa identidade. A busca continua podendo produzir pixels sem ela.
+
+Quando o último dot do pré-render é omitido, o primeiro pixel de cada shifter
+de sprite sai em x=0 antes de começar a contagem X; os demais pixels seguem
+após a contagem. `ppu-sprite-overflow` verifica os dois quadros, preservação
+e limpeza da identidade e restauração antes e perto da virada do quadro. O
+teste do pixel falha quando o comportamento de quadro ímpar é desativado.
+CTest headless: **48/48**. Resultado: `build-headless/accuracycoin/scanline0-145-final.txt`.
+Referência: [pesquisa sobre renderização de sprites no NESdev](https://forums.nesdev.org/viewtopic.php?t=26291).
+
+Os latches são serializados nos novos formatos `R2N8` (NTSC) e `R2N9` (PAL),
+que rejeitam os anteriores. O caminho PAL e o modo Unlimited Sprites não
+foram validados para esse comportamento; buscas parcialmente interrompidas
+continuam usando o modelo de unidades agrupadas por scanline.
+
 ### Corrupção da OAM após interrupção da limpeza
 
 Em 2026-11-15, `OAM Corruption` passou e o AccuracyCoin avançou de **143 para
