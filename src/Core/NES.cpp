@@ -338,7 +338,7 @@ namespace R2NES::Core
             return false;
 
         // Formato simples: Magic number + estado dos componentes, na ordem fixa.
-        uint32_t magic = pal ? 0x52324E35 : 0x52324E34; // R2N5/R2N4: transferência pendente de endereço da PPU.
+        uint32_t magic = pal ? 0x52324E37 : 0x52324E36; // R2N7/R2N6: corrupção pendente da OAM.
         os.write(reinterpret_cast<char *>(&magic), sizeof(magic));
         const auto hash = bus.cart->getRomHash();
         if (hash.size() != 8)
@@ -399,7 +399,7 @@ namespace R2NES::Core
         {
             uint32_t magic = 0;
             input.read(reinterpret_cast<char *>(&magic), sizeof(magic));
-            if (!input || magic != (pal ? 0x52324E35 : 0x52324E34))
+            if (!input || magic != (pal ? 0x52324E37 : 0x52324E36))
                 return false;
             // Confere a identidade antes de alterar qualquer componente.
             char hash[8] = {};

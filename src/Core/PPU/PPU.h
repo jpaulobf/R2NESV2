@@ -175,6 +175,9 @@ namespace R2NES::Core
         uint8_t spriteEvaluationLatch = 0xFF;
         uint8_t secondaryOamAddress = 0;
         bool secondaryOamIncrementFrozen = false;
+        // Endereço da OAM2 durante a limpeza e cópia pendente de linha OAM.
+        uint8_t secondaryOamClearAddress = 0;
+        uint8_t pendingOamCorruptionRow = 0xFF;
         bool spriteEvaluationComplete = false;
 
         bool frameComplete = false;

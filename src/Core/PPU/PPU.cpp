@@ -874,10 +874,28 @@ namespace R2NES::Core
         // quarto estágio mantém o valor anterior nos três dots completos que
         // seguem a escrita, inclusive quando o jogo alterna a máscara perto
         // do incremento vertical no dot 256.
+        const bool wasRendering = (effectiveRenderMask & 0x18) != 0;
         for (size_t i = renderMaskDelay.size() - 1; i > 0; --i)
             renderMaskDelay[i] = renderMaskDelay[i - 1];
         renderMaskDelay[0] = ppuMask & 0x18;
         effectiveRenderMask = renderMaskDelay.back();
+        if (!pal && wasRendering && !(effectiveRenderMask & 0x18) &&
+            scanline >= 0 && scanline < 240 && cycle >= 1 && cycle <= 64)
+        {
+            pendingOamCorruptionRow = secondaryOamClearAddress;
+        }
+        const bool oam2Selected = scanline == -1 ||
+                                  (scanline >= 0 && scanline < 240 &&
+                                   ((cycle >= 1 && cycle <= 256 && (cycle & 1) == 0) || cycle >= 257));
+        if (!pal && pendingOamCorruptionRow != 0xFF && (effectiveRenderMask & 0x18) && oam2Selected)
+        {
+            // A troca de OAM1ADDR para OAM2ADDR pode copiar a linha de oito
+            // bytes selecionada por OAMADDR para a linha da OAM secundária.
+            for (int i = 0; i < 8; ++i)
+                oamMemory[pendingOamCorruptionRow * 8 + i] = oamMemory[(oamAddr & 0xF8) + i];
+            secondaryOam[pendingOamCorruptionRow] = secondaryOam[oamAddr >> 3];
+            pendingOamCorruptionRow = 0xFF;
+        }
         const uint8_t activeMask = effectivePpuMask();
 
         // A composição do pixel visível ocorre neste dot, mas o circuito de
@@ -1024,6 +1042,7 @@ namespace R2NES::Core
                 spriteEvaluationLatch = 0xFF;
                 oamDataBusLatch = 0xFF;
                 secondaryOamAddress = 0;
+                secondaryOamClearAddress = 0;
                 spriteEvaluationComplete = false;
             }
 
@@ -1042,7 +1061,10 @@ namespace R2NES::Core
             {
                 oamDataBusLatch = 0xFF;
                 if (cycle >= 2 && (cycle % 2) == 0)
+                {
                     secondaryOam[(cycle / 2) - 1] = 0xFF;
+                    secondaryOamClearAddress = (secondaryOamClearAddress + 1) & 0x1F;
+                }
             }
             else if (scanline >= 0 && cycle >= 65 && cycle <= 256)
             {
@@ -1607,6 +1629,8 @@ namespace R2NES::Core
         spriteEvaluationLatch = 0xFF;
         secondaryOamAddress = 0;
         secondaryOamIncrementFrozen = false;
+        secondaryOamClearAddress = 0;
+        pendingOamCorruptionRow = 0xFF;
         spriteEvaluationComplete = false;
         currentSprites.fill(SpriteFetchUnit{});
         nextSprites.fill(SpriteFetchUnit{});
@@ -1691,6 +1715,8 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&spritesEnabled), sizeof(spritesEnabled));
         os.write(reinterpret_cast<const char *>(&pendingMapperRead), sizeof(pendingMapperRead));
         os.write(reinterpret_cast<const char *>(&pendingAddressTransferDots), sizeof(pendingAddressTransferDots));
+        os.write(reinterpret_cast<const char *>(&secondaryOamClearAddress), sizeof(secondaryOamClearAddress));
+        os.write(reinterpret_cast<const char *>(&pendingOamCorruptionRow), sizeof(pendingOamCorruptionRow));
     }
 
     void PPU::loadState(std::istream &is)
@@ -1758,6 +1784,8 @@ namespace R2NES::Core
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
         is.read(reinterpret_cast<char *>(&pendingAddressTransferDots), sizeof(pendingAddressTransferDots));
+        is.read(reinterpret_cast<char *>(&secondaryOamClearAddress), sizeof(secondaryOamClearAddress));
+        is.read(reinterpret_cast<char *>(&pendingOamCorruptionRow), sizeof(pendingOamCorruptionRow));
         if (is && ((savedStatusLow & 0x10) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
                    (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) || pendingAddressTransferDots > 4 ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
@@ -1766,7 +1794,8 @@ namespace R2NES::Core
                    nextScanlineSpriteCount < 0 || nextScanlineSpriteCount > 64 ||
                    spriteEvaluationIndex > 64 || spriteEvaluationStartIndex > 63 ||
                    spriteEvaluationByteIndex > 3 || spriteEvaluationBytesCopied > 3 ||
-                   secondaryOamAddress > secondaryOam.size()))
+                   secondaryOamAddress > secondaryOam.size() || secondaryOamClearAddress > 31 ||
+                   (pendingOamCorruptionRow != 0xFF && pendingOamCorruptionRow > 31)))
             is.setstate(std::ios::failbit);
     }
 }
