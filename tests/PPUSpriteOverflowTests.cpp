@@ -168,6 +168,51 @@ static void testCpuOamReadPhase()
     check(cpu.a == 0x80, "CPU did not sample OAM near the end of the read cycle");
 }
 
+static void testDeferredOamCorruption(bool enableInVblank)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 256; ++i)
+        ppu.cpuWrite(0x2004, static_cast<uint8_t>(0x40 + i / 8));
+    const auto original = ppu.getOamMemory();
+    ppu.cpuWrite(0x2001, 0x18);
+    // A renderização fica ativa antes da scanline 0; este quadro pula um dot.
+    for (int dot = 0; dot < 340 + 13; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    for (int dot = 0; dot < 5; ++dot)
+        ppu.clock();
+    check(ppu.getOamMemory() == original, "OAM corrupted before rendering resumed");
+    // A linha de origem pode mudar durante o blanking.
+    ppu.cpuWrite(0x2003, 0x10);
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        if (enableInVblank)
+            for (int dot = 0; dot < 241 * 341; ++dot)
+                ppu.clock();
+        ppu.cpuWrite(0x2001, 0x18);
+        for (int dot = 0; dot < (enableInVblank ? 10 : 3); ++dot)
+            ppu.clock();
+        check(ppu.getOamMemory() == original, "OAM corrupted before the next OAM2 access");
+        for (int dot = 0; dot < (enableInVblank ? 20 * 341 : 4); ++dot)
+            ppu.clock();
+        auto expected = original;
+        for (int i = 0; i < 8; ++i)
+            expected[7 * 8 + i] = original[2 * 8 + i];
+        check(ppu.getOamMemory() == expected, "OAM row copy selected incorrect source or destination");
+    };
+    finish();
+    checkpoint.seekg(0);
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "pending OAM corruption state rejected");
+    finish();
+}
+
 static void testOamWriteAlignment(bool preRender, uint8_t address)
 {
     PPU ppu;
@@ -842,6 +887,8 @@ int main()
         testOverflowFlagPhaseAndState();
         testCpuStatusReadPhase();
         testCpuOamReadPhase();
+        testDeferredOamCorruption(false);
+        testDeferredOamCorruption(true);
         for (bool preRender : {false, true})
             for (uint8_t address : {0x01, 0x02, 0x03, 0xFF})
                 testOamWriteAlignment(preRender, address);
