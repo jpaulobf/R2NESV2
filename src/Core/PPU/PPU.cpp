@@ -253,6 +253,7 @@ namespace R2NES::Core
                 return static_cast<uint8_t>((paletteData & 0x3F) | (ppuIoBusLatch & 0xC0));
             }
 
+            const bool delayedRenderingRead = !pal && isRenderingActive() && addr < 0x3F00;
             uint8_t data;
             if (addr >= 0x3F00)
             {
@@ -269,11 +270,19 @@ namespace R2NES::Core
             else
             {
                 data = dataBuffer;
-                dataBuffer = ppuFetch(addr, PpuReadContext::Cpu);
+                if (delayedRenderingRead)
+                {
+                    // O preenchimento ocorre depois do fim da leitura da CPU,
+                    // quando a PPU já pode estar lendo outro endereço.
+                    pendingPpuDataReadDots = 6;
+                }
+                else
+                    dataBuffer = ppuFetch(addr, PpuReadContext::Cpu);
             }
 
             drivePpuIoBus(data, addr >= 0x3F00 ? 0x3F : 0xFF);
-            incrementDataAddress();
+            if (!delayedRenderingRead)
+                incrementDataAddress();
             return data;
         }
         }
@@ -436,7 +445,10 @@ namespace R2NES::Core
         }
         else
             pendingMapperRead = addr;
-        return ppuRead(addr, context);
+        const uint8_t value = ppuRead(addr, context);
+        if (context != PpuReadContext::Cpu)
+            lastRenderingFetchValue = value;
+        return value;
     }
 
     uint8_t PPU::ppuFetchSprite(uint16_t addr)
@@ -445,7 +457,9 @@ namespace R2NES::Core
         if (bus)
             bus->ppuAddressUpdated(addr);
         pendingMapperRead = addr;
-        return ppuReadSprite(addr);
+        const uint8_t value = ppuReadSprite(addr);
+        lastRenderingFetchValue = value;
+        return value;
     }
 
     uint8_t PPU::readPalette(uint16_t addr) const
@@ -837,6 +851,11 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        if (pendingPpuDataReadDots && --pendingPpuDataReadDots == 0)
+        {
+            dataBuffer = lastRenderingFetchValue;
+            incrementDataAddress();
+        }
         if (pendingAddressTransferDots && --pendingAddressTransferDots == 0)
         {
             applyAddressTransfer();
@@ -948,6 +967,7 @@ namespace R2NES::Core
             nmi = false;       // A linha de NMI também termina com o VBlank.
         }
 
+        const uint16_t vramBeforeHorizontalReload = vramAddr;
         if (renderingEnabled)
         {
             if (scanline >= -1 && scanline < 240)
@@ -1322,7 +1342,9 @@ namespace R2NES::Core
                 }
 
                 if (phase == 0 || phase == 2)
-                    ppuFetch(0x2000 | (vramAddr & 0x0FFF), PpuReadContext::Sprite); // Busca fictícia de nametable
+                    // O primeiro fetch fictício ainda usa v anterior à cópia
+                    // horizontal do dot 257; o segundo usa o novo valor.
+                    ppuFetch(0x2000 | ((cycle == 257 ? vramBeforeHorizontalReload : vramAddr) & 0x0FFF), PpuReadContext::Sprite);
                 else if (phase == 4)
                 {
                     SpriteFetchUnit &sprite = nextSprites[slot];
@@ -1643,6 +1665,8 @@ namespace R2NES::Core
         resetRegisterWriteLockoutDots = pal ? 106022u : PpuRegisterWriteLockoutDots;
         vramAddr = 0;
         pendingMapperRead = 0xFFFF;
+        pendingPpuDataReadDots = 0;
+        lastRenderingFetchValue = 0;
         pendingAddressTransferDots = 0;
         tempAddr = 0;
         fineX = 0;
@@ -1755,6 +1779,8 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&pendingOamCorruptionRow), sizeof(pendingOamCorruptionRow));
         os.write(reinterpret_cast<const char *>(&spriteZeroOnNextScanline), sizeof(spriteZeroOnNextScanline));
         os.write(reinterpret_cast<const char *>(&oddFrameFirstPixel), sizeof(oddFrameFirstPixel));
+        os.write(reinterpret_cast<const char *>(&pendingPpuDataReadDots), sizeof(pendingPpuDataReadDots));
+        os.write(reinterpret_cast<const char *>(&lastRenderingFetchValue), sizeof(lastRenderingFetchValue));
     }
 
     void PPU::loadState(std::istream &is)
@@ -1826,8 +1852,11 @@ namespace R2NES::Core
         is.read(reinterpret_cast<char *>(&pendingOamCorruptionRow), sizeof(pendingOamCorruptionRow));
         readStateBool(is, spriteZeroOnNextScanline);
         readStateBool(is, oddFrameFirstPixel);
+        is.read(reinterpret_cast<char *>(&pendingPpuDataReadDots), sizeof(pendingPpuDataReadDots));
+        is.read(reinterpret_cast<char *>(&lastRenderingFetchValue), sizeof(lastRenderingFetchValue));
         if (is && ((savedStatusLow & 0x10) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
                    (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) || pendingAddressTransferDots > 4 ||
+                   pendingPpuDataReadDots > 6 ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||
                    scanlineSpriteCount < 0 || scanlineSpriteCount > 64 ||

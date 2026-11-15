@@ -114,6 +114,8 @@ namespace R2NES::Core
         uint16_t pendingMapperRead = 0xFFFF;
         // Contagem até a transferência t -> v iniciada pela CPU em rendering.
         uint8_t pendingAddressTransferDots = 0;
+        uint8_t pendingPpuDataReadDots = 0;
+        uint8_t lastRenderingFetchValue = 0;
         uint8_t ppuIoBusLatch = 0x00;
         // Tempo restante, em dots da PPU, até cada bit aberto cair para zero.
         std::array<uint32_t, 8> ppuIoBusDecayCounters{};
