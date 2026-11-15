@@ -4,6 +4,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- PPU: a busca de sprites respeita o congelamento do endereço da OAM secundária e usa os bytes efetivamente lidos. `Frozen OAM2 Increment` passou e o AccuracyCoin avançou de 138 para 139/147, sem regressões. Testes cobrem congelamento, liberação e restauração. Os estados `R2N2`/`R2N3` não aceitam versões anteriores.
 - PPU: o plano alto do registrador de deslocamento de fundo recebe 1 na entrada serial. `BG Serial In` passou e o AccuracyCoin avançou de 137 para 138/147; teste de pixels cobre a interrupção da carga e a restauração do estado.
 - PPU: a leitura de `$2004` após a busca de sprites usa o endereço corrente da OAM secundária, que pausa com a renderização; candidatos Y fora de faixa também chegam à OAM secundária. `Misaligned OAM2 Address` passou e o AccuracyCoin avançou de 136 para 137/147. O novo estado de busca usa os formatos `R2N0`/`R2N1`, incompatíveis com estados anteriores.
 - PPU: em NTSC, leituras de `$2002` capturam VBlank no início e os flags de sprite ao fim da leitura; o overflow aparece um dot após a avaliação. `$2002 flag timing` passou e o AccuracyCoin avançou de 135 para 136/147. Testes cobrem as fases da leitura e a restauração do overflow pendente.

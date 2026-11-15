@@ -493,6 +493,27 @@ da entrada serial, repete a verificação após restaurar o estado e falha com o
 deslocamento anterior. CTest headless: **48/48**. O formato de save state não
 mudou. Resultado: `build-headless/accuracycoin/bg-serial-final.txt`.
 
+### Congelamento do incremento da OAM secundária
+
+Em 2026-11-14, `Frozen OAM2 Increment` passou e o AccuracyCoin avançou de
+**138 para 139/147**; os outros 146 resultados e códigos permaneceram iguais.
+O incremento da OAM secundária fica congelado quando seu endereço transborda
+e é liberado nos dots 63, 255 e 339 se a renderização estiver ativa. A busca
+usa os bytes lidos no endereço alcançado, inclusive quando está congelado, e
+recalcula a linha do padrão ao retomar a renderização durante a busca.
+
+`ppu-sprite-overflow` verifica congelamento após a avaliação e após a busca,
+liberação nos dots 255 e 339 e restauração de estados intermediários. O teste
+da ROM também verifica o sprite zero gerado nesses cenários. CTest headless:
+**48/48**. Resultado: `build-headless/accuracycoin/oam2-frozen-final.txt`.
+
+O novo flag é necessário para restaurar fielmente o estado intermediário: os
+save states agora usam `R2N2` (NTSC) e `R2N3` (PAL), e rejeitam formatos
+anteriores, inclusive `R2N0`/`R2N1`. A modelagem ainda usa unidades de sprite
+agrupadas por scanline, e as combinações de buscas parcialmente executadas e
+temporização PAL não foram validadas integralmente. O Battletoads não foi
+rejogado após esta alteração.
+
 ### Contadores de sprite durante forced blanking
 
 Em 2026-11-13, foi corrigida uma parte do comportamento de `Stale Sprite
