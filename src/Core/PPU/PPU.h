@@ -112,6 +112,8 @@ namespace R2NES::Core
         uint8_t dataBuffer = 0x00;
         // Fetches são resolvidos pelo pipeline no dot ímpar; /RD ocorre no seguinte.
         uint16_t pendingMapperRead = 0xFFFF;
+        // Contagem até a transferência t -> v iniciada pela CPU em rendering.
+        uint8_t pendingAddressTransferDots = 0;
         uint8_t ppuIoBusLatch = 0x00;
         // Tempo restante, em dots da PPU, até cada bit aberto cair para zero.
         std::array<uint32_t, 8> ppuIoBusDecayCounters{};
@@ -188,6 +190,7 @@ namespace R2NES::Core
         static uint16_t incrementScrollYAddress(uint16_t address);
         uint8_t scrollIncrementAxesAtCurrentDot() const;
         void applyScrollBusConflict(uint16_t incrementedAddress, uint8_t axes, bool reloadAddress);
+        void applyAddressTransfer();
         void transferAddressX();
         void transferAddressY();
         void loadBackgroundShifters();

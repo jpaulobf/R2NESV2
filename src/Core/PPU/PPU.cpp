@@ -370,27 +370,16 @@ namespace R2NES::Core
             else
             {
                 tempAddr = (tempAddr & 0xFF00) | data;
-                const uint16_t previousAddress = vramAddr;
                 addressLatch = 0;
-
-                const uint8_t conflictAxes = scrollIncrementAxesAtCurrentDot();
-                if (conflictAxes != 0)
+                if (!pal && isRenderingActive())
                 {
-                    uint16_t incrementedAddress = previousAddress;
-                    if (conflictAxes & ScrollConflictX)
-                        incrementedAddress = incrementScrollXAddress(incrementedAddress);
-                    if (conflictAxes & ScrollConflictY)
-                        incrementedAddress = incrementScrollYAddress(incrementedAddress);
-
-                    // A segunda escrita carrega t em v. Se um incremento
-                    // interno ocorre no mesmo dot, os bits daquele eixo sofrem
-                    // o AND entre o endereço carregado e o endereço incrementado.
-                    applyScrollBusConflict(incrementedAddress, conflictAxes, true);
+                    // Neste núcleo, a escrita da CPU inicia no dot corrente;
+                    // a cópia t -> v ocorre no quarto clock a partir dele.
+                    pendingAddressTransferDots = 4;
+                    break;
                 }
-                else
-                {
-                    vramAddr = tempAddr;
-                }
+                pendingAddressTransferDots = 0;
+                applyAddressTransfer();
                 // Fora do rendering, carregar v também muda os pinos de
                 // endereço: o MMC3 pode contar A12 mesmo sem ler CHR.
                 if (bus && !isRenderingActive())
@@ -727,6 +716,22 @@ namespace R2NES::Core
         return axes;
     }
 
+    void PPU::applyAddressTransfer()
+    {
+        const uint8_t axes = scrollIncrementAxesAtCurrentDot();
+        if (axes == 0)
+        {
+            vramAddr = tempAddr;
+            return;
+        }
+        uint16_t incrementedAddress = vramAddr;
+        if (axes & ScrollConflictX)
+            incrementedAddress = incrementScrollXAddress(incrementedAddress);
+        if (axes & ScrollConflictY)
+            incrementedAddress = incrementScrollYAddress(incrementedAddress);
+        applyScrollBusConflict(incrementedAddress, axes, true);
+    }
+
     void PPU::applyScrollBusConflict(uint16_t incrementedAddress, uint8_t axes, bool reloadAddress)
     {
         constexpr uint16_t horizontalMask = 0x041F; // Coarse X e nametable horizontal
@@ -832,6 +837,28 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        if (pendingAddressTransferDots && --pendingAddressTransferDots == 0)
+        {
+            applyAddressTransfer();
+            const bool backgroundTileRead = ((cycle >= 2 && cycle <= 256) ||
+                                             (cycle >= 322 && cycle <= 336)) &&
+                                            (cycle & 7) == 2;
+            if (pendingMapperRead != 0xFFFF && backgroundTileRead)
+            {
+                // ALE capturou o byte baixo no dot anterior; o byte alto
+                // segue v durante o dot de leitura da nametable.
+                const uint16_t hybridAddress = 0x2000 | (vramAddr & 0x0F00) | (pendingMapperRead & 0xFF);
+                if (hybridAddress != pendingMapperRead)
+                {
+                    pendingMapperRead = hybridAddress;
+                    if (bus)
+                        bus->ppuAddressUpdated(hybridAddress);
+                    bgNextTileId = ppuRead(hybridAddress, PpuReadContext::BackgroundTile);
+                }
+            }
+            if (bus && !isRenderingActive())
+                bus->ppuAddressUpdated(vramAddr & 0x3FFF);
+        }
         if (pendingMapperRead != 0xFFFF)
         {
             if (bus)
@@ -1560,6 +1587,7 @@ namespace R2NES::Core
         resetRegisterWriteLockoutDots = pal ? 106022u : PpuRegisterWriteLockoutDots;
         vramAddr = 0;
         pendingMapperRead = 0xFFFF;
+        pendingAddressTransferDots = 0;
         tempAddr = 0;
         fineX = 0;
         pendingScrollConflictAxes = 0;
@@ -1662,6 +1690,7 @@ namespace R2NES::Core
         os.write(reinterpret_cast<const char *>(&tilesEnabled), sizeof(tilesEnabled));
         os.write(reinterpret_cast<const char *>(&spritesEnabled), sizeof(spritesEnabled));
         os.write(reinterpret_cast<const char *>(&pendingMapperRead), sizeof(pendingMapperRead));
+        os.write(reinterpret_cast<const char *>(&pendingAddressTransferDots), sizeof(pendingAddressTransferDots));
     }
 
     void PPU::loadState(std::istream &is)
@@ -1728,8 +1757,9 @@ namespace R2NES::Core
         readStateBool(is, tilesEnabled);
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
+        is.read(reinterpret_cast<char *>(&pendingAddressTransferDots), sizeof(pendingAddressTransferDots));
         if (is && ((savedStatusLow & 0x10) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
-                   (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
+                   (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) || pendingAddressTransferDots > 4 ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||
                    scanlineSpriteCount < 0 || scanlineSpriteCount > 64 ||
