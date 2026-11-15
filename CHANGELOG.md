@@ -4,6 +4,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- PPU: uma leitura de `$2007` que coincide com ALE usa o dado anterior do barramento como byte baixo do endereço buscado. `ALE + Read` passou e o AccuracyCoin alcançou 147/147, sem regressões. Testes cobrem colisão estável, dot vizinho e restauração; o formato dos save states não mudou.
 - PPU: em NTSC, leituras de `$2007` durante rendering podem preencher o buffer com uma busca posterior da PPU; a primeira busca fictícia de sprites usa o endereço anterior à cópia horizontal. `$2007 Stress Test` passou e o AccuracyCoin avançou de 145 para 146/147, sem regressões. Testes cobrem temporização e restauração; os estados `R2Na`/`R2Nb` não aceitam versões anteriores.
 - PPU: em NTSC, a busca no pré-render pode usar sprites preservados na OAM secundária e o primeiro pixel é antecipado para x=0 quando o último dot é omitido. `Sprites On Scanline 0` passou e o AccuracyCoin avançou de 144 para 145/147, sem regressões. Testes cobrem sprite zero, quadros alternados e restauração; os estados `R2N8`/`R2N9` não aceitam versões anteriores.
 - PPU: em NTSC, interrupções durante a limpeza da OAM secundária podem causar uma cópia de linha quando a PPU volta a acessá-la. `OAM Corruption` passou e o AccuracyCoin avançou de 143 para 144/147, sem regressões. Testes cobrem a cópia adiada e restauração; os estados `R2N6`/`R2N7` não aceitam versões anteriores.

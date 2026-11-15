@@ -547,6 +547,29 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Colisão entre ALE e READ
+
+Em 2026-11-15, `ALE + Read` passou e o AccuracyCoin alcançou **147/147**;
+as outras 146 linhas conservaram resultado e código. Ao coincidir o término
+de uma leitura de `$2007` com o início de uma busca de rendering, o núcleo
+usa o dado anterior do barramento como byte baixo do endereço, preservando o
+byte alto da nova busca. O valor lido alimenta o buffer da CPU e o fetch de
+renderização. Isso reproduz o ponto fixo estável exercitado pela ROM.
+
+`ppu-sprite-overflow` verifica outro ponto fixo estável (`$A5`), o pixel
+resultante, a ausência do efeito no dot vizinho e a restauração antes da
+colisão. O teste de pixels falha quando a colisão é desativada. CTest
+headless: **48/48**. Resultado completo:
+`build-headless/accuracycoin/ale-147-final.txt`. Referência:
+[descrição e código dos testes do Accuracy Coin](https://github.com/100thCoin/AccuracyCoin).
+
+O formato de save state não mudou: o sinal de colisão existe apenas durante
+um clock, e os dados pendentes já são preservados por `R2Na`/`R2Nb`. A
+resolução é uma aproximação determinística, não uma simulação do feedback
+analógico instável. A ROM e o teste novo cobrem pontos fixos específicos;
+acessos sobrepostos, transições de rendering, PAL e interações adicionais
+com mappers precisam de validação independente.
+
 ### Leitura de `$2007` durante rendering
 
 Em 2026-11-15, `$2007 Stress Test` passou e o AccuracyCoin avançou de **145
@@ -569,8 +592,8 @@ A leitura pendente e o último valor de busca são salvos nos novos formatos
 é uma aproximação das fases digitais: não modela integralmente os conflitos
 analógicos ALE/READ, acessos consecutivos ou sobrepostos, transições de
 rendering durante a leitura, nem leituras da paleta durante rendering. O
-caminho PAL não foi alterado ou validado separadamente. `ALE + Read` permanece
-pendente e exige investigar os efeitos da colisão sobre o fetch do fundo.
+caminho PAL não foi alterado ou validado separadamente. A seção anterior
+documenta a correção posterior de `ALE + Read`.
 
 ### Sprites na scanline 0
 
