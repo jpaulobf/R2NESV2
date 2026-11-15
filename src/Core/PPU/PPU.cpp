@@ -436,6 +436,12 @@ namespace R2NES::Core
     uint8_t PPU::ppuFetch(uint16_t addr, PpuReadContext context)
     {
         addr &= 0x3FFF;
+        const bool collision = ppuDataReadCollisionThisDot && context != PpuReadContext::Cpu && (cycle & 1);
+        if (collision)
+            // Aproximação determinística do feedback ALE/READ: usa como byte
+            // baixo o dado anterior do barramento. Coincide com pontos fixos
+            // estáveis, mas não simula oscilações ou ruído analógico.
+            addr = (addr & 0x3F00) | lastRenderingFetchValue;
         if (bus)
             bus->ppuAddressUpdated(addr);
         if (context == PpuReadContext::Cpu)
@@ -446,6 +452,8 @@ namespace R2NES::Core
         else
             pendingMapperRead = addr;
         const uint8_t value = ppuRead(addr, context);
+        if (collision)
+            dataBuffer = value;
         if (context != PpuReadContext::Cpu)
             lastRenderingFetchValue = value;
         return value;
@@ -454,10 +462,15 @@ namespace R2NES::Core
     uint8_t PPU::ppuFetchSprite(uint16_t addr)
     {
         addr &= 0x3FFF;
+        const bool collision = ppuDataReadCollisionThisDot && (cycle & 1);
+        if (collision)
+            addr = (addr & 0x3F00) | lastRenderingFetchValue;
         if (bus)
             bus->ppuAddressUpdated(addr);
         pendingMapperRead = addr;
         const uint8_t value = ppuReadSprite(addr);
+        if (collision)
+            dataBuffer = value;
         lastRenderingFetchValue = value;
         return value;
     }
@@ -851,10 +864,12 @@ namespace R2NES::Core
 
     void PPU::clock()
     {
+        ppuDataReadCollisionThisDot = false;
         if (pendingPpuDataReadDots && --pendingPpuDataReadDots == 0)
         {
             dataBuffer = lastRenderingFetchValue;
             incrementDataAddress();
+            ppuDataReadCollisionThisDot = isRenderingActive();
         }
         if (pendingAddressTransferDots && --pendingAddressTransferDots == 0)
         {
@@ -1621,12 +1636,14 @@ namespace R2NES::Core
         // quadro (scanline 0, dot 0).
         if (!pal && scanline == -1 && cycle == 339 && renderingEnabled && (frameCounter % 2 != 0))
         {
+            ppuDataReadCollisionThisDot = false;
             oddFrameFirstPixel = true;
             cycle = 0;
             scanline = 0;
             return;
         }
 
+        ppuDataReadCollisionThisDot = false;
         cycle++;
         if (cycle >= 341)
         {
@@ -1667,6 +1684,7 @@ namespace R2NES::Core
         pendingMapperRead = 0xFFFF;
         pendingPpuDataReadDots = 0;
         lastRenderingFetchValue = 0;
+        ppuDataReadCollisionThisDot = false;
         pendingAddressTransferDots = 0;
         tempAddr = 0;
         fineX = 0;
@@ -1785,6 +1803,7 @@ namespace R2NES::Core
 
     void PPU::loadState(std::istream &is)
     {
+        ppuDataReadCollisionThisDot = false;
         pendingScrollConflictAxes = 0;
         pendingScrollConflictScanline = -2;
         pendingScrollConflictCycle = -1;

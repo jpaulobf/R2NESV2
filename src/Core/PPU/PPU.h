@@ -116,6 +116,8 @@ namespace R2NES::Core
         uint8_t pendingAddressTransferDots = 0;
         uint8_t pendingPpuDataReadDots = 0;
         uint8_t lastRenderingFetchValue = 0;
+        // Sinal transitório, válido apenas dentro de uma chamada a clock().
+        bool ppuDataReadCollisionThisDot = false;
         uint8_t ppuIoBusLatch = 0x00;
         // Tempo restante, em dots da PPU, até cada bit aberto cair para zero.
         std::array<uint32_t, 8> ppuIoBusDecayCounters{};
