@@ -797,6 +797,43 @@ References: https://www.nesdev.org/wiki/INES_Mapper_011,
 https://www.nesdev.org/wiki/Bus_conflict,
 https://www.nesdev.org/wiki/NES_2.0_submappers
 
+# Mappers 202 and 212
+
+Both multicart boards latch CPU address bits on writes to `$8000–$FFFF`,
+ignoring the written data. Mapper 202 selects an 8 KiB CHR bank and either
+repeats a 16 KiB PRG bank or maps it followed by the next bank; A0 controls
+mirroring. The supported 56 KiB CHR image contains seven banks. For an
+out-of-range selection, the emulator uses modulo mirroring as Mesen does;
+that behavior is a compatibility assumption, not a verified wiring claim.
+
+Mapper 212 selects an 8 KiB CHR bank and either repeats a 16 KiB PRG bank or
+selects an aligned 32 KiB pair; A3 controls mirroring. Reads in `$6000–$7FFF`
+return inverse A4 on D7, preserve open bus on D4–D6, and expose zero on the
+four menu solder-pad bits. Other solder-pad configurations are not yet
+selectable. Both implementations accept up to 128 KiB PRG and 64 KiB CHR,
+and provide fixed 8 KiB CHR-RAM as a compatibility extension. Unsupported
+RAM/battery/trainer/four-screen NES 2.0 variants are rejected.
+
+```powershell
+cmake --build build-headless --target mapper202-tests mapper212-tests -j 4
+ctest --test-dir build-headless -R '^mapper(202|212)$' --output-on-failure
+# Optional: provide locally owned ROMs; none are distributed with these tests.
+./build-headless/bin/mapper202-tests.exe '<mapper202.zip>'
+./build-headless/bin/mapper212-tests.exe '<mapper212.zip>'
+```
+
+The synthetic tests exercise banking, address decoding, mirroring, CHR
+protection, bus behavior, reset, save/load and rejected images. With the
+locally provided 150-in-1 Mapper 202 image (payload CRC `E92821D0`) and
+10000000-in-1 Mapper 212 image (payload CRC `2B1679F0`), the optional tests
+ran 360 frames, selected the second menu item and restored a save state.
+Visual inspection showed the Mapper 202 selection reaching Galaxian and the
+Mapper 212 selection reaching Battle City. Complete playthroughs have not
+been verified.
+
+References: [Mesen Mapper 202 implementation](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/Mappers/Unlicensed/Mapper202.h),
+[NESdev Mapper 212](https://www.nesdev.org/wiki/INES_Mapper_212).
+
 # Sachen and UNIF
 
 This suite covers mappers 79, 147 (72-pin latch), and 150, as well as UNIF loading for these boards and CNROM.
@@ -960,3 +997,25 @@ Run from the repository root:
 cmake --build build --target apu-output-suppression-tests
 ctest --test-dir build -R '^apu-output-suppression$' --output-on-failure
 ```
+
+### Mapper 58
+
+`mapper058-tests` covers all 256 address-latch values across the CPU write window, both PRG modes, CHR banks, mirroring, CHR RAM, reset, cartridge validation, and state restoration and rollback. An optional ROM path runs the multicart through its introduction and menu for 900 frames, starts a game, and verifies a save-state round trip:
+
+```sh
+cmake --build build-headless --target mapper058-tests
+./build-headless/bin/mapper058-tests.exe '<mapper58.zip>'
+```
+
+The locally tested 118-in-1 image has payload CRC `7D3901DA`; its menu and Lode Runner title were observed. The implementation uses the full `$8000-$FFFF` write window and initial mapping used by [Mesen's Mapper 58](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/Mappers/Unlicensed/Mapper58.h). CHR RAM is supported as a compatibility extension. Complete games remain to be tested manually.
+
+### Mapper 51
+
+`mapper051-tests` checks all bank and mode combinations, the `$6000-$7FFF` ROM window, register writes, mirroring, CHR RAM, reset, state restoration and rollback, and rejected headers. An optional ROM or ZIP runs 360 frames, moves the menu selection, presses Start and verifies video, a mapper change and save-state restoration:
+
+```sh
+cmake --build build-headless --target mapper051-tests
+./build-headless/bin/mapper051-tests.exe '<mapper51.zip>'
+```
+
+The local 11-in-1 Ball Games image has payload CRC `1B177D1E`; the menu and Lunar Ball title were observed. The implementation follows [Mesen's BMC51](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/Mappers/Unlicensed/Bmc51.h), including the `$C000-$DFFF` mode update. It accepts iNES and NES 2.0 submapper 0, with power-of-two PRG sizes up to 512 KiB and 8 KiB CHR RAM; other board variants and mislabeled CHR-ROM dumps are not supported. Full playthroughs remain to be tested.

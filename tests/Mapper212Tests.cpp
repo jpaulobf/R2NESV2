@@ -1,5 +1,6 @@
 #include "Core/Cartridge/Mappers/Mapper212.h"
 #include "TestFixtures.h"
+#include "MapperMulticartSmoke.h"
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -184,7 +185,7 @@ static void invalidImages()
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
     try
     {
@@ -192,6 +193,10 @@ int main()
         registersAndState();
         console();
         invalidImages();
+        if (argc > 2)
+            throw std::runtime_error("Pass at most one optional multicart ROM");
+        if (argc == 2)
+            smokeMulticart(argv[1], 212);
         std::cout << "Mapper 212 tests passed\n";
         return 0;
     }
