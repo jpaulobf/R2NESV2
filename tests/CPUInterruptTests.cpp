@@ -283,6 +283,10 @@ int main(int argc, char **argv)
             state[0] = '\x59'; // R2NY não preserva o endereço da OAM durante a busca.
             std::istringstream previousFormat(state);
             check(!nes.loadState(previousFormat), "legacy R2NY accepted");
+            state = valid;
+            state[0] = '\x30'; // R2N0 não preserva o congelamento da OAM secundária.
+            std::istringstream beforeOamFreeze(state);
+            check(!nes.loadState(beforeOamFreeze), "legacy R2N0 accepted");
             std::ostringstream after;
             check(nes.saveState(after) && after.str() == valid, "rejected state changed console");
             cycle(cpu, 2);

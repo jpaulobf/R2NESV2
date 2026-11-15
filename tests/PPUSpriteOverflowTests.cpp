@@ -180,6 +180,97 @@ static void testSecondaryOamReadAfterFetch(bool interruptFetch)
     finish();
 }
 
+static void testFrozenSecondaryOamIncrement(bool clearBeforeFetch)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int sprite = 0; sprite < 64; ++sprite)
+    {
+        ppu.cpuWrite(0x2004, sprite < 8 ? 40 : 0xFF);
+        ppu.cpuWrite(0x2004, 0x21);
+        ppu.cpuWrite(0x2004, 0x42);
+        ppu.cpuWrite(0x2004, 0x63);
+    }
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x18);
+    for (int dot = 0; dot < 40 * 341 + 230; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        // Reativar antes do dot 255 libera o contador; manter o blanking
+        // até a próxima busca preserva o congelamento da OAM cheia.
+        const int wait = clearBeforeFetch ? 20 : 341 - 230 + 254;
+        for (int dot = 0; dot < wait; ++dot)
+            ppu.clock();
+        ppu.cpuWrite(0x2001, 0x18);
+        const int beforeFetch = clearBeforeFetch ? 7 : 3;
+        for (int dot = 0; dot < beforeFetch; ++dot)
+            ppu.clock();
+        const uint8_t normal[] = {40, 0x21, 0x42, 0x63};
+        for (int phase = 0; phase < 4; ++phase)
+        {
+            ppu.clock();
+            check(ppu.cpuRead(0x2004, true) == (clearBeforeFetch ? normal[phase] : 40),
+                  "secondary OAM increment freeze/release mismatch");
+        }
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "frozen OAM state rejected");
+    finish();
+}
+
+static void testFrozenSecondaryOamAfterFetch(bool clearAt339)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int sprite = 0; sprite < 64; ++sprite)
+    {
+        ppu.cpuWrite(0x2004, sprite < 8 ? 40 : 0xFF);
+        ppu.cpuWrite(0x2004, 0x21);
+        ppu.cpuWrite(0x2004, 0x42);
+        ppu.cpuWrite(0x2004, 0x63);
+    }
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x18);
+    const int disableDot = clearAt339 ? 340 : 325;
+    for (int dot = 0; dot < 40 * 341 + disableDot; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        for (int dot = 0; dot < 341 - disableDot + 254; ++dot)
+            ppu.clock();
+        ppu.cpuWrite(0x2001, 0x18);
+        for (int dot = 0; dot < 3; ++dot)
+            ppu.clock();
+        const uint8_t normal[] = {40, 0x21, 0x42, 0x63};
+        for (int phase = 0; phase < 4; ++phase)
+        {
+            ppu.clock();
+            check(ppu.cpuRead(0x2004, true) == (clearAt339 ? normal[phase] : 40),
+                  "secondary OAM fetch overflow freeze/release mismatch");
+        }
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "OAM fetch overflow state rejected");
+    finish();
+}
+
 static void testBackgroundPipelineWithSpritesOnly()
 {
     // NROM com CHR RAM: o tile de fundo contém pixels claros e escuros.
@@ -229,7 +320,11 @@ static void testBackgroundPipelineWithSpritesOnly()
 static void testBackgroundSerialInput()
 {
     std::vector<uint8_t> rom(16 + 16384, 0);
-    rom[0] = 'N'; rom[1] = 'E'; rom[2] = 'S'; rom[3] = 0x1A; rom[4] = 1;
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
     FixtureNES nes("");
     auto cartridge = std::make_shared<FixtureCartridge>(rom);
     check(cartridge->isValid() && nes.insertCartridge(cartridge), "serial input fixture failed");
@@ -499,6 +594,10 @@ int main()
         testCpuStatusReadPhase();
         testSecondaryOamReadAfterFetch(false);
         testSecondaryOamReadAfterFetch(true);
+        testFrozenSecondaryOamIncrement(false);
+        testFrozenSecondaryOamIncrement(true);
+        testFrozenSecondaryOamAfterFetch(false);
+        testFrozenSecondaryOamAfterFetch(true);
         testSpriteStartAtDot339(false);
         testSpriteStartAtDot339(true);
         testSpriteBlanking(false);
