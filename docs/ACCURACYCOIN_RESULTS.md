@@ -547,6 +547,31 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Leitura de `$2007` durante rendering
+
+Em 2026-11-15, `$2007 Stress Test` passou e o AccuracyCoin avançou de **145
+para 146/147**; as outras 146 linhas conservaram resultado e código. Para
+leituras NTSC de endereços fora da paleta durante rendering, o buffer recebe
+mais tarde o valor da busca de renderização e o incremento de scroll também
+é adiado. A primeira busca fictícia de sprites no dot 257 usa o valor de v
+anterior à cópia horizontal; as buscas seguintes usam o valor atualizado.
+
+O teste da ROM compara 170 valores estáveis obtidos ao longo de uma scanline;
+os valores afetados por comportamento analógico não são exigidos pela ROM.
+`ppu-sprite-overflow` verifica o buffer antes e depois da leitura externa, a
+restauração enquanto ela está pendente e o endereço da busca do dot 257.
+O caso do dot 257 falha se for usado o endereço posterior à cópia. CTest
+headless: **48/48**. Resultado: `build-headless/accuracycoin/ppudata-146-final.txt`.
+Referência: [código-fonte e descrição dos testes do Accuracy Coin](https://github.com/100thCoin/AccuracyCoin).
+
+A leitura pendente e o último valor de busca são salvos nos novos formatos
+`R2Na` (NTSC) e `R2Nb` (PAL), que rejeitam os anteriores. Esta implementação
+é uma aproximação das fases digitais: não modela integralmente os conflitos
+analógicos ALE/READ, acessos consecutivos ou sobrepostos, transições de
+rendering durante a leitura, nem leituras da paleta durante rendering. O
+caminho PAL não foi alterado ou validado separadamente. `ALE + Read` permanece
+pendente e exige investigar os efeitos da colisão sobre o fetch do fundo.
+
 ### Sprites na scanline 0
 
 Em 2026-11-15, `Sprites On Scanline 0` passou e o AccuracyCoin avançou de

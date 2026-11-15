@@ -4,6 +4,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- PPU: em NTSC, leituras de `$2007` durante rendering podem preencher o buffer com uma busca posterior da PPU; a primeira busca fictícia de sprites usa o endereço anterior à cópia horizontal. `$2007 Stress Test` passou e o AccuracyCoin avançou de 145 para 146/147, sem regressões. Testes cobrem temporização e restauração; os estados `R2Na`/`R2Nb` não aceitam versões anteriores.
 - PPU: em NTSC, a busca no pré-render pode usar sprites preservados na OAM secundária e o primeiro pixel é antecipado para x=0 quando o último dot é omitido. `Sprites On Scanline 0` passou e o AccuracyCoin avançou de 144 para 145/147, sem regressões. Testes cobrem sprite zero, quadros alternados e restauração; os estados `R2N8`/`R2N9` não aceitam versões anteriores.
 - PPU: em NTSC, interrupções durante a limpeza da OAM secundária podem causar uma cópia de linha quando a PPU volta a acessá-la. `OAM Corruption` passou e o AccuracyCoin avançou de 143 para 144/147, sem regressões. Testes cobrem a cópia adiada e restauração; os estados `R2N6`/`R2N7` não aceitam versões anteriores.
 - PPU: em NTSC, a transferência de `$2006` durante rendering ocorre após a escrita e pode combinar o byte alto atualizado com o byte baixo capturado para uma busca de nametable. `Hybrid Addresses` passou e o AccuracyCoin avançou de 142 para 143/147, sem regressões. Testes cobrem pixels e restauração; os estados `R2N4`/`R2N5` não aceitam versões anteriores.
