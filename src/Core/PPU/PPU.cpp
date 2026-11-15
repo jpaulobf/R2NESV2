@@ -1110,7 +1110,10 @@ namespace R2NES::Core
                                 }
                                 else
                                 {
+                                    // Um candidato Y fora da faixa avança n e
+                                    // realinha m, mesmo se OAMADDR era ímpar.
                                     ++spriteEvaluationIndex;
+                                    spriteEvaluationByteIndex = 0;
                                     if (spriteEvaluationIndex >= 64)
                                         spriteEvaluationComplete = true;
                                 }
@@ -1139,6 +1142,11 @@ namespace R2NES::Core
                                 spriteEvaluationByteIndex = (spriteEvaluationByteIndex + 1) & 0x03;
                                 if (spriteEvaluationByteIndex == 0)
                                     ++spriteEvaluationIndex;
+                                // O último byte também passa pelo comparador de
+                                // faixa: se X estiver fora, m é realinhado após
+                                // o incremento, inclusive ao preencher a OAM2.
+                                if (spriteEvaluationBytesCopied == 4 && (row < 0 || row >= spriteHeight))
+                                    spriteEvaluationByteIndex = 0;
 
                                 if (spriteEvaluationBytesCopied == 4)
                                 {
