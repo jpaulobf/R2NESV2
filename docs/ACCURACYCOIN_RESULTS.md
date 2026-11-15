@@ -547,6 +547,43 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Realinhamento da OAM primária durante avaliação
+
+Em 2026-11-15, `Misaligned OAM behavior` passou e o AccuracyCoin avançou de
+**139 para 140/147**. As demais 146 linhas mantiveram resultado e código.
+Ao rejeitar um candidato Y, a avaliação incrementa o índice da entrada e
+limpa os dois bits baixos do endereço. Ao concluir a cópia de um sprite,
+o byte X também passa pela comparação de faixa: se estiver fora, os dois bits
+baixos são limpos após o incremento. O caminho de overflow com OAM secundária
+cheia mantém seu avanço diagonal.
+
+`ppu-sprite-overflow` cobre rejeição de Y, X dentro e fora da faixa e
+restauração antes da avaliação. CTest headless: **48/48**. O formato do save
+state não mudou; estados intermediários usam a nova regra após a restauração.
+O resultado completo está em `build-headless/accuracycoin/misaligned-probe2.txt`.
+Referência: [pesquisa sobre renderização de sprites no NESdev](https://forums.nesdev.org/viewtopic.php?t=26291).
+
+### Investigação de sprites na scanline 0 após 139/147
+
+O teste `Sprites On Scanline 0` continua falhando com código 2. A ROM
+verifica se dados preservados na OAM secundária podem produzir sprite zero
+na primeira linha quando a renderização é reativada durante a pré-renderização.
+Ela usa a linha 5 para a comparação e a busca do padrão nessa situação e
+também verifica a diferença entre quadros pares e ímpares.
+
+Uma execução instrumentada capturou `$500–$503 = 00 00 00 00` ao registrar
+a falha: nenhum dos quatro cenários de sprite zero foi observado. Como
+experimento, alterar apenas a linha usada na busca do padrão de sprite na
+pré-renderização para `5 - Y` manteve o resultado em **139/147**, sem mudar
+nenhuma das 147 linhas. A alteração foi descartada: a busca do padrão, por
+si só, não demonstra que os dados e a identidade do sprite foram propagados
+corretamente. O núcleo ainda restringe a avaliação da OAM às linhas visíveis
+e agrupa as unidades por scanline; a interação desses estados preservados com
+a busca parcial e o quadro ímpar precisa ser investigada antes de uma correção.
+Diagnóstico e resultado do experimento estão em
+`build-headless/accuracycoin/scanline0-diagnostic.cpp` e
+`build-headless/accuracycoin/scanline0-row-probe.txt`.
+
 ## Fork anterior de 125 testes
 
 Execução em 2026-11-04 usando o núcleo R2NES, sem interface, com overclock
