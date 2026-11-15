@@ -975,6 +975,10 @@ namespace R2NES::Core
         // dots 65-256. A opção Unlimited Sprites mantém o caminho de depuração.
         if (renderingEnabled && scanline >= -1 && scanline < 240)
         {
+            // O circuito libera o incremento nesses dots apenas se a
+            // renderização estiver ativa; forced blanking preserva a trava.
+            if (cycle == 63 || cycle == 255 || cycle == 339)
+                secondaryOamIncrementFrozen = false;
             if (scanline >= 0 && cycle == 1)
             {
                 nextSprites.fill(SpriteFetchUnit{});
@@ -1097,6 +1101,8 @@ namespace R2NES::Core
                                     sprite.y = spriteEvaluationLatch;
                                     sprite.row = static_cast<uint8_t>(row);
                                     ++secondaryOamAddress;
+                                    if (secondaryOamAddress == 32)
+                                        secondaryOamIncrementFrozen = true;
                                     spriteEvaluationBytesCopied = 1;
                                     spriteEvaluationByteIndex = (spriteEvaluationByteIndex + 1) & 0x03;
                                     if (spriteEvaluationByteIndex == 0)
@@ -1127,6 +1133,8 @@ namespace R2NES::Core
                                 }
 
                                 ++secondaryOamAddress;
+                                if (secondaryOamAddress == 32)
+                                    secondaryOamIncrementFrozen = true;
                                 ++spriteEvaluationBytesCopied;
                                 spriteEvaluationByteIndex = (spriteEvaluationByteIndex + 1) & 0x03;
                                 if (spriteEvaluationByteIndex == 0)
@@ -1184,12 +1192,39 @@ namespace R2NES::Core
                 // Os quatro bytes de cada slot avançam o endereço apenas
                 // enquanto rendering está ativo. Uma interrupção da busca
                 // deixa esse endereço desalinhado para as leituras seguintes.
-                if (cycle == 257)
+                if (cycle == 257 && !secondaryOamIncrementFrozen)
                     secondaryOamAddress = 0;
                 if (phase < 4)
                 {
                     oamDataBusLatch = secondaryOam[secondaryOamAddress & 0x1F];
-                    secondaryOamAddress = (secondaryOamAddress + 1) & 0x1F;
+                    if (!unlimitedSprites)
+                    {
+                        // A busca consome a OAM secundária no endereço real,
+                        // inclusive quando este ficou parado ou desalinhado.
+                        SpriteFetchUnit &sprite = nextSprites[slot];
+                        switch (phase)
+                        {
+                        case 0:
+                            sprite.y = oamDataBusLatch;
+                            sprite.row = static_cast<uint8_t>(scanline - sprite.y);
+                            break;
+                        case 1:
+                            sprite.tile = oamDataBusLatch;
+                            break;
+                        case 2:
+                            sprite.attributes = oamDataBusLatch;
+                            break;
+                        case 3:
+                            sprite.x = oamDataBusLatch;
+                            break;
+                        }
+                    }
+                    if (!secondaryOamIncrementFrozen)
+                    {
+                        secondaryOamAddress = (secondaryOamAddress + 1) & 0x1F;
+                        if (secondaryOamAddress == 0)
+                            secondaryOamIncrementFrozen = true;
+                    }
                 }
 
                 if (phase == 0 || phase == 2)
@@ -1197,11 +1232,16 @@ namespace R2NES::Core
                 else if (phase == 4)
                 {
                     SpriteFetchUnit &sprite = nextSprites[slot];
+                    // Uma busca após várias linhas em branco pode reutilizar
+                    // a identidade que permaneceu na unidade de sprite.
+                    if (!unlimitedSprites && secondaryOamIncrementFrozen &&
+                        sprite.oamIndex < 64 && nextScanlineSpriteCount <= slot)
+                        nextScanlineSpriteCount = slot + 1;
                     const int spriteHeight = (ppuCtrl & 0x20) ? 16 : 8;
                     // O tamanho pode mudar depois da avaliação; na busca,
                     // apenas os bits de linha correspondentes ao tamanho atual
                     // entram no endereço do padrão.
-                    const int row = sprite.row & (spriteHeight - 1);
+                    const int row = (scanline >= 0 ? scanline - sprite.y : sprite.row) & (spriteHeight - 1);
                     const int patternRow = (sprite.attributes & 0x80) ? spriteHeight - 1 - row : row;
                     if (spriteHeight == 16)
                     {
@@ -1501,6 +1541,7 @@ namespace R2NES::Core
         spriteEvaluationBytesCopied = 0;
         spriteEvaluationLatch = 0xFF;
         secondaryOamAddress = 0;
+        secondaryOamIncrementFrozen = false;
         spriteEvaluationComplete = false;
         currentSprites.fill(SpriteFetchUnit{});
         nextSprites.fill(SpriteFetchUnit{});
@@ -1536,7 +1577,8 @@ namespace R2NES::Core
         // sem alterar o layout do snapshot.
         const uint8_t savedStatus = static_cast<uint8_t>((ppuStatus & 0xE0) | (suppressVblank ? 1 : 0) |
                                                          (spriteFetchOccurred ? 2 : 0) |
-                                                         (spriteOverflowPending ? 4 : 0));
+                                                         (spriteOverflowPending ? 4 : 0) |
+                                                         (secondaryOamIncrementFrozen ? 8 : 0));
         os.write(reinterpret_cast<const char *>(&savedStatus), sizeof(savedStatus));
         os.write(reinterpret_cast<const char *>(&oamAddr), sizeof(oamAddr));
         os.write(reinterpret_cast<const char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1600,6 +1642,7 @@ namespace R2NES::Core
         suppressVblank = (savedStatusLow & 1) != 0;
         spriteFetchOccurred = (savedStatusLow & 2) != 0;
         spriteOverflowPending = (savedStatusLow & 4) != 0;
+        secondaryOamIncrementFrozen = (savedStatusLow & 8) != 0;
         ppuStatus &= 0xE0;
         is.read(reinterpret_cast<char *>(&oamAddr), sizeof(oamAddr));
         is.read(reinterpret_cast<char *>(&oamDataBusLatch), sizeof(oamDataBusLatch));
@@ -1648,7 +1691,7 @@ namespace R2NES::Core
         readStateBool(is, tilesEnabled);
         readStateBool(is, spritesEnabled);
         is.read(reinterpret_cast<char *>(&pendingMapperRead), sizeof(pendingMapperRead));
-        if (is && ((savedStatusLow & 0x18) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
+        if (is && ((savedStatusLow & 0x10) != 0 || (suppressVblank && (scanline != 241 || cycle != 1)) ||
                    (pendingMapperRead != 0xFFFF && pendingMapperRead >= 0x3000) ||
                    scanline < -1 || scanline > (pal ? 310 : 260) || cycle < 0 || cycle > 340 ||
                    fineX > 7 || addressLatch > 1 ||

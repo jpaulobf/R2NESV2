@@ -172,6 +172,7 @@ namespace R2NES::Core
         uint8_t spriteEvaluationBytesCopied = 0; // Bytes copiados para o sprite atual na OAM secundária
         uint8_t spriteEvaluationLatch = 0xFF;
         uint8_t secondaryOamAddress = 0;
+        bool secondaryOamIncrementFrozen = false;
         bool spriteEvaluationComplete = false;
 
         bool frameComplete = false;
