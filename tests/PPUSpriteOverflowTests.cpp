@@ -564,6 +564,103 @@ static void testHybridNametableAddress()
     }
 }
 
+struct ScanlineZeroResult
+{
+    bool pixelAtZero;
+    bool pixelAt128;
+    bool spriteZeroHit;
+};
+
+static ScanlineZeroResult testSpritesOnScanlineZero(bool preserveZero, bool extraFrame)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "scanline zero fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.ppuWrite(1 * 16 + 5, 0x80); // Sprite: somente primeiro pixel da linha 5.
+    for (int row = 0; row < 8; ++row)
+        ppu.ppuWrite(2 * 16 + row, 0xFF);
+    for (int i = 0; i < 960; ++i)
+        ppu.ppuWrite(0x2000 + i, 2);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F01, 0x10);
+    ppu.ppuWrite(0x3F11, 0x30);
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 64; ++i)
+    {
+        ppu.cpuWrite(0x2004, i == 0 ? 0 : 0xFF);
+        ppu.cpuWrite(0x2004, 1);
+        ppu.cpuWrite(0x2004, 0);
+        ppu.cpuWrite(0x2004, 128);
+    }
+    ppu.cpuWrite(0x2006, 0x20);
+    ppu.cpuWrite(0x2006, 0);
+    if (extraFrame)
+        for (int dot = 0; dot < 262 * 341; ++dot)
+            ppu.clock();
+    ppu.cpuWrite(0x2001, 0x1E);
+    // Avalia sprite zero na linha 0 e preserva OAM2 ao longo do blanking.
+    for (int dot = 0; dot < 341 + 190; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0);
+    for (int dot = 0; dot < 5; ++dot)
+        ppu.clock();
+    const int enableDot = preserveZero ? 70 : 55;
+    for (int dot = 0; dot < 261 * 341 - 195 + enableDot; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x1E);
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        for (int dot = 0; dot < 341 + 140; ++dot)
+            ppu.clock();
+        const auto *frame = ppu.getFrameBuffer();
+        const uint32_t bg = frame[64];
+        return ScanlineZeroResult{frame[0] != bg, frame[128] != bg,
+                                  (ppu.cpuRead(0x2002, true) & 0x40) != 0};
+    };
+    const auto result = finish();
+    checkpoint.seekg(0);
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "scanline zero intermediate state rejected");
+    const auto restored = finish();
+    check(result.pixelAtZero == restored.pixelAtZero && result.pixelAt128 == restored.pixelAt128 &&
+              result.spriteZeroHit == restored.spriteZeroHit,
+          "scanline zero changed after restoring a state");
+    checkpoint.clear();
+    checkpoint.seekg(0);
+    ppu.loadState(checkpoint);
+    for (int dot = 0; dot < 270; ++dot)
+        ppu.clock();
+    std::stringstream edge;
+    ppu.saveState(edge);
+    for (int dot = 0; dot < 211; ++dot)
+        ppu.clock();
+    const auto edgeResult = ScanlineZeroResult{ppu.getFrameBuffer()[0] != ppu.getFrameBuffer()[64],
+                                               ppu.getFrameBuffer()[128] != ppu.getFrameBuffer()[64],
+                                               (ppu.cpuRead(0x2002, true) & 0x40) != 0};
+    edge.seekg(0);
+    ppu.loadState(edge);
+    check(bool(edge), "scanline zero edge state rejected");
+    for (int dot = 0; dot < 211; ++dot)
+        ppu.clock();
+    check((ppu.getFrameBuffer()[0] != ppu.getFrameBuffer()[64]) == edgeResult.pixelAtZero &&
+              (ppu.getFrameBuffer()[128] != ppu.getFrameBuffer()[64]) == edgeResult.pixelAt128 &&
+              ((ppu.cpuRead(0x2002, true) & 0x40) != 0) == edgeResult.spriteZeroHit &&
+              edgeResult.pixelAtZero == result.pixelAtZero && edgeResult.pixelAt128 == result.pixelAt128,
+          "scanline zero changed after restoring the frame boundary");
+    return result;
+}
+
 static void testBackgroundPipelineWithSpritesOnly()
 {
     // NROM com CHR RAM: o tile de fundo contém pixels claros e escuros.
@@ -882,6 +979,15 @@ int main()
                     for (int count : {8, 9, 64})
                         testOverflow(unlimited, count, mask, tall);
         testBackgroundPipelineWithSpritesOnly();
+        const auto frameA = testSpritesOnScanlineZero(true, false);
+        const auto frameB = testSpritesOnScanlineZero(true, true);
+        check(frameA.spriteZeroHit && frameB.spriteZeroHit, "preserved sprite zero did not hit on scanline zero");
+        check(frameA.pixelAtZero != frameB.pixelAtZero && frameA.pixelAt128 != frameB.pixelAt128 &&
+                  frameA.pixelAtZero != frameA.pixelAt128 && frameB.pixelAtZero != frameB.pixelAt128,
+              "odd-frame skip did not move the first sprite pixel to x=0");
+        const auto cleared = testSpritesOnScanlineZero(false, false);
+        check(!cleared.spriteZeroHit && (cleared.pixelAtZero || cleared.pixelAt128),
+              "pre-render did not clear sprite zero identity while preserving sprite pixels");
         testHybridNametableAddress();
         testBackgroundSerialInput();
         testOverflowFlagPhaseAndState();

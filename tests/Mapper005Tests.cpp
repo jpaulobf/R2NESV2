@@ -1719,11 +1719,11 @@ static void console(const std::filesystem::path &dir)
         else
             check(cart.ppuWrite(0, 0xA5, 0), "CHR RAM write rejected");
         const auto saved = consoleState(nes);
-        check(uint8_t(saved[0]) == 0x36, "Missing R2N6 state version");
+        check(uint8_t(saved[0]) == 0x38, "Missing R2N8 state version");
         std::stringstream cartState;
         cart.saveState(cartState);
         const size_t start = saved.size() - state(mapper).size() - cartState.str().size();
-        for (uint8_t oldVersion : {0x32, 0x33, 0x34, 0x35, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x57})
+        for (uint8_t oldVersion : {0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x57})
         {
             auto old = saved;
             old[0] = oldVersion;
