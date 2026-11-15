@@ -461,6 +461,64 @@ static void testFrozenSecondaryOamAfterFetch(bool clearAt339)
     finish();
 }
 
+static void testHybridNametableAddress()
+{
+    std::vector<uint8_t> rom(16 + 16384, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "hybrid address fixture failed");
+    auto &ppu = nes.getPpu();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    // Apenas o tile 2 tem pixels opacos; ele está no endereço híbrido $2801.
+    for (int row = 0; row < 8; ++row)
+        ppu.ppuWrite(2 * 16 + row, 0xFF);
+    ppu.ppuWrite(0x2801, 2);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    ppu.ppuWrite(0x3F01, 0x30);
+    ppu.cpuWrite(0x2006, 0x20);
+    ppu.cpuWrite(0x2006, 0x00);
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x0A);
+    ppu.cpuWrite(0x2006, 0x28);
+    for (int dot = 0; dot < 7; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2006, 0x00);
+    std::stringstream initial;
+    ppu.saveState(initial);
+    const auto finish = [&]()
+    {
+        for (int dot = 0; dot < 40; ++dot)
+            ppu.clock();
+        const auto *frame = ppu.getFrameBuffer();
+        const uint32_t background = frame[4];
+        check(frame[23] == background && frame[24] != background,
+              "background did not fetch the hybrid nametable address");
+    };
+    for (int offset = 0; offset < 4; ++offset)
+    {
+        initial.clear();
+        initial.seekg(0);
+        ppu.loadState(initial);
+        check(bool(initial), "initial address transfer state rejected");
+        for (int dot = 0; dot < offset; ++dot)
+            ppu.clock();
+        std::stringstream checkpoint;
+        ppu.saveState(checkpoint);
+        finish();
+        checkpoint.seekg(0);
+        ppu.loadState(checkpoint);
+        check(bool(checkpoint), "pending address transfer state rejected");
+        finish();
+    }
+}
+
 static void testBackgroundPipelineWithSpritesOnly()
 {
     // NROM com CHR RAM: o tile de fundo contém pixels claros e escuros.
@@ -779,6 +837,7 @@ int main()
                     for (int count : {8, 9, 64})
                         testOverflow(unlimited, count, mask, tall);
         testBackgroundPipelineWithSpritesOnly();
+        testHybridNametableAddress();
         testBackgroundSerialInput();
         testOverflowFlagPhaseAndState();
         testCpuStatusReadPhase();
