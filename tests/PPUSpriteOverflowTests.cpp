@@ -233,6 +233,67 @@ static void testCpuPpuDataReadDuringRendering(bool firstSpriteFetch)
     finish();
 }
 
+static void testAleReadCollision(bool collide)
+{
+    std::vector<uint8_t> rom(16 + 16384, 0xEA);
+    std::fill_n(rom.begin(), 16, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    rom[16] = 0xAD;
+    rom[17] = 0x07;
+    rom[18] = 0x20; // LDA $2007
+    rom[16 + 0x3FFC] = 0;
+    rom[16 + 0x3FFD] = 0x80;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "ALE collision fixture failed");
+    auto &cpu = nes.getCpu();
+    auto &ppu = nes.getPpu();
+    while (!cpu.complete())
+        cpu.clock();
+    for (int i = 0; i < 3; ++i)
+        cpu.clock();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    for (int i = 0; i < 960; ++i)
+        ppu.ppuWrite(0x2000 + i, 2);
+    for (int i = 0; i < 64; ++i)
+        ppu.ppuWrite(0x23C0 + i, 0xA5);
+    // O valor da busca anterior e o dado no endereço híbrido são iguais:
+    // o feedback ALE/READ tem um ponto estável que não depende de analógico.
+    ppu.ppuWrite(0x00A5, 0xA5);
+    ppu.ppuWrite(0x3F00, 0x0F);
+    for (int palette = 0; palette < 4; ++palette)
+        ppu.ppuWrite(0x3F01 + palette * 4, 0x30);
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x0A);
+    for (int dot = 0; dot < (collide ? 64 : 63); ++dot)
+        ppu.clock();
+    nes.step(false);
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        for (int dot = 0; dot < 3; ++dot)
+            ppu.clock();
+        check(ppu.cpuRead(0x2007, true) == 0xA5, "ALE collision returned the wrong PPUDATA buffer");
+        for (int dot = 0; dot < 25; ++dot)
+            ppu.clock();
+        const auto *frame = ppu.getFrameBuffer();
+        check((frame[84] != frame[85]) == collide && (!collide || frame[86] == frame[84]),
+              "ALE/READ timing did not produce the expected background pixels");
+    };
+    finish();
+    checkpoint.seekg(0);
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "ALE collision pending state rejected");
+    finish();
+}
+
 static void testDeferredOamCorruption(bool enableInVblank)
 {
     PPU ppu;
@@ -1060,6 +1121,8 @@ int main()
         testCpuOamReadPhase();
         testCpuPpuDataReadDuringRendering(false);
         testCpuPpuDataReadDuringRendering(true);
+        testAleReadCollision(false);
+        testAleReadCollision(true);
         testDeferredOamCorruption(false);
         testDeferredOamCorruption(true);
         for (bool preRender : {false, true})
