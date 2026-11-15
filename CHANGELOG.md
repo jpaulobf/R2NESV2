@@ -4,6 +4,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- Suporte ao Mapper 51: modos de bancos PRG, janela em $6000, CHR-RAM, espelhamento e save states; testado com a coletânea 11-in-1 Ball Games.
+- Suporte ao Mapper 58: bancos PRG/CHR e espelhamento pelo endereço, com save state e teste da coletânea 118-in-1.
+- Suporte aos Mappers 202 e 212: seleção de bancos pelo endereço, espelhamento H/V e save states. A variante 202 aceita o dump de 56 KiB de CHR; o 212 expõe a leitura de identificação com contatos de menu fixados em zero. Testes sintéticos e inicialização de uma coletânea de cada placa, com seleção e restauração, passaram.
+
+## [1.4.0] - 2026-11-15
+
 - PPU: uma leitura de `$2007` que coincide com ALE usa o dado anterior do barramento como byte baixo do endereço buscado. `ALE + Read` passou e o AccuracyCoin alcançou 147/147, sem regressões. Testes cobrem colisão estável, dot vizinho e restauração; o formato dos save states não mudou.
 - PPU: em NTSC, leituras de `$2007` durante rendering podem preencher o buffer com uma busca posterior da PPU; a primeira busca fictícia de sprites usa o endereço anterior à cópia horizontal. `$2007 Stress Test` passou e o AccuracyCoin avançou de 145 para 146/147, sem regressões. Testes cobrem temporização e restauração; os estados `R2Na`/`R2Nb` não aceitam versões anteriores.
 - PPU: em NTSC, a busca no pré-render pode usar sprites preservados na OAM secundária e o primeiro pixel é antecipado para x=0 quando o último dot é omitido. `Sprites On Scanline 0` passou e o AccuracyCoin avançou de 144 para 145/147, sem regressões. Testes cobrem sprite zero, quadros alternados e restauração; os estados `R2N8`/`R2N9` não aceitam versões anteriores.
