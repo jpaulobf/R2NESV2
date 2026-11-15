@@ -130,6 +130,152 @@ static void testCpuStatusReadPhase()
     }
 }
 
+static void testCpuOamReadPhase()
+{
+    std::vector<uint8_t> rom(16 + 16384, 0xEA);
+    std::fill_n(rom.begin(), 16, 0);
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1A;
+    rom[4] = 1;
+    rom[16] = 0xAD;
+    rom[17] = 0x04;
+    rom[18] = 0x20; // LDA $2004
+    rom[16 + 0x3FFC] = 0;
+    rom[16 + 0x3FFD] = 0x80;
+    FixtureNES nes("");
+    auto cartridge = std::make_shared<FixtureCartridge>(rom);
+    check(cartridge->isValid() && nes.insertCartridge(cartridge), "OAM read fixture failed");
+    auto &cpu = nes.getCpu();
+    auto &ppu = nes.getPpu();
+    while (!cpu.complete())
+        cpu.clock();
+    for (int i = 0; i < 3; ++i)
+        cpu.clock();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    ppu.cpuWrite(0x2004, 0x80);
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    ppu.cpuWrite(0x2001, 0x18);
+    for (int dot = 0; dot < 64; ++dot)
+        ppu.clock();
+    check(ppu.cpuRead(0x2004, true) == 0xFF, "OAM read fixture was not in clear phase");
+    nes.step(false);
+    check(cpu.a == 0x80, "CPU did not sample OAM near the end of the read cycle");
+}
+
+static void testOamWriteAlignment(bool preRender, uint8_t address)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 256; ++i)
+        ppu.cpuWrite(0x2004, (i == 0) ? 0x65 : (i == 4) ? 0x95
+                                                        : 0xFF);
+    ppu.cpuWrite(0x2001, 0x18);
+    // Este pré-render omite o último dot com rendering habilitado.
+    for (int dot = 0; dot < (preRender ? 10 : 340); ++dot)
+        ppu.clock();
+    if (!preRender)
+        check(ppu.cpuRead(0x2004, true) == 0xFF,
+              "dot zero did not expose the previous secondary OAM latch");
+    ppu.cpuWrite(0x2003, address);
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        ppu.cpuWrite(0x2004, 0x12);
+        ppu.cpuWrite(0x2001, 0);
+        for (int dot = 0; dot < 5; ++dot)
+            ppu.clock();
+        check(ppu.cpuRead(0x2004, true) == (address == 0xFF ? 0x65 : 0x95),
+              "rendering OAM write did not align the incremented address");
+        check(ppu.getOamMemory()[0] == 0x65 && ppu.getOamMemory()[4] == 0x95,
+              "rendering OAM write changed primary OAM");
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "OAM write alignment state rejected");
+    finish();
+}
+
+static void testOamEvaluationAfterWrap(bool overflow)
+{
+    PPU ppu;
+    ppu.reset();
+    for (int dot = 0; dot < 262 * 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2003, 0);
+    for (int i = 0; i < 256; ++i)
+    {
+        uint8_t value = 0xFF;
+        if (overflow)
+        {
+            if (i < 32 && (i & 3) == 0)
+                value = 0;
+            if (i == 39 * 4 + 3)
+                value = 0;
+            if (i == 40 * 4)
+                value = 0x90;
+            if (i == 40 * 4 + 1)
+                value = 0x91;
+            if (i == 40 * 4 + 2)
+                value = 0x82;
+            if (i == 40 * 4 + 3)
+                value = 0x83;
+            if (i == 41 * 4)
+                value = 0xB0;
+        }
+        else
+        {
+            if (i == 0)
+                value = 0x80;
+            if (i == 4)
+                value = 0x84;
+            if (i == 63 * 4)
+                value = 0x55;
+        }
+        ppu.cpuWrite(0x2004, value);
+    }
+    // O pré-render é executado com rendering desligado para não omitir dots.
+    for (int dot = 0; dot < 341; ++dot)
+        ppu.clock();
+    ppu.cpuWrite(0x2001, 0x18);
+    for (int dot = 0; dot < 193; ++dot)
+        ppu.clock();
+    std::stringstream checkpoint;
+    ppu.saveState(checkpoint);
+    const auto finish = [&]()
+    {
+        const auto sample = [&](uint8_t expected)
+        {
+            ppu.clock();
+            check(ppu.cpuRead(0x2004, true) == expected,
+                  "wrong OAM bus value after evaluation completion");
+        };
+        if (overflow)
+        {
+            for (uint8_t value : {0x90, 0, 0x91, 0, 0x82, 0, 0, 0, 0xB0})
+                sample(value);
+        }
+        else
+        {
+            for (uint8_t value : {0x80, 0x55, 0x84, 0x55})
+                sample(value);
+        }
+    };
+    finish();
+    ppu.loadState(checkpoint);
+    check(bool(checkpoint), "completed OAM evaluation state rejected");
+    finish();
+}
+
 static void testMisalignedEvaluation(bool rejectY, bool rejectX)
 {
     PPU ppu;
@@ -636,6 +782,12 @@ int main()
         testBackgroundSerialInput();
         testOverflowFlagPhaseAndState();
         testCpuStatusReadPhase();
+        testCpuOamReadPhase();
+        for (bool preRender : {false, true})
+            for (uint8_t address : {0x01, 0x02, 0x03, 0xFF})
+                testOamWriteAlignment(preRender, address);
+        testOamEvaluationAfterWrap(false);
+        testOamEvaluationAfterWrap(true);
         testMisalignedEvaluation(true, true);
         testMisalignedEvaluation(false, true);
         testMisalignedEvaluation(false, false);
