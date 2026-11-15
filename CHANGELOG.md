@@ -4,6 +4,8 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- PPU: leituras NTSC de `$2004` observam o barramento na fase final do ciclo da CPU; a avaliação continua lendo as duas OAMs após wrap e após encontrar overflow. `$2004 Stress Test` passou e o AccuracyCoin avançou de 141 para 142/147, sem regressões; testes cobrem fases e restauração.
+- PPU: escritas em `$2004` durante a pré-renderização e no dot 0 avançam e alinham o endereço da OAM primária. `Address $2004 behavior` passou e o AccuracyCoin avançou de 140 para 141/147, sem regressões; testes cobrem alinhamento, transbordamento e restauração.
 - PPU: a avaliação realinha o endereço da OAM primária após rejeitar Y ou um byte X fora de faixa. `Misaligned OAM behavior` passou e o AccuracyCoin avançou de 139 para 140/147, sem regressões. Testes cobrem os dois casos, X em faixa e restauração.
 - PPU: a busca de sprites respeita o congelamento do endereço da OAM secundária e usa os bytes efetivamente lidos. `Frozen OAM2 Increment` passou e o AccuracyCoin avançou de 138 para 139/147, sem regressões. Testes cobrem congelamento, liberação e restauração. Os estados `R2N2`/`R2N3` não aceitam versões anteriores.
 - PPU: o plano alto do registrador de deslocamento de fundo recebe 1 na entrada serial. `BG Serial In` passou e o AccuracyCoin avançou de 137 para 138/147; teste de pixels cobre a interrupção da carga e a restauração do estado.

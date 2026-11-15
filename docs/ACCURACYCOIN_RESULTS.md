@@ -547,6 +547,47 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Leitura de `$2004` durante avaliação de sprites
+
+Em 2026-11-15, `$2004 Stress Test` passou e o AccuracyCoin avançou de **141
+para 142/147**; as outras 146 linhas mantiveram resultado e código. Em NTSC,
+a leitura da CPU agora amostra o barramento da OAM após dois dots da PPU;
+leituras de inspeção continuam instantâneas. No dot 0, com rendering ativo,
+o barramento ainda apresenta o latch da OAM secundária.
+
+Após o endereço da OAM primária transbordar, a avaliação continua a alternar
+leituras das duas OAMs. Quando a OAM secundária está cheia e uma entrada em
+faixa é encontrada, a busca percorre mais três bytes antes de seguir nesse
+modo; na transição observada pela ROM, a OAM secundária mantém o barramento
+por uma leitura enquanto o endereço é realinhado. Os testes verificam essas
+sequências e a restauração de estados intermediários. CTest headless: **48/48**.
+
+O formato de save state não mudou: um campo existente também representa os
+passos após detectar overflow; versões anteriores podem interpretar de modo
+diferente estados salvos nessa janela. A fase PAL e outros alinhamentos da
+CPU/PPU não foram validados separadamente. A sequência na transição da busca
+é baseada no resultado específico da ROM e precisa de validação independente
+em mais condições. Resultado: `build-headless/accuracycoin/oam-stress-142-final.txt`.
+Referência: [avaliação de sprites no NESdev](https://www.nesdev.org/wiki/PPU_sprite_evaluation).
+
+### Escrita em `$2004` no início da linha
+
+Em 2026-11-15, `Address $2004 behavior` passou e o AccuracyCoin avançou de
+**140 para 141/147**. As outras 146 linhas conservaram resultados e códigos.
+Durante a pré-renderização e no dot 0 da linha visível, uma escrita em
+`$2004` com rendering ativo avança OAMADDR em quatro e limpa os dois bits
+baixos. A alteração cobre o modo de incremento +4 observado na pesquisa dos
+circuitos, incluindo o instante exercitado pela ROM, que neste núcleo ocorre
+no dot 0 da linha 0. Nas demais fases, mantém-se a aproximação anterior.
+
+`ppu-sprite-overflow` cobre os dois instantes, endereços com os três
+desalinhamentos, transbordamento e restauração. CTest headless: **48/48**.
+O formato de save state não mudou. O comportamento das escritas durante a
+avaliação e da possível escrita na OAM secundária não foi modelado por
+completo; o caminho PAL não foi validado separadamente. Resultado:
+`build-headless/accuracycoin/oam-write-141-probe.txt`. Referência:
+[pesquisa dos circuitos de sprites no NESdev](https://forums.nesdev.org/viewtopic.php?t=26291).
+
 ### Realinhamento da OAM primária durante avaliação
 
 Em 2026-11-15, `Misaligned OAM behavior` passou e o AccuracyCoin avançou de
