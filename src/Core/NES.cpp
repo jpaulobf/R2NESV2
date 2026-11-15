@@ -97,8 +97,8 @@ namespace R2NES::Core
     template <bool Pal>
     void NES::stepRegion(bool honorCPUOverclock)
     {
-        // Só leituras de status feitas durante um passo NTSC avançam a PPU
-        // até o fim da fase de leitura; inspeções externas são instantâneas.
+        // Leituras de status e OAM feitas durante um passo NTSC podem avançar
+        // a PPU até a fase de leitura; inspeções externas são instantâneas.
         ppuReadPhaseActive = !Pal;
         ppuReadPhaseAdvanced = false;
         ppuReadNmiSampled = false;

@@ -225,6 +225,8 @@ namespace R2NES::Core
 
         case 0x0004: // OAMDATA ($2004)
         {
+            if (!readOnly && cpuReadPhaseCallback)
+                cpuReadPhaseCallback(cpuReadPhaseContext);
             // Durante a renderização, a CPU observa o barramento interno usado
             // pela limpeza, avaliação e busca dos sprites.
             const bool rendering = isRenderingOamAccess();
@@ -323,9 +325,14 @@ namespace R2NES::Core
         case 0x0004: // OAMDATA ($2004)
             if (isRenderingActive())
             {
-                // A PPU ocupa a OAM durante a renderização. A escrita é
-                // ignorada e o endereço avança para a próxima entrada n.
-                oamAddr = static_cast<uint8_t>((oamAddr & 0x03) | ((oamAddr + 4) & 0xFC));
+                // Na pré-renderização o circuito de avaliação permanece no
+                // modo +4, que também limpa os dois bits baixos. No dot 0 da
+                // linha seguinte, a busca anterior ainda deixa esse modo ativo.
+                // As demais fases mantêm o modelo anterior de incremento.
+                if (scanline == -1 || cycle == 0)
+                    oamAddr = static_cast<uint8_t>((oamAddr + 4) & 0xFC);
+                else
+                    oamAddr = static_cast<uint8_t>((oamAddr & 0x03) | ((oamAddr + 4) & 0xFC));
             }
             else
             {
@@ -462,7 +469,7 @@ namespace R2NES::Core
 
     bool PPU::isRenderingOamAccess() const
     {
-        return isRenderingActive() && cycle >= 1 && cycle <= 340;
+        return isRenderingActive() && cycle >= 0 && cycle <= 340;
     }
 
     uint8_t PPU::effectivePpuMask() const
@@ -1057,12 +1064,16 @@ namespace R2NES::Core
                 else if ((cycle & 1) != 0)
                 {
                     // Odd dots read primary OAM at OAM[n][m].
-                    if (spriteEvaluationIndex < 64)
+                    if (spriteEvaluationIndex < 64 || spriteEvaluationComplete)
                     {
-                        const size_t oamIndex = static_cast<size_t>(spriteEvaluationIndex) * 4 +
+                        const size_t oamIndex = static_cast<size_t>(spriteEvaluationIndex & 63) * 4 +
                                                 spriteEvaluationByteIndex;
                         spriteEvaluationLatch = oamMemory[oamIndex];
-                        oamDataBusLatch = spriteEvaluationLatch;
+                        // Na transição para a busca concluída, a leitura da
+                        // OAM2 ainda dirige o barramento antes de m realinhar.
+                        oamDataBusLatch = spriteEvaluationComplete && spriteEvaluationByteIndex != 0
+                                              ? secondaryOam[secondaryOamAddress & 0x1F]
+                                              : spriteEvaluationLatch;
                     }
                     else
                     {
@@ -1072,9 +1083,19 @@ namespace R2NES::Core
                 }
                 else
                 {
-                    oamDataBusLatch = static_cast<size_t>(secondaryOamAddress) < secondaryOam.size()
+                    oamDataBusLatch = spriteEvaluationComplete
+                                          ? secondaryOam[secondaryOamAddress & 0x1F]
+                                      : static_cast<size_t>(secondaryOamAddress) < secondaryOam.size()
                                           ? spriteEvaluationLatch
                                           : secondaryOam[0];
+
+                    // Após o wrap, a PPU continua a percorrer a OAM primária,
+                    // intercalando leituras do endereço parado da OAM2.
+                    if (spriteEvaluationComplete)
+                    {
+                        spriteEvaluationIndex = (spriteEvaluationIndex + 1) & 63;
+                        spriteEvaluationByteIndex = 0;
+                    }
 
                     if (!spriteEvaluationComplete)
                     {
@@ -1160,13 +1181,21 @@ namespace R2NES::Core
                         }
                         else
                         {
-                            // Após oito sprites, o bug do 2C02 percorre OAM em
-                            // diagonal: um Y fora de faixa incrementa n e m;
-                            // um Y em faixa também avança m, mas carrega para n
-                            // somente quando m passa de 3.
-                            if (row >= 0 && row < spriteHeight)
+                            // Após oito sprites, um Y fora de faixa avança n e
+                            // m em diagonal. Ao encontrar um em faixa, lê mais
+                            // três bytes antes de terminar a busca de overflow.
+                            if (spriteEvaluationBytesCopied != 0 || (row >= 0 && row < spriteHeight))
                             {
-                                spriteOverflowPending = true;
+                                if (spriteEvaluationBytesCopied == 0)
+                                {
+                                    spriteOverflowPending = true;
+                                    spriteEvaluationBytesCopied = 1;
+                                }
+                                else if (++spriteEvaluationBytesCopied == 4)
+                                {
+                                    spriteEvaluationBytesCopied = 0;
+                                    spriteEvaluationComplete = true;
+                                }
                                 ++spriteEvaluationByteIndex;
                                 if (spriteEvaluationByteIndex == 4)
                                 {
