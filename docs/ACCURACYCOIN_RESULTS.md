@@ -547,6 +547,31 @@ states passaram a `R2NY` (NTSC) e `R2NZ` (PAL). Formatos anteriores são
 rejeitados, pois não contêm esse estado; versões anteriores também não leem
 o novo formato.
 
+### Endereço híbrido de nametable
+
+Em 2026-11-15, `Hybrid Addresses` passou e o AccuracyCoin avançou de **142
+para 143/147**; as outras 146 linhas conservaram resultado e código. Em NTSC,
+uma segunda escrita em `$2006` durante rendering agenda a transferência de t
+para v, em vez de aplicá-la no início do ciclo de CPU. Se ela ocorrer entre as
+duas fases de uma busca de tile de fundo, a leitura combina o byte alto de v
+atualizado com o byte baixo capturado no dot anterior. Os conflitos de scroll
+são calculados no dot da transferência.
+
+`ppu-sprite-overflow` verifica o pixel produzido por uma busca híbrida e a
+restauração em cada uma das quatro fases de espera; o teste falha quando a
+combinação de endereços é desativada. CTest headless: **48/48**. Resultado:
+`build-headless/accuracycoin/hybrid-143-final.txt`. Referências:
+[temporização de PPUADDR no NESdev](https://www.nesdev.org/wiki/Errata) e
+[barramento de renderização](https://www.nesdev.org/wiki/PPU_rendering).
+
+O estado pendente é serializado nos novos formatos `R2N4` (NTSC) e `R2N5`
+(PAL); estados anteriores são rejeitados. O atraso foi aplicado apenas a
+escritas NTSC iniciadas com rendering ativo. A combinação híbrida implementada
+cobre buscas de tile de fundo, não todas as fases de atributo, padrão ou sprite;
+o núcleo ainda faz a busca inicial antecipada e a refaz se o endereço mudar.
+Efeitos de leituras antecipadas em mappers e outras combinações de barramento
+precisam de validação adicional; o caminho PAL não mudou.
+
 ### Leitura de `$2004` durante avaliação de sprites
 
 Em 2026-11-15, `$2004 Stress Test` passou e o AccuracyCoin avançou de **141
