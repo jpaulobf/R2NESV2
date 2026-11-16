@@ -26,3 +26,5 @@ build-linux.sh
 tests/*.md
 build-linux-sanitize/*
 build-gui-mappers/*
+build-libretro/*
+build-libretro-android/*
