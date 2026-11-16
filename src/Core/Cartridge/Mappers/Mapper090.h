@@ -20,9 +20,9 @@ namespace R2NES::Core
         void saveState(std::ostream &) override;
         void loadState(std::istream &) override;
 
-    private:
+    protected:
         void clockIrq();
-        uint32_t chrAddress(uint16_t) const;
+        virtual uint32_t chrAddress(uint16_t) const;
         uint8_t prg[4]{}, chrLow[8]{}, chrHigh[8]{};
         uint8_t mode = 0, mirror = 0, block = 0x20;
         uint8_t multA = 0, multB = 0, scratch = 0;
