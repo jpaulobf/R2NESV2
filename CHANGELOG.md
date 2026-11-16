@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [Não lançado]
+## [1.4.0] - 2026-11-15
 
 - Suporte inicial ao Mapper 211: nametables, latches CHR e save states, testado com duas ROMs J.Y. Company.
 - Suporte ao Mapper 51: modos de bancos PRG, janela em $6000, CHR-RAM, espelhamento e save states; testado com a coletânea 11-in-1 Ball Games.
