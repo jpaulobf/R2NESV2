@@ -15,17 +15,21 @@
 #include "Core/Cartridge/Mappers/Mapper071.h"
 #include "Core/Cartridge/Mappers/Mapper069.h"
 #include "Core/Cartridge/Mappers/Mapper079.h"
+#include "Core/Cartridge/Mappers/Mapper083.h"
 #include "Core/Cartridge/Mappers/Mapper147.h"
 #include "Core/Cartridge/Mappers/Mapper150.h"
 #include "Core/Cartridge/UNIF.h"
 #include "Core/Cartridge/Mappers/Mapper090.h"
+#include "Core/Cartridge/Mappers/Mapper091.h"
 #include "Core/Cartridge/Mappers/Mapper187.h"
 #include "Core/Cartridge/Mappers/Mapper189.h"
 #include "Core/Cartridge/Mappers/Mapper212.h"
 #include "Core/Cartridge/Mappers/Mapper202.h"
 #include "Core/Cartridge/Mappers/Mapper058.h"
+#include "Core/Cartridge/Mappers/Mapper210.h"
 #include "Core/Cartridge/Mappers/Mapper211.h"
 #include "Core/Cartridge/Mappers/Mapper051.h"
+#include "Core/Cartridge/Mappers/Mapper052.h"
 #include <algorithm>
 #include <cstring>
 #include <cctype>
@@ -159,6 +163,16 @@ namespace R2NES::Core
                       << std::endl;
         }
 
+        // GoodNES Mortal Kombat 2 declares 210, but this exact payload uses
+        // J.Y. mapper 90 (Mesen's ROM database, CRC over PRG + CHR).
+        if (mapperID == 210 && !isNes2Header && header.prg_chunks == 8 &&
+            header.chr_chunks == 32 && !(header.mapper1 & 0x0E) &&
+            calculateRomHash(buffer) == "60BFEB0C")
+        {
+            mapperID = 90;
+            std::cout << "Cartridge: corrected Mortal Kombat 2 mapper 210 to 90 (CRC 60BFEB0C)." << std::endl;
+        }
+
         // UxROM: conflitos no iNES/submapper 0 e no submapper 2; nunca no 1.
         mapper2BusConflicts = !isNes2Header || submapper != 1;
         mapper3BusConflicts = !isNes2Header || submapper != 1;
@@ -241,13 +255,13 @@ namespace R2NES::Core
         }
         prgBanks = static_cast<uint16_t>(prgSize / 16384);
         chrBanks = static_cast<uint16_t>(chrSize / 8192);
-        if (mapperID == 23)
+        if (mapperID == 23 || mapperID == 27)
         {
             const uint32_t ram = mmc1Config.prgRamSize, nvram = mmc1Config.prgNvRamSize;
             const auto powerOfTwo = [](size_t n)
             { return n && !(n & (n - 1)); };
             const uint8_t chrRam = static_cast<uint8_t>(header.unused[0]);
-            if (submapper > 3 || prgBanks > 16 || !powerOfTwo(prgBanks) ||
+            if ((mapperID == 27 ? submapper != 0 : submapper > 3) || prgBanks > 16 || !powerOfTwo(prgBanks) ||
                 chrBanks > (submapper == 3 ? 32 : 64) || (chrBanks && !powerOfTwo(chrBanks)) ||
                 mirror == MirrorMode::FOUR_SCREEN || (header.mapper1 & 4) ||
                 (isNes2Header && ((ram && nvram) ||
@@ -255,7 +269,7 @@ namespace R2NES::Core
                                   (submapper == 3 && (ram || nvram)) || chrRam != (chrBanks ? 0 : 7) ||
                                   (static_cast<uint8_t>(header.unused[3]) & 3))))
             {
-                std::cerr << "Error: Unsupported Mapper 23 memory/submapper configuration." << std::endl;
+                std::cerr << "Error: Unsupported Mapper " << mapperID << " memory/submapper configuration." << std::endl;
                 return false;
             }
         }
@@ -350,6 +364,61 @@ namespace R2NES::Core
                 return false;
             }
         }
+        if (mapperID == 83)
+        {
+            const bool largeChr = isNes2Header ? submapper == 1 : chrBanks > 32;
+            if (!prgBanks || prgBanks > 16 || (prgBanks & (prgBanks - 1)) || !chrBanks ||
+                chrBanks > (largeChr ? 64 : 32) || (chrBanks & (chrBanks - 1)) ||
+                mirror == MirrorMode::FOUR_SCREEN || (header.mapper1 & 6) ||
+                (isNes2Header && (submapper > 1 || header.tv_system2 || header.unused[0] ||
+                                  (static_cast<uint8_t>(header.unused[3]) & 3))))
+            {
+                std::cerr << "Error: Unsupported Mapper 83 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        if (mapperID == 52)
+        {
+            const uint32_t ram = isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : 8192;
+            const bool validPrg = prgBanks && prgBanks <= 64 && !(prgBanks & (prgBanks - 1));
+            const bool validChr = chrBanks && chrBanks <= 128 && !(chrBanks & (chrBanks - 1));
+            if (!validPrg || !validChr || mirror == MirrorMode::FOUR_SCREEN || (header.mapper1 & 4) ||
+                (ram != 0 && ram != 8192) ||
+                (isNes2Header && (submapper != 0 || (mmc1Config.prgRamSize && mmc1Config.prgNvRamSize) ||
+                                  (((header.mapper1 & 2) != 0) != (mmc1Config.prgNvRamSize != 0)) || header.unused[0] != 0 ||
+                                  (static_cast<uint8_t>(header.unused[3]) & 3))))
+            {
+                std::cerr << "Error: Unsupported Mapper 52 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        if (mapperID == 91)
+        {
+            const bool validPrg = prgBanks && prgBanks <= 32 && !(prgBanks & (prgBanks - 1));
+            const bool validChr = chrBanks && chrBanks <= 128 && !(chrBanks & (chrBanks - 1));
+            if (!validPrg || !validChr || mirror == MirrorMode::FOUR_SCREEN || (header.mapper1 & 6) ||
+                (isNes2Header && (submapper != 0 || header.tv_system2 != 0 || header.unused[0] != 0 ||
+                                  (static_cast<uint8_t>(header.unused[3]) & 3))))
+            {
+                std::cerr << "Error: Unsupported Mapper 91 memory/submapper configuration." << std::endl;
+                return false;
+            }
+        }
+        if (mapperID == 210)
+        {
+            const uint32_t ram = isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : ((header.mapper1 & 2) ? 8192 : 0);
+            const bool variant175 = submapper == 1 || (submapper == 0 && ram != 0);
+            if (!prgBanks || prgBanks > 32 || (prgBanks & (prgBanks - 1)) || !chrBanks || chrBanks > 32 ||
+                (chrBanks & (chrBanks - 1)) || mirror == MirrorMode::FOUR_SCREEN || (header.mapper1 & 4) ||
+                ram > 8192 || (ram && (ram & (ram - 1))) || (!variant175 && ram) ||
+                (isNes2Header && (submapper > 2 || (mmc1Config.prgRamSize && mmc1Config.prgNvRamSize) ||
+                                  ((header.mapper1 & 2) != 0) != (mmc1Config.prgNvRamSize != 0) || header.unused[0] != 0 ||
+                                  (static_cast<uint8_t>(header.unused[3]) & 3))))
+            {
+                std::cerr << "Error: Unsupported Mapper 210 memory configuration." << std::endl;
+                return false;
+            }
+        }
         if (mapperID == 211)
         {
             const bool validPrg = prgBanks && prgBanks <= 32 && !(prgBanks & (prgBanks - 1));
@@ -437,7 +506,7 @@ namespace R2NES::Core
         if (prgSize > buffer.size() - offset)
         {
             if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
-                mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 51 || mapperID == 58 || mapperID == 202 || mapperID == 211 || mapperID == 212 || isNes2Header)
+                mapperID == 11 || mapperID == 23 || mapperID == 27 || mapperID == 83 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 51 || mapperID == 58 || mapperID == 202 || mapperID == 52 || mapperID == 91 || mapperID == 210 || mapperID == 211 || mapperID == 212 || isNes2Header)
             {
                 std::cerr << "Error: Truncated PRG ROM." << std::endl;
                 return false;
@@ -471,7 +540,7 @@ namespace R2NES::Core
             if (chrSize > buffer.size() - offset)
             {
                 if (mapperID == 1 || mapperID == 2 || mapperID == 3 || mapperID == 4 || mapperID == 5 || mapperID == 9 ||
-                    mapperID == 11 || mapperID == 23 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 51 || mapperID == 58 || mapperID == 202 || mapperID == 211 || mapperID == 212 || isNes2Header)
+                    mapperID == 11 || mapperID == 23 || mapperID == 27 || mapperID == 83 || mapperID == 69 || mapperID == 79 || mapperID == 147 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 51 || mapperID == 58 || mapperID == 202 || mapperID == 52 || mapperID == 91 || mapperID == 210 || mapperID == 211 || mapperID == 212 || isNes2Header)
                 {
                     std::cerr << "Error: Truncated CHR ROM." << std::endl;
                     return false;
@@ -491,6 +560,23 @@ namespace R2NES::Core
             }
             std::vector<uint8_t> chrData(chrSize);
             std::memcpy(chrData.data(), buffer.data() + offset, chrSize);
+            // The legacy Mario 7-in-1 dump was read with CHR A18/A19
+            // exchanged. Normalize only this exact image, keeping the original
+            // payload hash for saves and cheats. See NESdev mapper 52 notes:
+            // https://forums.nesdev.org/viewtopic.php?p=89396
+            if (mapperID == 52 && !isNes2Header && prgBanks == 64 && chrBanks == 128 &&
+                !(header.mapper1 & 0x0C) && calculateRomHash(buffer) == "68FE207F")
+            {
+                constexpr size_t chunk = 0x20000;
+                for (unsigned bank = 0; bank < 8; ++bank)
+                {
+                    const unsigned swapped = (bank & 1) | ((bank & 2) << 1) | ((bank & 4) >> 1);
+                    if (bank < swapped)
+                        std::swap_ranges(chrData.begin() + bank * chunk, chrData.begin() + (bank + 1) * chunk,
+                                         chrData.begin() + swapped * chunk);
+                }
+                std::cout << "Cartridge: corrected legacy Mario 7-in-1 CHR bank order (CRC 68FE207F)." << std::endl;
+            }
             chrROM = std::make_unique<CHRROM>(std::move(chrData));
         }
 
@@ -542,6 +628,12 @@ namespace R2NES::Core
                                                   static_cast<uint16_t>(isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : 8192),
                                                   isNes2Header ? mmc1Config.prgNvRamSize != 0 : (header.mapper1 & 2) != 0);
             break;
+        case 27:
+            // World Hero's VRC4 wiring connects CPU A0/A1 directly.
+            pMapper = std::make_shared<Mapper023>(prgBanks, chrBanks, mirror, 1,
+                                                  static_cast<uint16_t>(isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : 8192),
+                                                  isNes2Header ? mmc1Config.prgNvRamSize != 0 : (header.mapper1 & 2) != 0);
+            break;
         case 40:
             pMapper = std::make_shared<Mapper040>(prgBanks, chrBanks);
             break;
@@ -561,8 +653,27 @@ namespace R2NES::Core
         case 90:
             pMapper = std::make_shared<Mapper090>(prgBanks, chrBanks);
             break;
+        case 52:
+        {
+            const uint32_t ram = isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : 8192;
+            pMapper = std::make_shared<Mapper052>(prgBanks, chrBanks, mirror, ram, (header.mapper1 & 2) != 0);
+            break;
+        }
+        case 91:
+            pMapper = std::make_shared<Mapper091>(prgBanks, chrBanks, mirror);
+            break;
+        case 210:
+        {
+            const uint32_t ram = isNes2Header ? mmc1Config.prgRamSize + mmc1Config.prgNvRamSize : ((header.mapper1 & 2) ? 8192 : 0);
+            const bool variant175 = submapper == 1 || (submapper == 0 && ram != 0);
+            pMapper = std::make_shared<Mapper210>(prgBanks, chrBanks, mirror, variant175, ram, (header.mapper1 & 2) != 0);
+            break;
+        }
         case 211:
             pMapper = std::make_shared<Mapper211>(prgBanks, chrBanks);
+            break;
+        case 83:
+            pMapper = std::make_shared<Mapper083>(prgBanks, chrBanks, isNes2Header ? submapper == 1 : chrBanks > 32, mirror);
             break;
         case 79:
             pMapper = std::make_shared<Mapper079>(prgBanks, chrBanks, mirror);
@@ -753,7 +864,7 @@ namespace R2NES::Core
         if (pMapper &&
             (mapperID == 1 || mapperID == 4 || mapperID == 5 || mapperID == 7 || mapperID == 9 ||
              mapperID == 11 || mapperID == 19 || mapperID == 21 || mapperID == 22 ||
-             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 69 || mapperID == 71 || mapperID == 85 || mapperID == 90 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 51 || mapperID == 58 || mapperID == 202 || mapperID == 211 || mapperID == 212))
+             mapperID == 23 || mapperID == 24 || mapperID == 26 || mapperID == 27 || mapperID == 83 || mapperID == 69 || mapperID == 71 || mapperID == 83 || mapperID == 85 || mapperID == 90 || mapperID == 150 || mapperID == 187 || mapperID == 189 || mapperID == 51 || mapperID == 58 || mapperID == 202 || mapperID == 52 || mapperID == 91 || mapperID == 210 || mapperID == 211 || mapperID == 212))
         {
             return pMapper->getMirrorMode();
         }

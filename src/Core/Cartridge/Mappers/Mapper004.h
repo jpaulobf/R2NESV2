@@ -47,6 +47,9 @@ namespace R2NES::Core
         void saveState(std::ostream &os) override;
         void loadState(std::istream &is) override;
 
+    protected:
+        bool isPrgRamWritable() const { return bPRGRAMEnabled && !bPRGRAMWriteProtected; }
+
     private:
         Configuration configuration;
         bool mmc6RamEnabled = false;
