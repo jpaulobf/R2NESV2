@@ -8,14 +8,16 @@ R2NES V2 is a NES emulator written in C++17, using SDL3 and Dear ImGui. It runs 
 
 [Download releases](https://github.com/jpaulobf/R2NESV2/releases) · [Compatibility](COMPATIBILITY_LIST.md) · [Changelog](CHANGELOG.md) · [Test documentation](tests/README.md)
 
+**Accuracy Coin: 147/147 tests passed** in the documented NTSC run on November 15, 2026. See the [results and test conditions](docs/ACCURACYCOIN_RESULTS.md) for details.
+
 ## Features
 
-- CPU bus accesses distributed across instruction cycles, synchronized with the PPU.
-- Background and sprite rendering, scrolling, Sprite 0 Hit, and selectable palettes and scanlines.
+- Cycle-based CPU bus accesses synchronized with the PPU, including interrupt and DMA timing.
+- Background and sprite rendering, scrolling, Sprite 0 Hit, selectable palettes and scanlines, and detailed PPU register and OAM behavior.
 - Pulse, triangle, noise, and DMC audio, with individual channel controls, plus Sunsoft 5B expansion audio.
 - Selectable NTSC and PAL console timing under **Display → Console Region**; changing region resets the console.
-- Keyboard, up to two gamepads, turbo buttons, and mouse-controlled Zapper.
-- Three save-state slots, battery saves for supported boards, rewind with selectable precision, and fast forward.
+- Configurable keyboard controls, up to two gamepads, turbo buttons, and mouse-controlled Zapper.
+- Three save-state slots, battery saves for supported boards, rewind with selectable precision, fast forward, and optional CPU overclock.
 - Game Genie and RAM cheats, with master and individual entry controls.
 - CPU disassembler and viewers for RAM, VRAM, OAM, palettes, and pattern tables.
 - iNES/NES 2.0 and supported UNIF images, loaded directly or from ZIP archives. UNIF is detected by content, including images named `.nes`.
@@ -26,7 +28,7 @@ sizes and CRC. Encrypted, multi-disk and ZIP64 archives are not supported.
 
 Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 27, 40, 51, 52, 58, 66, 69, 71, 79, 83, 90, 91, 147, 150, 187, 189, 202, 210, 211, and 212**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
 
-Recent optimizations reduce rewind allocations and copies, repeated CPU instruction classification, and per-dot PPU bookkeeping. Rewind presentation also avoids duplicate rendering within a loop iteration. Regression checks cover instruction cycles, open-bus decay, snapshots, and mapper timing; performance gains depend on the game and settings.
+Recent accuracy work covers CPU interrupts and unofficial instructions, OAM and DMC DMA, APU frame and DMC timing, and PPU register, rendering and sprite evaluation behavior. Regression tests exercise cycle timing, open bus, state restoration and mapper behavior. Optimizations also reduce rewind allocations, repeated CPU instruction classification and PPU bookkeeping; performance gains depend on the game and settings.
 
 ## Playing
 
@@ -47,20 +49,20 @@ Load a `.nes`, `.unf`, `.unif`, or `.zip` image from the **File** menu. Enable r
 | Reset | F12 |
 | Zapper trigger | Left mouse button |
 
-Gamepads support directional and action buttons, Start/Back, and turbo controls. Choose the save-state slot under **File → Save State Slot**, and enable the Zapper under **Input**.
+Gamepads support directional and action buttons, Start/Back, and turbo controls. Configure keyboard bindings under **Input → Configure Keyboard**, choose the save-state slot under **File → Save State Slot**, and enable the Zapper under **Input**.
 
 Save states are stored in `savestates/`. Battery saves use `battery/<ROM CRC32>.sav`, relative to the working directory, and are written on ROM replacement, unload, or normal exit. Battery persistence covers mappers 1, 4, 5, 23, 27, 52, 69 and 210 when battery-backed RAM is present, and explicitly declared mapper 9 RAM extensions; standard Punch-Out!! has no battery. Read/write failures are shown in the interface.
 
 ## Compatibility
 
-R2NES is actively developed. Mapper support does not guarantee that every game using it works correctly. CPU/PPU/APU timing and board coverage remain incomplete, and a small number of ROM-specific workarounds are still present.
+R2NES is actively developed. Mapper support and the Accuracy Coin result do not guarantee that every game or hardware behavior is reproduced correctly. The documented Accuracy Coin run targets NTSC; PAL timing and board coverage are not fully validated.
 
 - NTSC save states use `R2Na` and PAL states use `R2Nb`. States cannot be exchanged between regions. Older formats are rejected, and earlier emulator versions cannot read the current formats.
 - Unlimited Sprites changes hardware behavior. Disable it when checking normal sprite limits and compatibility.
 - Mapper 23 supports the iNES VRC4-compatible superset and NES 2.0 submappers 1 (VRC4f), 2 (VRC4e) and 3 (VRC2b); see the [test documentation](tests/README.md) for memory limits. Mapper 147 supports the 72-pin latch variant; the JV001 variant is not implemented. Mapper 150 supports the CPU D2 pad setting.
 - Mapper 27 uses the VRC4 core with direct A0/A1 decoding. Mapper 52 supports the MMC3 multicart variant; mixed CHR-ROM/CHR-RAM submappers are not implemented. Mapper 83 supports single-game submappers 0 and 1, while mapper 91 supports submapper 0. Mapper 210 supports Namco 175 and 340 boards.
 - Known legacy dumps of *Mortal Kombat 2* (CRC `60BFEB0C`) and *Mario 7-in-1* (CRC `68FE207F`) receive content-specific mapper or CHR bank-order corrections. The original ROM and its save identifier are preserved.
-- Video currently uses SDL3's `SDL_Renderer`. Custom GPU shaders remain future work.
+- Video uses SDL3's `SDL_Renderer`. On Windows, the built-in shader effects use Direct3D 11 and include Scanlines, HQ2, ScaleFX, CRT and CRT 3D.
 
 See the [compatibility list](COMPATIBILITY_LIST.md) for game observations and the [test documentation](tests/README.md) for board details, automated checks, and known limitations.
 
@@ -92,7 +94,7 @@ cmake -S . -B build-linux -DCMAKE_BUILD_TYPE=Release
 cmake --build build-linux --parallel
 ```
 
-The executable and resources are placed in `bin/`. Keep the `resources/` directory beside the executable.
+The executable and resources are placed in `bin/`. Keep the `resources/` and `shaders/` directories beside the executable.
 
 ### Core-only build
 
