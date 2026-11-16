@@ -43,6 +43,7 @@ namespace R2NES::Core
     {
         if (addr < 0x8000)
             return false;
+        // O dado escrito é ignorado: são as linhas do endereço que entram no latch.
         addressLatch = static_cast<uint8_t>((addr & 0x0F) | ((addr >> 10) & 0x10));
         mapped = 0xFFFFFFFF;
         return true;
