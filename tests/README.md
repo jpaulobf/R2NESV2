@@ -1019,3 +1019,14 @@ cmake --build build-headless --target mapper051-tests
 ```
 
 The local 11-in-1 Ball Games image has payload CRC `1B177D1E`; the menu and Lunar Ball title were observed. The implementation follows [Mesen's BMC51](https://github.com/SourMesen/Mesen2/blob/master/Core/NES/Mappers/Unlicensed/Bmc51.h), including the `$C000-$DFFF` mode update. It accepts iNES and NES 2.0 submapper 0, with power-of-two PRG sizes up to 512 KiB and 8 KiB CHR RAM; other board variants and mislabeled CHR-ROM dumps are not supported. Full playthroughs remain to be tested.
+
+### Mapper 211 (J.Y. Company)
+
+`mapper211-tests` covers conventional and extended CIRAM mirroring, per-nametable CHR-ROM selection, `$3000` mirrors, CHR latch transitions, register decoding, malformed headers and save-state rollback. The optional ROM argument executes 600 frames, presses Start and verifies video and save-state restoration:
+
+```sh
+cmake --build build-headless --target mapper211-tests
+./build-headless/bin/mapper211-tests.exe '<mapper211.zip>'
+```
+
+The local Donkey Kong Country 4 and Tiny Toon Adventures 6 dumps (payload CRCs `1BA42CE0` and `062DCB6D`) showed title/intro screens and restored states. Full games were not tested. Mapper 211 follows the modern [NESdev J.Y. ASIC description](https://www.nesdev.org/wiki/INES_Mapper_211), including register-controlled rather than forced extended mirroring. The implementation currently accepts iNES or NES 2.0 submapper 0 with power-of-two PRG/CHR ROM sizes up to 512 KiB each, no PRG RAM, no CHR RAM, no trainer and no battery. It reuses the Mapper 90 banking and IRQ core; full hardware timing and larger outer PRG banks remain to be verified.
