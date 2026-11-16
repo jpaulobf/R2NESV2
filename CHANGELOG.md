@@ -4,6 +4,7 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+- Suporte inicial ao Mapper 211: nametables, latches CHR e save states, testado com duas ROMs J.Y. Company.
 - Suporte ao Mapper 51: modos de bancos PRG, janela em $6000, CHR-RAM, espelhamento e save states; testado com a coletânea 11-in-1 Ball Games.
 - Suporte ao Mapper 58: bancos PRG/CHR e espelhamento pelo endereço, com save state e teste da coletânea 118-in-1.
 - Suporte aos Mappers 202 e 212: seleção de bancos pelo endereço, espelhamento H/V e save states. A variante 202 aceita o dump de 56 KiB de CHR; o 212 expõe a leitura de identificação com contatos de menu fixados em zero. Testes sintéticos e inicialização de uma coletânea de cada placa, com seleção e restauração, passaram.

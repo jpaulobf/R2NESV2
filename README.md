@@ -24,7 +24,7 @@ ROM images are limited to 64 MiB and ZIP archives to 128 MiB. ZIP loading
 supports stored and DEFLATE entries, including data descriptors, and checks
 sizes and CRC. Encrypted, multi-disk and ZIP64 archives are not supported.
 
-Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 51, 58, 66, 69, 71, 79, 90, 147, 150, 187, 189, 202, and 212**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
+Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 51, 58, 66, 69, 71, 79, 90, 147, 150, 187, 189, 202, 211, and 212**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
 
 Recent optimizations reduce rewind allocations and copies, repeated CPU instruction classification, and per-dot PPU bookkeeping. Rewind presentation also avoids duplicate rendering within a loop iteration. Regression checks cover instruction cycles, open-bus decay, snapshots, and mapper timing; performance gains depend on the game and settings.
 
