@@ -32,6 +32,41 @@ Historical CPU/APU diagnostic failures are recorded in the mapper 4 section
 below; they are not registered in the default suite and have not been rechecked
 by simply running CTest. See the individual sections for precise scenarios.
 
+## Mapper 52 (MMC3 multicart)
+
+`mapper052-tests` covers MMC3 inner and outer PRG/CHR banking, register
+locking, RAM permissions and battery data, save states and header validation.
+An optional ROM path checks menu selection and save/load over 600 frames,
+and verifies CHR normalization for legacy Mario 7-in-1 CRC 68FE207F.
+NES 2.0 mixed CHR-ROM/CHR-RAM submappers are not supported.
+
+## Mapper 83 (Cony single-game boards)
+
+`mapper083-tests` covers 1 KiB and 2 KiB CHR variants, PRG modes, mirroring,
+scratch registers, CPU/PPU-clocked IRQs, state restoration and header checks.
+An optional ROM path exercises World Heroes 2 for 900 frames with save/load.
+NES 2.0 submappers 2 and 3 and mapper 264 are not supported.
+
+## Mapper 91 (HK-SF3)
+
+`mapper091-tests` covers PRG and CHR banking, outer banks, register mirrors,
+unfiltered PPU A12 IRQ edges, state restoration and NES 2.0 header validation.
+The optional ROM argument runs a 600-frame smoke test with save/load. This
+implementation supports submapper 0; submapper 1 is rejected.
+
+## Mapper 210 (Namco 175/340)
+
+`mapper210-tests` covers PRG and CHR banks, mirroring, RAM protection,
+battery data, state restoration and NES 2.0 header validation. An optional
+ROM path runs a 600-frame smoke test for the legacy Mortal Kombat 2 dump
+(CRC 60BFEB0C), whose mapper 210 header is corrected to mapper 90.
+
+## Mapper 27 (World Hero VRC4)
+
+`mapper027-tests` verifies cartridge dispatch, direct A0/A1 register decoding,
+9-bit CHR banking, mirroring, IRQ, state restoration and header validation.
+An optional ROM path exercises World Hero for 900 frames with save/load.
+
 ## Mapper 23 (VRC2b/VRC4)
 
 `mapper023-tests` exercises the VRC2b latch and open bus, VRC4 banks,
