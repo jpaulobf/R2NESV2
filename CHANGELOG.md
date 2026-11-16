@@ -2,6 +2,22 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [1.5.0] - 2026-11-16
+
+### Adicionado
+
+- Mapper 27: variante VRC4 com bancos CHR de 9 bits, espelhamento e IRQ; *World Hero* foi testado em jogo.
+- Mapper 52: multicart baseado em MMC3, com bancos externos PRG/CHR, bloqueio do registrador, RAM com bateria e save states; testado com *Mario 7-in-1*.
+- Mapper 83: suporte às placas Cony de jogo único com bancos CHR de 1 ou 2 KiB, modos PRG, espelhamento e IRQ; *World Heroes 2* foi testado até a seleção de personagens. Os submappers 2 e 3 não são suportados.
+- Mapper 91: bancos PRG/CHR e IRQ por bordas de A12 da PPU; *Street Fighter III (18 Fighter)* foi testado até produzir vídeo. O submapper 1 não é suportado.
+- Mapper 210: variantes Namco 175 e 340, com bancos PRG/CHR, espelhamento e RAM com bateria quando presente.
+- Testes automatizados para os novos mappers, incluindo bancos, interrupções, validação de cabeçalhos e restauração de estados conforme aplicável.
+
+### Corrigido
+
+- O dump legado de *Mortal Kombat 2* com CRC `60BFEB0C` declara mapper 210, mas usa mapper 90; o cartucho é identificado pelo conteúdo e carregado com a placa correta.
+- O dump legado de *Mario 7-in-1* com CRC `68FE207F` tem a ordem dos bancos CHR ajustada em memória para corrigir os gráficos, preservando o arquivo original e o CRC usado para saves.
+
 ## [1.4.0] - 2026-11-15
 
 - Suporte inicial ao Mapper 211: nametables, latches CHR e save states, testado com duas ROMs J.Y. Company.

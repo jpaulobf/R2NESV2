@@ -24,7 +24,7 @@ ROM images are limited to 64 MiB and ZIP archives to 128 MiB. ZIP loading
 supports stored and DEFLATE entries, including data descriptors, and checks
 sizes and CRC. Encrypted, multi-disk and ZIP64 archives are not supported.
 
-Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 51, 58, 66, 69, 71, 79, 90, 147, 150, 187, 189, 202, 211, and 212**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
+Implemented mapper IDs: **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 27, 40, 51, 52, 58, 66, 69, 71, 79, 83, 90, 91, 147, 150, 187, 189, 202, 210, 211, and 212**. Supported UNIF boards include `CNROM`, `SA-016-1M`, `TC-U01-1.5M`, and `Sachen-74LS374N`. Board variants and supported memory sizes vary; see the [test documentation](tests/README.md).
 
 Recent optimizations reduce rewind allocations and copies, repeated CPU instruction classification, and per-dot PPU bookkeeping. Rewind presentation also avoids duplicate rendering within a loop iteration. Regression checks cover instruction cycles, open-bus decay, snapshots, and mapper timing; performance gains depend on the game and settings.
 
@@ -49,7 +49,7 @@ Load a `.nes`, `.unf`, `.unif`, or `.zip` image from the **File** menu. Enable r
 
 Gamepads support directional and action buttons, Start/Back, and turbo controls. Choose the save-state slot under **File → Save State Slot**, and enable the Zapper under **Input**.
 
-Save states are stored in `savestates/`. Battery saves use `battery/<ROM CRC32>.sav`, relative to the working directory, and are written on ROM replacement, unload, or normal exit. Battery persistence covers mappers 1, 4, 5, 69, and explicitly declared mapper 9 RAM extensions; standard Punch-Out!! has no battery. Read/write failures are shown in the interface.
+Save states are stored in `savestates/`. Battery saves use `battery/<ROM CRC32>.sav`, relative to the working directory, and are written on ROM replacement, unload, or normal exit. Battery persistence covers mappers 1, 4, 5, 23, 27, 52, 69 and 210 when battery-backed RAM is present, and explicitly declared mapper 9 RAM extensions; standard Punch-Out!! has no battery. Read/write failures are shown in the interface.
 
 ## Compatibility
 
@@ -58,6 +58,8 @@ R2NES is actively developed. Mapper support does not guarantee that every game u
 - NTSC save states use `R2Na` and PAL states use `R2Nb`. States cannot be exchanged between regions. Older formats are rejected, and earlier emulator versions cannot read the current formats.
 - Unlimited Sprites changes hardware behavior. Disable it when checking normal sprite limits and compatibility.
 - Mapper 23 supports the iNES VRC4-compatible superset and NES 2.0 submappers 1 (VRC4f), 2 (VRC4e) and 3 (VRC2b); see the [test documentation](tests/README.md) for memory limits. Mapper 147 supports the 72-pin latch variant; the JV001 variant is not implemented. Mapper 150 supports the CPU D2 pad setting.
+- Mapper 27 uses the VRC4 core with direct A0/A1 decoding. Mapper 52 supports the MMC3 multicart variant; mixed CHR-ROM/CHR-RAM submappers are not implemented. Mapper 83 supports single-game submappers 0 and 1, while mapper 91 supports submapper 0. Mapper 210 supports Namco 175 and 340 boards.
+- Known legacy dumps of *Mortal Kombat 2* (CRC `60BFEB0C`) and *Mario 7-in-1* (CRC `68FE207F`) receive content-specific mapper or CHR bank-order corrections. The original ROM and its save identifier are preserved.
 - Video currently uses SDL3's `SDL_Renderer`. Custom GPU shaders remain future work.
 
 See the [compatibility list](COMPATIBILITY_LIST.md) for game observations and the [test documentation](tests/README.md) for board details, automated checks, and known limitations.
