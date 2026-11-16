@@ -88,6 +88,11 @@ namespace R2NES::Core
                 std::cerr << "Error: " << error << std::endl;
                 return false;
             }
+            // This Sachen dump switches CHR by writing to $8000, where the
+            // PRG byte masks the desired bank if CNROM bus conflicts are used.
+            // UNIF's NES-CNROM board name does not describe this distinction.
+            if (normalized[6] >> 4 == 3 && calculateRomHash(normalized) == "D04A40E6")
+                normalized[8] = 0x10; // NES 2.0 mapper 3, no bus conflicts.
             // Hash do payload PRG+CHR normalizado, independente dos metadados UNIF.
             if (!loadFromBuffer(normalized))
                 return false;

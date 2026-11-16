@@ -300,6 +300,18 @@ static void boot(const char *path)
     FixtureNES nes;
     nes.insertCartridge(path);
     check(nes.isCartridgeLoaded(), "Real Sachen archive rejected");
+    FixtureCartridge cart(path);
+    if (cart.getRomHash() == "D04A40E6")
+    {
+        Bytes normalized;
+        std::string error;
+        check(decodeSachenUNIF(fixtureRom(path), normalized, error), "Bingo UNIF decode failed");
+        cart.cpuWrite(0x8000, 3, 0);
+        uint8_t value = 0;
+        for (unsigned addr = 0; addr < 8192; ++addr)
+            check(cart.ppuRead(addr, value, 0) && value == normalized[16 + 32768 + 3 * 8192 + addr],
+                  "Bingo CHR bank selection affected by bus conflicts");
+    }
     unsigned frames = 0;
     uint32_t first = 0;
     bool visible = false;

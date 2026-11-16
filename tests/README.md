@@ -911,6 +911,8 @@ The implemented solder pad connects CPU D2; the alternate Vcc setting and
 mapper 243 are not included. UNIF requires mapper-controlled `MIRR=5` for this
 board and still rejects that mode for fixed-mirroring boards.
 CNROM UNIF maps to NES 2.0 mapper 3 submapper 2, including AND bus conflicts.
+The 75 Bingo payload `D04A40E6` is an exception: its bank writes require
+submapper 1 (no bus conflicts), selected only for that exact UNIF payload.
 
 ```powershell
 cmake -S . -B build -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
