@@ -1,7 +1,7 @@
 # R2NES V2
 
 <div align="center">
-  <img src="https://github.com/jpaulobf/R2NES/blob/main/nesemu%2F.assets%2Flogob.png"/>
+  <img src="https://github.com/jpaulobf/R2NESV2/blob/main/resources/logo.png"/>
 </div>
 
 R2NES V2 is a NES emulator written in C++17, using SDL3 and Dear ImGui. It runs on Windows and Linux and includes save states, battery saves, rewind, gamepad support, and debugging tools.
