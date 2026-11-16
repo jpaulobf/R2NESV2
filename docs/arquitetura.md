@@ -100,7 +100,7 @@ O loop usa espera por eventos entre prazos de trabalho e limita os lotes de fast
 
 O carregador aceita `.nes` e `.zip` contendo uma imagem `.nes`. Interpreta cabeçalhos iNES e informações NES 2.0, com validações específicas por mapper; o reconhecimento do formato não implica suporte a todas as suas variantes.
 
-Há implementações para os IDs **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 51, 58, 66, 69, 71, 79, 90, 147, 150, 187, 189, 202 e 212**. A fábrica de seleção fica em `Cartridge.cpp`; a interface comum fica em `Mappers/Mapper.h`.
+Há implementações para os IDs **0, 1, 2, 3, 4, 5, 7, 9, 11, 23, 40, 51, 58, 66, 69, 71, 79, 90, 147, 150, 187, 189, 202, 211 e 212**. A fábrica de seleção fica em `Cartridge.cpp`; a interface comum fica em `Mappers/Mapper.h`.
 
 Alguns cuidados recorrentes:
 
